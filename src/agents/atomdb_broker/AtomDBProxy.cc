@@ -8,7 +8,6 @@
 #include "ServiceBus.h"
 #include "Utils.h"
 
-#define LOG_LEVEL DEBUG_LEVEL
 #include "Logger.h"
 
 using namespace atomdb_broker;
