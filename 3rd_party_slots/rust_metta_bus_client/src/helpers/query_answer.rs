@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 
 use hyperon_atom::{matcher::Bindings, Atom, VariableAtom};
 
@@ -13,7 +13,8 @@ const MAX_NUMBER_OF_VARIABLES_IN_QUERY: usize = 100;
 pub struct QueryAnswer {
 	pub strength: f64,
 	pub importance: f64,
-	pub handles: HashSet<String>,
+	/// Handle groups from the service: one inner vector per matched clause / outer result.
+	pub handles: Vec<Vec<String>>,
 	pub assignment: HashMap<String, String>,
 	pub metta_expression: HashMap<String, String>,
 }
@@ -30,15 +31,29 @@ impl QueryAnswer {
 		self.importance = importance.parse::<f64>().unwrap_or(0.0);
 
 		let number = read_token(token_string, &mut cursor, 4)?;
-		let handles_size = number.parse::<usize>().unwrap_or(0);
-		if handles_size > MAX_NUMBER_OF_OPERATION_CLAUSES {
-			return Err(
-				format!("Invalid handles_size: {handles_size} untokenizing QueryAnswer").into()
-			);
+		let outer_handles_size = number.parse::<usize>().unwrap_or(0);
+		if outer_handles_size > MAX_NUMBER_OF_OPERATION_CLAUSES {
+			return Err(format!(
+				"Invalid outer handles group count: {outer_handles_size} untokenizing QueryAnswer"
+			)
+			.into());
 		}
-		for _ in 0..handles_size {
-			let handle = read_token(token_string, &mut cursor, HANDLE_HASH_SIZE)?;
-			self.handles.insert(handle);
+		self.handles.reserve(outer_handles_size);
+		for _ in 0..outer_handles_size {
+			let number = read_token(token_string, &mut cursor, 4)?;
+			let inner_handles_size = number.parse::<usize>().unwrap_or(0);
+			if inner_handles_size > MAX_NUMBER_OF_OPERATION_CLAUSES {
+				return Err(format!(
+					"Invalid inner handles count: {inner_handles_size} untokenizing QueryAnswer"
+				)
+				.into());
+			}
+			let mut inner = Vec::with_capacity(inner_handles_size);
+			for _ in 0..inner_handles_size {
+				let handle = read_token(token_string, &mut cursor, HANDLE_HASH_SIZE)?;
+				inner.push(handle);
+			}
+			self.handles.push(inner);
 		}
 
 		let number = read_token(token_string, &mut cursor, 4)?;
@@ -69,6 +84,19 @@ impl QueryAnswer {
 			return Err("Invalid token string - invalid text after QueryAnswer definition".into());
 		}
 		Ok(())
+	}
+
+	pub fn print_path(&self) -> String {
+		if self.handles.len() <= 1 {
+			return String::new();
+		}
+		let mut result = vec![];
+		for path in self.handles[1..].iter() {
+			for handle in path.iter() {
+				result.push(self.metta_expression.get(handle).unwrap_or(&handle.clone()).clone());
+			}
+		}
+		format!("[{}]", result.join(", "))
 	}
 }
 
@@ -131,9 +159,7 @@ fn read_metta_expression(token_string: &str, cursor: &mut usize) -> Result<Strin
 		.map(|s| s.trim().to_string())
 }
 
-pub fn parse_query_answer(
-	query_answer_str: &str, populate_metta_mapping: bool,
-) -> Result<Bindings, BoxError> {
+pub fn parse_query_answer(query_answer_str: &str) -> Result<QueryAnswer, BoxError> {
 	log::trace!(target: "das", "{query_answer_str}");
 
 	let mut query_answer = QueryAnswer::default();
@@ -141,6 +167,12 @@ pub fn parse_query_answer(
 
 	log::trace!(target: "das", "{query_answer:?}");
 
+	Ok(query_answer)
+}
+
+pub fn query_answer_to_bindings(
+	query_answer: &QueryAnswer, populate_metta_mapping: bool,
+) -> Result<Bindings, BoxError> {
 	let mut bindings = Bindings::new();
 	for (key, value) in query_answer.assignment.iter() {
 		if populate_metta_mapping {
@@ -153,6 +185,5 @@ pub fn parse_query_answer(
 				bindings.add_var_binding(VariableAtom::new(key), Atom::sym(value.clone()))?;
 		}
 	}
-
 	Ok(bindings)
 }
