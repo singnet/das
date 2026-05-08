@@ -1,3 +1,4 @@
+#define LOG_LEVEL DEBUG_LEVEL
 #include <signal.h>
 
 #include <filesystem>
@@ -78,11 +79,18 @@ static unsigned int POPULATION_SIZE = 50;
 static unsigned int MAX_GENERATIONS = 20;
 static unsigned int NUM_ITERATIONS = 10;
 
+static string TARGET_CONCEPT = "undefined";
+static string TARGET_PREDICATE = "undefined";
+static string TARGET_CONCEPT_HANDLE = "undefined";
+static string TARGET_PREDICATE_HANDLE = "undefined";
+
 static string CONTEXT_FILE_NAME_PREFIX = "/opt/das/_CONTEXT_DUMP_";
 static string NEW_LINKS_FILE_NAME = "/opt/das/newly_created_links.txt";
+static string PRESET_LINKS_FILE = "/opt/das/_PRESET_LINKS.txt";
 static bool WRITE_CREATED_LINKS_TO_DB = true;
 static bool WRITE_CREATED_LINKS_TO_FILE = true;
 static bool PRINT_CREATED_LINKS_METTA = true;
+static bool SETUP_ONLY = false;
 
 using namespace std;
 using namespace atomdb;
@@ -118,35 +126,28 @@ static string metta_chain(const string& source, const string& target, const stri
 
 static string metta_var(const string& name) { return "$" + name; }
 
-static void save_link(Link& link) {
+static string hard_wired_metta_expression(const string& handle) {
+    string answer = "UNDEFINED";
+    if (handle == TARGET_CONCEPT_HANDLE) {
+        answer = TARGET_CONCEPT;
+    } else if (handle == TARGET_PREDICATE_HANDLE) {
+        answer = TARGET_PREDICATE;
+    } else {
+        Utils::error("Unknown handle: " + handle);
+    }
+    return answer;
+}
+
+static void save_link_metta(Link& link) {
     ofstream file;
     file.open(NEW_LINKS_FILE_NAME, ios::app);
     if (file.is_open()) {
-        vector<string> tokens;
-        link.tokenize(tokens);
-        for (unsigned int i = 0; i < tokens.size(); i++) {
-            file << tokens[i];
-            if (i != tokens.size() - 1) {
-                file << " ";
-            }
-        }
-        file << endl;
+        file << link.custom_attributes.get_or<double>("strength", 1.0) << "," << link.metta_representation(*static_pointer_cast<HandleDecoder>(db).get()) << endl;
         file.close();
     } else {
         Utils::error("Couldn't open file for writing: " + NEW_LINKS_FILE_NAME);
     }
 }
-
-/*
-static double get_strength(string handle) {
-    shared_ptr<Atom> atom = db->get_atom(handle);
-    double strength = 0;
-    if (atom != nullptr) {
-        strength = atom->custom_attributes.get_or<double>(STRENGTH, 0);
-    }
-    return strength;
-}
-*/
 
 static shared_ptr<PatternMatchingQueryProxy> issue_link_building_query(
     const vector<string>& query_tokens, const string& context, unsigned int max_answers) {
@@ -158,7 +159,7 @@ static shared_ptr<PatternMatchingQueryProxy> issue_link_building_query(
     proxy->parameters[PatternMatchingQueryProxy::DISREGARD_IMPORTANCE_FLAG] = false;
     proxy->parameters[PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG] = (max_answers != 0);
     proxy->parameters[PatternMatchingQueryProxy::MAX_ANSWERS] = (unsigned int) max_answers;
-    proxy->parameters[BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS] = false;
+    proxy->parameters[BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS] = (query_tokens.size() == 1);
     proxy->parameters[BaseQueryProxy::POPULATE_METTA_MAPPING] = USE_MORK;
     proxy->parameters[PatternMatchingQueryProxy::UNIQUE_VALUE_FLAG] = false;
 
@@ -294,10 +295,6 @@ static Link add_or_update_link(const string& type_handle,
               to_string(strength) + ")");
     Link new_link(EXPRESSION, {type_handle, target1, target2}, true, {{STRENGTH, strength}});
     LOG_DEBUG("Add or update: " + new_link.to_string());
-    if (PRINT_CREATED_LINKS_METTA) {
-        LOG_INFO("ADD LINK: " +
-                 new_link.metta_representation(*static_pointer_cast<HandleDecoder>(db).get()));
-    }
     string handle = new_link.handle();
     buffer_determiners.push_back({handle, target1, target2});
     if (db->link_exists(handle)) {
@@ -311,17 +308,20 @@ static Link add_or_update_link(const string& type_handle,
             }
             if (WRITE_CREATED_LINKS_TO_FILE) {
                 LOG_DEBUG("Writing Link to file: " + NEW_LINKS_FILE_NAME);
-                save_link(new_link);
+                save_link_metta(new_link);
             }
         }
     } else {
         if (WRITE_CREATED_LINKS_TO_DB) {
             LOG_DEBUG("Creating Link in AtomDB");
+            if (PRINT_CREATED_LINKS_METTA) {
+                LOG_INFO("ADD LINK: " + new_link.metta_representation(*static_pointer_cast<HandleDecoder>(db).get()));
+            }
             db->add_link(&new_link);
         }
         if (WRITE_CREATED_LINKS_TO_FILE) {
             LOG_DEBUG("Writing Link to file: " + NEW_LINKS_FILE_NAME);
-            save_link(new_link);
+            save_link_metta(new_link);
         }
     }
     LOG_LOCAL_DEBUG("Returning from add_or_update_link()");
@@ -338,8 +338,11 @@ static Link add_predicate(const string& handle1, const string& handle2) {
         h2 = handle1;
     }
     Link new_link(EXPRESSION, {LOGICAL_AND_HANDLE, h1, h2}, false);
-    if (!db->link_exists(new_link.handle())) {
-        db->add_link(&new_link);
+    db->add_link(&new_link, false);
+    buffer_determiners.push_back({new_link.handle(), new_link.targets[1], new_link.targets[2]});
+    if (WRITE_CREATED_LINKS_TO_FILE) {
+        LOG_DEBUG("Writing Link to file: " + NEW_LINKS_FILE_NAME);
+        save_link_metta(new_link);
     }
     return new_link;
 }
@@ -372,18 +375,19 @@ static void build_implication_link(shared_ptr<QueryAnswer> query_answer,
         build_and_predicate_link(query_answer, context, custom_handle);
         predicates[0] = query_answer->get(PREDICATE1);
         predicates[1] = query_answer->get(PREDICATE2);
+        metta_predicates[0] = query_answer->metta_expression[predicates[0]];
+        metta_predicates[1] = query_answer->metta_expression[predicates[1]];
     } else {
         predicates[0] = query_answer->get(PREDICATE1);
         predicates[1] = custom_handle;
+        metta_predicates[0] = query_answer->metta_expression[predicates[0]];
+        metta_predicates[1] = hard_wired_metta_expression(custom_handle);
     }
 
     if (predicates[0] == predicates[1]) {
         LOG_DEBUG("Skipping link building because targets are the same: " + predicates[0]);
         return;
     }
-
-    metta_predicates[0] = query_answer->metta_expression[predicates[0]];
-    metta_predicates[1] = query_answer->metta_expression[predicates[1]];
 
     vector<vector<string>> query;
     for (unsigned int i = 0; i < 2; i++) {
@@ -455,18 +459,19 @@ static void build_equivalence_link(shared_ptr<QueryAnswer> query_answer,
     if (custom_handle == "") {
         concepts[0] = query_answer->get(CONCEPT1);
         concepts[1] = query_answer->get(CONCEPT2);
+        metta_concepts[0] = query_answer->metta_expression[concepts[0]];
+        metta_concepts[1] = query_answer->metta_expression[concepts[1]];
     } else {
         concepts[0] = query_answer->get(CONCEPT1);
         concepts[1] = custom_handle;
+        metta_concepts[0] = query_answer->metta_expression[concepts[0]];
+        metta_concepts[1] = hard_wired_metta_expression(custom_handle);
     }
 
     if (concepts[0] == concepts[1]) {
         LOG_DEBUG("Skipping link building because targets are the same: " + concepts[0]);
         return;
     }
-
-    metta_concepts[0] = query_answer->metta_expression[concepts[0]];
-    metta_concepts[1] = query_answer->metta_expression[concepts[1]];
 
     vector<vector<string>> query;
     for (unsigned int i = 0; i < 2; i++) {
@@ -562,15 +567,22 @@ static void print_answer(shared_ptr<QueryAnswer> query_answer) {
 static void query_evolution(
     const vector<string>& query_to_evolve,
     const vector<vector<string>>& correlation_query_template,
-    const vector<map<string, QueryAnswerElement>>& correlation_query_constants,
-    const vector<pair<QueryAnswerElement, QueryAnswerElement>>& correlation_mapping,
     const string& context) {
+
+    QueryAnswerElement qa_predicate(PREDICATE);
+    QueryAnswerElement qa_concept(CONCEPT);
+    vector<map<string, QueryAnswerElement>> correlation_query_constants = {
+        {{V1, qa_predicate}, {V2, qa_concept}}
+    };
+    vector<vector<pair<QueryAnswerElement, QueryAnswerElement>>> correlation_mapping = {
+        {{qa_predicate, qa_predicate}, {qa_concept, qa_concept}}
+    };
 
     QueryEvolutionProxy* proxy_ptr = new QueryEvolutionProxy(
         query_to_evolve,
         correlation_query_template,
         correlation_query_constants,
-        correlation_mapping,
+        correlation_mapping[0],
         context,
         FITNESS_FUNCTION);
 
@@ -691,13 +703,63 @@ static void add_to_context_file(const filesystem::path& context_file_name,
     }
 }
 
-static void run(const string& target_predicate,
-                const string& target_concept,
-                const string& target_predicate_handle,
-                const string& target_concept_handle,
-                const string& context_tag) {
-    // clang-format off
+static void add_preset_links(const vector<string>& implication_to_target_predicate_metta_query,
+                             const vector<string>& implication_to_target_predicate_query,
+                             const vector<string>& equivalence_to_target_concept_metta_query,
+                             const vector<string>& equivalence_to_target_concept_query,
+                             const vector<string>& implication_query,
+                             const vector<string>& equivalence_query,
+                             const string& context) {
 
+    ifstream file(PRESET_LINKS_FILE);
+    if (file.is_open()) {
+        LOG_INFO("Reading preset links from file: " + PRESET_LINKS_FILE);
+        vector<string> line;
+        unsigned int count = 0;
+        while (Utils::read_and_split(line, file, ',')) {
+            shared_ptr<atoms::MettaParserActions> parser_handler = make_shared<atoms::MettaParserActions>();
+            MettaParser parser(line[1], parser_handler);
+            parser.parse();
+            auto link = std::dynamic_pointer_cast<Link>(parser_handler->element_stack.top());
+            link->custom_attributes["strength"] = (double) Utils::string_to_float(line[0]);
+            LOG_DEBUG("Adding Link: [" + line[0] + "] " + line[1]);
+            db->add_link(link.get(), false);
+            count++;
+            line.clear();
+            buffer_determiners.push_back({link->handle(), link->targets[1], link->targets[2]});
+            AttentionBrokerClient::correlate({link->targets[1], link->targets[2]}, context);
+        }
+        LOG_INFO(std::to_string(count) + " preset links read.");
+    } else {
+        LOG_INFO("Couldn't open file: " + PRESET_LINKS_FILE);
+        LOG_INFO("Building Implication links to TARGET_PREDICATE");
+        build_links(
+            (USE_MORK ? implication_to_target_predicate_metta_query : implication_to_target_predicate_query),
+            context,
+            LINK_BUILDING_QUERY_SIZE,
+            TARGET_PREDICATE_HANDLE,
+            build_implication_link);
+        LOG_INFO("Building Equivalence links to TARGET_CONCEPT");
+        build_links(
+            (USE_MORK ? equivalence_to_target_concept_metta_query : equivalence_to_target_concept_query),
+            context,
+            LINK_BUILDING_QUERY_SIZE,
+            TARGET_CONCEPT_HANDLE,
+            build_equivalence_link);
+        LOG_INFO("Building Implication links");
+        build_links(implication_query, context, LINK_BUILDING_QUERY_SIZE, "", build_implication_link);
+        LOG_INFO("Building Equivalence links");
+        build_links(equivalence_query, context, LINK_BUILDING_QUERY_SIZE, "", build_equivalence_link);
+    }
+    file.close();
+    LOG_INFO("Updating determiners in AttentionBroker");
+    AttentionBrokerClient::set_determiners(buffer_determiners, context);
+    buffer_determiners.clear();
+}
+
+static void run(const string& context_tag) {
+
+    // clang-format off
     vector<string> implication_query = {
         AND_OPERATOR, "2",
             LINK_TEMPLATE, EXPRESSION, "3",
@@ -718,13 +780,13 @@ static void run(const string& target_predicate,
                 VARIABLE, CONCEPT,
             LINK_TEMPLATE, EXPRESSION, "3",
                 NODE, SYMBOL, EVALUATION,
-                ATOM, target_predicate_handle,
+                ATOM, TARGET_PREDICATE_HANDLE,
                 VARIABLE, CONCEPT,
     };
     vector<string> implication_to_target_predicate_metta_query = {
         metta_and(
             metta_expr3(EVALUATION, metta_var(PREDICATE1), metta_var(CONCEPT)),
-            metta_expr3(EVALUATION, target_predicate, metta_var(CONCEPT)))
+            metta_expr3(EVALUATION, TARGET_PREDICATE, metta_var(CONCEPT)))
     };
 
     vector<string> equivalence_query = {
@@ -748,12 +810,12 @@ static void run(const string& target_predicate,
             LINK_TEMPLATE, EXPRESSION, "3",
                 NODE, SYMBOL, EVALUATION,
                 VARIABLE, PREDICATE,
-                ATOM, target_concept_handle,
+                ATOM, TARGET_CONCEPT_HANDLE,
     };
     vector<string> equivalence_to_target_concept_metta_query = {
         metta_and(
             metta_expr3(EVALUATION, metta_var(PREDICATE), metta_var(CONCEPT1)),
-            metta_expr3(EVALUATION, metta_var(PREDICATE), target_concept))
+            metta_expr3(EVALUATION, metta_var(PREDICATE), TARGET_CONCEPT))
     };
 
     vector<string> query_to_evolve = {
@@ -764,14 +826,14 @@ static void run(const string& target_predicate,
                 VARIABLE, CONCEPT,
             CHAIN_OPERATOR, "0", "1", "2",
                 VARIABLE, PREDICATE,
-                ATOM, target_predicate_handle,
+                ATOM, TARGET_PREDICATE_HANDLE,
                 LINK_TEMPLATE, EXPRESSION, "3",
                     NODE, SYMBOL, IMPLICATION,
                     VARIABLE, PREDICATE1,
                     VARIABLE, PREDICATE2,
             CHAIN_OPERATOR, "0", "1", "2",
                 VARIABLE, CONCEPT,
-                ATOM, target_concept_handle,
+                ATOM, TARGET_CONCEPT_HANDLE,
                 LINK_TEMPLATE, EXPRESSION, "3",
                     NODE, SYMBOL, EQUIVALENCE,
                     VARIABLE, CONCEPT1,
@@ -781,8 +843,8 @@ static void run(const string& target_predicate,
         metta_and(
             metta_and(
                 metta_expr3(EVALUATION, metta_var(PREDICATE), metta_var(CONCEPT)),
-                metta_chain(metta_var(CONCEPT), target_concept, metta_expr3(EQUIVALENCE, metta_var(CONCEPT1) , metta_var(CONCEPT2)))),
-            metta_chain(metta_var(PREDICATE), target_predicate, metta_expr3(IMPLICATION, metta_var(PREDICATE1) , metta_var(PREDICATE2))))
+                metta_chain(metta_var(CONCEPT), TARGET_CONCEPT, metta_expr3(EQUIVALENCE, metta_var(CONCEPT1) , metta_var(CONCEPT2)))),
+            metta_chain(metta_var(PREDICATE), TARGET_PREDICATE, metta_expr3(IMPLICATION, metta_var(PREDICATE1) , metta_var(PREDICATE2))))
     };
 
     vector<vector<string>> correlation_query_template = {{
@@ -814,21 +876,21 @@ static void run(const string& target_predicate,
     vector<string> context_activation_query1 = {
         LINK_TEMPLATE, EXPRESSION, "3",
             NODE, SYMBOL, EVALUATION,
-            ATOM, target_predicate_handle,
+            ATOM, TARGET_PREDICATE_HANDLE,
             VARIABLE, CONCEPT,
     };
     vector<string> context_activation_metta_query1 = {
-        metta_expr3(EVALUATION, target_predicate, metta_var(CONCEPT))
+        metta_expr3(EVALUATION, TARGET_PREDICATE, metta_var(CONCEPT))
     };
 
     vector<string> context_activation_query2 = {
         LINK_TEMPLATE, EXPRESSION, "3",
             NODE, SYMBOL, EVALUATION,
             VARIABLE, PREDICATE,
-            ATOM, target_concept_handle,
+            ATOM, TARGET_CONCEPT_HANDLE,
     };
     vector<string> context_activation_metta_query2 = {
-        metta_expr3(EVALUATION, metta_var(PREDICATE), target_concept)
+        metta_expr3(EVALUATION, metta_var(PREDICATE), TARGET_CONCEPT)
     };
 
     vector<string> custom_initial_equivalence_query = {
@@ -842,20 +904,11 @@ static void run(const string& target_predicate,
             NODE, SYMBOL, PREDICATE,
             VARIABLE, V1,
     };
-
-    QueryAnswerElement qa_predicate(PREDICATE);
-    QueryAnswerElement qa_concept(CONCEPT);
-
-    vector<map<string, QueryAnswerElement>> correlation_query_constants = {
-        {{V1, qa_predicate}, {V2, qa_concept}}
-    };
-
-    vector<vector<pair<QueryAnswerElement, QueryAnswerElement>>> correlation_mapping = {
-        {{qa_predicate, qa_predicate}, {qa_concept, qa_concept}}
-    };
-
     // clang-format on
 
+    if (SETUP_ONLY) {
+        LOG_INFO("****************************** Running for SETUP only ******************************");
+    }
     LOG_INFO("Setting up context for tag: " + context_tag);
     string context = Hasher::context_handle(context_tag);
     filesystem::path context_file_name = CONTEXT_FILE_NAME_PREFIX + context + ".txt";
@@ -890,53 +943,49 @@ static void run(const string& target_predicate,
         add_to_context_file(context_file_name,
                             context,
                             ACTIVATION,
-                            {target_predicate_handle,
-                             target_predicate_handle,
-                             target_concept_handle,
-                             target_concept_handle});
+                            {TARGET_PREDICATE_HANDLE,
+                             TARGET_PREDICATE_HANDLE,
+                             TARGET_CONCEPT_HANDLE,
+                             TARGET_CONCEPT_HANDLE});
 
     } else {
         LOG_INFO("Context file already exists. Reusing it...");
     }
     LOG_INFO("Updating AttentionBroker");
-    AttentionBrokerClient::set_parameters(
-        RENT_RATE, SPREADING_RATE_LOWERBOUND, SPREADING_RATE_UPPERBOUND);
     AttentionBrokerClient::drop_and_load_context(context, string(context_file_name));
     LOG_INFO("Context " + context + " is ready");
 
-    LOG_INFO("Building Implication links to target_predicate");
-    build_links(
-        (USE_MORK ? implication_to_target_predicate_metta_query : implication_to_target_predicate_query),
-        context,
-        LINK_BUILDING_QUERY_SIZE,
-        target_predicate_handle,
-        build_implication_link);
-    LOG_INFO("Building Equivalence links to target_concept");
-    build_links(
-        (USE_MORK ? equivalence_to_target_concept_metta_query : equivalence_to_target_concept_query),
-        context,
-        LINK_BUILDING_QUERY_SIZE,
-        target_concept_handle,
-        build_equivalence_link);
+    add_preset_links(implication_to_target_predicate_metta_query,
+                     implication_to_target_predicate_query,
+                     equivalence_to_target_concept_metta_query,
+                     equivalence_to_target_concept_query,
+                     implication_query,
+                     equivalence_query,
+                     context);
+
+    if (SETUP_ONLY) {
+        LOG_INFO("******************************     SETUP finished     ******************************");
+        return;
+    }
 
     for (unsigned int i = 0; i < NUM_ITERATIONS; i++) {
         LOG_INFO("--------------------------------------------------------------------------------");
         LOG_INFO("Iteration " + to_string(i + 1));
         LOG_INFO("--------------------------------------------------------------------------------");
-        LOG_INFO("----- Building links");
-        LOG_INFO("Building Implication links");
-        build_links(implication_query, context, LINK_BUILDING_QUERY_SIZE, "", build_implication_link);
-        LOG_INFO("Building Equivalence links");
-        build_links(equivalence_query, context, LINK_BUILDING_QUERY_SIZE, "", build_equivalence_link);
-        LOG_INFO("----- Updating AttentionBroker");
-        AttentionBrokerClient::set_determiners(buffer_determiners, context);
-        buffer_determiners.clear();
         LOG_INFO("----- Evolving query");
         query_evolution((USE_MORK ? metta_query_to_evolve : query_to_evolve),
                         correlation_query_template,
-                        correlation_query_constants,
-                        correlation_mapping[0],
                         context);
+        if (i != (NUM_ITERATIONS - 1)) {
+            LOG_INFO("----- Building links");
+            LOG_INFO("Building Implication links");
+            build_links(implication_query, context, LINK_BUILDING_QUERY_SIZE, "", build_implication_link);
+            LOG_INFO("Building Equivalence links");
+            build_links(equivalence_query, context, LINK_BUILDING_QUERY_SIZE, "", build_equivalence_link);
+            LOG_INFO("----- Updating AttentionBroker");
+            AttentionBrokerClient::set_determiners(buffer_determiners, context);
+            buffer_determiners.clear();
+        }
     }
 }
 
@@ -945,9 +994,7 @@ void insert_type_symbols() {
     Node* node;
     for (string node_name : to_insert) {
         node = new Node(SYMBOL, node_name);
-        if (!db->node_exists(node->handle())) {
-            db->add_node(node);
-        }
+        db->add_node(node, false);
         delete (node);
     }
 }
@@ -985,8 +1032,8 @@ int main(int argc, char* argv[]) {
     auto ports_range = Utils::parse_ports_range(argv[++cursor]);
     string config_file = argv[++cursor];
     string context_tag = argv[++cursor];
-    string target_predicate = argv[++cursor];
-    string target_concept = argv[++cursor];
+    TARGET_PREDICATE = argv[++cursor];
+    TARGET_CONCEPT = argv[++cursor];
 
     RENT_RATE = Utils::string_to_float(string(argv[++cursor]));
     SPREADING_RATE_LOWERBOUND = Utils::string_to_float(string(argv[++cursor]));
@@ -1027,20 +1074,17 @@ int main(int argc, char* argv[]) {
 
     shared_ptr<atoms::MettaParserActions> predicate_pa = make_shared<atoms::MettaParserActions>();
     shared_ptr<atoms::MettaParserActions> concept_pa = make_shared<atoms::MettaParserActions>();
-    MettaParser predicate_p(target_predicate, predicate_pa);
-    MettaParser concept_p(target_concept, concept_pa);
+    MettaParser predicate_p(TARGET_PREDICATE, predicate_pa);
+    MettaParser concept_p(TARGET_CONCEPT, concept_pa);
     predicate_p.parse();
     concept_p.parse();
+    TARGET_PREDICATE_HANDLE = predicate_pa->metta_expression_handle,
+    TARGET_CONCEPT_HANDLE = concept_pa->metta_expression_handle,
 
-    LOG_INFO("Target predicate: " + target_predicate +
-             " Handle: " + predicate_pa->metta_expression_handle);
-    LOG_INFO("Target concept: " + target_concept + " Handle: " + concept_pa->metta_expression_handle);
+    LOG_INFO("Target predicate: " + TARGET_PREDICATE + " Handle: " + TARGET_PREDICATE_HANDLE);
+    LOG_INFO("Target concept: " + TARGET_CONCEPT + " Handle: " + TARGET_CONCEPT_HANDLE);
 
-    run(target_predicate,
-        target_concept,
-        predicate_pa->metta_expression_handle,
-        concept_pa->metta_expression_handle,
-        context_tag);
+    run(context_tag);
 
     return 0;
 }
