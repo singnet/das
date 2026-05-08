@@ -44,8 +44,7 @@ AdapterDB::AdapterDB(const JsonConfig& config) : config(config) {
 
     if (!this->is_context_persisted(context_id)) {
         LOG_INFO("ContextID <" << context_id << "> NOT found.");
-        // if (this->atomdb_backend.empty()) {
-        if (this->atomdb_backend_empty()) {
+        if (this->atomdb_backend->empty()) {
             LOG_INFO("AtomDB backend is empty. Populating AtomDB backend with source database data.");
             lock_guard<mutex> lock(mtx);
             this->synchronous_source_database_to_atomdb();
@@ -218,6 +217,21 @@ uint AdapterDB::delete_links(const vector<string>& handles, bool delete_link_tar
 void AdapterDB::re_index_patterns(bool flush_patterns) {
     this->ensure_backend_ready();
     this->atomdb_backend->re_index_patterns(flush_patterns);
+}
+
+size_t AdapterDB::node_count() const {
+    this->ensure_backend_ready();
+    return this->atomdb_backend->node_count();
+}
+
+size_t AdapterDB::link_count() const {
+    this->ensure_backend_ready();
+    return this->atomdb_backend->link_count();
+}
+
+size_t AdapterDB::atom_count() const {
+    this->ensure_backend_ready();
+    return this->atomdb_backend->atom_count();
 }
 
 // ==============================

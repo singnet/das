@@ -89,6 +89,10 @@ class AdapterDB : public AtomDB {
 
     void re_index_patterns(bool flush_patterns = true) override;
 
+    size_t node_count() const override;
+    size_t link_count() const override;
+    size_t atom_count() const override;
+
    private:
     JsonConfig config;
     shared_ptr<AtomDB> atomdb_backend;
@@ -131,9 +135,6 @@ class AdapterDB : public AtomDB {
      * @brief Runs the full adapter pipeline (orchestrator -> persister) synchronously.
      */
     void synchronous_source_database_to_atomdb();
-
-    // TODO: This is a temporary method. should be removed onde .empty() is implemented for the backend.
-    bool atomdb_backend_empty() const { return true; }
 };
 
 }  // namespace atomdb
