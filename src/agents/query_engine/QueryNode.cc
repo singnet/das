@@ -96,7 +96,7 @@ shared_ptr<Message> QueryNode::message_factory(string& command, vector<string>& 
 
 void QueryNode::add_query_answer(QueryAnswer* query_answer) {
     if (is_query_answers_finished()) {
-        Utils::error("Invalid addition of new query answer.");
+        RAISE_ERROR("Invalid addition of new query answer.");
     } else {
         this->query_answer_queue.enqueue((void*) query_answer);
     }

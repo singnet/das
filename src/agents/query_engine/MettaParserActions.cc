@@ -44,7 +44,7 @@ void MettaParserActions::symbol(const string& name) {
     } else {
         if ((this->current_expression_type == AND) || (this->current_expression_type == OR) ||
             (this->current_expression_type == CHAIN)) {
-            Utils::error("Invalid query expression: AND/OR/CHAIN can't operate symbols.");
+            RAISE_ERROR("Invalid query expression: AND/OR/CHAIN can't operate symbols.");
             return;
         }
         this->current_expression_size++;
@@ -55,7 +55,7 @@ void MettaParserActions::symbol(const string& name) {
 void MettaParserActions::variable(const string& value) {
     ParserActions::variable(value);
     if ((this->current_expression_type == AND) || (this->current_expression_type == OR)) {
-        Utils::error("Invalid query expression: AND/OR can't operate variables.");
+        RAISE_ERROR("Invalid query expression: AND/OR can't operate variables.");
         return;
     }
     if (this->current_expression_type == LINK) {
@@ -68,7 +68,7 @@ void MettaParserActions::variable(const string& value) {
 void MettaParserActions::literal(const string& value) {
     ParserActions::literal(value);
     if ((this->current_expression_type == AND) || (this->current_expression_type == OR)) {
-        Utils::error("Invalid query expression: AND/OR can't operate literals.");
+        RAISE_ERROR("Invalid query expression: AND/OR can't operate literals.");
         return;
     }
     this->current_expression_size++;
@@ -78,7 +78,7 @@ void MettaParserActions::literal(const string& value) {
 void MettaParserActions::literal(int value) {
     ParserActions::literal(value);
     if ((this->current_expression_type == AND) || (this->current_expression_type == OR)) {
-        Utils::error("Invalid query expression: AND/OR can't operate literals.");
+        RAISE_ERROR("Invalid query expression: AND/OR can't operate literals.");
         return;
     }
     this->current_expression_size++;
@@ -90,7 +90,7 @@ void MettaParserActions::literal(float value) {
     ParserActions::literal(value);
     if ((this->current_expression_type == AND) || (this->current_expression_type == OR) ||
         (this->current_expression_type == CHAIN)) {
-        Utils::error("Invalid query expression: AND/OR/CHAIN can't operate float literals.");
+        RAISE_ERROR("Invalid query expression: AND/OR/CHAIN can't operate float literals.");
         return;
     }
     this->current_expression_size++;
@@ -109,10 +109,10 @@ void MettaParserActions::expression_begin() {
 shared_ptr<Terminal> MettaParserActions::unstack_terminal(bool node_flag) {
     shared_ptr<Terminal> terminal = dynamic_pointer_cast<Terminal>(this->element_stack.top());
     if (terminal == nullptr) {
-        Utils::error("Expecting Terminal. Got: " + this->element_stack.top()->to_string());
+        RAISE_ERROR("Expecting Terminal. Got: " + this->element_stack.top()->to_string());
     } else {
         if (node_flag && (!terminal->is_node)) {
-            Utils::error("Expecting Node. Got: " + this->element_stack.top()->to_string());
+            RAISE_ERROR("Expecting Node. Got: " + this->element_stack.top()->to_string());
         }
     }
     this->element_stack.pop();
@@ -123,9 +123,9 @@ void MettaParserActions::expression_end(bool toplevel, const string& metta_expre
     ParserActions::expression_end(toplevel, metta_expression);
     unsigned int arity = this->current_expression_size;
     if (this->element_stack.size() < arity) {
-        Utils::error("Invalid query expression: too few arguments for expression. Expected: " +
-                     std::to_string(arity) +
-                     " Stack size: " + std::to_string(this->element_stack.size()));
+        RAISE_ERROR("Invalid query expression: too few arguments for expression. Expected: " +
+                    std::to_string(arity) +
+                    " Stack size: " + std::to_string(this->element_stack.size()));
         return;
     }
     LOG_DEBUG("Arity: " + std::to_string(arity));
@@ -138,7 +138,7 @@ void MettaParserActions::expression_end(bool toplevel, const string& metta_expre
         reverse(targets.begin(), targets.end());
         if (this->current_expression_type == LINK) {
             if (toplevel) {
-                Utils::error("Invalid query expression: a link is not a valid pattern matching query");
+                RAISE_ERROR("Invalid query expression: a link is not a valid pattern matching query");
                 return;
             }
             LOG_DEBUG("Pushing LINK");
@@ -172,7 +172,7 @@ void MettaParserActions::expression_end(bool toplevel, const string& metta_expre
                     if (this->element_stack.top()->is_operator) {
                         clauses[i] = this->element_stack.top();
                     } else {
-                        Utils::error("All AND clauses are supposed to be LinkTemplate or Operator");
+                        RAISE_ERROR("All AND clauses are supposed to be LinkTemplate or Operator");
                         return;
                     }
                 }
@@ -191,7 +191,7 @@ void MettaParserActions::expression_end(bool toplevel, const string& metta_expre
                 this->element_stack.push(new_operator);
             }
         } else {
-            Utils::error("Invalid query expression: 'and' and 'or' require exactly two arguments.");
+            RAISE_ERROR("Invalid query expression: 'and' and 'or' require exactly two arguments.");
             return;
         }
     } else if (this->current_expression_type == CHAIN) {
@@ -235,7 +235,7 @@ void MettaParserActions::expression_end(bool toplevel, const string& metta_expre
             Chain::SearchDirection search_direction;
             if (target->is_variable) {
                 if (source->is_variable) {
-                    Utils::error("Invalid CHAIN arguments. source and target are variables.");
+                    RAISE_ERROR("Invalid CHAIN arguments. source and target are variables.");
                 } else {
                     search_direction = Chain::FORWARD;
                     incomplete_flag = true;
@@ -266,11 +266,11 @@ void MettaParserActions::expression_end(bool toplevel, const string& metta_expre
             LOG_DEBUG("Building CHAIN operator... DONE");
             this->element_stack.push(chain_operator);
         } else {
-            Utils::error("Invalid query expression: 'chain' requires exactly six arguments.");
+            RAISE_ERROR("Invalid query expression: 'chain' requires exactly six arguments.");
             return;
         }
     } else {
-        Utils::error("Invalid query expression: unknown expression type");
+        RAISE_ERROR("Invalid query expression: unknown expression type");
         return;
     }
 

@@ -41,7 +41,7 @@ bool Atom::operator!=(const Atom& other) { return !(*this == other); }
 
 void Atom::validate() const {
     if (this->type.empty()) {
-        Utils::error("Atom type must not be empty");
+        RAISE_ERROR("Atom type must not be empty");
     }
 }
 

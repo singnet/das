@@ -12,7 +12,7 @@ CountLetterFunction::CountLetterFunction() { this->db = AtomDBSingleton::get_ins
 
 float CountLetterFunction::eval(shared_ptr<QueryAnswer> query_answer) {
     if (query_answer->get_handles_size() != 1) {
-        Utils::error("Invalid answer in CountLetterFunction");
+        RAISE_ERROR("Invalid answer in CountLetterFunction");
         return 0;
     } else {
         shared_ptr<Link> sentence_link;

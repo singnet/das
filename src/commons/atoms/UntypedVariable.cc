@@ -27,11 +27,11 @@ bool UntypedVariable::operator!=(const UntypedVariable& other) { return !(*this 
 
 void UntypedVariable::validate() const {
     if (this->type != Atom::UNDEFINED_TYPE) {
-        Utils::error("Invalid type for UntypedVariable: " + this->type + " (expected " +
-                     Atom::UNDEFINED_TYPE + ")");
+        RAISE_ERROR("Invalid type for UntypedVariable: " + this->type + " (expected " +
+                    Atom::UNDEFINED_TYPE + ")");
     }
     if (this->name.empty()) {
-        Utils::error("Invalid empty name for UntypedVariable");
+        RAISE_ERROR("Invalid empty name for UntypedVariable");
     }
 }
 

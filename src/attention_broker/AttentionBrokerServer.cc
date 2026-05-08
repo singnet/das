@@ -272,7 +272,7 @@ Status AttentionBrokerServer::drop_and_load_context(ServerContext* grpc_context,
 Status AttentionBrokerServer::save_context(ServerContext* grpc_context,
                                            const dasproto::ContextPersistence* request,
                                            dasproto::Ack* reply) {
-    Utils::error("AttentionBrokerServer::save_context() is not implemented");
+    RAISE_ERROR("AttentionBrokerServer::save_context() is not implemented");
     return Status::CANCELLED;
 }
 
@@ -307,8 +307,8 @@ Status AttentionBrokerServer::drop_and_load_context(ServerContext* grpc_context,
         while (Utils::read_and_split(line, file)) {
             line_count++;
             if (line.size() < 2) {
-                Utils::error("Invalid context command with no arguments in line " +
-                             std::to_string(line_count) + " of file " + file_name);
+                RAISE_ERROR("Invalid context command with no arguments in line " +
+                            std::to_string(line_count) + " of file " + file_name);
             }
             if (line[0] == "DET") {
                 for (unsigned int i = 1; i < line.size(); i++) {
@@ -335,7 +335,7 @@ Status AttentionBrokerServer::drop_and_load_context(ServerContext* grpc_context,
                     sum_activation++;
                 }
             } else {
-                Utils::error("Invalid context mnemonic: " + line[0] + " in context file: " + file_name);
+                RAISE_ERROR("Invalid context mnemonic: " + line[0] + " in context file: " + file_name);
             }
             line.clear();
         }

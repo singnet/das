@@ -28,7 +28,7 @@ int main(int argc, char* argv[]) {
         }
 
         if (cmd_args.find(Helper::CLIENT) == cmd_args.end()) {
-            Utils::error("Required argument missing: " + Helper::CLIENT);
+            RAISE_ERROR("Required argument missing: " + Helper::CLIENT);
         }
 
         ///////// Optional JsonConfig
@@ -49,12 +49,12 @@ int main(int argc, char* argv[]) {
                     cmd_args[Helper::BUS_ENDPOINT] =
                         das_config.at_path(it_known_peer->second + ".endpoint").get<string>();
                 } else {
-                    Utils::error("Required argument missing: " + cmd_args[Helper::CLIENT] +
-                                 " is not a bus node.");
+                    RAISE_ERROR("Required argument missing: " + cmd_args[Helper::CLIENT] +
+                                " is not a bus node.");
                 }
 
             } else {
-                Utils::error("params.das-config-file is missing");
+                RAISE_ERROR("params.das-config-file is missing");
             }
 
             cmd_args[Helper::ENDPOINT] = json_config.at_path("params.endpoint").get<string>();
@@ -66,7 +66,7 @@ int main(int argc, char* argv[]) {
 
         for (auto req_arg : required_cmd_args) {
             if (cmd_args.find(req_arg) == cmd_args.end()) {
-                Utils::error("Required argument missing: " + string(req_arg));
+                RAISE_ERROR("Required argument missing: " + string(req_arg));
             }
         }
 
@@ -74,7 +74,7 @@ int main(int argc, char* argv[]) {
             Helper::get_required_arguments(cmd_args[Helper::CLIENT], ServiceCallerType::CLIENT);
         for (auto req_arg : required_args) {
             if (cmd_args.find(req_arg) == cmd_args.end()) {
-                Utils::error("Required argument missing: " + string(req_arg));
+                RAISE_ERROR("Required argument missing: " + string(req_arg));
             }
         }
 
@@ -101,8 +101,8 @@ int main(int argc, char* argv[]) {
 
         auto proxy = ProxyFactory::create_proxy(cmd_args[Helper::CLIENT], props);
         if (proxy == nullptr) {
-            Utils::error("Could not create proxy for service or client is inactive: " +
-                         cmd_args[Helper::CLIENT]);
+            RAISE_ERROR("Could not create proxy for service or client is inactive: " +
+                        cmd_args[Helper::CLIENT]);
         }
         auto ports_range = Utils::parse_ports_range(props.get<string>(Helper::PORTS_RANGE));
         ServiceBusSingleton::init(props.get<string>(Helper::ENDPOINT),

@@ -38,7 +38,7 @@ bool Utils::flip_coin(double true_probability) {
 
 unsigned int Utils::uint_rand(unsigned int closed_lower_bound, unsigned int open_upper_bound) {
     if (open_upper_bound <= closed_lower_bound) {
-        Utils::error("Invalid bounds");
+        RAISE_ERROR("Invalid bounds");
     }
     return (rand() % (open_upper_bound - closed_lower_bound)) + closed_lower_bound;
 }
@@ -159,7 +159,7 @@ bool Utils::is_number(const string& s) {
 
 float Utils::string_to_float(const string& s) {
     if (s.empty()) {
-        Utils::error("Can't convert empty string to float");
+        RAISE_ERROR("Can't convert empty string to float");
         return 0;
     } else {
         char* end_ptr;
@@ -167,7 +167,7 @@ float Utils::string_to_float(const string& s) {
         if ((*end_ptr == '\0') && (end_ptr != s.c_str())) {
             return value;
         } else {
-            Utils::error("Can't convert string \"" + s + "\" to float");
+            RAISE_ERROR("Can't convert string \"" + s + "\" to float");
             return 0;
         }
     }
@@ -182,11 +182,11 @@ int Utils::string_to_int(const string& s) {
 
 unsigned int Utils::string_to_uint(const string& s) {
     if (!is_number(s)) {
-        Utils::error("Can not convert string to unsigned int: Invalid arguments (" + s + ")");
+        RAISE_ERROR("Can not convert string to unsigned int: Invalid arguments (" + s + ")");
     }
     int n = stoi(s);
     if (n < 0) {
-        Utils::error("Can not convert string to unsigned int: Invalid negative number (" + s + ")");
+        RAISE_ERROR("Can not convert string to unsigned int: Invalid negative number (" + s + ")");
     }
     return (unsigned int) n;
 }
@@ -211,7 +211,7 @@ string Utils::linux_command_line(const char* cmd) {
     std::string answer;
     FILE* pipe = popen(cmd, "r");
     if (!pipe) {
-        Utils::error("Command line failed");
+        RAISE_ERROR("Command line failed");
         return "";
     }
     try {
@@ -424,7 +424,7 @@ void MemoryFootprint::check(const string& tag) {
         delta_ram.push_back(make_pair(snapshot - this->last_snapshot, tag));
         this->last_snapshot = snapshot;
     } else {
-        Utils::error("MemoryFootprint is not running");
+        RAISE_ERROR("MemoryFootprint is not running");
     }
 }
 
@@ -436,7 +436,7 @@ void MemoryFootprint::stop(const string& tag) {
         this->final_snapshot = Utils::get_current_ram_usage();
         this->running = false;
     } else {
-        Utils::error("MemoryFootprint is not running");
+        RAISE_ERROR("MemoryFootprint is not running");
     }
 }
 

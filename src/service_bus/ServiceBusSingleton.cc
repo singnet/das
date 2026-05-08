@@ -21,7 +21,7 @@ void ServiceBusSingleton::init(const string& host_id,
                                unsigned int port_upper) {
     lock_guard<mutex> semaphore(API_MUTEX);
     if (INITIALIZED) {
-        Utils::error(
+        RAISE_ERROR(
             "ServiceBusSingleton already initialized. "
             "ServiceBusSingleton::init() should be called only once.");
     } else {
@@ -35,7 +35,7 @@ void ServiceBusSingleton::init(const string& host_id,
 shared_ptr<ServiceBus> ServiceBusSingleton::get_instance() {
     lock_guard<mutex> semaphore(API_MUTEX);
     if (!INITIALIZED) {
-        Utils::error(
+        RAISE_ERROR(
             "Uninitialized ServiceBusSingleton. ServiceBusSingleton::init() "
             "must be called before ServiceBusSingleton::get_instance()");
         return shared_ptr<ServiceBus>{};  // To avoid warnings

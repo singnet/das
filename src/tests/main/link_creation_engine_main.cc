@@ -262,7 +262,7 @@ void run(string atomdb_type_str,
     } else if (link_type_tag == "LINK2") {
         response = client.pattern_matcher_query(query_same_size, context, true);
     } else {
-        Utils::error("Invalid link_type_tag: " + link_type_tag);
+        RAISE_ERROR("Invalid link_type_tag: " + link_type_tag);
     }
 
     shared_ptr<atomdb_api_types::AtomDocument> sentence_document1;
@@ -327,7 +327,7 @@ int main(int argc, char* argv[]) {
     string link_type_tag = argv[2];
 
     if ((link_type_tag != "LINK1") && (link_type_tag != "LINK2")) {
-        Utils::error("Invalid link_type_tag: " + link_type_tag);
+        RAISE_ERROR("Invalid link_type_tag: " + link_type_tag);
     }
 
     string atomdb_type = string(argv[3]) == string("--use-mork") ? "morkdb" : "redismongodb";

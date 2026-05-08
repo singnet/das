@@ -76,14 +76,14 @@ void ServiceBus::issue_bus_command(shared_ptr<BusCommandProxy> proxy) {
     lock_guard<mutex> semaphore(this->api_mutex);
     LOG_DEBUG(bus_node->node_id() << " is issuing BUS command <" << proxy->command << ">");
     if (proxy->issued) {
-        Utils::error("Attempt to issue the same proxy twice");
+        RAISE_ERROR("Attempt to issue the same proxy twice");
     }
     proxy->issued = true;
     proxy->requestor_id = this->bus_node->node_id();
     proxy->serial = this->next_request_serial++;
     proxy->proxy_port = PortPool::get_port();
     if (proxy->proxy_port == 0) {
-        Utils::error("No port is available to start bus command proxy");
+        RAISE_ERROR("No port is available to start bus command proxy");
     } else {
         proxy->setup_proxy_node();
         vector<string> args;
@@ -125,10 +125,10 @@ void ServiceBus::BusCommandMessage::act(shared_ptr<MessageFactory> node) {
         shared_ptr<BusCommandProxy> proxy = service_bus_node->processor->factory_empty_proxy();
         proxy->proxy_port = PortPool::get_port();
         if (proxy->proxy_port == 0) {
-            Utils::error("No port is available to start bus command proxy");
+            RAISE_ERROR("No port is available to start bus command proxy");
         }
         if (this->args.size() < 2) {
-            Utils::error("Invalid BUS command syntax");
+            RAISE_ERROR("Invalid BUS command syntax");
         }
         proxy->requestor_id = this->args[0];
         proxy->serial = stoi(this->args[1]);
@@ -142,6 +142,6 @@ void ServiceBus::BusCommandMessage::act(shared_ptr<MessageFactory> node) {
         }
         service_bus_node->processor->run_command(proxy);
     } else {
-        Utils::error("Processor is not registered to process command: " + this->command);
+        RAISE_ERROR("Processor is not registered to process command: " + this->command);
     }
 }

@@ -53,7 +53,7 @@ class ProxyFactory {
                 proxy->parameters[param_name] = param_value;
                 return;
             default:
-                Utils::error("Unknown proxy parameter type");
+                RAISE_ERROR("Unknown proxy parameter type");
         }
     }
 
@@ -259,7 +259,7 @@ class ProxyFactory {
                 return make_shared<AtomDBProxy>();
             }
             default:
-                Utils::error("Unknown proxy type: " + proxy_type);
+                RAISE_ERROR("Unknown proxy type: " + proxy_type);
                 break;
         }
         return nullptr;

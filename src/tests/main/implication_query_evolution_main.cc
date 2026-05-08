@@ -113,7 +113,7 @@ static void save_link(Link& link) {
         file << endl;
         file.close();
     } else {
-        Utils::error("Couldn't open file for writing: " + NEW_LINKS_FILE_NAME);
+        RAISE_ERROR("Couldn't open file for writing: " + NEW_LINKS_FILE_NAME);
     }
 }
 
@@ -149,7 +149,7 @@ static void print_answer(shared_ptr<QueryAnswer> query_answer) {
             cout << source_predicate;
         }
         // if (source_predicate != last_predicate) {
-        //     Utils::error("Bad predicate chaining: " + source_predicate + " != " + last_predicate);
+        //     RAISE_ERROR("Bad predicate chaining: " + source_predicate + " != " + last_predicate);
         // }
         target_predicate = get_predicate_name(implication_link->targets[2]);
         cout << " --> " << target_predicate;

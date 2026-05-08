@@ -81,7 +81,7 @@ bool predicate_bcd(vector<string>& _concept) {
         unsigned int count = 0;
         for (char c : part) {
             if (c == ' ') {
-                Utils::error("Invalid char ' ' in context part");
+                RAISE_ERROR("Invalid char ' ' in context part");
             }
             if (c == k) {
                 count++;
@@ -123,8 +123,8 @@ void enforce_bcd_sort(vector<vector<string>>& concepts) {
     unsigned int cursor = 0;
     while (count < BCD_SORT_COUNT) {
         if (cursor == concepts.size()) {
-            Utils::error("Invalid parameters. BCD_SORT_COUNT = " + std::to_string(BCD_SORT_COUNT) +
-                         " concepts.size() = " + std::to_string(concepts.size()));
+            RAISE_ERROR("Invalid parameters. BCD_SORT_COUNT = " + std::to_string(BCD_SORT_COUNT) +
+                        " concepts.size() = " + std::to_string(concepts.size()));
             return;
         }
         if (!hidden_predicates(concepts[cursor])) {
@@ -188,7 +188,7 @@ void export_metta(vector<vector<string>>& concepts) {
                        std::to_string(SORT_COUNT) + ".metta";
     ofstream metta_file(file_name);
     if (!metta_file.is_open()) {
-        Utils::error("Unable to open file: " + file_name);
+        RAISE_ERROR("Unable to open file: " + file_name);
     }
     for (auto& _concept : concepts) {
         export_concept(metta_file, _concept);
@@ -201,7 +201,7 @@ void export_metta(vector<vector<string>>& concepts) {
 
 int main(int argc, char* argv[]) {
     if (argc != 7) {
-        Utils::error(
+        RAISE_ERROR(
             "Usage: inference_toy_kb_generator <KB size> <concept size> "
             "<concept part size> <charset> <BCD-SORT count> <SORT count>");
     }
@@ -216,7 +216,7 @@ int main(int argc, char* argv[]) {
     print_setup();
 
     if ((SORT_COUNT > BCD_SORT_COUNT) || (BCD_SORT_COUNT > KB_SIZE) || (CONCEPT_SIZE < 3)) {
-        Utils::error("Invalid parameters");
+        RAISE_ERROR("Invalid parameters");
     }
 
     vector<vector<string>> concepts;

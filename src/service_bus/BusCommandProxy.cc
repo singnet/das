@@ -58,7 +58,7 @@ ProxyNode::~ProxyNode() {}
 
 void BusCommandProxy::setup_proxy_node(const string& client_id, const string& server_id) {
     if (this->proxy_port == 0) {
-        Utils::error("Proxy node can't be set up");
+        RAISE_ERROR("Proxy node can't be set up");
     } else {
         if (client_id == "") {
             LOG_DEBUG("ProxyNode on CLIENT");
@@ -113,7 +113,7 @@ void BusCommandProxy::raise_error(const string& error_message, unsigned int erro
     if (error_code > 0) {
         prefix += std::to_string(error_code) + " ";
     }
-    Utils::error(prefix + " on peer - " + error_message);
+    RAISE_ERROR(prefix + " on peer - " + error_message);
 }
 
 void BusCommandProxy::raise_error_on_peer(const string& error_message, unsigned int error_code) {
@@ -130,7 +130,7 @@ void ProxyNode::remote_call(const string& command, const vector<string>& args) {
 
 void ProxyNode::to_remote_peer(const string& command, const vector<string>& args) {
     if (this->peer_id == "") {
-        Utils::error("Unknown peer");
+        RAISE_ERROR("Unknown peer");
     }
     vector<string> new_args(args);
     new_args.push_back(command);

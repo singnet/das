@@ -242,10 +242,10 @@ shared_ptr<LinkCreationAgentRequest> LinkCreationAgent::create_request(
             LinkCreationRequestProxy::QUERY_INTERVAL, requests_interval_seconds);
         lca_request->current_interval = request_interval;
         if (lca_request->link_template.size() == 0) {
-            Utils::error("Link template cannot be empty");
+            RAISE_ERROR("Link template cannot be empty");
         }
         if (lca_request->id.empty()) {
-            Utils::error("Request ID cannot be empty");
+            RAISE_ERROR("Request ID cannot be empty");
         }
         if (lca_request->repeat == 0) {
             lca_request->infinite = true;
@@ -261,14 +261,14 @@ shared_ptr<LinkCreationAgentRequest> LinkCreationAgent::create_request(
         return lca_request;
     } catch (exception& e) {
         LOG_ERROR("Error parsing request from proxy: " << string(e.what()));
-        Utils::error("Invalid request format from proxy: " + string(e.what()));
+        RAISE_ERROR("Invalid request format from proxy: " + string(e.what()));
     }
     return nullptr;
 }
 
 void LinkCreationAgent::process_request(shared_ptr<LinkCreationRequestProxy> proxy) {
     if (proxy == nullptr) {
-        Utils::error("Invalid link creation request proxy");
+        RAISE_ERROR("Invalid link creation request proxy");
     }
     LOG_DEBUG("Processing link creation request: " << Utils::join(proxy->get_args(), ' '));
     string request_id = proxy->peer_id() + to_string(proxy->get_serial());

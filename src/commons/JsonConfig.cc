@@ -70,7 +70,7 @@ JsonConfig::JsonConfig(nlohmann::json root) : nlohmann::json(std::move(root)) {}
 string JsonConfig::get_schema_version() const {
     string version = value("schema_version", string(""));
     if (version.empty()) {
-        Utils::error("schema_version is missing", true);
+        RAISE_ERROR("schema_version is missing");
     }
     return version;
 }
