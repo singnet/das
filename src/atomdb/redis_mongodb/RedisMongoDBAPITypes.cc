@@ -112,7 +112,7 @@ RedisStringBundle::~RedisStringBundle() {
 const char* RedisStringBundle::get_handle(unsigned int index) {
     if (index > this->handles_size) {
         RAISE_ERROR("Handle index out of bounds: " + to_string(index) +
-                     " Answer handles size: " + to_string(this->handles_size));
+                    " Answer handles size: " + to_string(this->handles_size));
     }
     //
     return handles[index];
@@ -173,7 +173,7 @@ void add_custom_attributes(bsoncxx::builder::basic::document& doc, const Propert
                     } else {
                         // MongoDB does not support unsigned int.
                         RAISE_ERROR("MongoDB does not support custom attribute '" + key +
-                                     "' with type: " + typeid(T).name());
+                                    "' with type: " + typeid(T).name());
                     }
                 },
                 value);
@@ -202,7 +202,7 @@ Properties MongodbDocument::extract_custom_attributes(const bsoncxx::v_noabi::do
                 break;
             default:
                 RAISE_ERROR("Unknown custom attribute type: " + key +
-                             " type: " + to_string(value.type()));
+                            " type: " + to_string(value.type()));
         }
     }
     return Properties(custom_attributes.begin(), custom_attributes.end());

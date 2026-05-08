@@ -124,7 +124,7 @@ void enforce_bcd_sort(vector<vector<string>>& concepts) {
     while (count < BCD_SORT_COUNT) {
         if (cursor == concepts.size()) {
             RAISE_ERROR("Invalid parameters. BCD_SORT_COUNT = " + std::to_string(BCD_SORT_COUNT) +
-                         " concepts.size() = " + std::to_string(concepts.size()));
+                        " concepts.size() = " + std::to_string(concepts.size()));
             return;
         }
         if (!hidden_predicates(concepts[cursor])) {

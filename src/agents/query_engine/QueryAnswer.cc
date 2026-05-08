@@ -252,7 +252,7 @@ void QueryAnswer::untokenize(const string& tokens) {
 
     if (handles_size >= MAX_NUMBER_OF_OPERATION_CLAUSES) {
         RAISE_ERROR("Invalid handles_size: " + std::to_string(handles_size) +
-                     " untokenizing QueryAnswer");
+                    " untokenizing QueryAnswer");
     } else {
         for (unsigned int i = 0; i < handles_size; i++) {
             read_token(token_string, cursor, number, 4);
@@ -279,7 +279,7 @@ void QueryAnswer::untokenize(const string& tokens) {
 
     if (assignment_size > MAX_NUMBER_OF_VARIABLES_IN_QUERY) {
         RAISE_ERROR("Invalid number of assignments: " + std::to_string(assignment_size) +
-                     " untokenizing QueryAnswer");
+                    " untokenizing QueryAnswer");
     }
 
     for (unsigned int i = 0; i < assignment_size; i++) {
@@ -386,7 +386,7 @@ void QueryAnswer::add_path_element(unsigned int path_index, const string& handle
     } else {
         if (path_index >= (this->handles.size() - 1)) {
             RAISE_ERROR("Invalid path index: " + std::to_string(path_index) +
-                         " QueryAnswer: " + to_string());
+                        " QueryAnswer: " + to_string());
         } else {
             this->handles[path_index + 1].push_back(handle);
         }
@@ -409,7 +409,7 @@ vector<string>& QueryAnswer::get_handles_vector() { return this->handles[0]; }
 vector<string>& QueryAnswer::get_path_vector(unsigned int path_index) {
     if ((this->handles.size() == 0) || (path_index >= (this->handles.size() - 1))) {
         RAISE_ERROR("Invalid path index: " + std::to_string(path_index) +
-                     " QueryAnswer: " + to_string());
+                    " QueryAnswer: " + to_string());
     }
     return this->handles[path_index + 1];
 }

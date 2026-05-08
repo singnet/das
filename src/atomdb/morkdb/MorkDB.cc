@@ -198,7 +198,7 @@ vector<string> MorkDB::add_links(const vector<atoms::Link*>& links,
         if (!existing_handles.empty()) {
             vector<string> existing_handles_vector(existing_handles.begin(), existing_handles.end());
             RAISE_ERROR("Failed to insert links, some links already exist: " +
-                         Utils::join(existing_handles_vector, ','));
+                        Utils::join(existing_handles_vector, ','));
             return {};
         }
     }

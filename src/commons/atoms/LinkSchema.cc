@@ -224,7 +224,7 @@ void LinkSchema::add_target(const string& schema_handle,
         }
     } else {
         RAISE_ERROR("Attempt to add a new target beyond LinkSchema's arity. LinkSchema: " +
-                     this->to_string());
+                    this->to_string());
     }
 }
 
@@ -323,7 +323,7 @@ void LinkSchema::_stack_link_schema(const string& type, unsigned int link_arity,
         this->_schema_element_stack.push(new_schema_element);
     } else {
         RAISE_ERROR("Couldn't stack link. Link arity: " + std::to_string(link_arity) +
-                     " stack size: " + std::to_string(this->_atom_stack.size()));
+                    " stack size: " + std::to_string(this->_atom_stack.size()));
     }
 }
 
@@ -346,7 +346,7 @@ void LinkSchema::build() {
             this->_atom_stack.clear();
         } else {
             RAISE_ERROR("Can't build LinkTemplate of arity " + std::to_string(this->_arity) +
-                         " out of a stack with " + std::to_string(this->_atom_stack.size()) + " atoms.");
+                        " out of a stack with " + std::to_string(this->_atom_stack.size()) + " atoms.");
         }
         for (unsigned int i = 0; i < this->_build_tokens.size(); i++) {
             this->_tokens.insert(
@@ -384,7 +384,7 @@ void LinkSchema::_syntax_assert(bool flag, string token, unsigned int cursor) {
             cursor = 1;
         }
         RAISE_ERROR("Syntax error in LinkSchema untokenization near symbol `" + token +
-                     "` near position " + std::to_string(cursor - 1));
+                    "` near position " + std::to_string(cursor - 1));
     }
 }
 

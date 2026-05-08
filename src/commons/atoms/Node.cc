@@ -56,7 +56,7 @@ string Node::handle() const { return Hasher::node_handle(this->type, this->name)
 string Node::metta_representation(HandleDecoder& decoder) const {
     if (this->type != MettaMapping::SYMBOL_NODE_TYPE) {
         RAISE_ERROR("Can't compute metta expression of node whose type (" + this->type + ") is not " +
-                     MettaMapping::SYMBOL_NODE_TYPE);
+                    MettaMapping::SYMBOL_NODE_TYPE);
     }
     return this->name;
 }

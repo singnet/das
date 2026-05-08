@@ -297,7 +297,7 @@ int main(int argc, char* argv[]) {
                     auto result = db->query_for_pattern(link_schema);
                     if (result->size() != 2) {
                         RAISE_ERROR("[" + to_string(thread_id) + "] Expected 2 results, got " +
-                                     to_string(result->size()));
+                                    to_string(result->size()));
                         return;
                     }
 

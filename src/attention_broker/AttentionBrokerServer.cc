@@ -308,7 +308,7 @@ Status AttentionBrokerServer::drop_and_load_context(ServerContext* grpc_context,
             line_count++;
             if (line.size() < 2) {
                 RAISE_ERROR("Invalid context command with no arguments in line " +
-                             std::to_string(line_count) + " of file " + file_name);
+                            std::to_string(line_count) + " of file " + file_name);
             }
             if (line[0] == "DET") {
                 for (unsigned int i = 1; i < line.size(); i++) {

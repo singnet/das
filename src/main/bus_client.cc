@@ -50,7 +50,7 @@ int main(int argc, char* argv[]) {
                         das_config.at_path(it_known_peer->second + ".endpoint").get<string>();
                 } else {
                     RAISE_ERROR("Required argument missing: " + cmd_args[Helper::CLIENT] +
-                                 " is not a bus node.");
+                                " is not a bus node.");
                 }
 
             } else {
@@ -102,7 +102,7 @@ int main(int argc, char* argv[]) {
         auto proxy = ProxyFactory::create_proxy(cmd_args[Helper::CLIENT], props);
         if (proxy == nullptr) {
             RAISE_ERROR("Could not create proxy for service or client is inactive: " +
-                         cmd_args[Helper::CLIENT]);
+                        cmd_args[Helper::CLIENT]);
         }
         auto ports_range = Utils::parse_ports_range(props.get<string>(Helper::PORTS_RANGE));
         ServiceBusSingleton::init(props.get<string>(Helper::ENDPOINT),

@@ -213,7 +213,7 @@ shared_ptr<atomdb_api_types::HandleList> RedisMongoDB::query_for_targets(const s
 
         if (reply->type != REDIS_REPLY_STRING) {
             RAISE_ERROR("Invalid Redis response at query_for_targets: " + std::to_string(reply->type) +
-                         " != " + std::to_string(REDIS_REPLY_STRING));
+                        " != " + std::to_string(REDIS_REPLY_STRING));
         }
 
     } catch (const std::exception& e) {
@@ -906,7 +906,7 @@ vector<string> RedisMongoDB::add_links(const vector<atoms::Link*>& links,
         if (!existing_handles.empty()) {
             vector<string> existing_handles_vector(existing_handles.begin(), existing_handles.end());
             RAISE_ERROR("Failed to insert links, some links already exist: " +
-                         Utils::join(existing_handles_vector, ','));
+                        Utils::join(existing_handles_vector, ','));
             return {};
         }
     }

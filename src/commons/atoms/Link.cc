@@ -103,7 +103,7 @@ vector<string> Link::composite_type(HandleDecoder& decoder) const {
 string Link::metta_representation(HandleDecoder& decoder) const {
     if (this->type != MettaMapping::EXPRESSION_LINK_TYPE) {
         RAISE_ERROR("Can't compute metta expression of link whose type (" + this->type + ") is not " +
-                     MettaMapping::EXPRESSION_LINK_TYPE);
+                    MettaMapping::EXPRESSION_LINK_TYPE);
     }
     string metta_string = "(";
     unsigned int size = this->targets.size();

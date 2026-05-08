@@ -97,7 +97,7 @@ HandleListInMemory::~HandleListInMemory() {
 const char* HandleListInMemory::get_handle(unsigned int index) {
     if (index >= handles.size()) {
         RAISE_ERROR("Handle index out of bounds: " + to_string(index) +
-                     " Answer handles size: " + to_string(handles.size()));
+                    " Answer handles size: " + to_string(handles.size()));
     }
     return allocated_strings[index];
 }

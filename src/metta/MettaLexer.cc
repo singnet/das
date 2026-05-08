@@ -234,8 +234,8 @@ void MettaLexer::pop_metta_string() {
 void MettaLexer::_attach_string(const string& metta_string) {
     if (metta_string.size() > this->input_buffer_size) {
         RAISE_ERROR("Can't attach strings larger than input buffer size (" +
-                     std::to_string(metta_string.size()) + " > " +
-                     std::to_string(this->input_buffer_size) + ")");
+                    std::to_string(metta_string.size()) + " > " +
+                    std::to_string(this->input_buffer_size) + ")");
     } else {
         this->attached_strings.push(metta_string);
     }

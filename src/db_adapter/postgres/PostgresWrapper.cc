@@ -411,8 +411,8 @@ void PostgresWrapper::map_sql_query(const string& virtual_name, const string& ra
                 string schema = parts[0];
                 string table = parts[1];
                 RAISE_ERROR("Primary key '" + pk + "' of table '" + table_name +
-                             "' must be included in SELECT aliases. Add: " + table + "." + pk + " AS " +
-                             schema + "_" + table + "__" + pk);
+                            "' must be included in SELECT aliases. Add: " + table + "." + pk + " AS " +
+                            schema + "_" + table + "__" + pk);
             }
         } catch (const exception& e) {
             RAISE_ERROR("Error retrieving metadata for table '" + table_name + "': " + e.what());

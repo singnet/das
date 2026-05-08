@@ -395,7 +395,7 @@ shared_ptr<QueryElement> PatternMatchingQueryProcessor::build_link_template(
                 if (element_stack.top()->is_operator) {                                           \
                     clauses[i] = element_stack.top();                                             \
                 } else {                                                                          \
-                    RAISE_ERROR("All AND clauses are supposed to be LinkTemplate or Operator");  \
+                    RAISE_ERROR("All AND clauses are supposed to be LinkTemplate or Operator");   \
                 }                                                                                 \
             }                                                                                     \
             element_stack.pop();                                                                  \
@@ -410,8 +410,7 @@ shared_ptr<QueryElement> PatternMatchingQueryProcessor::build_and(
     const vector<string> query_tokens = proxy->get_query_tokens();
     unsigned int num_clauses = std::stoi(query_tokens[cursor + 1]);
     if (element_stack.size() < num_clauses) {
-        RAISE_ERROR(
-            "PATTERN_MATCHING_QUERY message: parse error in tokens - too few arguments for AND");
+        RAISE_ERROR("PATTERN_MATCHING_QUERY message: parse error in tokens - too few arguments for AND");
     }
     // clang-format off
     switch (num_clauses) {
@@ -449,7 +448,7 @@ shared_ptr<QueryElement> PatternMatchingQueryProcessor::build_and(
                     clauses[i] = element_stack.top();                                             \
                     LOG_DEBUG("OR input[" << i << "]: " << element_stack.top()->to_string());     \
                 } else {                                                                          \
-                    RAISE_ERROR("All OR clauses are supposed to be LinkTemplate or Operator");   \
+                    RAISE_ERROR("All OR clauses are supposed to be LinkTemplate or Operator");    \
                 }                                                                                 \
             }                                                                                     \
             element_stack.pop();                                                                  \

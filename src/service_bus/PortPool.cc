@@ -12,7 +12,7 @@ unsigned int PortPool::PORT_UPPER = 0;
 void PortPool::initialize_statics(unsigned int port_lower, unsigned int port_upper) {
     if (port_lower > port_upper) {
         RAISE_ERROR("Invalid port limits [" + to_string(port_lower) + ".." + to_string(port_upper) +
-                     "]");
+                    "]");
     }
     LOG_INFO("Port range: [" << port_lower << " : " << port_upper << "]");
     PORT_LOWER = port_lower;
@@ -31,7 +31,7 @@ unsigned int PortPool::get_port() {
     unsigned int port = (unsigned int) ((unsigned long) POOL->dequeue());
     if (!port) {
         RAISE_ERROR("Unable to get available PORT number in [" + to_string(PORT_LOWER) + ".." +
-                     to_string(PORT_UPPER) + "]");
+                    to_string(PORT_UPPER) + "]");
     }
     return port;
 }

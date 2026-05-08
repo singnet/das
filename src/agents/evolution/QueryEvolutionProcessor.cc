@@ -213,7 +213,7 @@ void QueryEvolutionProcessor::apply_elitism(
     if (count > 0) {
         if (count > population.size()) {
             RAISE_ERROR("Invalid evolution parameters. Elitism count: " + std::to_string(count) +
-                         " population size: " + std::to_string(population.size()));
+                        " population size: " + std::to_string(population.size()));
         } else {
             LOG_DEBUG("Selecting " << count << " individuals by elitism.");
             selected.insert(selected.begin(), population.begin(), population.begin() + count);
@@ -249,7 +249,7 @@ void QueryEvolutionProcessor::select_best_individuals(
     if (count > 0) {
         if (count > population_size) {
             RAISE_ERROR("Invalid evolution parameters. Selection count: " + std::to_string(count) +
-                         " population size: " + std::to_string(population_size));
+                        " population size: " + std::to_string(population_size));
         } else if (count == population_size) {
             selected.insert(selected.begin(), population.begin(), population.end());
             population.clear();

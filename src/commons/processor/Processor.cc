@@ -31,8 +31,8 @@ void Processor::bind_subprocessor(shared_ptr<Processor> root, shared_ptr<Process
     }
     if (child->parent_processor != nullptr) {
         RAISE_ERROR("Invalid attempt to bind processor " + child->to_string() + " to " +
-                     root->to_string() + ". It's already bound to " +
-                     child->parent_processor->to_string());
+                    root->to_string() + ". It's already bound to " +
+                    child->parent_processor->to_string());
     }
     root->subprocessors.push_back(child);
     child->parent_processor = root;

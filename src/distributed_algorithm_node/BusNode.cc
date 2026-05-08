@@ -154,7 +154,7 @@ void BusNode::Bus::add(const string& command) {
     if (this->command_owner.find(command) != this->command_owner.end()) {
         if (this->command_owner[command] != "") {
             RAISE_ERROR("Bus: command <" + command + "> " + "is already assigned to " +
-                         this->command_owner[command]);
+                        this->command_owner[command]);
         }
     } else {
         this->command_owner[command] = "";
@@ -170,7 +170,7 @@ void BusNode::Bus::set_ownership(const string& command, const string& node_id) {
         } else {
             if (this->command_owner[command] != node_id) {
                 RAISE_ERROR("Bus: command <" + command + "> " + "is already assigned to " +
-                             this->command_owner[command]);
+                            this->command_owner[command]);
             }
         }
     }

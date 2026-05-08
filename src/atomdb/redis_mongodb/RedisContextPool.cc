@@ -78,7 +78,7 @@ shared_ptr<RedisContext> RedisContextPool::acquire() {
 
     if (retries > MAX_RETRY_COUNT) {
         RAISE_ERROR("Redis connection error: Failed to connect to Redis after " +
-                     to_string(MAX_RETRY_COUNT) + " retries");
+                    to_string(MAX_RETRY_COUNT) + " retries");
     }
 
     total_contexts++;

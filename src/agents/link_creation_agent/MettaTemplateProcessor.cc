@@ -23,7 +23,7 @@ static string parse_metta_expression(string metta_expression,
             auto atom = atomdb->get_atom(assignment_pair.second);
             if (atom == nullptr) {
                 RAISE_ERROR("Atom with handle " + assignment_pair.second +
-                             " not found in AtomDB while creating missing atoms for link creation.");
+                            " not found in AtomDB while creating missing atoms for link creation.");
                 continue;
             }
             handle_to_metta[assignment_pair.second] = atom->metta_representation(*atomdb.get());

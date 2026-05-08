@@ -164,7 +164,7 @@ bool InferenceAgent::is_lca_requests_finished(shared_ptr<InferenceRequest> infer
     auto it = link_creation_proxy_map.find(inference_request->get_id());
     if (it == link_creation_proxy_map.end()) {
         RAISE_ERROR("No link creation requests found for inference request ID: " +
-                     inference_request->get_id());
+                    inference_request->get_id());
     }
     for (const auto& proxy : it->second) {
         if (!proxy->finished()) {

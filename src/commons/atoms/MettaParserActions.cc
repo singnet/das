@@ -111,7 +111,7 @@ void MettaParserActions::expression_end(bool toplevel, const string& metta_strin
     unsigned int arity = this->current_expression_size;
     if (element_stack.size() < arity) {
         RAISE_ERROR("Invalid metta expression: too few arguments for expression. Expected: " +
-                     std::to_string(arity) + " Stack size: " + std::to_string(element_stack.size()));
+                    std::to_string(arity) + " Stack size: " + std::to_string(element_stack.size()));
         return;
     }
     LOG_DEBUG("Arity: " + std::to_string(arity));

@@ -366,7 +366,7 @@ vector<string> InMemoryDB::add_nodes(const vector<atoms::Node*>& nodes,
         if (!existing_handles.empty()) {
             vector<string> existing_handles_vector(existing_handles.begin(), existing_handles.end());
             RAISE_ERROR("Failed to insert nodes, some nodes already exist: " +
-                         Utils::join(existing_handles_vector, ','));
+                        Utils::join(existing_handles_vector, ','));
             return {};
         }
     }
@@ -394,7 +394,7 @@ vector<string> InMemoryDB::add_links(const vector<atoms::Link*>& links,
         if (!existing_handles.empty()) {
             vector<string> existing_handles_vector(existing_handles.begin(), existing_handles.end());
             RAISE_ERROR("Failed to insert links, some links already exist: " +
-                         Utils::join(existing_handles_vector, ','));
+                        Utils::join(existing_handles_vector, ','));
             return {};
         }
     }

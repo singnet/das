@@ -366,9 +366,9 @@ bool Chain::thread_one_step() {
                     }
                 } else {
                     RAISE_ERROR("Invalid Link " + link->to_string() + " with arity " +
-                                 std::to_string(link->arity()) + " in CHAIN operator. Tail reference: " +
-                                 std::to_string(this->tail_reference) +
-                                 ". Head reference: " + std::to_string(this->head_reference));
+                                std::to_string(link->arity()) + " in CHAIN operator. Tail reference: " +
+                                std::to_string(this->tail_reference) +
+                                ". Head reference: " + std::to_string(this->head_reference));
                 }
             } else {
                 LOG_DEBUG("[CHAIN OPERATOR] "

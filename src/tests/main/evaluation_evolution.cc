@@ -652,7 +652,7 @@ static void add_to_context_file(const filesystem::path& context_file_name,
                         break;
                     default:
                         RAISE_ERROR("Invalid context creation task: " +
-                                     std::to_string((unsigned int) task));
+                                    std::to_string((unsigned int) task));
                 }
             }
         }
@@ -681,8 +681,7 @@ static void add_to_context_file(const filesystem::path& context_file_name,
                     file << "ACT " << handle << endl;
                     break;
                 default:
-                    RAISE_ERROR("Invalid context creation task: " +
-                                 std::to_string((unsigned int) task));
+                    RAISE_ERROR("Invalid context creation task: " + std::to_string((unsigned int) task));
             }
         }
         file.close();

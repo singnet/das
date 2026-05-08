@@ -100,7 +100,7 @@ int main(int argc, char* argv[]) {
         auto service = ProcessorFactory::create_processor(cmd_args[Helper::SERVICE], props);
         if (service == nullptr) {
             RAISE_ERROR("Could not create processor for service or service is inactive: " +
-                         cmd_args[Helper::SERVICE]);
+                        cmd_args[Helper::SERVICE]);
         }
 
         LOG_INFO("Registering processor for service: " + cmd_args[Helper::SERVICE]);
