@@ -6,6 +6,7 @@
 // -------------------------------------------------------------------------------------------------
 // Add your header here
 #include "CountLetterFunction.h"
+#include "InferenceToyFunction.h"
 #include "MultiplyStrengthFunction.h"
 #include "UnitTestFunction.h"
 // -------------------------------------------------------------------------------------------------
@@ -23,14 +24,15 @@ void FitnessFunctionRegistry::initialize_statics() {
             "FitnessFunctionRegistry::init() should be called only once.");
     } else {
         INITIALIZED = true;
-        FUNCTION["unit_test"] = make_shared<UnitTestFunction>();
         // -----------------------------------------------------------------------------------------
         // Add your function here using a unique string key
         // FUNCTION["my_function_tag"] = make_shared<MyFunction>();
         // NOTE: "remote_fitness_function" is reserved and CAN'T be used here.
         // -----------------------------------------------------------------------------------------
+        FUNCTION["unit_test"] = make_shared<UnitTestFunction>();
         FUNCTION["count_letter"] = make_shared<CountLetterFunction>();
         FUNCTION["multiply_strength"] = make_shared<MultiplyStrengthFunction>();
+        FUNCTION["inference_toy"] = make_shared<InferenceToyFunction>();
     }
 }
 

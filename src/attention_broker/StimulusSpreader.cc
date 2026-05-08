@@ -1,15 +1,11 @@
 #include "StimulusSpreader.h"
 
-// clang-format off
-#define LOG_LEVEL INFO_LEVEL
-#include "Logger.h"
-// clang-format on
-
 #include <forward_list>
 #include <string>
 
 #include "AttentionBrokerServer.h"
 #include "HebbianNetwork.h"
+#include "Logger.h"
 #include "Utils.h"
 #include "expression_hasher.h"
 

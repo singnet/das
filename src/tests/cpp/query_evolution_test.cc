@@ -1,6 +1,7 @@
 #include "AtomDBAPITypes.h"
 #include "AtomDBSingleton.h"
 #include "FitnessFunctionRegistry.h"
+#include "Logger.h"
 #include "PatternMatchingQueryProcessor.h"
 #include "QueryEvolutionProcessor.h"
 #include "QueryEvolutionProxy.h"
@@ -9,9 +10,6 @@
 #include "TestAtomDBJsonConfig.h"
 #include "Utils.h"
 #include "gtest/gtest.h"
-
-// #define LOG_LEVEL DEBUG_LEVEL
-// #include "Logger.h"
 
 using namespace atomdb;
 using namespace evolution;

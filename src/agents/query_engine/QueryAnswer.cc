@@ -131,14 +131,12 @@ string QueryAnswer::to_string(bool metta_flag) {
 const string& QueryAnswer::tokenize() {
     // char_count is computed to be slightly larger than actually required by assuming
     // e.g. 3 digits to represent sizes
-    char strength_buffer[13];
-    char importance_buffer[13];
-    sprintf(strength_buffer, "%.10f", this->strength);
-    sprintf(importance_buffer, "%.10f", this->importance);
+    string strength = std::to_string(this->strength);
+    string importance = std::to_string(this->importance);
     unsigned int char_count =
-        13    // strength with 10 decimals + space
-        + 13  // importance with 10 decimals + space
-        + 4   // (up to 3 digits) to represent this->assignment.size + space
+        strength.size() + 1      // strength + space
+        + importance.size() + 1  // importance + space
+        + 4                      // (up to 3 digits) to represent this->assignment.size + space
         + this->assignment.table.size() *
               (MAX_VARIABLE_NAME_SIZE + HANDLE_HASH_SIZE + 2)  // label<space>handle<space>
         + 4               // (up to 3 digits) to represent this->metta_expression.size + space
@@ -151,9 +149,9 @@ const string& QueryAnswer::tokenize() {
     this->token_representation.clear();
     this->token_representation.reserve(char_count);
     string space = " ";
-    this->token_representation += strength_buffer;
+    this->token_representation += strength;
     this->token_representation += space;
-    this->token_representation += importance_buffer;
+    this->token_representation += importance;
     this->token_representation += space;
     this->token_representation += std::to_string(this->handles.size());
     this->token_representation += space;

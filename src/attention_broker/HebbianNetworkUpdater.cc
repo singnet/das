@@ -1,6 +1,5 @@
 #include "HebbianNetworkUpdater.h"
 
-#define LOG_LEVEL INFO_LEVEL
 #include <string>
 
 #include "Logger.h"

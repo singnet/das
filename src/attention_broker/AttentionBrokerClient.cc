@@ -2,10 +2,8 @@
 
 #include <grpcpp/grpcpp.h>
 
-#include "Utils.h"
-
-#define LOG_LEVEL INFO_LEVEL
 #include "Logger.h"
+#include "Utils.h"
 #include "attention_broker.grpc.pb.h"
 #include "attention_broker.pb.h"
 
@@ -191,21 +189,7 @@ bool AttentionBrokerClient::health_check(bool throw_on_error) {
 }
 
 void AttentionBrokerClient::save_context(const string& context, const string& file_name) {
-    dasproto::ContextPersistence request;
-    dasproto::Ack ack;
-
-    request.set_context(context);
-    request.set_file_name(file_name);
-
-    auto stub = dasproto::AttentionBroker::NewStub(
-        grpc::CreateChannel(SERVER_ADDRESS, grpc::InsecureChannelCredentials()));
-
-    LOG_INFO("Calling AttentionBroker GRPC. Saving context contents into a file. Context: " + context +
-             " File name: " + file_name);
-    stub->drop_and_load_context(new grpc::ClientContext(), request, &ack);
-    if (ack.msg() != "SAVE_CONTEXT") {
-        Utils::error("Failed GRPC command: AttentionBroker::save_context()");
-    }
+    Utils::error("AttentionBrokerClient::save_context() is not implemented.");
 }
 
 void AttentionBrokerClient::drop_and_load_context(const string& context, const string& file_name) {

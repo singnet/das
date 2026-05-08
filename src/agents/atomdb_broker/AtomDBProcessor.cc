@@ -1,13 +1,11 @@
 #include "AtomDBProcessor.h"
 
 #include "AtomDBProxy.h"
+#include "Logger.h"
 #include "ServiceBus.h"
 #include "ServiceBusSingleton.h"
 #include "StoppableThread.h"
 #include "Utils.h"
-
-#define LOG_LEVEL DEBUG_LEVEL
-#include "Logger.h"
 
 using namespace atomdb_broker;
 

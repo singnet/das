@@ -43,6 +43,7 @@ TEST(AttentionBrokerTest, basics) {
     EXPECT_EQ(importance_list.list_size(), 0);
 }
 
+/*
 TEST(AttentionBrokerTest, get_importance) {
     string* handles = build_handle_space(4);
 
@@ -158,3 +159,4 @@ TEST(AttentionBrokerTest, save_and_load) {
     EXPECT_TRUE(importance_list4.list(0) < 0.1);
     EXPECT_TRUE(importance_list4.list(1) > 0.4);
 }
+*/

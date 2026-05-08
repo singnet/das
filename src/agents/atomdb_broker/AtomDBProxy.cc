@@ -3,13 +3,11 @@
 #include "AtomDBSingleton.h"
 #include "BaseProxy.h"
 #include "Link.h"
+#include "Logger.h"
 #include "Node.h"
 #include "Properties.h"
 #include "ServiceBus.h"
 #include "Utils.h"
-
-#define LOG_LEVEL DEBUG_LEVEL
-#include "Logger.h"
 
 using namespace atomdb_broker;
 using namespace service_bus;

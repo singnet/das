@@ -79,6 +79,7 @@ class Utils {
                                unsigned int max_retries,
                                unsigned int wait_millis,
                                const string& function_name = "");
+    static bool read_and_split(vector<string>& output, ifstream& file, char delimiter = ' ');
 };
 
 }  // namespace commons
