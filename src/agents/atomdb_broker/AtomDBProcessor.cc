@@ -29,7 +29,7 @@ void AtomDBProcessor::run_command(shared_ptr<BusCommandProxy> proxy) {
     LOG_DEBUG("Starting new thread: " << thread_id << " to run command: <" << proxy->get_command()
                                       << ">");
     if (this->query_threads.find(thread_id) != this->query_threads.end()) {
-        Utils::error("Invalid thread id: " + thread_id);
+        RAISE_ERROR("Invalid thread id: " + thread_id);
     } else {
         shared_ptr<StoppableThread> stoppable_thread = make_shared<StoppableThread>(thread_id);
         stoppable_thread->attach(new thread(
@@ -48,7 +48,7 @@ void AtomDBProcessor::thread_process_one_query(shared_ptr<StoppableThread> monit
                 Utils::sleep();
             }
         } else {
-            Utils::error("Invalid command " + command + " in AtomDBProcessor");
+            RAISE_ERROR("Invalid command " + command + " in AtomDBProcessor");
         }
     } catch (const std::runtime_error& exception) {
         proxy->raise_error_on_peer(exception.what());

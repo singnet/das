@@ -20,7 +20,7 @@ shared_ptr<LeadershipBroker> LeadershipBroker::factory(LeadershipBrokerType inst
             return shared_ptr<LeadershipBroker>(new TrustedBusPeer());
         }
         default: {
-            Utils::error("Invalid LeadershipBrokerType: " + to_string((int) instance_type));
+            RAISE_ERROR("Invalid LeadershipBrokerType: " + to_string((int) instance_type));
             return shared_ptr<LeadershipBroker>{};
         }
     }

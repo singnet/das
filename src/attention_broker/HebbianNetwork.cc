@@ -173,7 +173,7 @@ static bool visit_serialize_determiners(HandleTrie::TrieNode* trie_node, void* d
         visit_data->network->visit_nodes(false, &visit_find_handle, (void*) visit_data);
         trie_node->trie_node_mutex.lock();
         if (visit_data->handle == "") {
-            Utils::error("Invalid determiner");
+            RAISE_ERROR("Invalid determiner");
         }
         visit_data->stream->write(visit_data->handle.c_str(), HANDLE_HASH_SIZE - 1);
     }
@@ -187,7 +187,7 @@ static bool visit_serialize_edge(HandleTrie::TrieNode* trie_node, void* data) {
     visit_data->node = edge->node1;
     visit_data->network->visit_nodes(false, &visit_find_handle, (void*) visit_data);
     if (visit_data->handle == "") {
-        Utils::error("Invalid neighbor");
+        RAISE_ERROR("Invalid neighbor");
     }
     visit_data->stream->write(visit_data->handle.c_str(), HANDLE_HASH_SIZE - 1);
     visit_data->stream->write(trie_node->suffix.c_str(), HANDLE_HASH_SIZE - 1);

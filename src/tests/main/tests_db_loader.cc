@@ -66,7 +66,7 @@ int main(int argc, char* argv[]) {
             STOP_WATCH_START(tests_db_loader_from_file);
 
             if (argc < 6) {
-                Utils::error(
+                RAISE_ERROR(
                     "File mode requires file path as argument. Usage: context atomdb_type num_threads "
                     "file "
                     "<file_path> [chunk_size]");
@@ -82,7 +82,7 @@ int main(int argc, char* argv[]) {
             // First, read all lines from the file to determine line ranges for each thread
             ifstream file(file_path);
             if (!file.is_open()) {
-                Utils::error("Failed to open file: " + file_path);
+                RAISE_ERROR("Failed to open file: " + file_path);
                 return 1;
             }
 
@@ -296,7 +296,7 @@ int main(int argc, char* argv[]) {
 
                     auto result = db->query_for_pattern(link_schema);
                     if (result->size() != 2) {
-                        Utils::error("[" + to_string(thread_id) + "] Expected 2 results, got " +
+                        RAISE_ERROR("[" + to_string(thread_id) + "] Expected 2 results, got " +
                                      to_string(result->size()));
                         return;
                     }

@@ -42,10 +42,10 @@ bool Link::operator!=(const Link& other) { return !(*this == other); }
 
 void Link::validate() const {
     if (this->type == Atom::UNDEFINED_TYPE) {
-        Utils::error("Link type can't be '" + Atom::UNDEFINED_TYPE + "'");
+        RAISE_ERROR("Link type can't be '" + Atom::UNDEFINED_TYPE + "'");
     }
     if (this->targets.size() == 0) {
-        Utils::error("Link must have at least 1 target");
+        RAISE_ERROR("Link must have at least 1 target");
     }
 }
 
@@ -91,7 +91,7 @@ vector<string> Link::composite_type(HandleDecoder& decoder) const {
     for (string handle : this->targets) {
         shared_ptr<Atom> atom = decoder.get_atom(handle);
         if (atom == nullptr) {
-            Utils::error("Unkown atom with handle: " + handle);
+            RAISE_ERROR("Unkown atom with handle: " + handle);
             return {};
         } else {
             composite_type.push_back(atom->composite_type_hash(decoder));
@@ -102,7 +102,7 @@ vector<string> Link::composite_type(HandleDecoder& decoder) const {
 
 string Link::metta_representation(HandleDecoder& decoder) const {
     if (this->type != MettaMapping::EXPRESSION_LINK_TYPE) {
-        Utils::error("Can't compute metta expression of link whose type (" + this->type + ") is not " +
+        RAISE_ERROR("Can't compute metta expression of link whose type (" + this->type + ") is not " +
                      MettaMapping::EXPRESSION_LINK_TYPE);
     }
     string metta_string = "(";
@@ -110,7 +110,7 @@ string Link::metta_representation(HandleDecoder& decoder) const {
     for (unsigned int i = 0; i < size; i++) {
         shared_ptr<Atom> atom = decoder.get_atom(this->targets[i]);
         if (atom == nullptr) {
-            Utils::error("Couldn't decode handle: " + this->targets[i]);
+            RAISE_ERROR("Couldn't decode handle: " + this->targets[i]);
             return "";
         }
         metta_string += atom->metta_representation(decoder);

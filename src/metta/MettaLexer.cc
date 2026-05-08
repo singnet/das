@@ -43,10 +43,10 @@ MettaLexer::~MettaLexer() { free(this->input_buffer); }
 void MettaLexer::attach_string(const string& metta_string) {
     LOG_DEBUG("Attaching string <" + metta_string + ">");
     if (this->single_string_flag) {
-        Utils::error("Can't attach strings to MettaLexer initialized with a string.");
+        RAISE_ERROR("Can't attach strings to MettaLexer initialized with a string.");
     } else if (this->file_input_flag) {
         if (this->attached_file_names.size() > 0) {
-            Utils::error("Can't attach strings to MettaLexer which is processing files.");
+            RAISE_ERROR("Can't attach strings to MettaLexer which is processing files.");
         } else {
             _attach_string(metta_string);
             this->file_input_flag = false;
@@ -62,7 +62,7 @@ void MettaLexer::attach_file(const string& file_name) {
         this->attached_file_names.push(file_name);
         this->current_offset[file_name] = 0;
     } else {
-        Utils::error("Can't attach files to MettaLexer which is processing strings.");
+        RAISE_ERROR("Can't attach files to MettaLexer which is processing strings.");
     }
 }
 
@@ -233,7 +233,7 @@ void MettaLexer::pop_metta_string() {
 
 void MettaLexer::_attach_string(const string& metta_string) {
     if (metta_string.size() > this->input_buffer_size) {
-        Utils::error("Can't attach strings larger than input buffer size (" +
+        RAISE_ERROR("Can't attach strings larger than input buffer size (" +
                      std::to_string(metta_string.size()) + " > " +
                      std::to_string(this->input_buffer_size) + ")");
     } else {
@@ -264,7 +264,7 @@ void MettaLexer::_rewind_input_buffer(unsigned int n) {
             this->current_metta_string.pop_back();
         }
     } else {
-        Utils::error("Trying to rewind input buffer beyond its start");
+        RAISE_ERROR("Trying to rewind input buffer beyond its start");
     }
 }
 
@@ -272,7 +272,7 @@ void MettaLexer::_feed_from_file() {
     string filename = this->attached_file_names.front();
     FILE* file = fopen(filename.c_str(), "r");
     if (file == NULL) {
-        Utils::error("Unable to open file: " + filename);
+        RAISE_ERROR("Unable to open file: " + filename);
     }
     fseek(file, this->current_offset[filename], SEEK_SET);
     int c = fgetc(file);
@@ -338,5 +338,5 @@ void MettaLexer::_error(LexerState state, const string& error_message, char c) {
     } else {
         prefix += "Unexpected state value: " + std::to_string((unsigned int) state);
     }
-    Utils::error(prefix + " - " + error_message);
+    RAISE_ERROR(prefix + " - " + error_message);
 }

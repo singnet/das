@@ -79,7 +79,7 @@ class Properties : public unordered_map<string, PropertyValue> {
                 return *attr;
             }
         }
-        Utils::error("Unkown property key: " + key);
+        RAISE_ERROR("Unkown property key: " + key);
         return T();
     }
 
@@ -234,14 +234,14 @@ class Properties : public unordered_map<string, PropertyValue> {
                     } else if (value == "false") {
                         (*this)[key] = false;
                     } else {
-                        Utils::error("Invalid 'bool' string value: " + value);
+                        RAISE_ERROR("Invalid 'bool' string value: " + value);
                     }
                 } else {
-                    Utils::error("Invalid token type: " + type);
+                    RAISE_ERROR("Invalid token type: " + type);
                 }
             }
         } else {
-            Utils::error("Invalid tokens vector size: " + std::to_string(tokens.size()));
+            RAISE_ERROR("Invalid tokens vector size: " + std::to_string(tokens.size()));
         }
     }
 };

@@ -28,7 +28,7 @@ void StoppableThread::stop() { this->stop(true); }
 
 void StoppableThread::stop(bool join_thread) {
     if (this->thread_object == NULL) {
-        Utils::error("No thread attached to StoppableThread: " + this->id);
+        RAISE_ERROR("No thread attached to StoppableThread: " + this->id);
     } else if (!this->stop_flag) {
         LOG_DEBUG("Stopping thread: " << this->id);
         this->stop_flag_mutex.lock();

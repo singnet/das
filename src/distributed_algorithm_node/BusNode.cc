@@ -63,7 +63,7 @@ shared_ptr<Message> BusNode::message_factory(string& command, vector<string>& ar
     if (command == BusNode::SET_COMMAND_OWNERSHIP) {
         unsigned int n = args.size();
         if (n == 0) {
-            Utils::error("Invalid command args: " + command);
+            RAISE_ERROR("Invalid command args: " + command);
         }
         vector<string> command_list;
         for (unsigned int i = 1; i < n; i++) {
@@ -86,7 +86,7 @@ const string& BusNode::get_ownership(const string& command) { return this->bus.g
 void BusNode::send_bus_command(const string& command, const vector<string>& args) {
     string target_id = this->bus.get_ownership(command);
     if (target_id == "") {
-        Utils::error("Bus: no owner is defined for command <" + command + ">");
+        RAISE_ERROR("Bus: no owner is defined for command <" + command + ">");
     } else {
         LOG_DEBUG("BUS node " << this->node_id() << " is routing command " << command << " to "
                               << target_id);
@@ -153,7 +153,7 @@ BusNode::Bus& BusNode::Bus::operator+(const string& command) {
 void BusNode::Bus::add(const string& command) {
     if (this->command_owner.find(command) != this->command_owner.end()) {
         if (this->command_owner[command] != "") {
-            Utils::error("Bus: command <" + command + "> " + "is already assigned to " +
+            RAISE_ERROR("Bus: command <" + command + "> " + "is already assigned to " +
                          this->command_owner[command]);
         }
     } else {
@@ -163,13 +163,13 @@ void BusNode::Bus::add(const string& command) {
 
 void BusNode::Bus::set_ownership(const string& command, const string& node_id) {
     if (this->command_owner.find(command) == this->command_owner.end()) {
-        Utils::error("Bus: command <" + command + "> " + "is not defined");
+        RAISE_ERROR("Bus: command <" + command + "> " + "is not defined");
     } else {
         if (this->command_owner[command] == "") {
             this->command_owner[command] = node_id;
         } else {
             if (this->command_owner[command] != node_id) {
-                Utils::error("Bus: command <" + command + "> " + "is already assigned to " +
+                RAISE_ERROR("Bus: command <" + command + "> " + "is already assigned to " +
                              this->command_owner[command]);
             }
         }
@@ -179,7 +179,7 @@ void BusNode::Bus::set_ownership(const string& command, const string& node_id) {
 const string& BusNode::Bus::get_ownership(const string& command) {
     auto pair = this->command_owner.find(command);
     if (pair == this->command_owner.end()) {
-        Utils::error("Bus: unknown command <" + command + ">");
+        RAISE_ERROR("Bus: unknown command <" + command + ">");
     }
     return pair->second;
 }

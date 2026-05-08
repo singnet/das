@@ -57,7 +57,7 @@ shared_ptr<AtomDB> factory_create_atomdb(string type, const JsonConfig& atomdb_c
     } else if (type == "morkdb") {
         return make_shared<MorkDB>("", atomdb_config);
     } else {
-        Utils::error("Unknown AtomDB type: " + type);
+        RAISE_ERROR("Unknown AtomDB type: " + type);
     }
 }
 
@@ -138,7 +138,7 @@ int main(int argc, char** argv) {
             };
             dispatch_handler(benchmark_handlers, method);
         } else {
-            Utils::error(
+            RAISE_ERROR(
                 "Invalid action. Choose either 'AddAtom' or 'AddAtoms' or 'GetAtom' or 'GetAtoms' "
                 "or 'DeleteAtom' or 'DeleteAtoms'");
         }

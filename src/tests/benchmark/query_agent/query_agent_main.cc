@@ -94,7 +94,7 @@ int main(int argc, char** argv) {
     } else if (action == "LinkTemplateCache") {
         benchmark.link_template_cache();
     } else {
-        Utils::error(
+        RAISE_ERROR(
             "Invalid action. Choose either SimpleQuery, PositiveImportance, ComplexQuery, "
             "UpdateAttentionBroker, or LinkTemplateCache.");
     }

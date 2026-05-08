@@ -64,16 +64,16 @@ httplib::Result MorkClient::send_request(const string& method, const string& pat
         res = this->cli.Get(url);
     } else if (method == "POST") {
         if (data.empty()) {
-            Utils::error("POST request data is empty. Cannot send an empty payload to MORK server.");
+            RAISE_ERROR("POST request data is empty. Cannot send an empty payload to MORK server.");
         }
         res = this->cli.Post(url, data, "text/plain");
     }
 
     if (!res) {
-        Utils::error("Connection error at " + url);
+        RAISE_ERROR("Connection error at " + url);
     } else if (res->status != httplib::StatusCode::OK_200) {
         auto err = res.error();
-        Utils::error("Http error: " + httplib::to_string(err));
+        RAISE_ERROR("Http error: " + httplib::to_string(err));
     }
     return res;
 }
@@ -111,7 +111,7 @@ void MorkDB::mork_setup(const JsonConfig& config) {
         this->mork_client = make_shared<MorkClient>(address);
         LOG_INFO("Connected to MORK at " << address);
     } catch (const exception& e) {
-        Utils::error(e.what());
+        RAISE_ERROR(e.what());
     }
 }
 
@@ -197,7 +197,7 @@ vector<string> MorkDB::add_links(const vector<atoms::Link*>& links,
         auto existing_handles = this->links_exist(handles);
         if (!existing_handles.empty()) {
             vector<string> existing_handles_vector(existing_handles.begin(), existing_handles.end());
-            Utils::error("Failed to insert links, some links already exist: " +
+            RAISE_ERROR("Failed to insert links, some links already exist: " +
                          Utils::join(existing_handles_vector, ','));
             return {};
         }

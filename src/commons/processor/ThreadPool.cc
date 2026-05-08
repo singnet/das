@@ -64,7 +64,7 @@ void ThreadPool::enqueue(function<void()> task) {
         }
         condition.notify_one();
     } else {
-        Utils::error("Attempt to add a job to ThreadPool " + this->to_string() +
+        RAISE_ERROR("Attempt to add a job to ThreadPool " + this->to_string() +
                      " which has not being started");
     }
 }

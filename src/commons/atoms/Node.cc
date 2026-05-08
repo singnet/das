@@ -36,10 +36,10 @@ bool Node::operator!=(const Node& other) { return !(*this == other); }
 
 void Node::validate() const {
     if (this->type == Atom::UNDEFINED_TYPE) {
-        Utils::error("Node type can't be '" + Atom::UNDEFINED_TYPE + "'");
+        RAISE_ERROR("Node type can't be '" + Atom::UNDEFINED_TYPE + "'");
     }
     if (this->name.empty()) {
-        Utils::error("Node name must not be empty");
+        RAISE_ERROR("Node name must not be empty");
     }
 }
 
@@ -55,7 +55,7 @@ string Node::handle() const { return Hasher::node_handle(this->type, this->name)
 
 string Node::metta_representation(HandleDecoder& decoder) const {
     if (this->type != MettaMapping::SYMBOL_NODE_TYPE) {
-        Utils::error("Can't compute metta expression of node whose type (" + this->type + ") is not " +
+        RAISE_ERROR("Can't compute metta expression of node whose type (" + this->type + ") is not " +
                      MettaMapping::SYMBOL_NODE_TYPE);
     }
     return this->name;

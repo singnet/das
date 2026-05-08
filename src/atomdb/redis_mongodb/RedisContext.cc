@@ -51,13 +51,13 @@ void RedisContext::append_command(const char* command) {
         if (redisClusterAppendCommand(cluster_ctx, command) == REDIS_OK) {
             pending_commands_count++;
         } else {
-            Utils::error("Failed to append command to Redis cluster context.");
+            RAISE_ERROR("Failed to append command to Redis cluster context.");
         }
     } else {
         if (redisAppendCommand(single_ctx, command) == REDIS_OK) {
             pending_commands_count++;
         } else {
-            Utils::error("Failed to append command to Redis context.");
+            RAISE_ERROR("Failed to append command to Redis context.");
         }
     }
 }

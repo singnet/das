@@ -301,7 +301,7 @@ string InMemoryDB::add_node(const atoms::Node* node, bool throw_if_exists) {
     string handle = node->handle();
 
     if (throw_if_exists && this->node_exists(handle)) {
-        Utils::error("Node already exists: " + handle);
+        RAISE_ERROR("Node already exists: " + handle);
         return "";
     }
 
@@ -365,7 +365,7 @@ vector<string> InMemoryDB::add_nodes(const vector<atoms::Node*>& nodes,
         auto existing_handles = this->nodes_exist(handles);
         if (!existing_handles.empty()) {
             vector<string> existing_handles_vector(existing_handles.begin(), existing_handles.end());
-            Utils::error("Failed to insert nodes, some nodes already exist: " +
+            RAISE_ERROR("Failed to insert nodes, some nodes already exist: " +
                          Utils::join(existing_handles_vector, ','));
             return {};
         }
@@ -393,7 +393,7 @@ vector<string> InMemoryDB::add_links(const vector<atoms::Link*>& links,
         auto existing_handles = this->links_exist(handles);
         if (!existing_handles.empty()) {
             vector<string> existing_handles_vector(existing_handles.begin(), existing_handles.end());
-            Utils::error("Failed to insert links, some links already exist: " +
+            RAISE_ERROR("Failed to insert links, some links already exist: " +
                          Utils::join(existing_handles_vector, ','));
             return {};
         }
@@ -561,9 +561,9 @@ uint InMemoryDB::delete_links(const vector<string>& handles, bool delete_link_ta
     return deleted_count;
 }
 
-size_t InMemoryDB::node_count() const { Utils::error("node_count() is not implemented yet"); }
+size_t InMemoryDB::node_count() const { RAISE_ERROR("node_count() is not implemented yet"); }
 
-size_t InMemoryDB::link_count() const { Utils::error("link_count() is not implemented yet"); }
+size_t InMemoryDB::link_count() const { RAISE_ERROR("link_count() is not implemented yet"); }
 
 size_t InMemoryDB::atom_count() const {
     auto size = this->atoms_trie_->size;
@@ -704,7 +704,7 @@ vector<string> InMemoryDB::match_pattern_index_schema(const Link* link) {
                     } else {
                         string assignment_value = assignment.get(token);
                         if (assignment_value == "") {
-                            Utils::error("LinkSchema assignments don't have variable: " + token);
+                            RAISE_ERROR("LinkSchema assignments don't have variable: " + token);
                         }
                         hash_entries.push_back(assignment_value);
                     }

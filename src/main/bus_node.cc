@@ -54,7 +54,7 @@ int main(int argc, char* argv[]) {
         }
         for (auto req_arg : required_cmd_args) {
             if (cmd_args.find(req_arg) == cmd_args.end()) {
-                Utils::error("Required argument missing: " + string(req_arg));
+                RAISE_ERROR("Required argument missing: " + string(req_arg));
             }
         }
         auto required_args = Helper::get_required_arguments(cmd_args[Helper::SERVICE]);
@@ -65,7 +65,7 @@ int main(int argc, char* argv[]) {
                     auto val = json_config.at_path(it_path->second);
                     cmd_args[req_arg] = val.get<string>();
                 } else {
-                    Utils::error("Required argument missing: " + string(req_arg));
+                    RAISE_ERROR("Required argument missing: " + string(req_arg));
                 }
             }
         }
@@ -99,7 +99,7 @@ int main(int argc, char* argv[]) {
         ///////// Registering processor
         auto service = ProcessorFactory::create_processor(cmd_args[Helper::SERVICE], props);
         if (service == nullptr) {
-            Utils::error("Could not create processor for service or service is inactive: " +
+            RAISE_ERROR("Could not create processor for service or service is inactive: " +
                          cmd_args[Helper::SERVICE]);
         }
 

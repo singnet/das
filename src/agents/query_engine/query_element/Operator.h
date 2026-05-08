@@ -66,10 +66,10 @@ class Operator : public QueryElement {
     virtual void setup_buffers() {
         LOG_LOCAL_DEBUG("Setting up buffers for Operator: " + std::to_string((unsigned long) this));
         if (this->subsequent_id == "") {
-            Utils::error("Invalid empty parent id");
+            RAISE_ERROR("Invalid empty parent id");
         }
         if (this->id == "") {
-            Utils::error("Invalid empty id");
+            RAISE_ERROR("Invalid empty id");
         }
 
         this->output_buffer = make_shared<QueryNodeClient>(this->id, this->subsequent_id);
@@ -133,7 +133,7 @@ class Operator : public QueryElement {
    private:
     void initialize(const array<shared_ptr<QueryElement>, N>& clauses) {
         if (N > MAX_NUMBER_OF_OPERATION_CLAUSES) {
-            Utils::error("Operation exceeds max number of clauses: " + std::to_string(N));
+            RAISE_ERROR("Operation exceeds max number of clauses: " + std::to_string(N));
         }
         for (unsigned int i = 0; i < N; i++) {
             precedent[i] = clauses[i];

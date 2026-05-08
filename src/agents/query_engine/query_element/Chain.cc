@@ -334,7 +334,7 @@ bool Chain::thread_one_step() {
                 shared_ptr<Link> link =
                     dynamic_pointer_cast<Link>(AtomDBSingleton::get_instance()->get_atom(handle));
                 if (link == nullptr) {
-                    Utils::error("Invalid query answer in Chain operator.");
+                    RAISE_ERROR("Invalid query answer in Chain operator.");
                 } else {
                     LOG_DEBUG("[CHAIN OPERATOR] "
                               << "Valid link");
@@ -365,7 +365,7 @@ bool Chain::thread_one_step() {
                             Path(tail, head, QueryAnswer::copy(answer), false), answer->importance);
                     }
                 } else {
-                    Utils::error("Invalid Link " + link->to_string() + " with arity " +
+                    RAISE_ERROR("Invalid Link " + link->to_string() + " with arity " +
                                  std::to_string(link->arity()) + " in CHAIN operator. Tail reference: " +
                                  std::to_string(this->tail_reference) +
                                  ". Head reference: " + std::to_string(this->head_reference));
@@ -463,10 +463,10 @@ bool Chain::all_paths_explored() {
 
 void Chain::initialize(const array<shared_ptr<QueryElement>, 1>& clauses) {
     if (clauses.size() != 1) {
-        Utils::error("Invalid Chain operator with " + std::to_string(clauses.size()) + " clauses.");
+        RAISE_ERROR("Invalid Chain operator with " + std::to_string(clauses.size()) + " clauses.");
     }
     if (!(allow_incomplete_chain_path || (forward_active() && backward_active()))) {
-        Utils::error(
+        RAISE_ERROR(
             "Invalid parameters. If CHAIN source or target is a variable, incomplete paths must be "
             "allowed");
     }

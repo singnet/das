@@ -48,7 +48,7 @@ class ProcessorFactory {
             case ProcessorType::QUERY_ENGINE:
                 return make_shared<PatternMatchingQueryProcessor>();
             default:
-                Utils::error("Unknown processor type: " + processor_type);
+                RAISE_ERROR("Unknown processor type: " + processor_type);
         }
         return nullptr;
     };

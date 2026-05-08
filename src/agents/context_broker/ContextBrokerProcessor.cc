@@ -44,7 +44,7 @@ void ContextBrokerProcessor::run_command(shared_ptr<BusCommandProxy> proxy) {
     LOG_DEBUG("Starting new thread: " << thread_id << " to run command: <" << proxy->get_command()
                                       << ">");
     if (this->query_threads.find(thread_id) != this->query_threads.end()) {
-        Utils::error("Invalid thread id: " + thread_id);
+        RAISE_ERROR("Invalid thread id: " + thread_id);
     } else {
         shared_ptr<StoppableThread> stoppable_thread = make_shared<StoppableThread>(thread_id);
         stoppable_thread->attach(new thread(&ContextBrokerProcessor::thread_process_one_query,
@@ -62,14 +62,14 @@ void ContextBrokerProcessor::thread_process_one_query(shared_ptr<StoppableThread
                                                       shared_ptr<ContextBrokerProxy> proxy) {
     try {
         if (proxy->args.size() < 2) {
-            Utils::error("Syntax error in query command. Missing implicit parameters.");
+            RAISE_ERROR("Syntax error in query command. Missing implicit parameters.");
         }
 
         proxy->untokenize(proxy->args);
 
         // Do not allow use_cache == false and enforce_cache_recreation == true
         if (!proxy->get_use_cache() && proxy->get_enforce_cache_recreation()) {
-            Utils::error("use_cache == false and enforce_cache_recreation == true is not allowed");
+            RAISE_ERROR("use_cache == false and enforce_cache_recreation == true is not allowed");
         }
 
         string command = proxy->get_command();
@@ -82,7 +82,7 @@ void ContextBrokerProcessor::thread_process_one_query(shared_ptr<StoppableThread
 
             this->create_context(monitor, proxy);
         } else {
-            Utils::error("Invalid command " + command + " in ContextBrokerProcessor");
+            RAISE_ERROR("Invalid command " + command + " in ContextBrokerProcessor");
         }
     } catch (const std::runtime_error& exception) {
         proxy->raise_error_on_peer(exception.what());
@@ -197,7 +197,7 @@ void ContextBrokerProcessor::set_attention_broker_parameters(double rent_rate,
 
 static inline void read_line(ifstream& file, string& line) {
     if (!getline(file, line)) {
-        Utils::error("Error reading a line from cache file");
+        RAISE_ERROR("Error reading a line from cache file");
     }
 }
 

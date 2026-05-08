@@ -159,7 +159,7 @@ void BaseQueryProxy::recursive_metta_mapping(string handle, map<string, string>&
             // is link
             auto link = dynamic_cast<Link*>(atom.get());
             if (link->type != "Expression") {
-                Utils::error("Link type \"" + link->type + "\" can't be mapped to MeTTa");
+                RAISE_ERROR("Link type \"" + link->type + "\" can't be mapped to MeTTa");
                 table[handle] = "";
                 return;
             }
@@ -183,7 +183,7 @@ void BaseQueryProxy::recursive_metta_mapping(string handle, map<string, string>&
             // is node
             auto node = dynamic_cast<Node*>(atom.get());
             if (node->type != "Symbol") {
-                Utils::error("Node type \"" + node->type + "\" can't be mapped to MeTTa");
+                RAISE_ERROR("Node type \"" + node->type + "\" can't be mapped to MeTTa");
                 table[handle] = "";
                 return;
             }
@@ -225,7 +225,7 @@ void BaseQueryProxy::answer_bundle(const vector<string>& args) {
     lock_guard<mutex> semaphore(this->api_mutex);
     if (!this->is_aborting()) {
         if (args.size() == 0) {
-            Utils::error("Invalid empty query answer bundle");
+            RAISE_ERROR("Invalid empty query answer bundle");
         } else {
             for (auto tokens : args) {
                 QueryAnswer* query_answer = new QueryAnswer();

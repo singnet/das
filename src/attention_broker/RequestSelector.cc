@@ -35,7 +35,7 @@ RequestSelector* RequestSelector::factory(SelectorType instance_type,
             return new EvenThreadCount(thread_id, stimulus, correlation);
         }
         default: {
-            Utils::error("Invalid selector type: " + to_string((int) instance_type));
+            RAISE_ERROR("Invalid selector type: " + to_string((int) instance_type));
             return NULL;  // to avoid warnings
         }
     }

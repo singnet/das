@@ -45,12 +45,12 @@ shared_ptr<HandleSetIterator> HandleSetRedis::get_iterator() {
 }
 
 map<string, string> HandleSetRedis::get_metta_expressions_by_handle(const string& handle) {
-    Utils::error("HandleSetRedis does not support get_metta_expressions_by_handle");
+    RAISE_ERROR("HandleSetRedis does not support get_metta_expressions_by_handle");
     return {};
 }
 
 Assignment HandleSetRedis::get_assignments_by_handle(const string& handle) {
-    Utils::error("HandleSetRedis does not support get_assignments_by_handle");
+    RAISE_ERROR("HandleSetRedis does not support get_assignments_by_handle");
     return {};
 }
 
@@ -111,7 +111,7 @@ RedisStringBundle::~RedisStringBundle() {
 
 const char* RedisStringBundle::get_handle(unsigned int index) {
     if (index > this->handles_size) {
-        Utils::error("Handle index out of bounds: " + to_string(index) +
+        RAISE_ERROR("Handle index out of bounds: " + to_string(index) +
                      " Answer handles size: " + to_string(this->handles_size));
     }
     //
@@ -172,7 +172,7 @@ void add_custom_attributes(bsoncxx::builder::basic::document& doc, const Propert
                         custom_attributes_doc.append(bsoncxx::builder::basic::kvp(key, arg));
                     } else {
                         // MongoDB does not support unsigned int.
-                        Utils::error("MongoDB does not support custom attribute '" + key +
+                        RAISE_ERROR("MongoDB does not support custom attribute '" + key +
                                      "' with type: " + typeid(T).name());
                     }
                 },
@@ -201,7 +201,7 @@ Properties MongodbDocument::extract_custom_attributes(const bsoncxx::v_noabi::do
                 custom_attributes[key] = value.get_bool().value;
                 break;
             default:
-                Utils::error("Unknown custom attribute type: " + key +
+                RAISE_ERROR("Unknown custom attribute type: " + key +
                              " type: " + to_string(value.type()));
         }
     }

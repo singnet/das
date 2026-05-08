@@ -361,7 +361,7 @@ string resolve_config_path(const string& filename) {
 JsonConfig load_config(const string& filename) {
     ifstream f(filename);
     if (!f.good()) {
-        Utils::error("RemoteAtomDBTest: Cannot open config file: " + filename);
+        RAISE_ERROR("RemoteAtomDBTest: Cannot open config file: " + filename);
     }
     stringstream buf;
     buf << f.rdbuf();

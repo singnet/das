@@ -27,7 +27,7 @@ class ThreadSafeHashmap {
         lock_guard<mutex> semaphore(this->api_mutex);
         auto iterator = this->table.find(key);
         if (iterator == this->table.end()) {
-            Utils::error("Lookup for non-existent key in ThreadSafeHashmap");
+            RAISE_ERROR("Lookup for non-existent key in ThreadSafeHashmap");
         }
         return iterator->second;
     }
