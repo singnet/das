@@ -31,13 +31,13 @@ void AttentionBrokerClient::correlate(const set<string>& handles, const string& 
         handle_list.add_list(handle);
     }
     if (handle_list.list_size() > 0) {
-        LOG_INFO("Calling AttentionBroker GRPC. Correlating " << handle_list.list_size() << " handles");
+        LOG_DEBUG("Calling AttentionBroker GRPC. Correlating " << handle_list.list_size() << " handles");
         stub->correlate(new grpc::ClientContext(), handle_list, &ack);
         if (ack.msg() != "CORRELATE") {
             Utils::error("Failed GRPC command: AttentionBroker::correlate()");
         }
     } else {
-        LOG_INFO("No handles to correlate");
+        LOG_DEBUG("No handles to correlate");
     }
 }
 
@@ -52,14 +52,14 @@ void AttentionBrokerClient::asymmetric_correlate(const vector<string>& handles, 
         handle_list.add_list(handle);
     }
     if (handle_list.list_size() > 0) {
-        LOG_INFO("Calling AttentionBroker GRPC. Correlating (asymmetric) " << handle_list.list_size()
+        LOG_DEBUG("Calling AttentionBroker GRPC. Correlating (asymmetric) " << handle_list.list_size()
                                                                            << " handles");
         stub->asymmetric_correlate(new grpc::ClientContext(), handle_list, &ack);
         if (ack.msg() != "ASYMMETRIC_CORRELATE") {
             Utils::error("Failed GRPC command: AttentionBroker::asymmetric_correlate()");
         }
     } else {
-        LOG_INFO("No handles to correlate (asymmetric)");
+        LOG_DEBUG("No handles to correlate (asymmetric)");
     }
 }
 
@@ -77,7 +77,7 @@ void AttentionBrokerClient::stimulate(const map<string, unsigned int>& handle_ma
         sum += pair.second;
     }
     (*handle_count.mutable_map())["SUM"] = sum;
-    LOG_INFO("Calling AttentionBroker GRPC. Stimulating " << handle_count.mutable_map()->size() - 1
+    LOG_DEBUG("Calling AttentionBroker GRPC. Stimulating " << handle_count.mutable_map()->size() - 1
                                                           << " handles");
     stub->stimulate(new grpc::ClientContext(), handle_count, &ack);
     if (ack.msg() != "STIMULATE") {
@@ -109,7 +109,7 @@ void AttentionBrokerClient::set_determiners(const vector<vector<string>>& handle
             handle_count += handle_lists[cursor].size();
             cursor++;
         }
-        LOG_INFO("Calling AttentionBroker GRPC. Setting determiners for " << request.list_size()
+        LOG_DEBUG("Calling AttentionBroker GRPC. Setting determiners for " << request.list_size()
                                                                           << " handles");
         stub->set_determiners(new grpc::ClientContext(), request, &ack);
         if (ack.msg() != "SET_DETERMINERS") {
@@ -137,7 +137,7 @@ void AttentionBrokerClient::get_importance(const vector<string>& handles,
         }
         auto stub = dasproto::AttentionBroker::NewStub(
             grpc::CreateChannel(SERVER_ADDRESS, grpc::InsecureChannelCredentials()));
-        LOG_INFO("Querying AttentionBroker for importance of " << handle_list.list_size() << " atoms.");
+        LOG_DEBUG("Querying AttentionBroker for importance of " << handle_list.list_size() << " atoms.");
         stub->get_importance(new grpc::ClientContext(), handle_list, &importance_list);
         for (unsigned int i = 0; i < bundle_count; i++) {
             importances.push_back(importance_list.list(i));
@@ -161,7 +161,7 @@ void AttentionBrokerClient::set_parameters(float rent_rate,
     auto stub = dasproto::AttentionBroker::NewStub(
         grpc::CreateChannel(SERVER_ADDRESS, grpc::InsecureChannelCredentials()));
 
-    LOG_INFO("Calling AttentionBroker GRPC. Setting dynamics parameters. RENT_RATE: "
+    LOG_DEBUG("Calling AttentionBroker GRPC. Setting dynamics parameters. RENT_RATE: "
              << request.rent_rate()
              << " SPREADING_RATE_LOWERBOUND: " << request.spreading_rate_lowerbound()
              << " SPREADING_RATE_UPPERBOUND: " << request.spreading_rate_upperbound());
@@ -178,7 +178,7 @@ bool AttentionBrokerClient::health_check(bool throw_on_error) {
     auto stub = dasproto::AttentionBroker::NewStub(
         grpc::CreateChannel(SERVER_ADDRESS, grpc::InsecureChannelCredentials()));
 
-    LOG_INFO("Calling AttentionBroker GRPC. Ping");
+    LOG_DEBUG("Calling AttentionBroker GRPC. Ping");
     stub->ping(new grpc::ClientContext(), request, &ack);
     if (ack.msg() == "PING") {
         return true;
@@ -202,7 +202,7 @@ void AttentionBrokerClient::drop_and_load_context(const string& context, const s
     auto stub = dasproto::AttentionBroker::NewStub(
         grpc::CreateChannel(SERVER_ADDRESS, grpc::InsecureChannelCredentials()));
 
-    LOG_INFO(
+    LOG_DEBUG(
         "Calling AttentionBroker GRPC. Dropping context info and loading contents from file. Context: " +
         context + " File name: " + file_name);
     stub->drop_and_load_context(new grpc::ClientContext(), request, &ack);

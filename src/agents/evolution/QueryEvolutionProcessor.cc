@@ -91,8 +91,7 @@ shared_ptr<PatternMatchingQueryProxy> QueryEvolutionProcessor::issue_sampling_qu
     pm_proxy->parameters[PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG] = positive_importance_flag;
     pm_proxy->parameters[BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS] =
         proxy->parameters.get<bool>(BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS);
-    pm_proxy->parameters[BaseQueryProxy::POPULATE_METTA_MAPPING] = proxy->parameters.get<bool>(
-        BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS);  // enforced when MeTTa queries are being used
+    pm_proxy->parameters[BaseQueryProxy::POPULATE_METTA_MAPPING] = proxy->parameters.get<bool>(BaseQueryProxy::POPULATE_METTA_MAPPING) || proxy->parameters.get<bool>(BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS);  // enforced when MeTTa queries are being used
     pm_proxy->parameters[PatternMatchingQueryProxy::MAX_ANSWERS] =
         proxy->parameters.get<unsigned int>(QueryEvolutionProxy::POPULATION_SIZE);
     ServiceBusSingleton::get_instance()->issue_bus_command(pm_proxy);

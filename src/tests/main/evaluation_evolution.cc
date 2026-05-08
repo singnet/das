@@ -1,4 +1,4 @@
-#define LOG_LEVEL DEBUG_LEVEL
+#define LOG_LEVEL INFO_LEVEL
 #include <signal.h>
 
 #include <filesystem>
@@ -556,13 +556,6 @@ static void build_links(const vector<string>& query,
     }
 }
 
-static void print_answer(shared_ptr<QueryAnswer> query_answer) {
-    unsigned int answer_arity = query_answer->get_handles_size();
-    cout << fixed << setw(6) << setprecision(4) << setfill('0');
-    cout << query_answer->strength << " [" << to_string(answer_arity) << "]";
-    cout << endl;
-}
-
 // clang-format off
 static void query_evolution(
     const vector<string>& query_to_evolve,
@@ -588,7 +581,7 @@ static void query_evolution(
 
     shared_ptr<QueryEvolutionProxy> proxy(proxy_ptr);
     proxy->parameters[BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS] = USE_MORK;
-    proxy->parameters[BaseQueryProxy::POPULATE_METTA_MAPPING] = false;
+    proxy->parameters[BaseQueryProxy::POPULATE_METTA_MAPPING] = true;
     proxy->parameters[QueryEvolutionProxy::POPULATION_SIZE] = (unsigned int) POPULATION_SIZE;
     proxy->parameters[QueryEvolutionProxy::MAX_GENERATIONS] = (unsigned int) MAX_GENERATIONS;
     proxy->parameters[QueryEvolutionProxy::ELITISM_RATE] = (double) ELITISM_RATE;
@@ -612,11 +605,11 @@ static void query_evolution(
             count_answers++;
             if (query_answer->strength > best_fitness) {
                 best_fitness = query_answer->strength;
-                print_answer(query_answer);
+                LOG_INFO("ANSWER: [" + std::to_string(query_answer->strength) + "]: " + query_answer->to_string(true));
             }
         }
     }
-    cout << "Total answers in iteration " << count_iterations++ << ": " << count_answers << endl;
+    LOG_INFO("Total answers in iteration " << count_iterations++ << ": " << count_answers);
 }
 // clang-format on
 
@@ -943,15 +936,13 @@ static void run(const string& context_tag) {
         add_to_context_file(context_file_name,
                             context,
                             ACTIVATION,
-                            {TARGET_PREDICATE_HANDLE,
-                             TARGET_PREDICATE_HANDLE,
-                             TARGET_CONCEPT_HANDLE,
-                             TARGET_CONCEPT_HANDLE});
+                            {TARGET_PREDICATE_HANDLE, TARGET_CONCEPT_HANDLE});
 
     } else {
         LOG_INFO("Context file already exists. Reusing it...");
     }
     LOG_INFO("Updating AttentionBroker");
+    AttentionBrokerClient::stimulate({{TARGET_PREDICATE_HANDLE, 1}, {TARGET_CONCEPT_HANDLE, 1}}, context);
     AttentionBrokerClient::drop_and_load_context(context, string(context_file_name));
     LOG_INFO("Context " + context + " is ready");
 
@@ -979,9 +970,9 @@ static void run(const string& context_tag) {
         if (i != (NUM_ITERATIONS - 1)) {
             LOG_INFO("----- Building links");
             LOG_INFO("Building Implication links");
-            build_links(implication_query, context, LINK_BUILDING_QUERY_SIZE, "", build_implication_link);
+            build_links(implication_query, context, 50, "", build_implication_link);
             LOG_INFO("Building Equivalence links");
-            build_links(equivalence_query, context, LINK_BUILDING_QUERY_SIZE, "", build_equivalence_link);
+            build_links(equivalence_query, context, 10, "", build_equivalence_link);
             LOG_INFO("----- Updating AttentionBroker");
             AttentionBrokerClient::set_determiners(buffer_determiners, context);
             buffer_determiners.clear();
