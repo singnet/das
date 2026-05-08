@@ -346,7 +346,9 @@ uint RedisMongoDB::get_next_score(const string& key) {
     auto ctx = this->redis_pool->acquire();
     string command = "GET " + key;
     redisReply* reply = ctx->execute(command.c_str());
-    if (reply == NULL) RAISE_ERROR("Redis error at get_next_score");
+    if (reply == NULL) {
+        RAISE_ERROR("Redis error at get_next_score");
+    }
 
     if (reply->type == REDIS_REPLY_NIL) return 0;
 
