@@ -22,6 +22,16 @@ curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 . "$HOME/.cargo/env"
 ```
 
+Install the Protocol Buffers compiler (`protoc`), which `tonic-build` needs during compilation:
+
+```sh
+# Debian / Ubuntu
+sudo apt install protobuf-compiler
+
+# MacOS
+brew install protobuf
+```
+
 Build the package:
 ```sh
 cargo build --release
