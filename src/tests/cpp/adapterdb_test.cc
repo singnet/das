@@ -196,9 +196,9 @@ TEST_F(AdapterDBTest, AddAndDeleteNodes) {
     ASSERT_NE(db, nullptr);
 
     vector<Node*> nodes;
-    nodes.push_back(new Node("Symbol", "AdapterDBBatchNode1"));
-    nodes.push_back(new Node("Symbol", "AdapterDBBatchNode2"));
-    nodes.push_back(new Node("Symbol", "AdapterDBBatchNode3"));
+    nodes.push_back(new Node("Symbol", "AdapterDBNode1"));
+    nodes.push_back(new Node("Symbol", "AdapterDBNode2"));
+    nodes.push_back(new Node("Symbol", "AdapterDBNode3"));
 
     auto handles = db->add_nodes(nodes);
     EXPECT_EQ(handles.size(), 3);
@@ -255,9 +255,9 @@ TEST_F(AdapterDBTest, AddLinkFailsWhenTargetsDoNotExist) {
     auto db = create_adapter(mapping_file_path);
     ASSERT_NE(db, nullptr);
 
-    auto fake1 = new Node("Symbol", "FakeNode1");
-    auto fake2 = new Node("Symbol", "FakeNode2");
-    auto fake3 = new Node("Symbol", "FakeNode3");
+    auto fake1 = new Node("Symbol", "AdapterLinkFailNode1");
+    auto fake2 = new Node("Symbol", "AdapterLinkFailNode2");
+    auto fake3 = new Node("Symbol", "AdapterLinkFailNode3");
 
     auto link = new Link("Expression", {fake1->handle(), fake2->handle(), fake3->handle()});
 
@@ -273,9 +273,9 @@ TEST_F(AdapterDBTest, DeleteNonExistingAtomReturnsFalse) {
     auto db = create_adapter(mapping_file_path);
     ASSERT_NE(db, nullptr);
 
-    EXPECT_FALSE(db->delete_atom("00000000000000000000000000000000"));
-    EXPECT_FALSE(db->delete_node("00000000000000000000000000000000"));
-    EXPECT_FALSE(db->delete_link("00000000000000000000000000000000"));
+    EXPECT_FALSE(db->delete_atom("NonExistingHandle"));
+    EXPECT_FALSE(db->delete_node("NonExistingHandle"));
+    EXPECT_FALSE(db->delete_link("NonExistingHandle"));
 }
 
 TEST_F(AdapterDBTest, DeleteEmptyCollectionsReturnsZero) {
@@ -292,9 +292,9 @@ TEST_F(AdapterDBTest, ExistsQueriesReturnEmptyForUnknownHandles) {
     ASSERT_NE(db, nullptr);
 
     vector<string> handles = {
-        "00000000000000000000000000000000",
-        "11111111111111111111111111111111",
-        "22222222222222222222222222222222",
+        "NonExistingHandle1",
+        "NonExistingHandle2",
+        "NonExistingHandle3",
     };
 
     EXPECT_EQ(db->atoms_exist(handles).size(), 0);
