@@ -375,11 +375,14 @@ vector<string> AdapterDB::get_mapping_file_contents() const {
     vector<string> file_paths =
         this->config.at_path("adapterdb.context_mapping_paths").get_or<vector<string>>({});
 
-    if (file_paths.empty()) {
-        RAISE_ERROR("adapterdb.context_mapping_paths is not defined in config or is empty");
-    }
-
     vector<string> contents;
+
+    if (file_paths.empty()) {
+        LOG_INFO("adapterdb.context_mapping_paths is not defined in config or is empty");
+        contents.push_back(
+            "all_database");  // Use a placeholder content to indicate the entire database is mapped
+        return contents;
+    }
 
     for (const auto& path : file_paths) {
         ifstream file(path);

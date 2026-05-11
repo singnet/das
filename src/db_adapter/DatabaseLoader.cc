@@ -33,11 +33,11 @@ DatabaseMappingOrchestrator::~DatabaseMappingOrchestrator() { this->db_conn->sto
 // ==============================
 
 void DatabaseMappingOrchestrator::add_task_query(const string& virtual_name, const string& query) {
-    this->tasks.push_back(MappingTask{MappingTask::QUERY, TableMapping{}, virtual_name, query});
+    this->tasks.push_back(MappingTask{MappingTask::QUERY, virtual_name, query});
 }
 
-void DatabaseMappingOrchestrator::add_task_table(TableMapping table_mapping) {
-    this->tasks.push_back(MappingTask{MappingTask::TABLE, move(table_mapping), "", ""});
+void DatabaseMappingOrchestrator::add_task_all_db() {
+    this->tasks.push_back(MappingTask{MappingTask::ALLDB, "", ""});
 }
 
 bool DatabaseMappingOrchestrator::thread_one_step() {
@@ -57,15 +57,19 @@ bool DatabaseMappingOrchestrator::thread_one_step() {
     auto& task = this->tasks[this->current_task];
 
     LOG_DEBUG("Processing task " << this->current_task << " of type "
-                                 << (task.type == MappingTask::TABLE ? "TABLE" : "QUERY"));
+                                 << (task.type == MappingTask::ALLDB ? "ALLDB" : "QUERY"));
 
-    if (task.type == MappingTask::TABLE) {
-        auto table_name_parts = Utils::split(task.table_mapping.table_name, '.');
-        auto table = this->wrapper->get_table(table_name_parts[0], table_name_parts[1]);
-        this->wrapper->map_table(table,
-                                 task.table_mapping.where_clauses.value_or(vector<string>{}),
-                                 task.table_mapping.skip_columns.value_or(vector<string>{}),
-                                 false);
+    if (task.type == MappingTask::ALLDB) {
+        auto tables = this->wrapper->list_tables();
+
+        if (tables.empty()) {
+            RAISE_ERROR("No tables found in the database.");
+        }
+
+        for (const auto& table : tables) {
+            LOG_INFO("Mapping table: " << table.name);
+            this->wrapper->map_table(table, vector<string>{}, vector<string>{}, false);
+        }
     } else if (task.type == MappingTask::QUERY) {
         this->wrapper->map_sql_query(task.virtual_name, task.query);
     }
@@ -102,30 +106,31 @@ void DatabaseMappingOrchestrator::task_setup(const JsonConfig& config) {
     vector<string> file_paths =
         config.at_path("adapterdb.context_mapping_paths").get_or<vector<string>>({});
 
+    if (file_paths.empty()) {
+        LOG_INFO(
+            "No context mapping files specified in config at adapterdb.context_mapping_paths. The "
+            "entire database will be mapped.");
+        this->add_task_all_db();  // Add a task to map the entire database
+        return;
+    }
+
     for (const auto& path : file_paths) {
         fs::path p(path);
         string ext = p.extension().string();
 
-        if (ext == ".sql") {
-            LOG_INFO("Loading query mapping from file: " << path);
-            auto queries_sql = ContextLoader::load_query_file(path);
-            if (!queries_sql.empty()) {
-                for (size_t i = 0; i < queries_sql.size(); i++) {
-                    this->add_task_query("custom_query_" + to_string(i), queries_sql[i]);
-                }
-            }
-            LOG_DEBUG(to_string(queries_sql.size()) + " queries were loaded from the query file.");
-        } else if (ext == ".json") {
-            LOG_INFO("Loading table mapping from file: " << path);
-            auto tables_mapping = ContextLoader::load_table_file(path);
-            if (!tables_mapping.empty()) {
-                for (const auto& table_mapping : tables_mapping) {
-                    this->add_task_table(table_mapping);
-                }
-            }
-            LOG_DEBUG(to_string(tables_mapping.size()) +
-                      " tables were loaded from the context file for mapping.");
+        if (ext != ".sql") {
+            RAISE_ERROR("Unsupported mapping file type: " + ext + " for file: " + path);
         }
+
+        LOG_INFO("Loading query mapping from file: " << path);
+        auto queries_sql = ContextLoader::load_query_file(path);
+        if (!queries_sql.empty()) {
+            for (size_t i = 0; i < queries_sql.size(); i++) {
+                LOG_INFO("Query " << (i + 1) << ": " << queries_sql[i]);
+                this->add_task_query("custom_query_" + to_string(i), queries_sql[i]);
+            }
+        }
+        LOG_DEBUG(to_string(queries_sql.size()) + " queries were loaded from the query file.");
     }
 }
 

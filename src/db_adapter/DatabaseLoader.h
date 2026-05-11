@@ -32,7 +32,7 @@ class DatabaseMappingOrchestrator : public ThreadMethod {
     ~DatabaseMappingOrchestrator();
 
     void add_task_query(const string& virtual_name, const string& query);
-    void add_task_table(TableMapping table_mapping);
+    void add_task_all_db();
     bool thread_one_step() override;
     bool is_finished() const;
 
@@ -42,8 +42,7 @@ class DatabaseMappingOrchestrator : public ThreadMethod {
 
    protected:
     struct MappingTask {
-        enum Type { TABLE, QUERY } type;
-        TableMapping table_mapping;
+        enum Type { ALLDB, QUERY } type;
         string virtual_name;
         string query;
     };

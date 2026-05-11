@@ -27,26 +27,46 @@ class AdapterDBTest : public ::testing::Test {
     string mapping_file_path;
 
     void SetUp() override {
-        mapping_file_path = "/tmp/adapterdb_test_mapping.json";
+        mapping_file_path = "/tmp/adapterdb_test_mapping.sql";
 
         ofstream file(mapping_file_path);
-        file << R"([
-            {
-                "table_name": "public.organism",
-                "skip_columns": [],
-                "where_clauses": ["organism_id = 1"]
-            },
-            {
-                "table_name": "public.feature",
-                "skip_columns": [],
-                "where_clauses": ["feature_id = 1"]
-            },
-            {
-                "table_name": "public.cvterm",
-                "skip_columns": [],
-                "where_clauses": ["cvterm_id = 1"]
-            }
-        ])";
+        file << R"(SELECT
+            o.organism_id as public_organism__organism_id,
+            o.genus as public_organism__genus,
+            o.species as public_organism__species,
+            o.common_name as public_organism__common_name,
+            o.abbreviation as public_organism__abbreviation,
+            o.comment as public_organism__comment,
+            o.created_at as public_organism__created_at
+            FROM
+            public.organism as o WHERE o.organism_id=1;
+
+            SELECT
+            f.feature_id as public_feature__feature_id,
+            f.organism_id as public_feature__organism_id,
+            f.type_id as public_feature__type_id,
+            f.name as public_feature__name,
+            f.uniquename as public_feature__uniquename,
+            f.residues as public_feature__residues,
+            f.seqlen as public_feature__seqlen,
+            f.md5checksum as public_feature__md5checksum,
+            f.is_analysis as public_feature__is_analysis,
+            f.is_obsolete as public_feature__is_obsolete,
+            f.timeaccessioned as public_feature__timeaccessioned,
+            f.timelastmodified as public_feature__timelastmodified
+            FROM
+            public.feature as f WHERE f.feature_id=1;
+
+            SELECT
+            c.cvterm_id as public_cvterm__cvterm_id,
+            c.name as public_cvterm__name,
+            c.definition as public_cvterm__definition,
+            c.is_obsolete as public_cvterm__is_obsolete,
+            c.is_relationshiptype as public_cvterm__is_relationshiptype,
+            c.created_at as public_cvterm__created_at
+            FROM
+            public.cvterm as c WHERE c.cvterm_id=1;
+        )";
         file.close();
     }
 
