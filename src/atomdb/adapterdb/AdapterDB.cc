@@ -30,33 +30,13 @@ string AdapterDB::MONGODB_ADAPTER_COLLECTION_NAME = "adapterdb";
 // ==============================
 
 AdapterDB::AdapterDB(const JsonConfig& config) : config(config) {
-    string type = config.at_path("adapterdb.type").get_or<string>("");
-
-    if (type != "postgres") {
-        Utils::error("AdapterDB: Unsupported database type in config: " + type);
-    }
-
-    this->persistence_setup();
-
     this->atomdb_backend_setup();
+    this->initialize();
+}
 
-    string context_id = this->context_id();
-
-    if (!this->is_context_persisted(context_id)) {
-        LOG_INFO("ContextID <" << context_id << "> NOT found.");
-        if (this->atomdb_backend->empty()) {
-            LOG_INFO("AtomDB backend is empty. Populating AtomDB backend with source database data.");
-            lock_guard<mutex> lock(mtx);
-            this->synchronous_source_database_to_atomdb();
-            this->persist_mapping_context(context_id);
-        } else {
-            Utils::error("AtomDB backend already populated");
-        }
-    } else {
-        LOG_INFO("ContextID <" << context_id << "> found.");
-    }
-
-    this->backend_ready.store(true);
+atomdb::AdapterDB::AdapterDB(const JsonConfig& config, std::shared_ptr<AtomDB> backend)
+    : config(config), atomdb_backend(backend) {
+    this->initialize(true);
 }
 
 AdapterDB::~AdapterDB() {}
@@ -237,6 +217,36 @@ size_t AdapterDB::atom_count() const {
 // ==============================
 //  Private
 // ==============================
+
+void AdapterDB::initialize(bool skip_atomdb_backend_empty) {
+    string type = config.at_path("adapterdb.type").get_or<string>("");
+
+    if (type != "postgres") {
+        Utils::error("AdapterDB: Unsupported database type in config: " + type);
+    }
+
+    this->persistence_setup();
+
+    string context_id = this->context_id();
+
+    if (!this->is_context_persisted(context_id)) {
+        LOG_INFO("ContextID <" << context_id << "> NOT found.");
+
+        if (!skip_atomdb_backend_empty && !this->atomdb_backend->empty()) {
+            Utils::error("AtomDB backend already populated");
+        }
+
+        LOG_INFO("AtomDB backend is empty. Populating AtomDB backend with source database data.");
+        lock_guard<mutex> lock(mtx);
+        this->synchronous_source_database_to_atomdb();
+        this->persist_mapping_context(context_id);
+
+    } else {
+        LOG_INFO("ContextID <" << context_id << "> found.");
+    }
+
+    this->backend_ready.store(true);
+}
 
 void AdapterDB::persistence_setup() {
     bool reuse_mongodb = this->config.at_path("adapterdb.persistence.reuse_mongodb").get_or<bool>(true);

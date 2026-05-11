@@ -878,3 +878,32 @@ cc_test(
         "@mbedtls",
     ],
 )
+
+cc_test(
+    name = "adapterdb_test",
+    size = "small",
+    srcs = [
+        "adapterdb_test.cc",
+    ],
+    copts = [
+        "-Iexternal/gtest/googletest/include",
+        "-Iexternal/gtest/googletest",
+    ],
+    linkopts = [
+        "-L/usr/local/lib",
+        "-lpqxx",
+        "-lpq",
+        "-lhiredis_cluster",
+        "-lhiredis",
+        "-lmongocxx",
+        "-lbsoncxx",
+    ],
+    linkstatic = 1,
+    deps = [
+        "//atomdb:atomdb_singleton",
+        "//db_adapter:db_adapter_lib",
+        "//tests/cpp/test_commons:test_atomdb_json_config",
+        "@com_github_google_googletest//:gtest_main",
+        "@mbedtls",
+    ],
+)

@@ -24,6 +24,7 @@ namespace atomdb {
 class AdapterDB : public AtomDB {
    public:
     explicit AdapterDB(const JsonConfig& config);
+    AdapterDB(const JsonConfig& config, std::shared_ptr<AtomDB> backend);  // for testing
     ~AdapterDB() override;
 
     static string MONGODB_ADAPTER_COLLECTION_NAME;
@@ -99,6 +100,8 @@ class AdapterDB : public AtomDB {
     atomic<bool> backend_ready{false};
     mutex mtx;
     mongocxx::pool* mongodb_pool;
+
+    void initialize(bool skip_atomdb_backend_empty = false);
 
     /**
      * @brief Use a persistence layer to track loaded contexts and store metadata about the source
