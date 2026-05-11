@@ -54,7 +54,7 @@ void AdapterDB::reload() {
 }
 
 bool AdapterDB::needs_sync() const {
-    Utils::error("needs_sync() is not implemented yet.");
+    RAISE_ERROR("needs_sync() is not implemented yet.");
     return false;
 }
 
@@ -222,7 +222,7 @@ void AdapterDB::initialize(bool skip_atomdb_backend_empty) {
     string type = config.at_path("adapterdb.type").get_or<string>("");
 
     if (type != "postgres") {
-        Utils::error("AdapterDB: Unsupported database type in config: " + type);
+        RAISE_ERROR("AdapterDB: Unsupported database type in config: " + type);
     }
 
     this->persistence_setup();
@@ -233,7 +233,7 @@ void AdapterDB::initialize(bool skip_atomdb_backend_empty) {
         LOG_INFO("ContextID <" << context_id << "> NOT found.");
 
         if (!skip_atomdb_backend_empty && !this->atomdb_backend->empty()) {
-            Utils::error("AtomDB backend already populated");
+            RAISE_ERROR("AtomDB backend already populated");
         }
 
         LOG_INFO("AtomDB backend is empty. Populating AtomDB backend with source database data.");
@@ -253,14 +253,14 @@ void AdapterDB::persistence_setup() {
 
     if (!reuse_mongodb) {
         // TODO: Implement alternative persistence layer if not reusing MongoDB
-        Utils::error("The persistence is not supported when reuse_mongodb is false.");
+        RAISE_ERROR("The persistence is not supported when reuse_mongodb is false.");
     }
 
     string atomdb_backend_type =
         this->config.at_path("adapterdb.atomdb_backend.type").get_or<string>("");
 
     if (atomdb_backend_type != "redismongodb" && atomdb_backend_type != "morkdb") {
-        Utils::error(
+        RAISE_ERROR(
             "MongoDB persistence is only supported for RedisMongoDB and MorkDB AtomDB backends.");
     }
 
@@ -269,7 +269,7 @@ void AdapterDB::persistence_setup() {
     string password = config.at_path("adapterdb.atomdb_backend.mongodb.password").get<string>();
 
     if (address.empty() || address == ":" || user.empty() || password.empty()) {
-        Utils::error(
+        RAISE_ERROR(
             "Invalid MongoDB configuration: need non-empty address, username, and password. "
             "Set atomdb.adapterdb.mongodb in JsonConfig (endpoint or hostname/port, username, "
             "password).");
@@ -291,7 +291,7 @@ void AdapterDB::persistence_setup() {
 
         LOG_DEBUG("Connected to MongoDB at " << address);
     } catch (const exception& e) {
-        Utils::error(e.what());
+        RAISE_ERROR(e.what());
     }
 }
 
@@ -306,7 +306,7 @@ void AdapterDB::atomdb_backend_setup() {
     } else if (atomdb_backend_type == "remotedb") {
         this->atomdb_backend = shared_ptr<AtomDB>(new RemoteAtomDB(atomdb_backend_config));
     } else {
-        Utils::error("Invalid AtomDB type: " + atomdb_backend_type);
+        RAISE_ERROR("Invalid AtomDB type: " + atomdb_backend_type);
     }
 }
 
@@ -314,7 +314,7 @@ bool AdapterDB::is_backend_ready() const { return this->backend_ready.load(); }
 
 void AdapterDB::ensure_backend_ready() const {
     if (!this->is_backend_ready()) {
-        Utils::error("AtomDB backend is not ready yet.");
+        RAISE_ERROR("AtomDB backend is not ready yet.");
     }
 }
 
@@ -367,7 +367,7 @@ void AdapterDB::persist_mapping_context(const string& context_id) {
     auto reply = mongodb_collection.replace_one(filter_builder.view(), document.view(), opts);
 
     if (!reply) {
-        Utils::error("Failed to upsert document into MongoDB");
+        RAISE_ERROR("Failed to upsert document into MongoDB");
     }
 }
 
@@ -376,7 +376,7 @@ vector<string> AdapterDB::get_mapping_file_contents() const {
         this->config.at_path("adapterdb.context_mapping_paths").get_or<vector<string>>({});
 
     if (file_paths.empty()) {
-        Utils::error("adapterdb.context_mapping_paths is not defined in config or is empty");
+        RAISE_ERROR("adapterdb.context_mapping_paths is not defined in config or is empty");
     }
 
     vector<string> contents;
@@ -385,7 +385,7 @@ vector<string> AdapterDB::get_mapping_file_contents() const {
         ifstream file(path);
 
         if (!file.is_open()) {
-            Utils::error("Failed to open file for context ID generation: " + path);
+            RAISE_ERROR("Failed to open file for context ID generation: " + path);
         }
         stringstream buffer;
         buffer << file.rdbuf();

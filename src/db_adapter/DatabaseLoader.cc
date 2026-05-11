@@ -3,6 +3,7 @@
 #include <filesystem>
 
 #include "ContextLoader.h"
+#include "Utils.h"
 
 #define LOG_LEVEL INFO_LEVEL
 #include "Logger.h"
@@ -93,21 +94,13 @@ void DatabaseMappingOrchestrator::database_setup(const JsonConfig& config,
             "psql-conn", host, port, database, username, password);
         this->wrapper = make_unique<PostgresWrapper>(*db_conn, output_queue);
     } else {
-        Utils::error("Unsupported adapter type: " + adapter_type);
+        RAISE_ERROR("Unsupported adapter type: " + adapter_type);
     }
 }
 
 void DatabaseMappingOrchestrator::task_setup(const JsonConfig& config) {
     vector<string> file_paths =
         config.at_path("adapterdb.context_mapping_paths").get_or<vector<string>>({});
-
-    if (tables_file_path.empty() && query_file_path.empty()) {
-        RAISE_ERROR(
-            "No mapping tasks found in the context file. Provide at least one of the following:\n"
-            " - adapter.context_mapping.tables (path to tables mapping JSON file)\n"
-            " - adapter.context_mapping.queries_sql (path to SQL queries file)");
-        return;
-    }
 
     for (const auto& path : file_paths) {
         fs::path p(path);
