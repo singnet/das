@@ -166,7 +166,7 @@ TEST_F(AdapterDBTest, NeedsSyncIsNotImplemented) {
     EXPECT_THROW({ db->needs_sync(); }, runtime_error);
 }
 
-TEST_F(AdapterDBTest, AddAndDeleteNode) {
+TEST_F(AdapterDBTest, AddGetAndDeleteNode) {
     auto db = create_adapter(mapping_file_path);
     ASSERT_NE(db, nullptr);
 
@@ -210,7 +210,7 @@ TEST_F(AdapterDBTest, AddAndDeleteNodes) {
     for (auto* n : nodes) delete n;
 }
 
-TEST_F(AdapterDBTest, AddLinkAndQueryTargets) {
+TEST_F(AdapterDBTest, AddGetAndQueryTargetsLink) {
     auto db = create_adapter(mapping_file_path);
     ASSERT_NE(db, nullptr);
 
