@@ -140,7 +140,9 @@ shared_ptr<Atom> RedisMongoDB::get_atom(const string& handle) {
 shared_ptr<Node> RedisMongoDB::get_node(const string& handle) {
     auto atom = get_atom(handle);
     if (atom != nullptr) {
-        return dynamic_pointer_cast<Node>(atom);
+        if (auto node = dynamic_cast<Node*>(atom.get())) {
+            return shared_ptr<Node>(node);
+        }
     }
     return nullptr;
 }
@@ -148,7 +150,9 @@ shared_ptr<Node> RedisMongoDB::get_node(const string& handle) {
 shared_ptr<Link> RedisMongoDB::get_link(const string& handle) {
     auto atom = get_atom(handle);
     if (atom != nullptr) {
-        return dynamic_pointer_cast<Link>(atom);
+        if (auto link = dynamic_cast<Link*>(atom.get())) {
+            return shared_ptr<Link>(link);
+        }
     }
     return nullptr;
 }
