@@ -4,6 +4,7 @@
 #include <string>
 
 #include "AdapterDB.h"
+#include "AtomDBSingleton.h"
 #include "JsonConfig.h"
 #include "JsonConfigParser.h"
 #include "Utils.h"
@@ -39,18 +40,19 @@ int main(int argc, char* argv[]) {
     signal(SIGINT, &ctrl_c_handler);
     signal(SIGTERM, &ctrl_c_handler);
 
-    string config = argv[1];
-
-    JsonConfig json_config = JsonConfigParser::load(config);
+    JsonConfig json_config = JsonConfigParser::load(argv[1]);
 
     auto atomdb_config = json_config.at_path("atomdb").get_or<JsonConfig>(JsonConfig());
 
-    auto adapter = make_shared<AdapterDB>(atomdb_config);
+    AtomDBSingleton::init(atomdb_config);
 
-    auto atom = adapter->get_atom("4fec22fd642b774756ca0dd8a892225f");
+    // auto adapter = AtomDBSingleton::get_instance();;
 
-    LOG_INFO("Retrieved atom with handle 4fec22fd642b774756ca0dd8a892225f: " << (atom ? atom->to_string()
-                                                                                      : "NOT_FOUND"));
+    // auto atom = adapter->get_atom("4fec22fd642b774756ca0dd8a892225f"); // Example : "FBti0019882"
+
+    // LOG_INFO("Retrieved atom with handle 4fec22fd642b774756ca0dd8a892225f: " << (atom ?
+    // atom->to_string()
+    //                                                                                   : "NOT_FOUND"));
 
     LOG_INFO("Database adapter stopped.");
 
