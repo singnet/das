@@ -343,7 +343,7 @@ TEST_F(RedisMongoDBTest, ConcurrentAddNodesAndLinks) {
     EXPECT_EQ(success_count, num_threads);
 }
 
-TEST_F(RedisMongoDBTest, AddAndDeleteNode) {
+TEST_F(RedisMongoDBTest, AddGetAndDeleteNode) {
     Properties custom_attributes;
     custom_attributes["is_literal"] = true;
 
@@ -360,6 +360,12 @@ TEST_F(RedisMongoDBTest, AddAndDeleteNode) {
 
     auto handle = db->add_node(node);
     EXPECT_NE(handle, "");
+
+    auto fetched_atom = db->get_atom(handle);
+    auto fetched_node = db->get_node(handle);
+
+    ASSERT_NE(fetched_atom, nullptr);
+    ASSERT_NE(fetched_node, nullptr);
 
     auto deleted = db->delete_atom(handle);
     EXPECT_TRUE(deleted);
@@ -384,7 +390,7 @@ TEST_F(RedisMongoDBTest, AddAndDeleteNodes) {
     EXPECT_EQ(nodes_documents_after_delete.size(), 0);
 }
 
-TEST_F(RedisMongoDBTest, AddAndDeleteLink) {
+TEST_F(RedisMongoDBTest, AddGetAndDeleteLink) {
     MockDecoder decoder;
 
     string symbol = MettaMapping::SYMBOL_NODE_TYPE;
@@ -415,6 +421,12 @@ TEST_F(RedisMongoDBTest, AddAndDeleteLink) {
 
     auto handle = db->add_link(link);
     EXPECT_NE(handle, "");
+
+    auto fetched_atom = db->get_atom(handle);
+    auto fetched_link = db->get_link(handle);
+
+    ASSERT_NE(fetched_atom, nullptr);
+    ASSERT_NE(fetched_link, nullptr);
 
     auto link_document = db->get_atom_document(handle);
 
