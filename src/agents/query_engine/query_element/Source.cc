@@ -24,10 +24,10 @@ Source::~Source() {
 void Source::setup_buffers() {
     LOG_LOCAL_DEBUG("Setting up buffers for Source: " + std::to_string((unsigned long) this) + "...");
     if (this->subsequent_id == "") {
-        Utils::error("Invalid empty parent id");
+        RAISE_ERROR("Invalid empty parent id");
     }
     if (this->id == "") {
-        Utils::error("Invalid empty id");
+        RAISE_ERROR("Invalid empty id");
     }
     this->output_buffer = make_shared<QueryNodeClient>(this->id, this->subsequent_id);
     LOG_LOCAL_DEBUG("Setting up buffers for Source: " + std::to_string((unsigned long) this) +

@@ -62,7 +62,7 @@ void PostgresDatabaseConnection::disconnect() {
 
 pqxx::result PostgresDatabaseConnection::execute_query(const string& query) {
     if (!this->conn || !this->conn->is_open()) {
-        Utils::error("Postgres connection is not open.");
+        RAISE_ERROR("Postgres connection is not open.");
     }
 
     try {
@@ -71,17 +71,17 @@ pqxx::result PostgresDatabaseConnection::execute_query(const string& query) {
         transaction.commit();
         return result;
     } catch (const exception& e) {
-        Utils::error("Error during query execution: " + string(e.what()));
+        RAISE_ERROR("Error during query execution: " + string(e.what()));
     }
     return pqxx::result{};
 }
 
 void PostgresDatabaseConnection::begin_cursor(const string& cursor_name, const string& query) {
     if (!this->conn || !this->conn->is_open()) {
-        Utils::error("Postgres connection is not open.");
+        RAISE_ERROR("Postgres connection is not open.");
     }
     if (this->transaction) {
-        Utils::error("A transaction is already active. Close the current cursor first.");
+        RAISE_ERROR("A transaction is already active. Close the current cursor first.");
     }
     this->transaction = make_unique<pqxx::work>(*this->conn);
 
@@ -89,13 +89,13 @@ void PostgresDatabaseConnection::begin_cursor(const string& cursor_name, const s
         this->transaction->exec("DECLARE " + cursor_name + " CURSOR FOR " + query);
     } catch (const exception& e) {
         this->transaction.reset();
-        Utils::error("Error executing cursor query: " + string(e.what()));
+        RAISE_ERROR("Error executing cursor query: " + string(e.what()));
     }
 }
 
 pqxx::result PostgresDatabaseConnection::fetch_cursor(const string& cursor_name, size_t limit) {
     if (!this->transaction) {
-        Utils::error("No active transaction. Call begin_cursor first.");
+        RAISE_ERROR("No active transaction. Call begin_cursor first.");
     }
     return this->transaction->exec("FETCH " + std::to_string(limit) + " FROM " + cursor_name);
 }
@@ -216,7 +216,7 @@ Table PostgresWrapper::get_table(const string& schema_name, const string& table_
     auto result = db_conn.execute_query(query);
 
     if (result.empty()) {
-        Utils::error("Table '" + schema_name + "." + table_name + "' not found.");
+        RAISE_ERROR("Table '" + schema_name + "." + table_name + "' not found.");
     }
 
     const auto& row = result[0];
@@ -361,7 +361,7 @@ void PostgresWrapper::map_table(const Table& table,
             auto parts = Utils::split(fk, '|');
 
             if (parts.size() != 2) {
-                Utils::error("Invalid foreign key format: " + fk);
+                RAISE_ERROR("Invalid foreign key format: " + fk);
             }
 
             string column = parts[0];
@@ -392,7 +392,7 @@ void PostgresWrapper::map_sql_query(const string& virtual_name, const string& ra
     map<string, vector<string>> table_columns_map = this->extract_aliases_from_query(raw_query);
 
     if (table_columns_map.empty()) {
-        Utils::error("No valid aliases found in query for " + virtual_name);
+        RAISE_ERROR("No valid aliases found in query for " + virtual_name);
     }
 
     map<string, Table> tables_metadata;
@@ -410,12 +410,12 @@ void PostgresWrapper::map_sql_query(const string& virtual_name, const string& ra
                 auto parts = Utils::split(table_name, '.');
                 string schema = parts[0];
                 string table = parts[1];
-                Utils::error("Primary key '" + pk + "' of table '" + table_name +
-                             "' must be included in SELECT aliases. Add: " + table + "." + pk + " AS " +
-                             schema + "_" + table + "__" + pk);
+                RAISE_ERROR("Primary key '" + pk + "' of table '" + table_name +
+                            "' must be included in SELECT aliases. Add: " + table + "." + pk + " AS " +
+                            schema + "_" + table + "__" + pk);
             }
         } catch (const exception& e) {
-            Utils::error("Error retrieving metadata for table '" + table_name + "': " + e.what());
+            RAISE_ERROR("Error retrieving metadata for table '" + table_name + "': " + e.what());
         }
     }
 
@@ -440,7 +440,7 @@ vector<string> PostgresWrapper::build_columns_to_map(const Table& table,
     for (const auto& skipo_col : skip_columns) {
         if (find(table.column_names.begin(), table.column_names.end(), skipo_col) ==
             table.column_names.end()) {
-            Utils::error("Skip column '" + skipo_col + "' not found in table '" + table.name + "'");
+            RAISE_ERROR("Skip column '" + skipo_col + "' not found in table '" + table.name + "'");
         }
     }
 
@@ -590,7 +590,7 @@ void PostgresWrapper::fetch_rows_paginated(const Table& table,
                 unique_lock<mutex> lock(this->api_mutex);
                 this->output_queue->enqueue((void*) batch_queue);
             } else {
-                Utils::error("Unsupported mapper type.");
+                RAISE_ERROR("Unsupported mapper type.");
             }
 
             LOG_DEBUG("Mapper HandleTrie size: " << this->mapper->handle_trie_size());

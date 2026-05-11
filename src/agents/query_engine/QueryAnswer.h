@@ -40,7 +40,7 @@ class QueryAnswerElement {
             this->type = VARIABLE;
             this->name = key;
         } else {
-            Utils::error("Invalid attempt to reset a QueryAnswerElement");
+            RAISE_ERROR("Invalid attempt to reset a QueryAnswerElement");
         }
     }
     void set(unsigned int key) {
@@ -48,7 +48,7 @@ class QueryAnswerElement {
             this->type = HANDLE;
             this->index = key;
         } else {
-            Utils::error("Invalid attempt to reset a QueryAnswerElement");
+            RAISE_ERROR("Invalid attempt to reset a QueryAnswerElement");
         }
     }
     string to_string() {

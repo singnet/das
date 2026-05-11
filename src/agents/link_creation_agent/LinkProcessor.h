@@ -81,7 +81,7 @@ class LinkProcessor {
             counts = {};
             count_intersection = 0;
             count_union = 0;
-            Utils::error("Invalid number of queries for compute_counts");
+            RAISE_ERROR("Invalid number of queries for compute_counts");
         }
         vector<shared_ptr<PatternMatchingQueryProxy>> query_proxies;
         for (const auto& query : queries) {
@@ -92,7 +92,7 @@ class LinkProcessor {
                 query_count_proxy->parameters[BaseQueryProxy::UNIQUE_ASSIGNMENT_FLAG] = true;
                 query_proxies.push_back(query_count_proxy);
             } catch (const exception& e) {
-                Utils::error("Exception: " + string(e.what()));
+                RAISE_ERROR("Exception: " + string(e.what()));
             }
         }
 

@@ -89,7 +89,7 @@ class Chain : public Operator<1>, public ThreadMethod {
         bool forward_flag;
         Path(const string& tail, const string& head, QueryAnswer* answer, bool forward_flag) {
             if (tail == head) {
-                Utils::error("Invalid cyclic edge: " + tail + " -> " + head);
+                RAISE_ERROR("Invalid cyclic edge: " + tail + " -> " + head);
             }
             this->edges.push_back({{tail, head}, shared_ptr<QueryAnswer>(answer)});
             this->path_sti = answer->importance;
@@ -122,7 +122,7 @@ class Chain : public Operator<1>, public ThreadMethod {
         }
         inline void concatenate(const Path& other) {
             if (this->forward_flag != other.forward_flag) {
-                Utils::error("Invalid attempt to merge incompatible HeapElements");
+                RAISE_ERROR("Invalid attempt to merge incompatible HeapElements");
             }
             this->edges.insert(this->edges.end(), other.edges.begin(), other.edges.end());
             this->path_sti = max(this->path_sti, other.path_sti);

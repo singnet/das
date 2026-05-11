@@ -33,10 +33,10 @@ Sink::~Sink() {
 void Sink::setup_buffers() {
     LOG_LOCAL_DEBUG("Setting up buffers for Sink: " + std::to_string((unsigned long) this));
     if (this->subsequent_id != "") {
-        Utils::error("Invalid non-empty subsequent id: " + this->subsequent_id);
+        RAISE_ERROR("Invalid non-empty subsequent id: " + this->subsequent_id);
     }
     if (this->id == "") {
-        Utils::error("Invalid empty id");
+        RAISE_ERROR("Invalid empty id");
     }
     this->input_buffer = make_shared<QueryNodeServer>(this->id);
     this->precedent->subsequent_id = this->id;

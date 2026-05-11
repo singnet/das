@@ -3,13 +3,11 @@
 #include "AtomDBSingleton.h"
 #include "BaseProxy.h"
 #include "Link.h"
+#include "Logger.h"
 #include "Node.h"
 #include "Properties.h"
 #include "ServiceBus.h"
 #include "Utils.h"
-
-#define LOG_LEVEL DEBUG_LEVEL
-#include "Logger.h"
 
 using namespace atomdb_broker;
 using namespace service_bus;
@@ -80,7 +78,7 @@ vector<string> AtomDBProxy::add_atoms(const vector<Atom*>& atoms, bool use_strea
         } else if (dynamic_cast<Link*>(atom)) {
             atom_type = LINK;
         } else {
-            Utils::error("Invalid Atom type");
+            RAISE_ERROR("Invalid Atom type");
         }
 
         args.insert(args.begin(), atom_type);
@@ -156,7 +154,7 @@ bool AtomDBProxy::from_remote_peer(const string& command, const vector<string>& 
         this->delete_atoms_callback(args);
         return true;
     } else {
-        Utils::error("Invalid AtomDBProxy command: <" + command + ">");
+        RAISE_ERROR("Invalid AtomDBProxy command: <" + command + ">");
         return false;
     }
 }
@@ -178,7 +176,7 @@ void AtomDBProxy::add_atoms_callback(const vector<string>& tokens) {
 void AtomDBProxy::delete_atoms_callback(const vector<string>& args) {
     try {
         if (args.size() < 1) {
-            Utils::error("No handles provided for deletion");
+            RAISE_ERROR("No handles provided for deletion");
         }
         vector<string> handles(args.begin(), args.end() - 1);
         bool delete_link_targets = args.back() == "1";
@@ -210,7 +208,7 @@ void AtomDBProxy::process_atom_batches() {
                 }
                 auto atom = (Atom*) this->processing_queue->dequeue();
                 if (atom == nullptr) {
-                    Utils::error("Dequeued null atom pointer");
+                    RAISE_ERROR("Dequeued null atom pointer");
                 }
                 atoms.push_back(atom);
             }

@@ -64,7 +64,7 @@ string HandleTrie::TrieNode::to_string() {
 
 HandleTrie::HandleTrie(unsigned int key_size) {
     if (key_size == 0 || key_size > 255) {
-        Utils::error("Invalid key size: " + to_string(key_size));
+        RAISE_ERROR("Invalid key size: " + to_string(key_size));
     }
     this->key_size = key_size;
     if (!HandleTrie::TLB_INITIALIZED) {
@@ -78,11 +78,11 @@ HandleTrie::~HandleTrie() { delete root; }
 
 HandleTrie::TrieValue* HandleTrie::insert(const string& key, TrieValue* value) {
     if (key.size() != key_size) {
-        Utils::error("Invalid key size: " + to_string(key.size()) + " != " + to_string(key_size));
+        RAISE_ERROR("Invalid key size: " + to_string(key.size()) + " != " + to_string(key_size));
     }
 
     if (value == NULL) {
-        Utils::error("Value cannot be NULL");
+        RAISE_ERROR("Value cannot be NULL");
     }
 
     TrieNode* tree_cursor = root;
@@ -185,7 +185,7 @@ HandleTrie::TrieValue* HandleTrie::lookup(const string& key) {
 
 HandleTrie::TrieNode* HandleTrie::lookup_node(const string& key) {
     if (key.size() != key_size) {
-        Utils::error("Invalid key size: " + to_string(key.size()) + " != " + to_string(key_size));
+        RAISE_ERROR("Invalid key size: " + to_string(key.size()) + " != " + to_string(key_size));
     }
 
     TrieNode* tree_cursor = root;

@@ -1,15 +1,11 @@
 #include "StimulusSpreader.h"
 
-// clang-format off
-#define LOG_LEVEL INFO_LEVEL
-#include "Logger.h"
-// clang-format on
-
 #include <forward_list>
 #include <string>
 
 #include "AttentionBrokerServer.h"
 #include "HebbianNetwork.h"
+#include "Logger.h"
 #include "Utils.h"
 #include "expression_hasher.h"
 
@@ -28,7 +24,7 @@ StimulusSpreader* StimulusSpreader::factory(StimulusSpreaderType instance_type) 
             return new TokenSpreader();
         }
         default: {
-            Utils::error("Invalid StimulusSpreaderType: " + to_string((int) instance_type));
+            RAISE_ERROR("Invalid StimulusSpreaderType: " + to_string((int) instance_type));
             return NULL;  // to avoid warnings
         }
     }
@@ -142,7 +138,7 @@ void TokenSpreader::distribute_wages(const dasproto::HandleCount* handle_count,
                                      DATA* data) {
     auto iterator = handle_count->map().find("SUM");
     if (iterator == handle_count->map().end()) {
-        Utils::error("Missing 'SUM' key in HandleCount request");
+        RAISE_ERROR("Missing 'SUM' key in HandleCount request");
     }
     unsigned int total_wages = iterator->second;
     LOG_DEBUG("Total wages: " + std::to_string(total_wages));

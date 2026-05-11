@@ -221,7 +221,7 @@ bool ContextBrokerProxy::from_remote_peer(const string& command, const vector<st
     } else if (command == ATTENTION_BROKER_SET_PARAMETERS_FINISHED) {
         this->ongoing_attention_broker_set_parameters = false;
     } else {
-        Utils::error("Invalid ContextBrokerProxy command: <" + command + ">");
+        RAISE_ERROR("Invalid ContextBrokerProxy command: <" + command + ">");
         return false;
     }
     return true;

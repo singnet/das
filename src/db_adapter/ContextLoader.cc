@@ -17,7 +17,7 @@ namespace fs = std::filesystem;
 
 vector<TableMapping> ContextLoader::load_table_file(const string& file_path) {
     if (!fs::exists(file_path)) {
-        Utils::error("Context file " + file_path + " does not exist");
+        RAISE_ERROR("Context file " + file_path + " does not exist");
     }
 
     ifstream f(file_path);
@@ -124,7 +124,7 @@ vector<TableMapping> ContextLoader::load_table_file(const string& file_path) {
 
 vector<string> ContextLoader::load_query_file(const string& file_path) {
     if (!fs::exists(file_path)) {
-        Utils::error("Query file " + file_path + " does not exist");
+        RAISE_ERROR("Query file " + file_path + " does not exist");
     }
 
     ifstream f(file_path);

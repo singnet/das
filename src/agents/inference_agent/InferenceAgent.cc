@@ -31,7 +31,7 @@ InferenceAgent::~InferenceAgent() {
 
 shared_ptr<InferenceRequest> InferenceAgent::build_inference_request(const vector<string>& request) {
     if (!inference_request_validator.validate(request)) {
-        Utils::error("Invalid inference request, failed to parse: " + Utils::join(request, ' '));
+        RAISE_ERROR("Invalid inference request, failed to parse: " + Utils::join(request, ' '));
     }
     shared_ptr<InferenceRequest> inference_request;
     string inference_command = request.front();
@@ -39,7 +39,7 @@ shared_ptr<InferenceRequest> InferenceAgent::build_inference_request(const vecto
     string second_handle = request[2];
     int max_proof_length = Utils::string_to_int(request[3]);
     if (max_proof_length > max_proof_length_limit) {
-        Utils::error("Max proof length exceeded");
+        RAISE_ERROR("Max proof length exceeded");
     }
     string context = request[4];
     if (inference_command == PROOF_OF_IMPLICATION) {
@@ -51,7 +51,7 @@ shared_ptr<InferenceRequest> InferenceAgent::build_inference_request(const vecto
         inference_request =
             make_shared<ProofOfEquivalence>(first_handle, second_handle, max_proof_length, context);
     } else {
-        Utils::error("Invalid inference command");
+        RAISE_ERROR("Invalid inference command");
     }
     return inference_request;
 }
@@ -163,8 +163,8 @@ void InferenceAgent::stop() {
 bool InferenceAgent::is_lca_requests_finished(shared_ptr<InferenceRequest> inference_request) {
     auto it = link_creation_proxy_map.find(inference_request->get_id());
     if (it == link_creation_proxy_map.end()) {
-        Utils::error("No link creation requests found for inference request ID: " +
-                     inference_request->get_id());
+        RAISE_ERROR("No link creation requests found for inference request ID: " +
+                    inference_request->get_id());
     }
     for (const auto& proxy : it->second) {
         if (!proxy->finished()) {
@@ -343,7 +343,7 @@ void InferenceAgent::send_update_attention_allocation_request(
 
 void InferenceAgent::process_inference_request(const vector<string>& request, const string& request_id) {
     if (request.empty()) {
-        Utils::error("Empty inference request");
+        RAISE_ERROR("Empty inference request");
     }
     LOG_DEBUG("Processing inference request: " << Utils::join(request, ' '));
     auto inference_request = build_inference_request(request);
@@ -353,13 +353,13 @@ void InferenceAgent::process_inference_request(const vector<string>& request, co
 
 void InferenceAgent::process_inference_request(shared_ptr<InferenceProxy> proxy) {
     if (proxy == nullptr) {
-        Utils::error("Invalid inference proxy");
+        RAISE_ERROR("Invalid inference proxy");
     }
     LOG_DEBUG("Processing inference request: " << Utils::join(proxy->get_args(), ' '));
     string request_id = proxy->peer_id() + to_string(proxy->get_serial());
     inference_proxy_map[request_id] = proxy;
     if (proxy->get_args().empty()) {
-        Utils::error("Empty inference request");
+        RAISE_ERROR("Empty inference request");
     }
     LOG_DEBUG("Inference Request:");
     LOG_DEBUG("  Request ID: " << request_id);
@@ -390,7 +390,7 @@ void InferenceAgent::process_inference_request(shared_ptr<InferenceProxy> proxy)
 
 void InferenceAgent::process_inference_abort_request(shared_ptr<InferenceRequest> inference_request) {
     if (inference_request == nullptr) {
-        Utils::error("Invalid inference request");
+        RAISE_ERROR("Invalid inference request");
     }
     auto request_id = inference_request->get_id();
     LOG_DEBUG("Evolution proxy finished for request ID: " << request_id);

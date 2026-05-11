@@ -53,7 +53,7 @@ void validate_schema_version(const JsonConfig& config, vector<string>& required)
     }
     if (!missing.empty()) {
         string version = config.get_schema_version();
-        Utils::error(required_fields_error(version, missing), true);
+        RAISE_ERROR(required_fields_error(version, missing));
     }
 }
 
@@ -62,7 +62,7 @@ JsonConfig parse_and_validate(const string& json_str, bool is_node) {
     try {
         config = JsonConfig(json::parse(json_str));
     } catch (const exception& e) {
-        Utils::error("Invalid JSON in config: " + string(e.what()), true);
+        RAISE_ERROR("Invalid JSON in config: " + string(e.what()));
     }
     string version = config.get_schema_version();
     try {
@@ -70,7 +70,7 @@ JsonConfig parse_and_validate(const string& json_str, bool is_node) {
                                           : required_client_fields_by_version().at(version);
         validate_schema_version(config, required);
     } catch (const exception& e) {
-        Utils::error("Invalid schema version: " + version + " " + string(e.what()), true);
+        RAISE_ERROR("Invalid schema version: " + version + " " + string(e.what()));
     }
     return config;
 }

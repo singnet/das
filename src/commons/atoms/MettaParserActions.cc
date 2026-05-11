@@ -38,7 +38,7 @@ void MettaParserActions::symbol(const string& name) {
         }
     } else {
         if ((this->current_expression_type == AND) || (this->current_expression_type == OR)) {
-            Utils::error("Invalid metta expression: AND/OR can't operate symbols.");
+            RAISE_ERROR("Invalid metta expression: AND/OR can't operate symbols.");
             return;
         }
         this->current_expression_size++;
@@ -61,7 +61,7 @@ void MettaParserActions::variable(const string& value) {
 void MettaParserActions::literal(const string& value) {
     ParserActions::literal(value);
     if ((this->current_expression_type == AND) || (this->current_expression_type == OR)) {
-        Utils::error("Invalid metta expression: AND/OR can't operate literals.");
+        RAISE_ERROR("Invalid metta expression: AND/OR can't operate literals.");
         return;
     }
     this->current_expression_size++;
@@ -74,7 +74,7 @@ void MettaParserActions::literal(const string& value) {
 void MettaParserActions::literal(int value) {
     ParserActions::literal(value);
     if ((this->current_expression_type == AND) || (this->current_expression_type == OR)) {
-        Utils::error("Invalid metta expression: AND/OR can't operate literals.");
+        RAISE_ERROR("Invalid metta expression: AND/OR can't operate literals.");
         return;
     }
     this->current_expression_size++;
@@ -87,7 +87,7 @@ void MettaParserActions::literal(int value) {
 void MettaParserActions::literal(float value) {
     ParserActions::literal(value);
     if ((this->current_expression_type == AND) || (this->current_expression_type == OR)) {
-        Utils::error("Invalid metta expression: AND/OR can't operate literals.");
+        RAISE_ERROR("Invalid metta expression: AND/OR can't operate literals.");
         return;
     }
     this->current_expression_size++;
@@ -110,8 +110,8 @@ void MettaParserActions::expression_end(bool toplevel, const string& metta_strin
     this->metta_expressions.push_back(metta_string);
     unsigned int arity = this->current_expression_size;
     if (element_stack.size() < arity) {
-        Utils::error("Invalid metta expression: too few arguments for expression. Expected: " +
-                     std::to_string(arity) + " Stack size: " + std::to_string(element_stack.size()));
+        RAISE_ERROR("Invalid metta expression: too few arguments for expression. Expected: " +
+                    std::to_string(arity) + " Stack size: " + std::to_string(element_stack.size()));
         return;
     }
     LOG_DEBUG("Arity: " + std::to_string(arity));
@@ -135,10 +135,10 @@ void MettaParserActions::expression_end(bool toplevel, const string& metta_strin
         this->element_stack.push(link);
         if (toplevel) this->metta_expression_handle = link->handle();
     } else if ((this->current_expression_type == AND) || (this->current_expression_type == OR)) {
-        Utils::error("Invalid metta expression: AND/OR are not supported.");
+        RAISE_ERROR("Invalid metta expression: AND/OR are not supported.");
         return;
     } else {
-        Utils::error("Invalid metta expression: unknown expression type");
+        RAISE_ERROR("Invalid metta expression: unknown expression type");
         return;
     }
 

@@ -131,14 +131,12 @@ string QueryAnswer::to_string(bool metta_flag) {
 const string& QueryAnswer::tokenize() {
     // char_count is computed to be slightly larger than actually required by assuming
     // e.g. 3 digits to represent sizes
-    char strength_buffer[13];
-    char importance_buffer[13];
-    sprintf(strength_buffer, "%.10f", this->strength);
-    sprintf(importance_buffer, "%.10f", this->importance);
+    string strength = std::to_string(this->strength);
+    string importance = std::to_string(this->importance);
     unsigned int char_count =
-        13    // strength with 10 decimals + space
-        + 13  // importance with 10 decimals + space
-        + 4   // (up to 3 digits) to represent this->assignment.size + space
+        strength.size() + 1      // strength + space
+        + importance.size() + 1  // importance + space
+        + 4                      // (up to 3 digits) to represent this->assignment.size + space
         + this->assignment.table.size() *
               (MAX_VARIABLE_NAME_SIZE + HANDLE_HASH_SIZE + 2)  // label<space>handle<space>
         + 4               // (up to 3 digits) to represent this->metta_expression.size + space
@@ -151,9 +149,9 @@ const string& QueryAnswer::tokenize() {
     this->token_representation.clear();
     this->token_representation.reserve(char_count);
     string space = " ";
-    this->token_representation += strength_buffer;
+    this->token_representation += strength;
     this->token_representation += space;
-    this->token_representation += importance_buffer;
+    this->token_representation += importance;
     this->token_representation += space;
     this->token_representation += std::to_string(this->handles.size());
     this->token_representation += space;
@@ -192,7 +190,7 @@ static inline void read_token(const char* token_string,
     unsigned int cursor_token = 0;
     while (token_string[cursor] != ' ') {
         if ((cursor_token == token_size) || (token_string[cursor] == '\0')) {
-            Utils::error("Invalid token string");
+            RAISE_ERROR("Invalid token string");
         }
         token[cursor_token++] = token_string[cursor++];
     }
@@ -218,7 +216,7 @@ static inline string read_metta_expression(const char* token_string, unsigned in
     do {
         cursor++;
         if (token_string[cursor] == '\0') {
-            Utils::error("Invalid metta expression string");
+            RAISE_ERROR("Invalid metta expression string");
         } else if ((token_string[cursor] == close_char) && (token_string[cursor - 1] != '\\')) {
             unmatched--;
         } else if ((token_string[cursor] == open_char) && (token_string[cursor - 1] != '\\')) {
@@ -253,8 +251,8 @@ void QueryAnswer::untokenize(const string& tokens) {
     unsigned int handles_size = (unsigned int) std::stoi(number);
 
     if (handles_size >= MAX_NUMBER_OF_OPERATION_CLAUSES) {
-        Utils::error("Invalid handles_size: " + std::to_string(handles_size) +
-                     " untokenizing QueryAnswer");
+        RAISE_ERROR("Invalid handles_size: " + std::to_string(handles_size) +
+                    " untokenizing QueryAnswer");
     } else {
         for (unsigned int i = 0; i < handles_size; i++) {
             read_token(token_string, cursor, number, 4);
@@ -280,8 +278,8 @@ void QueryAnswer::untokenize(const string& tokens) {
     unsigned int assignment_size = (unsigned int) std::stoi(number);
 
     if (assignment_size > MAX_NUMBER_OF_VARIABLES_IN_QUERY) {
-        Utils::error("Invalid number of assignments: " + std::to_string(assignment_size) +
-                     " untokenizing QueryAnswer");
+        RAISE_ERROR("Invalid number of assignments: " + std::to_string(assignment_size) +
+                    " untokenizing QueryAnswer");
     }
 
     for (unsigned int i = 0; i < assignment_size; i++) {
@@ -302,7 +300,7 @@ void QueryAnswer::untokenize(const string& tokens) {
     }
 
     if (token_string[cursor] != '\0') {
-        Utils::error("Invalid token string - invalid text after QueryAnswer definition");
+        RAISE_ERROR("Invalid token string - invalid text after QueryAnswer definition");
     }
 }
 
@@ -314,7 +312,7 @@ string QueryAnswer::get(const QueryAnswerElement& key, bool return_empty_when_no
         case QueryAnswerElement::VARIABLE:
             return get(key.name, return_empty_when_not_found);
         default:
-            Utils::error("Invalid QueryAnswerElemente: " + std::to_string(key.type));
+            RAISE_ERROR("Invalid QueryAnswerElemente: " + std::to_string(key.type));
     }
     return answer;
 }
@@ -322,7 +320,7 @@ string QueryAnswer::get(const QueryAnswerElement& key, bool return_empty_when_no
 string QueryAnswer::get(const string& key, bool return_empty_when_not_found) {
     string answer = this->assignment.get(key);
     if ((answer == "") && (!return_empty_when_not_found)) {
-        Utils::error("Invalid variable name: " + key);
+        RAISE_ERROR("Invalid variable name: " + key);
     }
     return answer;
 }
@@ -333,7 +331,7 @@ string QueryAnswer::get(unsigned int key, bool return_empty_when_not_found) {
         answer = this->handles[0][key];
     } else {
         if (!return_empty_when_not_found) {
-            Utils::error("Invalid handle index: " + std::to_string(key));
+            RAISE_ERROR("Invalid handle index: " + std::to_string(key));
         }
     }
     return answer;
@@ -349,7 +347,7 @@ void QueryAnswer::rewrite_query(const vector<string>& original_query,
         string token = original_query[cursor++];
         if (token == LinkSchema::UNTYPED_VARIABLE) {
             if (cursor == size) {
-                Utils::error("Invalid query");
+                RAISE_ERROR("Invalid query");
                 return;
             }
             token = original_query[cursor++];
@@ -372,7 +370,7 @@ void QueryAnswer::add_handle(const string& handle) { this->handles[0].push_back(
 
 unsigned int QueryAnswer::add_path() {
     if (this->handles.size() == 0) {
-        Utils::error("Invalid QueryAnswer setup. Trying to add a path to an uninitialized  QueryAnswer");
+        RAISE_ERROR("Invalid QueryAnswer setup. Trying to add a path to an uninitialized  QueryAnswer");
         return 0;
     } else {
         unsigned int new_index = this->handles.size() - 1;
@@ -383,12 +381,12 @@ unsigned int QueryAnswer::add_path() {
 
 void QueryAnswer::add_path_element(unsigned int path_index, const string& handle) {
     if (this->handles.size() == 0) {
-        Utils::error(
+        RAISE_ERROR(
             "Invalid QueryAnswer setup. Trying to add a path element to an uninitialized  QueryAnswer");
     } else {
         if (path_index >= (this->handles.size() - 1)) {
-            Utils::error("Invalid path index: " + std::to_string(path_index) +
-                         " QueryAnswer: " + to_string());
+            RAISE_ERROR("Invalid path index: " + std::to_string(path_index) +
+                        " QueryAnswer: " + to_string());
         } else {
             this->handles[path_index + 1].push_back(handle);
         }
@@ -410,8 +408,8 @@ vector<string>& QueryAnswer::get_handles_vector() { return this->handles[0]; }
 
 vector<string>& QueryAnswer::get_path_vector(unsigned int path_index) {
     if ((this->handles.size() == 0) || (path_index >= (this->handles.size() - 1))) {
-        Utils::error("Invalid path index: " + std::to_string(path_index) +
-                     " QueryAnswer: " + to_string());
+        RAISE_ERROR("Invalid path index: " + std::to_string(path_index) +
+                    " QueryAnswer: " + to_string());
     }
     return this->handles[path_index + 1];
 }

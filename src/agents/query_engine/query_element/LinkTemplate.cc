@@ -28,7 +28,7 @@ LinkTemplate::LinkTemplate(const string& type,
     this->targets = targets;
     this->context = context;
     if (positive_importance_flag && disregard_importance_flag) {
-        Utils::error("Conficting settings for positive_importance_flag and disregard_importance_flag");
+        RAISE_ERROR("Conficting settings for positive_importance_flag and disregard_importance_flag");
     }
     this->positive_importance_flag = positive_importance_flag;
     this->disregard_importance_flag = disregard_importance_flag;
@@ -73,13 +73,13 @@ void LinkTemplate::recursive_build(shared_ptr<QueryElement> element, LinkSchema&
             }
             link_schema.stack_link(terminal->type, terminal->targets.size());
         } else {
-            Utils::error("Invalid terminal");
+            RAISE_ERROR("Invalid terminal");
         }
     } else {
         // is an inner LinkTemplate
         LinkTemplate* link_template = dynamic_cast<LinkTemplate*>(element.get());
         if (link_template == NULL) {
-            Utils::error("Invalid NULL element");
+            RAISE_ERROR("Invalid NULL element");
         } else {
             for (auto target : link_template->targets) {
                 recursive_build(target, link_schema);
@@ -103,7 +103,7 @@ void LinkTemplate::build() {
         LOG_INFO("LinkTemplate: " + to_string());
         start_thread();
     } else {
-        Utils::error("LinkTemplate already built");
+        RAISE_ERROR("LinkTemplate already built");
     }
 }
 
@@ -214,7 +214,7 @@ void LinkTemplate::processor_method(shared_ptr<StoppableThread> monitor) {
 
 void LinkTemplate::start_thread() {
     if (this->inner_flag) {
-        Utils::error("Can't start thread in inner LinkTemplates");
+        RAISE_ERROR("Can't start thread in inner LinkTemplates");
     } else {
         this->processor = make_shared<StoppableThread>("processor_thread(" + this->id + ")");
         this->processor->attach(new thread(&LinkTemplate::processor_method, this, this->processor));
@@ -223,7 +223,7 @@ void LinkTemplate::start_thread() {
 
 shared_ptr<Source> LinkTemplate::get_source_element() {
     if (this->inner_flag) {
-        Utils::error("Inner LinkTemplates doesn't have source_element");
+        RAISE_ERROR("Inner LinkTemplates doesn't have source_element");
         return nullptr;
     } else {
         return source_element;
@@ -232,7 +232,7 @@ shared_ptr<Source> LinkTemplate::get_source_element() {
 
 string LinkTemplate::get_handle() {
     if (this->inner_flag) {
-        Utils::error("Inner LinkTemplates doesn't have handle");
+        RAISE_ERROR("Inner LinkTemplates doesn't have handle");
         return "";
     } else {
         return this->link_schema.handle();

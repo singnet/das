@@ -45,7 +45,7 @@ void MettaFileWriter::write(const string& expression) {
 
     this->state->stream.write(line.data(), static_cast<streamsize>(line_size));
     if (!this->state->stream) {
-        Utils::error("MettaFileWriter: write failed");
+        RAISE_ERROR("MettaFileWriter: write failed");
     }
 
     this->state->current_size += line_size;
@@ -102,7 +102,7 @@ void MettaFileWriter::open_file(int idx) {
     stream.open(filepath, ios::app | ios::binary);
 
     if (!stream.is_open()) {
-        Utils::error("MettaFileWriter: cannot open " + filepath.string());
+        RAISE_ERROR("MettaFileWriter: cannot open " + filepath.string());
     }
 
     this->state->stream = move(stream);
@@ -131,7 +131,7 @@ void MettaFileWriter::remove_duplicate_lines(const filesystem::path& filepath) {
     ofstream out(tmp_path, ios::trunc | ios::binary);
 
     if (!in.is_open() || !out.is_open()) {
-        Utils::error("MettaFileWriter: cannot open files for dedup: " + filepath.string());
+        RAISE_ERROR("MettaFileWriter: cannot open files for dedup: " + filepath.string());
         return;
     }
 

@@ -46,7 +46,7 @@ PatternMatchingQueryProxy::~PatternMatchingQueryProxy() {}
 shared_ptr<QueryAnswer> PatternMatchingQueryProxy::pop() {
     lock_guard<mutex> semaphore(this->api_mutex);
     if (this->parameters.get<bool>(COUNT_FLAG)) {
-        Utils::error("Can't pop QueryAnswers from count_only queries.");
+        RAISE_ERROR("Can't pop QueryAnswers from count_only queries.");
         return shared_ptr<QueryAnswer>(NULL);
     } else {
         return BaseQueryProxy::pop();
@@ -72,7 +72,7 @@ bool PatternMatchingQueryProxy::from_remote_peer(const string& command, const ve
             count_answer(args);
             return true;
         } else {
-            Utils::error("Invalid proxy command: <" + command + ">");
+            RAISE_ERROR("Invalid proxy command: <" + command + ">");
             return false;
         }
     }
@@ -82,10 +82,10 @@ void PatternMatchingQueryProxy::count_answer(const vector<string>& args) {
     lock_guard<mutex> semaphore(this->api_mutex);
     if (!this->is_aborting()) {
         if (args.size() != 1) {
-            Utils::error("Invalid args for count command");
+            RAISE_ERROR("Invalid args for count command");
         }
         if (!this->parameters.get<bool>(COUNT_FLAG)) {
-            Utils::error("Invalid count command. Query is not count_only.");
+            RAISE_ERROR("Invalid count command. Query is not count_only.");
         } else {
             this->set_count(stoi(args[0]));
         }

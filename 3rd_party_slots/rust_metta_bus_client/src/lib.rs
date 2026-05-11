@@ -14,7 +14,11 @@ use types::BoxError;
 use crate::{
 	base_proxy_query::BaseQueryProxyT,
 	context_broker_proxy::{ContextBrokerParams, ContextBrokerProxy},
-	helpers::{compute_hash, split_ignore_quoted},
+	helpers::{
+		compute_hash,
+		query_answer::{query_answer_to_bindings, QueryAnswer},
+		split_ignore_quoted,
+	},
 	link_creation_proxy::{LinkCreationParams, LinkCreationProxy},
 	properties::{Properties, PropertyValue},
 	query_evolution_proxy::{QueryEvolutionParams, QueryEvolutionProxy},
@@ -55,10 +59,10 @@ pub enum QueryType {
 
 pub fn query_with_das(
 	service_bus: Arc<Mutex<ServiceBus>>, properties: Properties, query: &QueryType,
-) -> Result<BindingsSet, BoxError> {
+) -> Result<Vec<QueryAnswer>, BoxError> {
 	let params = match extract_query_params(query, properties) {
 		Ok(params) => params,
-		Err(_) => return Ok(BindingsSet::empty()),
+		Err(_) => return Ok(vec![]),
 	};
 	pattern_matching_query(service_bus, &params)
 }
@@ -88,11 +92,12 @@ pub fn extract_query_params(
 		QueryType::Atom(a) => a.to_string(),
 	};
 
-	let (tokens, use_metta_as_query_tokens) = if query_tokens_str.starts_with("LINK_TEMPLATE") {
-		(split_ignore_quoted(&query_tokens_str), false)
-	} else {
-		(vec![query_tokens_str], true)
-	};
+	let (tokens, use_metta_as_query_tokens) =
+		if query_tokens_str.starts_with("LINK_TEMPLATE") || query_tokens_str.starts_with("CHAIN") {
+			(split_ignore_quoted(&query_tokens_str), false)
+		} else {
+			(vec![query_tokens_str], true)
+		};
 
 	params.tokens = tokens;
 
@@ -109,38 +114,43 @@ pub fn extract_query_params(
 	Ok(params)
 }
 
-pub fn pattern_matching_query(
-	service_bus: Arc<Mutex<ServiceBus>>, params: &QueryParams,
+fn pop_query_answers<T: BaseQueryProxyT>(
+	proxy: &mut T, max_query_answers: u64,
+) -> Result<Vec<QueryAnswer>, BoxError> {
+	let mut query_answers = Vec::new();
+	while !proxy.finished() {
+		if let Some(query_answer) = proxy.pop() {
+			query_answers.push(parse_query_answer(&query_answer)?);
+			if max_query_answers > 0 && query_answers.len() >= max_query_answers as usize {
+				break;
+			}
+		}
+	}
+	proxy.drop_runtime();
+	Ok(query_answers)
+}
+
+fn query_answers_to_bindings_set(
+	query_answers: Vec<QueryAnswer>, populate_metta_mapping: bool,
 ) -> Result<BindingsSet, BoxError> {
 	let mut bindings_set = BindingsSet::empty();
+	for query_answer in query_answers {
+		let bindings = query_answer_to_bindings(&query_answer, populate_metta_mapping)?;
+		bindings_set.push(bindings);
+	}
+	Ok(bindings_set)
+}
 
+pub fn pattern_matching_query(
+	service_bus: Arc<Mutex<ServiceBus>>, params: &QueryParams,
+) -> Result<Vec<QueryAnswer>, BoxError> {
 	let mut proxy = PatternMatchingQueryProxy::new(params)?;
 
 	let mut service_bus = service_bus.lock().unwrap();
 	service_bus.issue_bus_command(proxy.base.clone())?;
 
-	let populate_metta_mapping = params.properties.get(properties::POPULATE_METTA_MAPPING);
 	let max_query_answers: u64 = params.properties.get(properties::MAX_ANSWERS);
-
-	while !proxy.finished() {
-		if let Some(query_answer) = proxy.pop() {
-			let mut bindings = parse_query_answer(&query_answer, populate_metta_mapping)?;
-			bindings = bindings.narrow_vars(&params.variables);
-
-			bindings_set.push(bindings);
-			if max_query_answers > 0 && bindings_set.len() >= max_query_answers as usize {
-				break;
-			}
-		} else {
-			sleep(Duration::from_millis(100));
-		}
-	}
-
-	log::debug!(target: "das", "BindingsSet(len={}): {:?}", bindings_set.len(), bindings_set);
-
-	proxy.drop_runtime();
-
-	Ok(bindings_set)
+	pop_query_answers(&mut proxy, max_query_answers)
 }
 
 pub fn create_context(
@@ -173,38 +183,17 @@ pub fn create_context(
 pub fn evolution_query(
 	service_bus: Arc<Mutex<ServiceBus>>, params: &QueryParams,
 	evolution_params: &QueryEvolutionParams,
-) -> Result<BindingsSet, BoxError> {
-	let mut bindings_set = BindingsSet::empty();
-
+) -> Result<Vec<QueryAnswer>, BoxError> {
 	let mut service_bus = service_bus.lock().unwrap();
 
 	let mut proxy = QueryEvolutionProxy::new(params, evolution_params)?;
 
 	service_bus.issue_bus_command(proxy.base.clone())?;
 
-	let populate_metta_mapping = params.properties.get(properties::POPULATE_METTA_MAPPING);
 	let max_query_answers: u64 = params.properties.get(properties::MAX_ANSWERS);
+	let query_answers = pop_query_answers(&mut proxy, max_query_answers)?;
 
-	while !proxy.finished() {
-		// QueryEvolution
-		proxy.eval_fitness()?;
-		// PatternMatchingQuery
-		if let Some(query_answer) = proxy.pop() {
-			let bindings = parse_query_answer(&query_answer, populate_metta_mapping)?;
-			bindings_set.push(bindings);
-			if max_query_answers > 0 && bindings_set.len() >= max_query_answers as usize {
-				break;
-			}
-		} else {
-			sleep(Duration::from_millis(100));
-		}
-	}
-
-	log::trace!(target: "das", "BindingsSet(len={}): {:?}", bindings_set.len(), bindings_set);
-
-	proxy.drop_runtime();
-
-	Ok(bindings_set)
+	Ok(query_answers)
 }
 
 pub fn link_creation_query(

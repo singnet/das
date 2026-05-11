@@ -13,7 +13,7 @@ vector<shared_ptr<Link>> LinkTemplateProcessor::process_query(shared_ptr<QueryAn
                                                               optional<vector<string>> extra_params) {
     vector<shared_ptr<Link>> links;
     if (extra_params == nullopt) {
-        Utils::error("Invalid link template");
+        RAISE_ERROR("Invalid link template");
     }
     if (extra_params.value().front() == "LIST") {
         LinkCreateTemplateList link_create_template_list(extra_params.value());

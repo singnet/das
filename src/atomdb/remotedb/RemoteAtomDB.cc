@@ -42,7 +42,7 @@ shared_ptr<AtomDB> create_atomdb_from_config(const JsonConfig& config) {
         return atomdb;
     }
 
-    Utils::error("Unknown AtomDB type for peer " + uid + ": " + type);
+    RAISE_ERROR("Unknown AtomDB type for peer " + uid + ": " + type);
     return nullptr;
 }
 

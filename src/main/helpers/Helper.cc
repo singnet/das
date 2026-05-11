@@ -141,7 +141,8 @@ It requires the following arguments:
  Optional arguments:
     - timeout: Timeout for the inference request in seconds
     - max-answers: Maximum number of answers to return
-    - attention-update-flag: Whether to update the attention broker (true/false)
+    - attention-update: Whether/how to update STI values through stimuli spreading in the attention broker (0 means no update. See BaseQueryProxy::QUERY_ELEMENTS to see all possible values)
+    - attention-correlation: Whether/how to correlate handles in the attention broker (0 means no update. See BaseQueryProxy::QUERY_ELEMENTS to see all possible values)
     - repeat-count: Number of times to repeat the request (0 for infinite)
 )")},
                                                          {ProcessorType::LINK_CREATION_AGENT, string(R"(
@@ -153,7 +154,8 @@ It requires the following arguments:
     - max-answers: Maximum number of answers to return
     - repeat-count: Number of times to repeat the request (0 for infinite)
     - context: Context for the link creation request
-    - attention-update-flag: Whether to update the attention broker (true/false)
+    - attention-update: Whether/how to update STI values through stimuli spreading in the attention broker (0 means no update. See BaseQueryProxy::QUERY_ELEMENTS to see all possible values)
+    - attention-correlation: Whether/how to correlate handles in the attention broker (0 means no update. See BaseQueryProxy::QUERY_ELEMENTS to see all possible values)
     - positive-importance-flag: Whether to set positive importance flag (true/false)
     - use-metta-as-query-tokens: Whether to use MeTTa expressions as query tokens (true/false)
 )")},
@@ -194,7 +196,8 @@ It requires the following arguments:
     - context: The context in which the query should be evaluated.
  Optional arguments:
     - unique-assignment-flag: Whether to enforce unique assignments (true/false)
-    - attention-update-flag: Whether to update the attention broker (true/false)
+    - attention-update: Whether/how to update STI values through stimuli spreading in the attention broker (0 means no update. See BaseQueryProxy::QUERY_ELEMENTS to see all possible values)
+    - attention-correlation: Whether/how to correlate handles in the attention broker (0 means no update. See BaseQueryProxy::QUERY_ELEMENTS to see all possible values)
     - max-answers: Maximum number of answers to return
     - use-link-template-cache: Whether to use link template cache (true/false)
     - populate-metta-mapping: Whether to populate MeTTa mapping (true/false)

@@ -1,6 +1,5 @@
 #include "HebbianNetworkUpdater.h"
 
-#define LOG_LEVEL INFO_LEVEL
 #include <string>
 
 #include "Logger.h"
@@ -22,7 +21,7 @@ HebbianNetworkUpdater* HebbianNetworkUpdater::factory(HebbianNetworkUpdaterType 
             return new ExactCountHebbianUpdater();
         }
         default: {
-            Utils::error("Invalid HebbianNetworkUpdaterType: " + to_string((int) instance_type));
+            RAISE_ERROR("Invalid HebbianNetworkUpdaterType: " + to_string((int) instance_type));
             return NULL;  // to avoid warnings
         }
     }

@@ -64,7 +64,7 @@ void WorkerThreads::worker_thread(unsigned int thread_id,
                     break;
                 }
                 default: {
-                    Utils::error("Invalid request type: " + to_string((int) request.first));
+                    RAISE_ERROR("Invalid request type: " + to_string((int) request.first));
                 }
             }
         } else {
