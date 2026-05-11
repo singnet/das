@@ -75,7 +75,6 @@ class MultiThreadAtomPersister {
     shared_ptr<BoundedSharedQueue> input_queue;
     ThreadPool& pool;
     shared_ptr<AtomDB> atomdb;
-    ;
     size_t batch_size;
     atomic<bool> save_metta_expression;
     size_t max_pending_batches;
