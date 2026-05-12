@@ -138,23 +138,11 @@ shared_ptr<Atom> RedisMongoDB::get_atom(const string& handle) {
 }
 
 shared_ptr<Node> RedisMongoDB::get_node(const string& handle) {
-    auto atom = get_atom(handle);
-    if (atom != nullptr) {
-        if (auto node = dynamic_cast<Node*>(atom.get())) {
-            return shared_ptr<Node>(node);
-        }
-    }
-    return nullptr;
+    return dynamic_pointer_cast<Node>(get_atom(handle));
 }
 
 shared_ptr<Link> RedisMongoDB::get_link(const string& handle) {
-    auto atom = get_atom(handle);
-    if (atom != nullptr) {
-        if (auto link = dynamic_cast<Link*>(atom.get())) {
-            return shared_ptr<Link>(link);
-        }
-    }
-    return nullptr;
+    return dynamic_pointer_cast<Link>(get_atom(handle));
 }
 
 shared_ptr<atomdb_api_types::HandleSet> RedisMongoDB::query_for_pattern(const LinkSchema& link_schema) {
