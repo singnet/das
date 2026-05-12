@@ -25,7 +25,7 @@
 #include "Utils.h"
 #include "commons/atoms/MettaParserActions.h"
 
-#define USE_MORK ((bool) false)
+#define USE_MORK ((bool) true)
 
 // Symbols
 #define AND_OPERATOR "AND"
@@ -851,6 +851,11 @@ static void run(const string& context_tag) {
                 VARIABLE, PREDICATE,
                 VARIABLE, V2,
     }};
+    vector<vector<string>> correlation_metta_query_template = {{
+        metta_or(
+            metta_expr3(EVALUATION, metta_var(V1), metta_var(CONCEPT)),
+            metta_expr3(EVALUATION, metta_var(PREDICATE), metta_var(V2)))
+    }};
 
     vector<string> context_determiner_query = {
         LINK_TEMPLATE, EXPRESSION, "3",
@@ -965,7 +970,7 @@ static void run(const string& context_tag) {
         LOG_INFO("--------------------------------------------------------------------------------");
         LOG_INFO("----- Evolving query");
         query_evolution((USE_MORK ? metta_query_to_evolve : query_to_evolve),
-                        correlation_query_template,
+                        (USE_MORK ? correlation_metta_query_template : correlation_query_template),
                         context);
         if (i != (NUM_ITERATIONS - 1)) {
             LOG_INFO("----- Building links");
@@ -1040,6 +1045,7 @@ int main(int argc, char* argv[]) {
         Utils::error("Error setting up parameters");
     }
 
+
     auto json_config = JsonConfigParser::load(config_file);
     auto atomdb_config = json_config.at_path("atomdb").get_or<JsonConfig>(JsonConfig());
     AtomDBSingleton::init(atomdb_config);
@@ -1075,6 +1081,17 @@ int main(int argc, char* argv[]) {
     LOG_INFO("Target predicate: " + TARGET_PREDICATE + " Handle: " + TARGET_PREDICATE_HANDLE);
     LOG_INFO("Target concept: " + TARGET_CONCEPT + " Handle: " + TARGET_CONCEPT_HANDLE);
 
+    /*
+    string handle_XXX = argv[++cursor];
+    LOG_INFO("Handle: " + handle_XXX);
+    auto atom = db->get_atom(handle_XXX);
+    if (atom == nullptr) {
+        LOG_INFO("Atom is nullptr");
+    } else {
+        LOG_INFO("Atom " + handle_XXX + ": " + atom->metta_representation(*static_pointer_cast<HandleDecoder>(db).get()));
+    }
+    return 0;
+    */
     run(context_tag);
 
     return 0;
