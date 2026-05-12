@@ -19,10 +19,10 @@ using namespace commons;
 
 double compute_percentile(const vector<double>& vec, double percentile_fraction) {
     if (vec.empty()) {
-        Utils::error("vector is empty");
+        RAISE_ERROR("vector is empty");
     }
     if (percentile_fraction < 0.0 || percentile_fraction > 1.0) {
-        Utils::error("percentile fraction out of range");
+        RAISE_ERROR("percentile fraction out of range");
     }
 
     size_t vec_size = vec.size();
@@ -42,7 +42,7 @@ map<string, map<string, double>> calculate_metric_statistics(map<string, Metrics
 
     for (auto& [operation, metric] : metrics) {
         if (metric.operation_time.empty()) {
-            Utils::error("metrics for operation '" + operation + "' are empty");
+            RAISE_ERROR("metrics for operation '" + operation + "' are empty");
         }
 
         sort(metric.operation_time.begin(), metric.operation_time.end());
@@ -124,7 +124,7 @@ void dispatch_handler(const map<string, function<void()>>& handlers, const strin
     if (it != handlers.end()) {
         it->second();
     } else {
-        Utils::error("Invalid method: " + method);
+        RAISE_ERROR("Invalid method: " + method);
     }
 }
 

@@ -56,7 +56,7 @@ string Terminal::compute_handle() {
         for (auto element : this->targets) {
             shared_ptr<Terminal> terminal = dynamic_pointer_cast<Terminal>(element);
             if (terminal == nullptr) {
-                Utils::error("Invalid non-terminal target in Terminal");
+                RAISE_ERROR("Invalid non-terminal target in Terminal");
             }
             target_handles.push_back(terminal->compute_handle());
         }
@@ -64,7 +64,7 @@ string Terminal::compute_handle() {
     } else if (this->is_atom) {
         return handle;
     } else {
-        Utils::error("Invalid attempt to generate the handle of a variable terminal");
+        RAISE_ERROR("Invalid attempt to generate the handle of a variable terminal");
         return "";
     }
 }
@@ -90,7 +90,7 @@ string Terminal::to_string() {
         }
         return answer;
     } else {
-        Utils::error("Invalid terminal");
+        RAISE_ERROR("Invalid terminal");
         return "";
     }
 }

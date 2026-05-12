@@ -34,7 +34,7 @@ void AttentionBrokerClient::correlate(const set<string>& handles, const string& 
         LOG_DEBUG("Calling AttentionBroker GRPC. Correlating " << handle_list.list_size() << " handles");
         stub->correlate(new grpc::ClientContext(), handle_list, &ack);
         if (ack.msg() != "CORRELATE") {
-            Utils::error("Failed GRPC command: AttentionBroker::correlate()");
+            RAISE_ERROR("Failed GRPC command: AttentionBroker::correlate()");
         }
     } else {
         LOG_DEBUG("No handles to correlate");
@@ -56,7 +56,7 @@ void AttentionBrokerClient::asymmetric_correlate(const vector<string>& handles, 
                                                                            << " handles");
         stub->asymmetric_correlate(new grpc::ClientContext(), handle_list, &ack);
         if (ack.msg() != "ASYMMETRIC_CORRELATE") {
-            Utils::error("Failed GRPC command: AttentionBroker::asymmetric_correlate()");
+            RAISE_ERROR("Failed GRPC command: AttentionBroker::asymmetric_correlate()");
         }
     } else {
         LOG_DEBUG("No handles to correlate (asymmetric)");
@@ -81,7 +81,7 @@ void AttentionBrokerClient::stimulate(const map<string, unsigned int>& handle_ma
                                                           << " handles");
     stub->stimulate(new grpc::ClientContext(), handle_count, &ack);
     if (ack.msg() != "STIMULATE") {
-        Utils::error("Failed GRPC command: AttentionBroker::stimulate()");
+        RAISE_ERROR("Failed GRPC command: AttentionBroker::stimulate()");
     }
 }
 
@@ -113,7 +113,7 @@ void AttentionBrokerClient::set_determiners(const vector<vector<string>>& handle
                                                                           << " handles");
         stub->set_determiners(new grpc::ClientContext(), request, &ack);
         if (ack.msg() != "SET_DETERMINERS") {
-            Utils::error("Failed GRPC command: AttentionBroker::set_determiners()");
+            RAISE_ERROR("Failed GRPC command: AttentionBroker::set_determiners()");
         }
         request.clear_list();
         handle_count = 0;
@@ -167,7 +167,7 @@ void AttentionBrokerClient::set_parameters(float rent_rate,
              << " SPREADING_RATE_UPPERBOUND: " << request.spreading_rate_upperbound());
     stub->set_parameters(new grpc::ClientContext(), request, &ack);
     if (ack.msg() != "SET_PARAMETERS") {
-        Utils::error("Failed GRPC command: AttentionBroker::set_parameters()");
+        RAISE_ERROR("Failed GRPC command: AttentionBroker::set_parameters()");
     }
 }
 
@@ -189,7 +189,7 @@ bool AttentionBrokerClient::health_check(bool throw_on_error) {
 }
 
 void AttentionBrokerClient::save_context(const string& context, const string& file_name) {
-    Utils::error("AttentionBrokerClient::save_context() is not implemented.");
+    RAISE_ERROR("AttentionBrokerClient::save_context() is not implemented.");
 }
 
 void AttentionBrokerClient::drop_and_load_context(const string& context, const string& file_name) {
@@ -207,6 +207,6 @@ void AttentionBrokerClient::drop_and_load_context(const string& context, const s
         context + " File name: " + file_name);
     stub->drop_and_load_context(new grpc::ClientContext(), request, &ack);
     if (ack.msg() != "DROP_AND_LOAD_CONTEXT") {
-        Utils::error("Failed GRPC command: AttentionBroker::drop_and_load_context()");
+        RAISE_ERROR("Failed GRPC command: AttentionBroker::drop_and_load_context()");
     }
 }

@@ -28,7 +28,8 @@ impl PatternMatchingQueryProxy {
 		log::debug!(target: "das", "Query                    : <{}>", base.query_tokens.join(" "));
 		log::debug!(target: "das", "Context (name, key)      : <{}, {}>", context_name, base.context);
 		log::debug!(target: "das", "Max answers              : <{}>", params.properties.get::<u64>(properties::MAX_ANSWERS));
-		log::debug!(target: "das", "Update Attention Broker  : <{}>", params.properties.get::<bool>(properties::ATTENTION_UPDATE_FLAG));
+		log::debug!(target: "das", "Update Attention Broker  : <{}>", params.properties.get::<u64>(properties::ATTENTION_UPDATE));
+		log::debug!(target: "das", "Attention Correlation    : <{}>", params.properties.get::<u64>(properties::ATTENTION_CORRELATION));
 		log::debug!(target: "das", "Positive Importance      : <{}>", params.properties.get::<bool>(properties::POSITIVE_IMPORTANCE_FLAG));
 		log::debug!(target: "das", "Use metta as query tokens: <{}>", params.properties.get::<bool>(properties::USE_METTA_AS_QUERY_TOKENS));
 		log::debug!(target: "das", "Populate metta mapping   : <{}>", params.properties.get::<bool>(properties::POPULATE_METTA_MAPPING));

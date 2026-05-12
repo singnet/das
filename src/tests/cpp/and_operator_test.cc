@@ -16,13 +16,14 @@ using namespace query_element;
 class TestSource : public Source {
    public:
     TestSource(unsigned int count) { this->id = "TestSource_" + std::to_string(count); }
+    TestSource() { this->id = "TestSource_" + Utils::random_string(30); }
 
     ~TestSource() {}
 
     void add(const char* handle,
              double importance,
-             const array<const char*, 1>& labels,
-             const array<const char*, 1>& values,
+             const vector<string>& labels,
+             const vector<string>& values,
              bool sleep_flag = true) {
         QueryAnswer* query_answer = new QueryAnswer(handle, importance);
         for (unsigned int i = 0; i < labels.size(); i++) {
@@ -39,7 +40,8 @@ class TestSource : public Source {
 
 class TestSink : public Sink {
    public:
-    TestSink(shared_ptr<QueryElement> precedent) : Sink(precedent, "TestSink(" + precedent->id + ")") {}
+    TestSink(shared_ptr<QueryElement> precedent)
+        : Sink(precedent, "TestSink(" + precedent->id + "," + Utils::random_string(30) + ")") {}
     ~TestSink() {}
     bool empty() { return this->input_buffer->is_query_answers_empty(); }
     bool finished() { return this->input_buffer->is_query_answers_finished(); }
@@ -51,7 +53,7 @@ void check_query_answer(string tag,
                         double importance,
                         unsigned int handles_size,
                         const array<const char*, 2>& handles) {
-    cout << "check_query_answer(" + tag + ")" << endl;
+    LOG_INFO("check_query_answer(" + tag + "); " + query_answer->to_string());
     EXPECT_TRUE(double_equals(query_answer->importance, importance));
     EXPECT_EQ(query_answer->get_handles_size(), 2);
     set<string> set_handles;
@@ -63,8 +65,8 @@ void check_query_answer(string tag,
 }
 
 TEST(AndOperator, basics) {
-    auto source1 = make_shared<TestSource>(10);
-    auto source2 = make_shared<TestSource>(20);
+    auto source1 = make_shared<TestSource>();
+    auto source2 = make_shared<TestSource>();
     auto and_operator = make_shared<And<2>>(array<shared_ptr<QueryElement>, 2>({source1, source2}));
     TestSink sink(and_operator);
     QueryAnswer* query_answer;
@@ -237,8 +239,8 @@ TEST(AndOperator, operation_logic) {
 }
 
 TEST(AndOperator, empty_source) {
-    auto source1 = make_shared<TestSource>(100);
-    auto source2 = make_shared<TestSource>(200);
+    auto source1 = make_shared<TestSource>();
+    auto source2 = make_shared<TestSource>();
     auto and_operator = make_shared<And<2>>(array<shared_ptr<QueryElement>, 2>({source1, source2}));
     TestSink sink(and_operator);
     Utils::sleep(1000);
@@ -252,6 +254,232 @@ TEST(AndOperator, empty_source) {
     EXPECT_FALSE(sink.finished());
     source1->query_answers_finished();
     source2->query_answers_finished();
+    Utils::sleep(SLEEP_DURATION);
+    EXPECT_TRUE(sink.empty());
+    EXPECT_TRUE(sink.finished());
+}
+
+TEST(AndOperator, not_operator_1) {
+    array<shared_ptr<TestSource>, 3> source;
+    source[0] = make_shared<TestSource>();
+    source[1] = make_shared<TestSource>();
+    source[2] = make_shared<TestSource>();
+    vector<shared_ptr<QueryElement>> dummy;
+    auto and_operator = make_shared<And<3>>(
+        array<shared_ptr<QueryElement>, 3>({source[0], source[1], source[2]}), dummy, true);
+    TestSink sink(and_operator);
+    QueryAnswer* query_answer;
+
+    source[0]->add("S0_1", 0.9, {"v1"}, {"1"});
+    source[0]->add("S0_2", 0.8, {"v1"}, {"2"});
+    source[0]->add("S0_3", 0.7, {"v1"}, {"3"});
+    source[1]->add("S1_1", 0.3, {"v2"}, {"1"});
+    source[1]->add("S1_2", 0.2, {"v2"}, {"2"});
+    source[1]->add("S1_3", 0.1, {"v2"}, {"3"});
+
+    source[2]->add("S2_1", 1.0, {"v1"}, {"2"});
+    unsigned int expected_count = 6;
+
+    Utils::sleep(SLEEP_DURATION);
+    source[0]->query_answers_finished();
+    source[1]->query_answers_finished();
+    source[2]->query_answers_finished();
+
+    unsigned int count = 0;
+    while (count < expected_count) {
+        if (sink.empty()) {
+            Utils::sleep();
+            continue;
+        }
+        if (sink.finished() && sink.empty()) {
+            break;
+        }
+        EXPECT_FALSE((query_answer = dynamic_cast<QueryAnswer*>(sink.pop())) == NULL);
+        LOG_INFO("query_answer: " + query_answer->to_string());
+        EXPECT_EQ(query_answer->get_handles_vector().size(), 2);
+        for (string handle : query_answer->get_handles_vector()) {
+            EXPECT_NE(handle, string("S0_2"));
+        }
+        count++;
+    }
+    EXPECT_EQ(count, expected_count);
+    Utils::sleep(SLEEP_DURATION);
+    EXPECT_TRUE(sink.empty());
+    EXPECT_TRUE(sink.finished());
+}
+
+TEST(AndOperator, not_operator_2) {
+    array<shared_ptr<TestSource>, 3> source;
+    source[0] = make_shared<TestSource>();
+    source[1] = make_shared<TestSource>();
+    source[2] = make_shared<TestSource>();
+    vector<shared_ptr<QueryElement>> dummy;
+    auto and_operator = make_shared<And<3>>(
+        array<shared_ptr<QueryElement>, 3>({source[0], source[1], source[2]}), dummy, true);
+    TestSink sink(and_operator);
+    QueryAnswer* query_answer;
+
+    source[0]->add("S0_1", 0.9, {"v1"}, {"1"});
+    source[0]->add("S0_2", 0.8, {"v1"}, {"2"});
+    source[0]->add("S0_3", 0.7, {"v1"}, {"3"});
+    source[1]->add("S1_1", 0.3, {"v2"}, {"1"});
+    source[1]->add("S1_2", 0.2, {"v2"}, {"2"});
+    source[1]->add("S1_3", 0.1, {"v2"}, {"3"});
+
+    source[2]->add("S2_1", 1.0, {"v1", "v2"}, {"2", "3"});
+    unsigned int expected_count = 8;
+
+    Utils::sleep(SLEEP_DURATION);
+    source[0]->query_answers_finished();
+    source[1]->query_answers_finished();
+    source[2]->query_answers_finished();
+
+    unsigned int count = 0;
+    while (count < expected_count) {
+        if (sink.empty()) {
+            Utils::sleep();
+            continue;
+        }
+        if (sink.finished() && sink.empty()) {
+            break;
+        }
+        EXPECT_FALSE((query_answer = dynamic_cast<QueryAnswer*>(sink.pop())) == NULL);
+        LOG_INFO("query_answer: " + query_answer->to_string());
+        EXPECT_EQ(query_answer->get_handles_vector().size(), 2);
+        auto handles = query_answer->get_handles_vector();
+        EXPECT_FALSE((handles[0] == "S0_2") && (handles[1] == "S1_3"));
+        count++;
+    }
+    EXPECT_EQ(count, expected_count);
+    Utils::sleep(SLEEP_DURATION);
+    EXPECT_TRUE(sink.empty());
+    EXPECT_TRUE(sink.finished());
+}
+
+TEST(AndOperator, not_operator_3) {
+    array<shared_ptr<TestSource>, 3> source;
+    source[0] = make_shared<TestSource>();
+    source[1] = make_shared<TestSource>();
+    source[2] = make_shared<TestSource>();
+    vector<shared_ptr<QueryElement>> dummy;
+    auto and_operator = make_shared<And<3>>(
+        array<shared_ptr<QueryElement>, 3>({source[0], source[1], source[2]}), dummy, true);
+    TestSink sink(and_operator);
+    QueryAnswer* query_answer;
+
+    source[0]->add("S0_1", 0.9, {"v1"}, {"1"});
+    source[0]->add("S0_2", 0.8, {"v1"}, {"2"});
+    source[0]->add("S0_3", 0.7, {"v1"}, {"3"});
+    source[1]->add("S1_1", 0.3, {"v2"}, {"1"});
+    source[1]->add("S1_2", 0.2, {"v2"}, {"2"});
+    source[1]->add("S1_3", 0.1, {"v2"}, {"3"});
+
+    source[2]->add("S2_1", 1.0, {"v3"}, {"0"});
+    unsigned int expected_count = 0;
+
+    Utils::sleep(SLEEP_DURATION);
+    source[0]->query_answers_finished();
+    source[1]->query_answers_finished();
+    source[2]->query_answers_finished();
+
+    while (!(sink.empty() && sink.finished())) {
+        if (sink.empty()) {
+            Utils::sleep();
+            continue;
+        }
+        FAIL();
+    }
+}
+
+TEST(AndOperator, not_operator_4) {
+    array<shared_ptr<TestSource>, 3> source;
+    source[0] = make_shared<TestSource>();
+    source[1] = make_shared<TestSource>();
+    source[2] = make_shared<TestSource>();
+    vector<shared_ptr<QueryElement>> dummy;
+    auto and_operator = make_shared<And<3>>(
+        array<shared_ptr<QueryElement>, 3>({source[0], source[1], source[2]}), dummy, true);
+    TestSink sink(and_operator);
+    QueryAnswer* query_answer;
+
+    source[0]->add("S0_1", 0.9, {"v1"}, {"1"});
+    source[0]->add("S0_2", 0.8, {"v1"}, {"2"});
+    source[0]->add("S0_3", 0.7, {"v1"}, {"3"});
+    source[1]->add("S1_1", 0.3, {"v2"}, {"1"});
+    source[1]->add("S1_2", 0.2, {"v2"}, {"2"});
+    source[1]->add("S1_3", 0.1, {"v2"}, {"3"});
+
+    source[2]->add("S2_1", 1.0, {"v1"}, {"2"});
+    source[2]->add("S2_2", 1.0, {"v2"}, {"3"});
+    unsigned int expected_count = 4;
+
+    Utils::sleep(SLEEP_DURATION);
+    source[0]->query_answers_finished();
+    source[1]->query_answers_finished();
+    source[2]->query_answers_finished();
+
+    unsigned int count = 0;
+    while (count < expected_count) {
+        if (sink.empty()) {
+            Utils::sleep();
+            continue;
+        }
+        if (sink.finished() && sink.empty()) {
+            break;
+        }
+        EXPECT_FALSE((query_answer = dynamic_cast<QueryAnswer*>(sink.pop())) == NULL);
+        LOG_INFO("query_answer: " + query_answer->to_string());
+        EXPECT_EQ(query_answer->get_handles_vector().size(), 2);
+        auto handles = query_answer->get_handles_vector();
+        EXPECT_FALSE((handles[0] == "S0_2") || (handles[1] == "S1_3"));
+        count++;
+    }
+    EXPECT_EQ(count, expected_count);
+    Utils::sleep(SLEEP_DURATION);
+    EXPECT_TRUE(sink.empty());
+    EXPECT_TRUE(sink.finished());
+}
+
+TEST(AndOperator, not_operator_5) {
+    array<shared_ptr<TestSource>, 3> source;
+    source[0] = make_shared<TestSource>();
+    source[1] = make_shared<TestSource>();
+    source[2] = make_shared<TestSource>();
+    vector<shared_ptr<QueryElement>> dummy;
+    auto and_operator = make_shared<And<3>>(
+        array<shared_ptr<QueryElement>, 3>({source[0], source[1], source[2]}), dummy, true);
+    TestSink sink(and_operator);
+    QueryAnswer* query_answer;
+
+    source[0]->add("S0_1", 0.9, {"v1"}, {"1"});
+    source[0]->add("S0_2", 0.8, {"v1"}, {"2"});
+    source[0]->add("S0_3", 0.7, {"v1"}, {"3"});
+    source[1]->add("S1_1", 0.3, {"v2"}, {"1"});
+    source[1]->add("S1_2", 0.2, {"v2"}, {"2"});
+    source[1]->add("S1_3", 0.1, {"v2"}, {"3"});
+
+    unsigned int expected_count = 9;
+
+    Utils::sleep(SLEEP_DURATION);
+    source[0]->query_answers_finished();
+    source[1]->query_answers_finished();
+    source[2]->query_answers_finished();
+
+    unsigned int count = 0;
+    while (count < expected_count) {
+        if (sink.empty()) {
+            Utils::sleep();
+            continue;
+        }
+        if (sink.finished() && sink.empty()) {
+            break;
+        }
+        EXPECT_FALSE((query_answer = dynamic_cast<QueryAnswer*>(sink.pop())) == NULL);
+        LOG_INFO("query_answer: " + query_answer->to_string());
+        EXPECT_EQ(query_answer->get_handles_vector().size(), 2);
+        count++;
+    }
+    EXPECT_EQ(count, expected_count);
     Utils::sleep(SLEEP_DURATION);
     EXPECT_TRUE(sink.empty());
     EXPECT_TRUE(sink.finished());

@@ -56,7 +56,7 @@ void LinkSchema::_init(unsigned int arity) {
 
 bool LinkSchema::_check_not_frozen() const {
     if (this->_frozen) {
-        Utils::error("Can't change a LinkTemplate after calling build()");
+        RAISE_ERROR("Can't change a LinkTemplate after calling build()");
         return true;
     } else {
         return false;
@@ -65,7 +65,7 @@ bool LinkSchema::_check_not_frozen() const {
 
 bool LinkSchema::_check_frozen() const {
     if (!this->_frozen) {
-        Utils::error("Can't access LinkTemplate state before calling build()");
+        RAISE_ERROR("Can't access LinkTemplate state before calling build()");
         return true;
     } else {
         return false;
@@ -76,7 +76,7 @@ LinkSchema::LinkSchema(const LinkSchema& other) : Wildcard(other) { *this = othe
 
 LinkSchema& LinkSchema::operator=(const LinkSchema& other) {
     if (!other._frozen) {
-        Utils::error("Can't clone an under-construction LinkTemplate");
+        RAISE_ERROR("Can't clone an under-construction LinkTemplate");
     }
     Wildcard::operator=(other);
     this->_arity = other._arity;
@@ -100,10 +100,10 @@ bool LinkSchema::operator!=(const LinkSchema& other) { return !(*this == other);
 
 void LinkSchema::validate() const {
     if (this->type == Atom::UNDEFINED_TYPE) {
-        Utils::error("LinkSchema type can't be '" + Atom::UNDEFINED_TYPE + "'");
+        RAISE_ERROR("LinkSchema type can't be '" + Atom::UNDEFINED_TYPE + "'");
     }
     if (this->_schema.size() == 0) {
-        Utils::error("LinkSchema must have at least 1 target");
+        RAISE_ERROR("LinkSchema must have at least 1 target");
     }
     bool flag = true;
     for (string schema_handle : this->_schema) {
@@ -113,7 +113,7 @@ void LinkSchema::validate() const {
         }
     }
     if (flag) {
-        Utils::error("Invalid LinkSchema with no variables and no nested link schemas");
+        RAISE_ERROR("Invalid LinkSchema with no variables and no nested link schemas");
     }
 }
 
@@ -223,8 +223,8 @@ void LinkSchema::add_target(const string& schema_handle,
             this->_metta_representation += " ";
         }
     } else {
-        Utils::error("Attempt to add a new target beyond LinkSchema's arity. LinkSchema: " +
-                     this->to_string());
+        RAISE_ERROR("Attempt to add a new target beyond LinkSchema's arity. LinkSchema: " +
+                    this->to_string());
     }
 }
 
@@ -286,7 +286,7 @@ void LinkSchema::_stack_link_schema(const string& type, unsigned int link_arity,
             tuple<string, string, string> triplet = this->_atom_stack.back();
             SchemaElement popped_schema_element = this->_schema_element_stack.top();
             if (is_link && (get<0>(triplet) == Atom::WILDCARD_STRING)) {
-                Utils::error("Invalid wildcard in Link");
+                RAISE_ERROR("Invalid wildcard in Link");
             }
             target_handles.insert(target_handles.begin(), get<0>(triplet));
             composite_type.insert(composite_type.begin(), get<1>(triplet));
@@ -322,8 +322,8 @@ void LinkSchema::_stack_link_schema(const string& type, unsigned int link_arity,
         new_schema_element.type = type;
         this->_schema_element_stack.push(new_schema_element);
     } else {
-        Utils::error("Couldn't stack link. Link arity: " + std::to_string(link_arity) +
-                     " stack size: " + std::to_string(this->_atom_stack.size()));
+        RAISE_ERROR("Couldn't stack link. Link arity: " + std::to_string(link_arity) +
+                    " stack size: " + std::to_string(this->_atom_stack.size()));
     }
 }
 
@@ -345,8 +345,8 @@ void LinkSchema::build() {
             }
             this->_atom_stack.clear();
         } else {
-            Utils::error("Can't build LinkTemplate of arity " + std::to_string(this->_arity) +
-                         " out of a stack with " + std::to_string(this->_atom_stack.size()) + " atoms.");
+            RAISE_ERROR("Can't build LinkTemplate of arity " + std::to_string(this->_arity) +
+                        " out of a stack with " + std::to_string(this->_atom_stack.size()) + " atoms.");
         }
         for (unsigned int i = 0; i < this->_build_tokens.size(); i++) {
             this->_tokens.insert(
@@ -383,8 +383,8 @@ void LinkSchema::_syntax_assert(bool flag, string token, unsigned int cursor) {
         if (cursor == 0) {
             cursor = 1;
         }
-        Utils::error("Syntax error in LinkSchema untokenization near symbol `" + token +
-                     "` near position " + std::to_string(cursor - 1));
+        RAISE_ERROR("Syntax error in LinkSchema untokenization near symbol `" + token +
+                    "` near position " + std::to_string(cursor - 1));
     }
 }
 

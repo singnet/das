@@ -60,7 +60,7 @@ string MettaTokens::to_string(unsigned char token) {
     } else if (token == VARIABLE) {
         return "VARIABLE";
     } else {
-        Utils::error("Unknown token: " + std::to_string(token));
+        RAISE_ERROR("Unknown token: " + std::to_string(token));
         return "";
     }
 }

@@ -10,7 +10,7 @@ using namespace processor;
 
 Processor::Processor(const string& id) {
     if (id == "") {
-        Utils::error("Invalid empty id for processor");
+        RAISE_ERROR("Invalid empty id for processor");
     }
     this->current_state = WAITING_SETUP;
     this->id = id;
@@ -27,12 +27,12 @@ Processor::~Processor() {
 void Processor::bind_subprocessor(shared_ptr<Processor> root, shared_ptr<Processor> child) {
     // static method
     if (root->is_setup() || child->is_setup()) {
-        Utils::error("Can't bind processors after setup() has been called");
+        RAISE_ERROR("Can't bind processors after setup() has been called");
     }
     if (child->parent_processor != nullptr) {
-        Utils::error("Invalid attempt to bind processor " + child->to_string() + " to " +
-                     root->to_string() + ". It's already bound to " +
-                     child->parent_processor->to_string());
+        RAISE_ERROR("Invalid attempt to bind processor " + child->to_string() + " to " +
+                    root->to_string() + ". It's already bound to " +
+                    child->parent_processor->to_string());
     }
     root->subprocessors.push_back(child);
     child->parent_processor = root;
@@ -127,6 +127,6 @@ void Processor::check_state(const string& action, State state) {
             error_message += "Processor is in unexpected state: " + this->current_state;
         }
         this->api_mutex.unlock();
-        Utils::error(error_message);
+        RAISE_ERROR(error_message);
     }
 }

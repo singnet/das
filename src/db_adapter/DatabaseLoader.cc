@@ -98,7 +98,7 @@ void DatabaseMappingOrchestrator::task_setup(const JsonConfig& config) {
     string query_file_path = config.at_path("adapter.context_mapping.queries_sql").get_or<string>("");
 
     if (tables_file_path.empty() && query_file_path.empty()) {
-        Utils::error(
+        RAISE_ERROR(
             "No mapping tasks found in the context file. Provide at least one of the following:\n"
             " - adapter.context_mapping.tables (path to tables mapping JSON file)\n"
             " - adapter.context_mapping.queries_sql (path to SQL queries file)");
@@ -323,7 +323,7 @@ void MultiThreadAtomPersister::send_batch(vector<Atom*> atoms,
                             << " | error: " << e.what() << " | batches_failed: "
                             << this->batches_failed.load() << " | thread: " << this_thread::get_id());
 
-        Utils::error("Error in batch #" + to_string(batch_id) + ": " + string(e.what()));
+        RAISE_ERROR("Error in batch #" + to_string(batch_id) + ": " + string(e.what()));
     }
 
     for (auto& atom : atoms) {

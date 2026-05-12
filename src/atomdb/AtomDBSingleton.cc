@@ -13,7 +13,7 @@ shared_ptr<AtomDB> AtomDBSingleton::atom_db = shared_ptr<AtomDB>{};
 
 void AtomDBSingleton::init(const JsonConfig& atomdb_config) {
     if (AtomDBSingleton::initialized) {
-        Utils::error(
+        RAISE_ERROR(
             "AtomDBSingleton already initialized. AtomDBSingleton::init() should be called only once.");
     } else {
         auto atomdb_type = atomdb_config.at_path("type").get_or<string>("");
@@ -24,7 +24,7 @@ void AtomDBSingleton::init(const JsonConfig& atomdb_config) {
         } else if (atomdb_type == "remotedb") {
             AtomDBSingleton::atom_db = shared_ptr<AtomDB>(new RemoteAtomDB(atomdb_config));
         } else {
-            Utils::error("Invalid AtomDB type: " + atomdb_type);
+            RAISE_ERROR("Invalid AtomDB type: " + atomdb_type);
         }
 
         AtomDBSingleton::initialized = true;
@@ -33,7 +33,7 @@ void AtomDBSingleton::init(const JsonConfig& atomdb_config) {
 
 shared_ptr<AtomDB> AtomDBSingleton::get_instance() {
     if (!AtomDBSingleton::initialized) {
-        Utils::error(
+        RAISE_ERROR(
             "Uninitialized AtomDBSingleton. AtomDBSingleton::init() must be called before "
             "AtomDBSingleton::get_instance()");
         return shared_ptr<AtomDB>{};  // To avoid warnings

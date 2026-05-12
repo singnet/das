@@ -38,7 +38,7 @@ shared_ptr<MessageBroker> MessageBroker::factory(MessageBrokerType instance_type
             return shared_ptr<MessageBroker>(new SynchronousGRPC(host_node, node_id));
         }
         default: {
-            Utils::error("Invalid MessageBrokerType: " + to_string((int) instance_type));
+            RAISE_ERROR("Invalid MessageBrokerType: " + to_string((int) instance_type));
             return shared_ptr<MessageBroker>{};  // to avoid warnings
         }
     }
@@ -46,7 +46,7 @@ shared_ptr<MessageBroker> MessageBroker::factory(MessageBrokerType instance_type
 
 MessageBroker::MessageBroker(shared_ptr<MessageFactory> host_node, const string& node_id) {
     if (!host_node) {
-        Utils::error("Invalid NULL host_node");
+        RAISE_ERROR("Invalid NULL host_node");
     }
     this->host_node = host_node;
     this->node_id = node_id;
@@ -67,7 +67,7 @@ SynchronousSharedRAM::~SynchronousSharedRAM() {
         NODE_QUEUE_MUTEX.lock();
         if (NODE_QUEUE.find(this->node_id) == NODE_QUEUE.end()) {
             NODE_QUEUE_MUTEX.unlock();
-            Utils::error("Unable to remove node from network: " + this->node_id);
+            RAISE_ERROR("Unable to remove node from network: " + this->node_id);
         } else {
             auto node_queue = NODE_QUEUE[this->node_id];
             while (!node_queue->empty()) {
@@ -125,7 +125,7 @@ void SynchronousGRPC::grpc_thread_method(shared_ptr<StoppableThread> monitor) {
             LOG_ERROR("Failed attempt to start GRPC server on " + this->node_id + ". Retrying...");
             Utils::sleep(10000);
             delete builder;
-            // Utils::error("Couldn't start GRPC server on " + this->node_id);
+            // RAISE_ERROR("Couldn't start GRPC server on " + this->node_id);
             // return;
         }
     } while (true);
@@ -170,7 +170,7 @@ void SynchronousSharedRAM::inbox_thread_method(shared_ptr<StoppableThread> monit
                 delete message_data;
             } else {
                 delete message_data;
-                Utils::error("Invalid NULL Message");
+                RAISE_ERROR("Invalid NULL Message");
             }
         } else {
             if (monitor->stopped()) {
@@ -231,7 +231,7 @@ void SynchronousGRPC::inbox_thread_method(shared_ptr<StoppableThread> monitor) {
                 LOG_DEBUG("Acting command: " << command << " at node " << this->node_id);
                 message->act(this->host_node);
             } else {
-                Utils::error("Invalid NULL Message");
+                RAISE_ERROR("Invalid NULL Message");
             }
         } else {
             if (monitor->stopped()) {
@@ -280,7 +280,7 @@ void SynchronousSharedRAM::join_network() {
     NODE_QUEUE_MUTEX.lock();
     if (NODE_QUEUE.find(this->node_id) != NODE_QUEUE.end()) {
         NODE_QUEUE_MUTEX.unlock();
-        Utils::error("Node ID already in the network: " + this->node_id);
+        RAISE_ERROR("Node ID already in the network: " + this->node_id);
     } else {
         NODE_QUEUE[this->node_id] = &(this->incoming_messages);
         NODE_QUEUE_MUTEX.unlock();
@@ -300,7 +300,7 @@ void SynchronousSharedRAM::send(const string& command,
                                 const string& recipient) {
     if (!this->stopped()) {
         if (!is_peer(recipient)) {
-            Utils::error("Unknown peer: " + recipient);
+            RAISE_ERROR("Unknown peer: " + recipient);
         }
         CommandLinePackage* command_line = new CommandLinePackage(command, args);
         NODE_QUEUE[recipient]->enqueue((void*) command_line);
@@ -358,7 +358,7 @@ void SynchronousGRPC::add_peer(const string& peer_id) { MessageBroker::add_peer(
 
 void SynchronousGRPC::send(const string& command, const vector<string>& args, const string& recipient) {
     if (!is_peer(recipient)) {
-        Utils::error("Unknown peer: " + recipient);
+        RAISE_ERROR("Unknown peer: " + recipient);
     }
     dasproto::MessageData message_data;
     message_data.set_command(command);

@@ -153,7 +153,7 @@ class Or : public Operator<N> {
             }
         }
         if (best_importance < 0) {
-            Utils::error("Invalid state in OR operation");
+            RAISE_ERROR("Invalid state in OR operation");
         }
         return best_index;
     }

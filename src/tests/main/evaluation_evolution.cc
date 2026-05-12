@@ -145,7 +145,7 @@ static void save_link_metta(Link& link) {
         file << link.custom_attributes.get_or<double>("strength", 1.0) << "," << link.metta_representation(*static_pointer_cast<HandleDecoder>(db).get()) << endl;
         file.close();
     } else {
-        Utils::error("Couldn't open file for writing: " + NEW_LINKS_FILE_NAME);
+        RAISE_ERROR("Couldn't open file for writing: " + NEW_LINKS_FILE_NAME);
     }
 }
 
@@ -637,7 +637,7 @@ static void add_to_context_file(const filesystem::path& context_file_name,
                         if (mnemonic == "") mnemonic = "COR";
                         for (auto pair : selector) {
                             if (pair.size() != 2) {
-                                Utils::error("Invalid context task selector for " + mnemonic);
+                                RAISE_ERROR("Invalid context task selector for " + mnemonic);
                                 return;
                             }
                             file << mnemonic << " " << query_answer->get(pair[0]) << " "
@@ -647,7 +647,7 @@ static void add_to_context_file(const filesystem::path& context_file_name,
                     case ACTIVATION:
                         mnemonic = "ACT";
                         if (selector.size() != 1) {
-                            Utils::error("Invalid context task selector for " + mnemonic);
+                            RAISE_ERROR("Invalid context task selector for " + mnemonic);
                         }
                         file << mnemonic;
                         for (auto element : selector[0]) {
@@ -656,14 +656,14 @@ static void add_to_context_file(const filesystem::path& context_file_name,
                         file << endl;
                         break;
                     default:
-                        Utils::error("Invalid context creation task: " +
-                                     std::to_string((unsigned int) task));
+                        RAISE_ERROR("Invalid context creation task: " +
+                                    std::to_string((unsigned int) task));
                 }
             }
         }
         file.close();
     } else {
-        Utils::error("Couldn't open file for writing: " + string(context_file_name));
+        RAISE_ERROR("Couldn't open file for writing: " + string(context_file_name));
     }
 }
 
@@ -677,22 +677,21 @@ static void add_to_context_file(const filesystem::path& context_file_name,
         for (string handle : handles) {
             switch (task) {
                 case DETERMINER:
-                    Utils::error("Not implemented");
+                    RAISE_ERROR("Not implemented");
                     break;
                 case CORRELATION:
-                    Utils::error("Not implemented");
+                    RAISE_ERROR("Not implemented");
                     break;
                 case ACTIVATION:
                     file << "ACT " << handle << endl;
                     break;
                 default:
-                    Utils::error("Invalid context creation task: " +
-                                 std::to_string((unsigned int) task));
+                    RAISE_ERROR("Invalid context creation task: " + std::to_string((unsigned int) task));
             }
         }
         file.close();
     } else {
-        Utils::error("Couldn't open file for writing: " + string(context_file_name));
+        RAISE_ERROR("Couldn't open file for writing: " + string(context_file_name));
     }
 }
 
@@ -1042,7 +1041,7 @@ int main(int argc, char* argv[]) {
     NUM_ITERATIONS = (unsigned int) Utils::string_to_int(string(argv[++cursor]));
 
     if (cursor != 15) {
-        Utils::error("Error setting up parameters");
+        RAISE_ERROR("Error setting up parameters");
     }
 
 

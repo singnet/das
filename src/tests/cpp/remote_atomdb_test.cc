@@ -309,6 +309,27 @@ TEST_F(RemoteAtomDBPeerTest, ReleaseWithoutLocalPersistence) {
     ASSERT_NE(atom, nullptr);
 }
 
+TEST_F(RemoteAtomDBPeerTest, AtomsCount) {
+    EXPECT_EQ(peer_->atom_count(), 0);
+    EXPECT_EQ(peer_->empty(), true);
+
+    auto node1 = new Node("Symbol", "Node1");
+    auto node2 = new Node("Symbol", "Node2");
+    auto similarity = new Node("Symbol", "Similarity");
+
+    peer_->add_node(node1, false);
+    peer_->add_node(node2, false);
+    peer_->add_node(similarity, false);
+
+    EXPECT_EQ(peer_->atom_count(), 3);
+
+    auto link1 = new Link("Expression", {similarity->handle(), node1->handle(), node2->handle()});
+    peer_->add_link(link1, false);
+
+    EXPECT_EQ(peer_->atom_count(), 4);
+    EXPECT_EQ(peer_->empty(), false);
+}
+
 // Resolves path to config file from Bazel runfiles or workspace.
 string resolve_config_path(const string& filename) {
     auto exists = [](const string& path) {
@@ -340,7 +361,7 @@ string resolve_config_path(const string& filename) {
 JsonConfig load_config(const string& filename) {
     ifstream f(filename);
     if (!f.good()) {
-        Utils::error("RemoteAtomDBTest: Cannot open config file: " + filename);
+        RAISE_ERROR("RemoteAtomDBTest: Cannot open config file: " + filename);
     }
     stringstream buf;
     buf << f.rdbuf();

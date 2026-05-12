@@ -402,6 +402,33 @@ void RemoteAtomDBPeer::re_index_patterns(bool flush_patterns) {
     }
 }
 
+size_t RemoteAtomDBPeer::node_count() const {
+    size_t count = 0;
+    count += cache_.node_count();
+    if (local_persistence_) {
+        count += local_persistence_->node_count();
+    }
+    return count;
+}
+
+size_t RemoteAtomDBPeer::link_count() const {
+    size_t count = 0;
+    count += cache_.link_count();
+    if (local_persistence_) {
+        count += local_persistence_->link_count();
+    }
+    return count;
+}
+
+size_t RemoteAtomDBPeer::atom_count() const {
+    size_t count = 0;
+    count += cache_.atom_count();
+    if (local_persistence_) {
+        count += local_persistence_->atom_count();
+    }
+    return count;
+}
+
 void RemoteAtomDBPeer::fetch(const LinkSchema& link_schema) {
     if (!schema_already_fetched(link_schema) && atomdb_) {
         auto result = atomdb_->query_for_pattern(link_schema);

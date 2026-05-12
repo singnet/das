@@ -42,7 +42,7 @@ shared_ptr<AtomDB> create_atomdb_from_config(const JsonConfig& config) {
         return atomdb;
     }
 
-    Utils::error("Unknown AtomDB type for peer " + uid + ": " + type);
+    RAISE_ERROR("Unknown AtomDB type for peer " + uid + ": " + type);
     return nullptr;
 }
 
@@ -334,6 +334,30 @@ void RemoteAtomDB::re_index_patterns(bool flush_patterns) {
     for (auto& [uid, peer] : remote_db_) {
         peer->re_index_patterns(flush_patterns);
     }
+}
+
+size_t RemoteAtomDB::node_count() const {
+    size_t count = 0;
+    for (auto& [uid, peer] : remote_db_) {
+        count += peer->node_count();
+    }
+    return count;
+}
+
+size_t RemoteAtomDB::link_count() const {
+    size_t count = 0;
+    for (auto& [uid, peer] : remote_db_) {
+        count += peer->link_count();
+    }
+    return count;
+}
+
+size_t RemoteAtomDB::atom_count() const {
+    size_t count = 0;
+    for (auto& [uid, peer] : remote_db_) {
+        count += peer->atom_count();
+    }
+    return count;
 }
 
 RemoteAtomDBPeer* RemoteAtomDB::get_peer(const string& uid) {

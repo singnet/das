@@ -20,13 +20,13 @@ bool Assignment::assign(const string& label, const string& value) {
     if (iterator == this->table.end()) {
         // label is not present, so makes the assignment and return true
         if (label.size() > MAX_VARIABLE_NAME_SIZE) {
-            Utils::error("Invalid assignment. Label size (" + std::to_string(label.size()) +
-                         ") is too large (> " + std::to_string(MAX_VARIABLE_NAME_SIZE) + ").");
+            RAISE_ERROR("Invalid assignment. Label size (" + std::to_string(label.size()) +
+                        ") is too large (> " + std::to_string(MAX_VARIABLE_NAME_SIZE) + ").");
         }
         this->table[label] = value;
         if (this->table.size() > MAX_NUMBER_OF_VARIABLES_IN_QUERY) {
-            Utils::error("Assignment size exceeds the maximal number of allowed variables in a query: " +
-                         std::to_string(MAX_NUMBER_OF_VARIABLES_IN_QUERY));
+            RAISE_ERROR("Assignment size exceeds the maximal number of allowed variables in a query: " +
+                        std::to_string(MAX_NUMBER_OF_VARIABLES_IN_QUERY));
         }
         return true;
     } else {

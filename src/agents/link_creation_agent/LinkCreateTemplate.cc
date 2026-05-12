@@ -16,7 +16,7 @@ using namespace std;
 
 static string get_token(vector<string>& link_template, size_t cursor) {
     if (cursor >= link_template.size()) {
-        Utils::error("Can not get token: Invalid arguments");
+        RAISE_ERROR("Can not get token: Invalid arguments");
     }
     return link_template[cursor];
 }
@@ -29,7 +29,7 @@ LinkCreateTemplate::LinkCreateTemplate(const string& link_type) {
 
 static vector<string> parse_sub_custom_field(vector<string>& link_template, size_t& cursor) {
     if (get_token(link_template, cursor) != "CUSTOM_FIELD" || link_template.size() < cursor + 3)
-        Utils::error("Can not create Custom Field: Invalid arguments");
+        RAISE_ERROR("Can not create Custom Field: Invalid arguments");
     vector<string> custom_field_args;
     int custom_field_size = Utils::string_to_int(get_token(link_template, cursor + 2));
     custom_field_args.push_back(get_token(link_template, cursor));      // CUSTOM_FIELD
@@ -58,7 +58,7 @@ static vector<string> parse_sub_custom_field(vector<string>& link_template, size
 
 static vector<string> parse_sub_link_template(vector<string>& link_template, size_t& cursor) {
     if (get_token(link_template, cursor) != "LINK_CREATE" || link_template.size() < cursor + 4)
-        Utils::error("Can not create Link Template: Invalid arguments");
+        RAISE_ERROR("Can not create Link Template: Invalid arguments");
     int sub_link_template_size = Utils::string_to_int(get_token(link_template, cursor + 2));
     int sub_link_custom_field_size = Utils::string_to_int(get_token(link_template, cursor + 3));
     int custom_field_value_size = 0;
@@ -136,7 +136,7 @@ LinkCreateTemplate::LinkCreateTemplate(vector<string>& link_template) {
         }
     }
     if (this->targets.size() != link_template_size || this->custom_fields.size() != custom_field_size) {
-        Utils::error("Can not create Link Template: Invalid arguments");
+        RAISE_ERROR("Can not create Link Template: Invalid arguments");
     }
 }
 
@@ -184,7 +184,7 @@ CustomField::CustomField(const string& name) { this->name = name; }
 
 CustomField::CustomField(vector<string>& custom_fields) {
     if (get_token(custom_fields, 0) != "CUSTOM_FIELD")
-        Utils::error("Can not create Custom Field: Invalid arguments");
+        RAISE_ERROR("Can not create Custom Field: Invalid arguments");
 
     size_t cursor = 0;
     string custom_field_name = get_token(custom_fields, 1);
@@ -303,7 +303,7 @@ vector<string> CustomField::tokenize() { return Utils::split(this->to_string(), 
 
 LinkCreateTemplateList::LinkCreateTemplateList(vector<string> link_template) {
     if (get_token(link_template, 0) != "LIST")
-        Utils::error("Can not create Link Template List: Invalid arguments");
+        RAISE_ERROR("Can not create Link Template List: Invalid arguments");
 
     size_t cursor = 0;
     size_t link_template_size = Utils::string_to_int(get_token(link_template, 1));
@@ -313,7 +313,7 @@ LinkCreateTemplateList::LinkCreateTemplateList(vector<string> link_template) {
         this->templates.push_back(LinkCreateTemplate(sub_link_template));
     }
     if (this->templates.size() != link_template_size) {
-        Utils::error("Can not create Link Template List: Invalid arguments");
+        RAISE_ERROR("Can not create Link Template List: Invalid arguments");
     }
 }
 

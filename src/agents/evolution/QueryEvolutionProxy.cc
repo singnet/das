@@ -214,13 +214,13 @@ void QueryEvolutionProxy::untokenize(vector<string>& tokens) {
 
 float QueryEvolutionProxy::compute_fitness(shared_ptr<QueryAnswer> answer) {
     if (this->fitness_function_tag == "") {
-        Utils::error("Invalid empty fitness function tag");
+        RAISE_ERROR("Invalid empty fitness function tag");
         return 0;
     } else if (this->fitness_function_object == nullptr) {
         if (this->fitness_function_tag == FitnessFunctionRegistry::REMOTE_FUNCTION) {
-            Utils::error("Invalid call to remote function");
+            RAISE_ERROR("Invalid call to remote function");
         } else {
-            Utils::error("Fitness function is not set up");
+            RAISE_ERROR("Fitness function is not set up");
         }
         return 0;
     } else {
@@ -250,10 +250,10 @@ void QueryEvolutionProxy::new_population_sampled(
 void QueryEvolutionProxy::set_fitness_function_tag(const string& tag) {
     lock_guard<mutex> semaphore(this->api_mutex);
     if ((this->fitness_function_tag != "") && (tag != this->fitness_function_tag)) {
-        Utils::error("Invalid reset of fitness function: " + this->fitness_function_tag + " --> " + tag);
+        RAISE_ERROR("Invalid reset of fitness function: " + this->fitness_function_tag + " --> " + tag);
     } else {
         if (tag == "") {
-            Utils::error("Invalid empty fitness function tag");
+            RAISE_ERROR("Invalid empty fitness function tag");
         }
         this->fitness_function_tag = tag;
         if (tag != FitnessFunctionRegistry::REMOTE_FUNCTION) {
@@ -317,7 +317,7 @@ bool QueryEvolutionProxy::from_remote_peer(const string& command, const vector<s
         eval_fitness_response(args);
         return true;
     } else {
-        Utils::error("Invalid QueryEvolutionProxy command: <" + command + ">");
+        RAISE_ERROR("Invalid QueryEvolutionProxy command: <" + command + ">");
         return false;
     }
 }
@@ -326,7 +326,7 @@ void QueryEvolutionProxy::eval_fitness(const vector<string>& args) {
     lock_guard<mutex> semaphore(this->api_mutex);
     if (!this->is_aborting()) {
         if (args.size() == 0) {
-            Utils::error("Invalid empty query answer bundle");
+            RAISE_ERROR("Invalid empty query answer bundle");
         } else {
             vector<string> fitness_bundle;
             for (auto tokens : args) {
@@ -344,7 +344,7 @@ void QueryEvolutionProxy::eval_fitness_response(const vector<string>& args) {
     lock_guard<mutex> semaphore(this->api_mutex);
     if (!this->is_aborting()) {
         if (args.size() == 0) {
-            Utils::error("Invalid empty fitness value bundle");
+            RAISE_ERROR("Invalid empty fitness value bundle");
         } else {
             for (auto value_str : args) {
                 float fitness = Utils::string_to_float(value_str);

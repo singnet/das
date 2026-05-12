@@ -9,7 +9,8 @@ pub static PORT_LOWER: &str = "port_lower";
 pub static PORT_UPPER: &str = "port_upper";
 pub static KNOWN_PEER_ID: &str = "known_peer_id";
 
-pub static ATTENTION_UPDATE_FLAG: &str = "attention_update_flag";
+pub static ATTENTION_UPDATE: &str = "attention_update";
+pub static ATTENTION_CORRELATION: &str = "attention_correlation";
 pub static COUNT_FLAG: &str = "count_flag";
 pub static MAX_BUNDLE_SIZE: &str = "max_bundle_size";
 pub static MAX_ANSWERS: &str = "max_answers";
@@ -36,6 +37,14 @@ pub static INITIAL_SPREADING_RATE_UPPERBOUND: &str = "initial_spreading_rate_upp
 pub static REPEAT_COUNT: &str = "repeat_count";
 pub static QUERY_INTERVAL: &str = "query_interval";
 pub static QUERY_TIMEOUT: &str = "query_timeout";
+
+#[derive(Clone, Debug, PartialEq)]
+pub enum QueryElements {
+	None = 0,
+	Handles = 1,
+	Variables = 2,
+	HandlesAndVariables = 3,
+}
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum PropertyValue {
@@ -136,7 +145,8 @@ impl Properties {
 		println!("    {}", self.print_with_set_param(MAX_ANSWERS).unwrap());
 		println!("    {}", self.print_with_set_param(MAX_BUNDLE_SIZE).unwrap());
 		println!("    {}", self.print_with_set_param(COUNT_FLAG).unwrap());
-		println!("    {}", self.print_with_set_param(ATTENTION_UPDATE_FLAG).unwrap());
+		println!("    {}", self.print_with_set_param(ATTENTION_UPDATE).unwrap());
+		println!("    {}", self.print_with_set_param(ATTENTION_CORRELATION).unwrap());
 		println!("    {}", self.print_with_set_param(UNIQUE_ASSIGNMENT_FLAG).unwrap());
 		println!("    {}", self.print_with_set_param(POSITIVE_IMPORTANCE_FLAG).unwrap());
 		println!("    {}", self.print_with_set_param(POPULATE_METTA_MAPPING).unwrap());
@@ -176,7 +186,14 @@ impl Default for Properties {
 		map.insert(MAX_BUNDLE_SIZE.to_string(), PropertyValue::UnsignedInt(1_000));
 		map.insert(UNIQUE_ASSIGNMENT_FLAG.to_string(), PropertyValue::Bool(true));
 		map.insert(POSITIVE_IMPORTANCE_FLAG.to_string(), PropertyValue::Bool(false));
-		map.insert(ATTENTION_UPDATE_FLAG.to_string(), PropertyValue::Bool(false));
+		map.insert(
+			ATTENTION_UPDATE.to_string(),
+			PropertyValue::UnsignedInt(QueryElements::None as u64),
+		);
+		map.insert(
+			ATTENTION_CORRELATION.to_string(),
+			PropertyValue::UnsignedInt(QueryElements::None as u64),
+		);
 		map.insert(COUNT_FLAG.to_string(), PropertyValue::Bool(false));
 		map.insert(POPULATE_METTA_MAPPING.to_string(), PropertyValue::Bool(true));
 		map.insert(USE_METTA_AS_QUERY_TOKENS.to_string(), PropertyValue::Bool(true));

@@ -19,7 +19,7 @@ map<string, shared_ptr<FitnessFunction>> FitnessFunctionRegistry::FUNCTION;
 
 void FitnessFunctionRegistry::initialize_statics() {
     if (INITIALIZED) {
-        Utils::error(
+        RAISE_ERROR(
             "FitnessFunctionRegistry already initialized. "
             "FitnessFunctionRegistry::init() should be called only once.");
     } else {
@@ -39,15 +39,15 @@ void FitnessFunctionRegistry::initialize_statics() {
 shared_ptr<FitnessFunction> FitnessFunctionRegistry::function(const string& tag) {
     if (INITIALIZED) {
         if (tag == REMOTE_FUNCTION) {
-            Utils::error("Invalid use of reserved fitness function tag: " + tag);
+            RAISE_ERROR("Invalid use of reserved fitness function tag: " + tag);
         }
         if (FUNCTION.find(tag) != FUNCTION.end()) {
             return FUNCTION[tag];
         } else {
-            Utils::error("Unkown fitness function: " + tag);
+            RAISE_ERROR("Unkown fitness function: " + tag);
         }
     } else {
-        Utils::error(
+        RAISE_ERROR(
             "FitnessFunctionRegistry isn't initialized. Call "
             "FitnessFunctionRegistry::initialize_statics() first.");
     }

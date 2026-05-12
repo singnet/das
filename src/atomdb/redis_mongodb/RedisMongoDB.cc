@@ -55,7 +55,7 @@ void RedisMongoDB::redis_setup(const JsonConfig& config) {
     string address = config.at_path("redis.endpoint").get<string>();
     auto tokens = Utils::split(address, ':');
     if (tokens.size() != 2) {
-        Utils::error("Invalid Redis configuration: endpoint must be in the format <hostname>:<port>");
+        RAISE_ERROR("Invalid Redis configuration: endpoint must be in the format <hostname>:<port>");
     }
     string host = tokens[0];
     string port = tokens[1];
@@ -63,7 +63,7 @@ void RedisMongoDB::redis_setup(const JsonConfig& config) {
     this->cluster_flag = config.at_path("redis.cluster").get_or<bool>(false);
 
     if (address.empty() || address == ":") {
-        Utils::error(
+        RAISE_ERROR(
             "Invalid Redis configuration: resolved address is empty. Check atomdb.redis in "
             "JsonConfig (endpoint or hostname/port).");
     }
@@ -81,7 +81,7 @@ void RedisMongoDB::mongodb_setup(const JsonConfig& config) {
         MONGODB_CHUNK_SIZE = chunk_size;
     }
     if (address.empty() || address == ":" || user.empty() || password.empty()) {
-        Utils::error(
+        RAISE_ERROR(
             "Invalid MongoDB configuration: need non-empty address, username, and password. "
             "Set atomdb.mongodb in JsonConfig (endpoint or hostname/port, username, password).");
     }
@@ -98,7 +98,7 @@ void RedisMongoDB::mongodb_setup(const JsonConfig& config) {
         mongodb.run_command(ping_cmd.view());
         LOG_INFO("Connected to MongoDB at " << address);
     } catch (const std::exception& e) {
-        Utils::error(e.what());
+        RAISE_ERROR(e.what());
     }
 }
 
@@ -175,12 +175,12 @@ shared_ptr<atomdb_api_types::HandleSet> RedisMongoDB::query_for_pattern(const Li
 
         reply = ctx->execute(command.c_str());
 
-        if (reply == NULL) Utils::error("Redis error at query_for_pattern");
+        if (reply == NULL) RAISE_ERROR("Redis error at query_for_pattern");
 
         if (reply->type != REDIS_REPLY_SET && reply->type != REDIS_REPLY_ARRAY) {
             auto error_type = std::to_string(reply->type);
             freeReplyObject(reply);
-            Utils::error("Invalid Redis response at query_for_pattern: " + error_type);
+            RAISE_ERROR("Invalid Redis response at query_for_pattern: " + error_type);
         }
 
         redis_cursor += REDIS_CHUNK_SIZE;
@@ -205,19 +205,19 @@ shared_ptr<atomdb_api_types::HandleList> RedisMongoDB::query_for_targets(const s
         auto command = "GET " + REDIS_OUTGOING_PREFIX + ":" + handle;
         reply = ctx->execute(command.c_str());
 
-        if (reply == NULL) Utils::error("Redis error at query_for_targets");
+        if (reply == NULL) RAISE_ERROR("Redis error at query_for_targets");
 
         if ((reply == NULL) || (reply->type == REDIS_REPLY_NIL)) {
             return nullptr;
         }
 
         if (reply->type != REDIS_REPLY_STRING) {
-            Utils::error("Invalid Redis response at query_for_targets: " + std::to_string(reply->type) +
-                         " != " + std::to_string(REDIS_REPLY_STRING));
+            RAISE_ERROR("Invalid Redis response at query_for_targets: " + std::to_string(reply->type) +
+                        " != " + std::to_string(REDIS_REPLY_STRING));
         }
 
     } catch (const std::exception& e) {
-        Utils::error(e.what());
+        RAISE_ERROR(e.what());
     }
 
     // NOTE: Intentionally, we aren't destroying 'reply' objects.'reply' objects are destroyed in
@@ -245,12 +245,12 @@ shared_ptr<atomdb_api_types::HandleSet> RedisMongoDB::query_for_incoming_set(con
 
         reply = ctx->execute(command.c_str());
 
-        if (reply == NULL) Utils::error("Redis error at query_for_incoming_set");
+        if (reply == NULL) RAISE_ERROR("Redis error at query_for_incoming_set");
 
         if (reply->type != REDIS_REPLY_SET && reply->type != REDIS_REPLY_ARRAY) {
             auto error_type = std::to_string(reply->type);
             freeReplyObject(reply);
-            Utils::error("Invalid Redis response at query_for_incoming_set: " + error_type);
+            RAISE_ERROR("Invalid Redis response at query_for_incoming_set: " + error_type);
         }
 
         redis_cursor += REDIS_CHUNK_SIZE;
@@ -273,10 +273,10 @@ void RedisMongoDB::add_pattern(const string& pattern_handle, const string& handl
     string command = "ZADD " + REDIS_PATTERNS_PREFIX + ":" + pattern_handle + " " +
                      to_string(this->patterns_next_score.load()) + " " + handle;
     redisReply* reply = ctx->execute(command.c_str());
-    if (reply == NULL) Utils::error("Redis error at add_pattern: <" + command + ">");
+    if (reply == NULL) RAISE_ERROR("Redis error at add_pattern: <" + command + ">");
 
     if (reply->type != REDIS_REPLY_INTEGER) {
-        Utils::error("Invalid Redis response at add_pattern: " + std::to_string(reply->type));
+        RAISE_ERROR("Invalid Redis response at add_pattern: " + std::to_string(reply->type));
     }
 
     set_next_score(REDIS_PATTERNS_PREFIX + ":next_score", this->patterns_next_score.fetch_add(1));
@@ -308,10 +308,10 @@ void RedisMongoDB::add_patterns(const vector<pair<string, string>>& pattern_hand
         }
 
         redisReply* reply = ctx->execute(command.c_str());
-        if (reply == NULL) Utils::error("Redis error at add_patterns");
+        if (reply == NULL) RAISE_ERROR("Redis error at add_patterns");
 
         if (reply->type != REDIS_REPLY_INTEGER) {
-            Utils::error("Invalid Redis response at add_patterns: " + std::to_string(reply->type));
+            RAISE_ERROR("Invalid Redis response at add_patterns: " + std::to_string(reply->type));
         }
     }
     set_next_score(REDIS_PATTERNS_PREFIX + ":next_score", this->patterns_next_score.load());
@@ -325,9 +325,9 @@ void RedisMongoDB::delete_pattern(const string& handle) {
     string command = "DEL " + REDIS_PATTERNS_PREFIX + ":" + handle;
     redisReply* reply = ctx->execute(command.c_str());
 
-    if (reply == NULL) Utils::error("Redis error at delete_pattern");
+    if (reply == NULL) RAISE_ERROR("Redis error at delete_pattern");
     if (reply->type != REDIS_REPLY_INTEGER) {
-        Utils::error("Invalid Redis response at delete_pattern: " + std::to_string(reply->type));
+        RAISE_ERROR("Invalid Redis response at delete_pattern: " + std::to_string(reply->type));
     }
 }
 
@@ -337,7 +337,7 @@ void RedisMongoDB::update_pattern(const string& key, const string& value) {
     auto ctx = this->redis_pool->acquire();
     string command = "ZREM " + REDIS_PATTERNS_PREFIX + ":" + key + " " + value;
     redisReply* reply = ctx->execute(command.c_str());
-    if (reply == NULL) Utils::error("Redis error at update_pattern");
+    if (reply == NULL) RAISE_ERROR("Redis error at update_pattern");
 }
 
 uint RedisMongoDB::get_next_score(const string& key) {
@@ -346,12 +346,14 @@ uint RedisMongoDB::get_next_score(const string& key) {
     auto ctx = this->redis_pool->acquire();
     string command = "GET " + key;
     redisReply* reply = ctx->execute(command.c_str());
-    if (reply == NULL) Utils::error("Redis error at get_next_score");
+    if (reply == NULL) {
+        RAISE_ERROR("Redis error at get_next_score");
+    }
 
     if (reply->type == REDIS_REPLY_NIL) return 0;
 
     if (reply->type != REDIS_REPLY_STRING) {
-        Utils::error("Invalid Redis response at get_next_score: " + std::to_string(reply->type));
+        RAISE_ERROR("Invalid Redis response at get_next_score: " + std::to_string(reply->type));
     }
 
     return std::stoi(reply->str);
@@ -370,10 +372,10 @@ void RedisMongoDB::set_next_score_with_context(shared_ptr<RedisContext> ctx,
 
     string command = "SET " + key + " " + to_string(score);
     redisReply* reply = ctx->execute(command.c_str());
-    if (reply == NULL) Utils::error("Redis error at set_next_score: <" + command + ">");
+    if (reply == NULL) RAISE_ERROR("Redis error at set_next_score: <" + command + ">");
 
     if (reply->type != REDIS_REPLY_STATUS) {
-        Utils::error("Invalid Redis response at set_next_score: " + std::to_string(reply->type));
+        RAISE_ERROR("Invalid Redis response at set_next_score: " + std::to_string(reply->type));
     }
 }
 
@@ -391,10 +393,10 @@ void RedisMongoDB::add_outgoing_set(const string& handle, const vector<string>& 
         command += outgoing_handle;
     }
     redisReply* reply = ctx->execute(command.c_str());
-    if (reply == NULL) Utils::error("Redis error at add_outgoing_set");
+    if (reply == NULL) RAISE_ERROR("Redis error at add_outgoing_set");
 
     if (reply->type != REDIS_REPLY_STATUS) {
-        Utils::error("Invalid Redis response at add_outgoing_set: " + std::to_string(reply->type));
+        RAISE_ERROR("Invalid Redis response at add_outgoing_set: " + std::to_string(reply->type));
     }
 }
 
@@ -404,7 +406,7 @@ void RedisMongoDB::delete_outgoing_set(const string& handle) {
     auto ctx = this->redis_pool->acquire();
     string command = "DEL " + REDIS_OUTGOING_PREFIX + ":" + handle;
     redisReply* reply = ctx->execute(command.c_str());
-    if (reply == NULL) Utils::error("Redis error at delete_outgoing_set");
+    if (reply == NULL) RAISE_ERROR("Redis error at delete_outgoing_set");
 }
 
 void RedisMongoDB::add_incoming_set(const string& handle, const string& incoming_handle) {
@@ -414,10 +416,10 @@ void RedisMongoDB::add_incoming_set(const string& handle, const string& incoming
     string command = "ZADD " + REDIS_INCOMING_PREFIX + ":" + handle + " " +
                      to_string(this->incoming_set_next_score.load()) + " " + incoming_handle;
     redisReply* reply = ctx->execute(command.c_str());
-    if (reply == NULL) Utils::error("Redis error at add_incoming_set");
+    if (reply == NULL) RAISE_ERROR("Redis error at add_incoming_set");
 
     if (reply->type != REDIS_REPLY_INTEGER) {
-        Utils::error("Invalid Redis response at add_incoming_set: " + std::to_string(reply->type));
+        RAISE_ERROR("Invalid Redis response at add_incoming_set: " + std::to_string(reply->type));
     }
 
     set_next_score(REDIS_INCOMING_PREFIX + ":next_score", this->incoming_set_next_score.fetch_add(1));
@@ -431,9 +433,9 @@ void RedisMongoDB::delete_incoming_set(const string& handle) {
     string command = "DEL " + REDIS_INCOMING_PREFIX + ":" + handle;
     redisReply* reply = ctx->execute(command.c_str());
 
-    if (reply == NULL) Utils::error("Redis error at delete_incoming_set");
+    if (reply == NULL) RAISE_ERROR("Redis error at delete_incoming_set");
     if (reply->type != REDIS_REPLY_INTEGER) {
-        Utils::error("Invalid Redis response at delete_incoming_set: " + std::to_string(reply->type));
+        RAISE_ERROR("Invalid Redis response at delete_incoming_set: " + std::to_string(reply->type));
     }
 }
 
@@ -445,9 +447,9 @@ void RedisMongoDB::update_incoming_set(const string& key, const string& value) {
     string command = "ZREM " + REDIS_INCOMING_PREFIX + ":" + key + " " + value;
     redisReply* reply = ctx->execute(command.c_str());
 
-    if (reply == NULL) Utils::error("Redis error at update_incoming_set");
+    if (reply == NULL) RAISE_ERROR("Redis error at update_incoming_set");
     if (reply->type != REDIS_REPLY_INTEGER) {
-        Utils::error("Invalid Redis response at update_incoming_set: " + std::to_string(reply->type));
+        RAISE_ERROR("Invalid Redis response at update_incoming_set: " + std::to_string(reply->type));
     }
 }
 
@@ -525,7 +527,7 @@ vector<shared_ptr<atomdb_api_types::AtomDocument>> RedisMongoDB::get_filtered_do
             skip += MONGODB_CHUNK_SIZE;
         }
     } catch (const exception& e) {
-        Utils::error("MongoDB error at get_filtered_documents(): " + string(e.what()));
+        RAISE_ERROR("MongoDB error at get_filtered_documents(): " + string(e.what()));
     }
 
     return atom_documents;
@@ -575,7 +577,7 @@ vector<shared_ptr<atomdb_api_types::AtomDocument>> RedisMongoDB::get_documents(
             }
         }
     } catch (const exception& e) {
-        Utils::error("MongoDB error: " + string(e.what()));
+        RAISE_ERROR("MongoDB error: " + string(e.what()));
     }
 
     return atom_documents;
@@ -697,7 +699,7 @@ set<string> RedisMongoDB::documents_exist(const vector<string>& handles, const s
             }
         }
     } catch (const exception& e) {
-        Utils::error("MongoDB error: " + string(e.what()));
+        RAISE_ERROR("MongoDB error: " + string(e.what()));
     }
 
     return existing_handles;
@@ -744,7 +746,7 @@ bool RedisMongoDB::upsert_document(const bsoncxx::v_noabi::document::value& docu
     auto reply = mongodb_collection.replace_one(filter_builder.view(), document.view(), opts);
 
     if (!reply) {
-        Utils::error("Failed to upsert document into MongoDB");
+        RAISE_ERROR("Failed to upsert document into MongoDB");
     }
 
     return reply->matched_count() > 0 || reply->modified_count() > 0 ||
@@ -796,7 +798,7 @@ uint RedisMongoDB::upsert_documents(const std::vector<bsoncxx::document::value>&
             opts.ordered(false);
             auto reply = mongodb_collection.bulk_write(operations, opts);
             if (!reply) {
-                Utils::error("Failed to upsert documents into MongoDB");
+                RAISE_ERROR("Failed to upsert documents into MongoDB");
             } else {
                 total_modified += reply->modified_count() + reply->upserted_count();
             }
@@ -808,13 +810,13 @@ uint RedisMongoDB::upsert_documents(const std::vector<bsoncxx::document::value>&
 
 string RedisMongoDB::add_node(const atoms::Node* node, bool throw_if_exists) {
     if (throw_if_exists && node_exists(node->handle())) {
-        Utils::error("Node already exists: " + node->handle());
+        RAISE_ERROR("Node already exists: " + node->handle());
         return "";
     }
 
     auto mongodb_doc = atomdb_api_types::MongodbDocument(node);
     if (!this->upsert_document(mongodb_doc.value(), MONGODB_NODES_COLLECTION_NAME)) {
-        Utils::error("Failed to insert node into MongoDB");
+        RAISE_ERROR("Failed to insert node into MongoDB");
         return "";
     }
     return node->handle();
@@ -872,7 +874,7 @@ vector<string> RedisMongoDB::add_nodes(const vector<atoms::Node*>& nodes,
     if (throw_if_exists) {
         auto existing_handles = this->nodes_exist(handles);
         if (existing_handles.size() > 0) {
-            Utils::error("Failed to insert nodes, some nodes already exist.");
+            RAISE_ERROR("Failed to insert nodes, some nodes already exist.");
             return {};
         }
     }
@@ -903,8 +905,8 @@ vector<string> RedisMongoDB::add_links(const vector<atoms::Link*>& links,
         auto existing_handles = this->links_exist(handles);
         if (!existing_handles.empty()) {
             vector<string> existing_handles_vector(existing_handles.begin(), existing_handles.end());
-            Utils::error("Failed to insert links, some links already exist: " +
-                         Utils::join(existing_handles_vector, ','));
+            RAISE_ERROR("Failed to insert links, some links already exist: " +
+                        Utils::join(existing_handles_vector, ','));
             return {};
         }
     }
@@ -1092,6 +1094,22 @@ uint RedisMongoDB::delete_links(const vector<string>& handles, bool delete_targe
     return deleted_count;
 }
 
+size_t RedisMongoDB::atom_count() const { return node_count() + link_count(); }
+
+size_t RedisMongoDB::node_count() const {
+    auto conn = this->mongodb_pool->acquire();
+    auto mongodb_collection = (*conn)[MONGODB_DB_NAME][MONGODB_NODES_COLLECTION_NAME];
+    auto count = mongodb_collection.estimated_document_count();
+    return static_cast<size_t>(count);
+}
+
+size_t RedisMongoDB::link_count() const {
+    auto conn = this->mongodb_pool->acquire();
+    auto mongodb_collection = (*conn)[MONGODB_DB_NAME][MONGODB_LINKS_COLLECTION_NAME];
+    auto count = mongodb_collection.estimated_document_count();
+    return static_cast<size_t>(count);
+}
+
 void RedisMongoDB::add_pattern_index_schema(const string& tokens,
                                             const vector<vector<string>>& index_entries) {
     auto tokens_vector = Utils::split(tokens, ' ');
@@ -1197,7 +1215,7 @@ vector<string> RedisMongoDB::match_pattern_index_schema(const Link* link) {
                     } else {
                         string assignment_value = assignment.get(token);
                         if (assignment_value == "") {
-                            Utils::error("LinkSchema assignments don't have variable: " + token);
+                            RAISE_ERROR("LinkSchema assignments don't have variable: " + token);
                         }
                         hash_entries.push_back(assignment_value);
                     }
@@ -1290,7 +1308,7 @@ void RedisMongoDB::flush_redis_by_prefix(const string& prefix) {
             "SCAN " + cursor + " MATCH " + prefix + ":* COUNT " + to_string(REDIS_CHUNK_SIZE);
         redisReply* reply = ctx->execute(scan_cmd.c_str());
         if (reply == NULL || reply->type != REDIS_REPLY_ARRAY || reply->elements < 2) {
-            Utils::error("Redis error at flush_redis_by_prefix");
+            RAISE_ERROR("Redis error at flush_redis_by_prefix");
         }
         cursor = reply->element[0]->str;
         redisReply* keys = reply->element[1];
@@ -1302,7 +1320,7 @@ void RedisMongoDB::flush_redis_by_prefix(const string& prefix) {
             }
             redisReply* del_reply = ctx->execute(del_cmd.c_str());
             if (del_reply == NULL) {
-                Utils::error("Redis error at flush_redis_by_prefix");
+                RAISE_ERROR("Redis error at flush_redis_by_prefix");
             }
             freeReplyObject(del_reply);
         }
@@ -1371,7 +1389,7 @@ void RedisMongoDB::check_existing_targets(const vector<atoms::Link*>& links) {
                                  {MONGODB_FIELD_NAME[MONGODB_FIELD::ID]});
     LOG_DEBUG("Existing targets size: " + to_string(existing_targets.size()));
     if (existing_targets.size() != unique_targets.size()) {
-        Utils::error("Failed to insert links: some targets are missing");
+        RAISE_ERROR("Failed to insert links: some targets are missing");
     }
 }
 // end of composite_type and composite_type_hash helper functions

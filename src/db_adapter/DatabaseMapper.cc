@@ -48,7 +48,7 @@ const vector<Atom*> SQL2AtomsMapper::map(const DbInput& data) {
             size_t separator_pos = column_name.find('|');
 
             if (separator_pos == string::npos) {
-                Utils::error("Invalid foreign key format: " + column_name);
+                RAISE_ERROR("Invalid foreign key format: " + column_name);
             }
 
             string fk_column = column_name.substr(0, separator_pos);
@@ -127,7 +127,7 @@ string SQL2AtomsMapper::add_atom_if_new(SQL2AtomsMapper::ATOM_TYPE atom_type,
         vector<string> targets = get<vector<string>>(value);
         atom = new Link(SQL2AtomsMapper::EXPRESSION, targets, is_toplevel);
     } else {
-        Utils::error("Either name or targets must be provided to create an Atom.");
+        RAISE_ERROR("Either name or targets must be provided to create an Atom.");
     }
 
     if (!metta_expression.empty()) {

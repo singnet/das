@@ -40,7 +40,7 @@ void QueryEvolutionProcessor::run_command(shared_ptr<BusCommandProxy> proxy) {
     LOG_DEBUG("Starting new thread: " << thread_id << " to run command: <" << proxy->get_command()
                                       << ">");
     if (this->query_threads.find(thread_id) != this->query_threads.end()) {
-        Utils::error("Invalid thread id: " + thread_id);
+        RAISE_ERROR("Invalid thread id: " + thread_id);
     } else {
         shared_ptr<StoppableThread> stoppable_thread = make_shared<StoppableThread>(thread_id);
         stoppable_thread->attach(new thread(
@@ -56,7 +56,7 @@ void QueryEvolutionProcessor::thread_process_one_query(shared_ptr<StoppableThrea
                                                        shared_ptr<QueryEvolutionProxy> proxy) {
     try {
         if (proxy->args.size() < 2) {
-            Utils::error("Syntax error in query command. Missing implicit parameters.");
+            RAISE_ERROR("Syntax error in query command. Missing implicit parameters.");
         }
         proxy->untokenize(proxy->args);
         string command = proxy->get_command();
@@ -64,7 +64,7 @@ void QueryEvolutionProcessor::thread_process_one_query(shared_ptr<StoppableThrea
             LOG_INFO("Proxy: " << proxy->to_string());
             this->evolve_query(monitor, proxy);
         } else {
-            Utils::error("Invalid command " + command + " in QueryEvolutionProcessor");
+            RAISE_ERROR("Invalid command " + command + " in QueryEvolutionProcessor");
         }
     } catch (const std::runtime_error& exception) {
         proxy->raise_error_on_peer(exception.what());
@@ -175,7 +175,7 @@ void QueryEvolutionProcessor::sample_population(
         LOG_INFO("Evaluating fitness remotelly");
         if (answer_bundle_vector.size() >
             proxy->parameters.get<unsigned int>(BaseQueryProxy::MAX_BUNDLE_SIZE)) {
-            Utils::error(
+            RAISE_ERROR(
                 "Expected POPULATION_SIZE <= MAX_BUNDLE_SIZE in order to use remote fitness evaluation");
             return;
         }
@@ -185,7 +185,7 @@ void QueryEvolutionProcessor::sample_population(
         }
         vector<float> fitness_bundle = proxy->get_remotely_evaluated_fitness();
         if (fitness_bundle.size() != population_size) {
-            Utils::error("Invalid fitness bundle of size: " + std::to_string(fitness_bundle.size()));
+            RAISE_ERROR("Invalid fitness bundle of size: " + std::to_string(fitness_bundle.size()));
             return;
         }
         for (unsigned int i = 0; i < population_size; i++) {
@@ -211,8 +211,8 @@ void QueryEvolutionProcessor::apply_elitism(
     unsigned int count = (unsigned int) std::lround(elitism_rate * population.size());
     if (count > 0) {
         if (count > population.size()) {
-            Utils::error("Invalid evolution parameters. Elitism count: " + std::to_string(count) +
-                         " population size: " + std::to_string(population.size()));
+            RAISE_ERROR("Invalid evolution parameters. Elitism count: " + std::to_string(count) +
+                        " population size: " + std::to_string(population.size()));
         } else {
             LOG_DEBUG("Selecting " << count << " individuals by elitism.");
             selected.insert(selected.begin(), population.begin(), population.begin() + count);
@@ -247,8 +247,8 @@ void QueryEvolutionProcessor::select_best_individuals(
 
     if (count > 0) {
         if (count > population_size) {
-            Utils::error("Invalid evolution parameters. Selection count: " + std::to_string(count) +
-                         " population size: " + std::to_string(population_size));
+            RAISE_ERROR("Invalid evolution parameters. Selection count: " + std::to_string(count) +
+                        " population size: " + std::to_string(population_size));
         } else if (count == population_size) {
             selected.insert(selected.begin(), population.begin(), population.end());
             population.clear();
@@ -305,10 +305,10 @@ void QueryEvolutionProcessor::correlate_similar(shared_ptr<QueryEvolutionProxy> 
     vector<pair<QueryAnswerElement, QueryAnswerElement>> correlation_mappings =
         proxy->get_correlation_mappings();
     if (correlation_queries.size() != correlation_replacements.size()) {
-        Utils::error("Invalid correlation queries/replacements. Proxy: " + proxy->to_string());
+        RAISE_ERROR("Invalid correlation queries/replacements. Proxy: " + proxy->to_string());
     }
     if (correlation_mappings.size() == 0) {
-        Utils::error("Invalid correlation mappings. Proxy: " + proxy->to_string());
+        RAISE_ERROR("Invalid correlation mappings. Proxy: " + proxy->to_string());
     }
 
     // Rewrite correlation query using handles from original query answer
@@ -316,7 +316,7 @@ void QueryEvolutionProcessor::correlate_similar(shared_ptr<QueryEvolutionProxy> 
         query_tokens.clear();
         if (proxy->parameters.get<bool>(BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS)) {
             if (correlation_queries[i].size() != 1) {
-                Utils::error("Invalid MeTTa expression as correlation query");
+                RAISE_ERROR("Invalid MeTTa expression as correlation query");
                 return;
             }
             string expression = correlation_queries[i][0];
@@ -336,7 +336,7 @@ void QueryEvolutionProcessor::correlate_similar(shared_ptr<QueryEvolutionProxy> 
                 string token = correlation_queries[i][cursor++];
                 if (token == LinkSchema::UNTYPED_VARIABLE) {
                     if (cursor == size) {
-                        Utils::error("Invalid correlation_tokens");
+                        RAISE_ERROR("Invalid correlation_tokens");
                         return;
                     }
                     token = correlation_queries[i][cursor++];
@@ -388,7 +388,7 @@ void QueryEvolutionProcessor::stimulate(shared_ptr<QueryEvolutionProxy> proxy,
     vector<pair<QueryAnswerElement, QueryAnswerElement>> correlation_mappings =
         proxy->get_correlation_mappings();
     if (correlation_mappings.size() == 0) {
-        Utils::error("Invalid correlation mappings. Proxy: " + proxy->to_string());
+        RAISE_ERROR("Invalid correlation mappings. Proxy: " + proxy->to_string());
     }
     unsigned int importance_tokens =
         proxy->parameters.get<unsigned int>(QueryEvolutionProxy::TOTAL_ATTENTION_TOKENS);

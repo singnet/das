@@ -7,6 +7,8 @@
 #include <string>
 #include <vector>
 
+#include "Logger.h"
+
 using namespace std;
 
 namespace commons {
@@ -50,7 +52,7 @@ class Utils {
     Utils() {}
     ~Utils() {}
 
-    static void error(string msg, bool throw_flag = true);
+    static void error(string msg, bool throw_flag);
     static bool flip_coin(double true_probability = 0.5);
     static unsigned int uint_rand(unsigned int open_upper_bound);
     static unsigned int uint_rand(unsigned int closed_lower_bound, unsigned int open_upper_bound);
@@ -83,5 +85,11 @@ class Utils {
 };
 
 }  // namespace commons
+
+#define RAISE_ERROR(msg)         \
+    {                            \
+        LOG_ERROR(msg);          \
+        Utils::error(msg, true); \
+    }
 
 #endif  // _COMMONS_UTILS_H
