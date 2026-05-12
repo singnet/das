@@ -2,10 +2,8 @@
 
 #include <memory>
 
+#include "AtomDB.h"
 #include "JsonConfig.h"
-#include "MorkDB.h"
-#include "RedisMongoDB.h"
-#include "RemoteAtomDB.h"
 
 using namespace std;
 
@@ -16,7 +14,7 @@ namespace atomdb {
 //
 // This class will be replaced/integrated by/with classes already implemented in das-atom-db.
 //
-// I think it's pointless to make any further documentation while we don't make this integrfation.
+// I think it's pointless to make any further documentation while we don't make this integration.
 // -------------------------------------------------------------------------------------------------
 
 class AtomDBSingleton {

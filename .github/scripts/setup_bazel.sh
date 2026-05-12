@@ -135,6 +135,7 @@ cd libpqxx-7.10.5
 
 cmake -S . -B build \
     -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+    -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
     -DBUILD_TESTING=OFF \
     -DCMAKE_INSTALL_PREFIX=/usr/local
 

@@ -5,7 +5,6 @@
 #include <memory>
 #include <mongocxx/client.hpp>
 #include <mongocxx/exception/exception.hpp>
-#include <mongocxx/instance.hpp>
 #include <mongocxx/uri.hpp>
 #include <unordered_set>
 #include <vector>

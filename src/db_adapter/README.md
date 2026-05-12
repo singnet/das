@@ -3,16 +3,13 @@
 ## Usage
 
 ```bash
-make run-adapter OPTIONS="config.json"
-
-# Generates metta files in the ./knowledege_base directory
-make run-adapter OPTIONS="config.json true"
+make run-adapter OPTIONS="config/das.json"
 ```
 
 ## Example of config.json
 
 ```json
-See the config/example.json file in the root of this repository.
+See the config/das.json file in the root of this repository.
 ```
 
 ## simple_test.sql

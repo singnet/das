@@ -15,6 +15,11 @@ cc_library(
     srcs = ["PostgresWrapper.cc"],
     hdrs = ["PostgresWrapper.h"],
     includes = ["."],
+    linkopts = [
+        "-L/usr/local/lib",
+        "-lpqxx",
+        "-lpq",
+    ],
     deps = [
         "//commons:commons_lib",
         "//db_adapter:bounded_shared_queue",
