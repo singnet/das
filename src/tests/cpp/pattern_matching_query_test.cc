@@ -500,6 +500,37 @@ TEST(PatternMatchingQuery, queries) {
     string q14m = "";
     int q14_expected_count = 2;
 
+    vector<string> q15 = {
+        "ANDNOT", "2",
+            "LINK_TEMPLATE", "Expression", "3",
+                "NODE", "Symbol", "Similarity",
+                "VARIABLE", "v1",
+                "NODE", "Symbol", "\"human\"",
+            "LINK_TEMPLATE", "Expression", "3",
+                "NODE", "Symbol", "Inheritance",
+                "VARIABLE", "v1",
+                "NODE", "Symbol", "\"plant\""
+    };
+    string q15m = "(andnot (Similarity $v1 \"human\") (Inheritance $v1 \"plant\"))";
+    int q15_expected_count = 2;
+
+    vector<string> q16 = {
+        "ANDNOT", "2",
+            "LINK_TEMPLATE", "Expression", "3",
+                "NODE", "Symbol", "Similarity",
+                "VARIABLE", "v1",
+                "NODE", "Symbol", "\"human\"",
+            "CHAIN", "0", "1", "2",
+                "VARIABLE", "v1",
+                "NODE", "Symbol", "\"animal\"",
+                "LINK_TEMPLATE", "Expression", "3",
+                    "NODE", "Symbol", "Inheritance",
+                    "VARIABLE", "vc1",
+                    "VARIABLE", "vc2",
+    };
+    string q16m = "(andnot (Similarity $v1 \"human\") (chain 0 1 2 $v1 \"animal\" (Inheritance $vc1 $vc2)))";
+    int q16_expected_count = 1;
+
     // Regular queries
     check_query("q1", q1, q1m, q1_expected_count, client_bus, "PatternMatchingQuery.queries", false, false, false, false, false);
     check_query("q2", q2, q2m, q2_expected_count, client_bus, "PatternMatchingQuery.queries", false, false, false, false, false);
@@ -516,6 +547,8 @@ TEST(PatternMatchingQuery, queries) {
     check_query("q12", q12, q12m, q12_expected_count, client_bus, "PatternMatchingQuery.queries", false, true, false, false, false);
     check_query("q13", q13, q13m, q13_expected_count, client_bus, "PatternMatchingQuery.queries", false, true, false, false, false);
     check_query("q14", q14, q14m, q14_expected_count, client_bus, "PatternMatchingQuery.queries", false, true, false, false, false);
+    check_query("q15", q15, q15m, q15_expected_count, client_bus, "PatternMatchingQuery.queries", false, false, false, false, false);
+    check_query("q16", q16, q16m, q16_expected_count, client_bus, "PatternMatchingQuery.queries", false, false, false, false, false);
 
     // Importance filtering
     // XXX AttentionBroker is being revised so its dynamics is a bit unpredictable right now
