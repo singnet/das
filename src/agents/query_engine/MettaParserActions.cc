@@ -32,19 +32,25 @@ MettaParserActions::~MettaParserActions() {}
 
 void MettaParserActions::symbol(const string& name) {
     ParserActions::symbol(name);
-    if ((name == MettaMapping::AND_QUERY_OPERATOR) || (name == MettaMapping::OR_QUERY_OPERATOR) ||
+    if ((name == MettaMapping::AND_QUERY_OPERATOR) ||
+        (name == MettaMapping::ANDNOT_QUERY_OPERATOR) ||
+        (name == MettaMapping::OR_QUERY_OPERATOR) ||
         (name == MettaMapping::CHAIN_QUERY_OPERATOR)) {
         if (name == MettaMapping::AND_QUERY_OPERATOR) {
             this->current_expression_type = AND;
+        } else if (name == MettaMapping::ANDNOT_QUERY_OPERATOR) {
+            this->current_expression_type = ANDNOT;
         } else if (name == MettaMapping::OR_QUERY_OPERATOR) {
             this->current_expression_type = OR;
         } else {
             this->current_expression_type = CHAIN;
         }
     } else {
-        if ((this->current_expression_type == AND) || (this->current_expression_type == OR) ||
+        if ((this->current_expression_type == AND) ||
+            (this->current_expression_type == ANDNOT) ||
+            (this->current_expression_type == OR) ||
             (this->current_expression_type == CHAIN)) {
-            RAISE_ERROR("Invalid query expression: AND/OR/CHAIN can't operate symbols.");
+            RAISE_ERROR("Invalid query expression: AND/ANDNOT/OR/CHAIN can't operate symbols.");
             return;
         }
         this->current_expression_size++;
@@ -54,8 +60,8 @@ void MettaParserActions::symbol(const string& name) {
 
 void MettaParserActions::variable(const string& value) {
     ParserActions::variable(value);
-    if ((this->current_expression_type == AND) || (this->current_expression_type == OR)) {
-        RAISE_ERROR("Invalid query expression: AND/OR can't operate variables.");
+    if ((this->current_expression_type == AND) || (this->current_expression_type == ANDNOT) || (this->current_expression_type == OR)) {
+        RAISE_ERROR("Invalid query expression: AND/ANDNOT/OR can't operate variables.");
         return;
     }
     if (this->current_expression_type == LINK) {
@@ -67,8 +73,8 @@ void MettaParserActions::variable(const string& value) {
 
 void MettaParserActions::literal(const string& value) {
     ParserActions::literal(value);
-    if ((this->current_expression_type == AND) || (this->current_expression_type == OR)) {
-        RAISE_ERROR("Invalid query expression: AND/OR can't operate literals.");
+    if ((this->current_expression_type == AND) || (this->current_expression_type == ANDNOT) || (this->current_expression_type == OR)) {
+        RAISE_ERROR("Invalid query expression: AND/ANDNOT/OR can't operate literals.");
         return;
     }
     this->current_expression_size++;
@@ -77,8 +83,8 @@ void MettaParserActions::literal(const string& value) {
 
 void MettaParserActions::literal(int value) {
     ParserActions::literal(value);
-    if ((this->current_expression_type == AND) || (this->current_expression_type == OR)) {
-        RAISE_ERROR("Invalid query expression: AND/OR can't operate literals.");
+    if ((this->current_expression_type == AND) || (this->current_expression_type == ANDNOT) || (this->current_expression_type == OR)) {
+        RAISE_ERROR("Invalid query expression: AND/ANDNOT/OR can't operate literals.");
         return;
     }
     this->current_expression_size++;
@@ -88,9 +94,9 @@ void MettaParserActions::literal(int value) {
 
 void MettaParserActions::literal(float value) {
     ParserActions::literal(value);
-    if ((this->current_expression_type == AND) || (this->current_expression_type == OR) ||
+    if ((this->current_expression_type == AND) || (this->current_expression_type == ANDNOT) || (this->current_expression_type == OR) ||
         (this->current_expression_type == CHAIN)) {
-        RAISE_ERROR("Invalid query expression: AND/OR/CHAIN can't operate float literals.");
+        RAISE_ERROR("Invalid query expression: AND/ANDNOT/OR/CHAIN can't operate float literals.");
         return;
     }
     this->current_expression_size++;
@@ -155,10 +161,10 @@ void MettaParserActions::expression_end(bool toplevel, const string& metta_expre
                 this->proxy->parameters.get<bool>(BaseQueryProxy::USE_LINK_TEMPLATE_CACHE));
             this->element_stack.push(new_link_template);
         }
-    } else if ((this->current_expression_type == AND) || (this->current_expression_type == OR)) {
+    } else if ((this->current_expression_type == AND) || (this->current_expression_type == ANDNOT) || (this->current_expression_type == OR)) {
         if (this->element_stack.size() >= 2) {
             shared_ptr<QueryElement> new_operator;
-            // When using MeTTa to define a query, AND and OR operations always take 2 arguments.
+            // When using MeTTa to define a query, AND, ANDNOT and OR operations always take 2 arguments.
             array<shared_ptr<QueryElement>, 2> clauses;
             vector<shared_ptr<QueryElement>> link_templates;
             for (int i = 1; i >= 0; i--) {
@@ -172,7 +178,7 @@ void MettaParserActions::expression_end(bool toplevel, const string& metta_expre
                     if (this->element_stack.top()->is_operator) {
                         clauses[i] = this->element_stack.top();
                     } else {
-                        RAISE_ERROR("All AND clauses are supposed to be LinkTemplate or Operator");
+                        RAISE_ERROR("All AND/ANDNOT/OR clauses are supposed to be LinkTemplate or Operator");
                         return;
                     }
                 }
@@ -180,7 +186,10 @@ void MettaParserActions::expression_end(bool toplevel, const string& metta_expre
             }
             if (this->current_expression_type == AND) {
                 LOG_DEBUG("Pushing AND");
-                new_operator = make_shared<And<2>>(clauses, link_templates);
+                new_operator = make_shared<And<2>>(clauses, link_templates, false);
+            } else if (this->current_expression_type == ANDNOT) {
+                LOG_DEBUG("Pushing ANDNOT");
+                new_operator = make_shared<And<2>>(clauses, link_templates, true);
             } else {
                 LOG_DEBUG("Pushing OR");
                 new_operator = make_shared<Or<2>>(clauses, link_templates);

@@ -13,7 +13,7 @@ using namespace query_element;
 
 namespace query_engine {
 
-enum ExpressionType { LINK, LINK_TEMPLATE, AND, OR, CHAIN };
+enum ExpressionType { LINK, LINK_TEMPLATE, AND, ANDNOT, OR, CHAIN };
 
 /**
  *
