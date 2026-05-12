@@ -219,7 +219,7 @@ class And : public Operator<N> {
                 LOG_DEBUG("NOT clause didn't match. Disregarding it.");
             } else {
                 for (auto answer : this->query_answer[this->num_and_clauses]) {
-                    LOG_DEBUG(new_query_answer->to_string() +  " AND NOT " + answer->to_string());
+                    LOG_DEBUG(new_query_answer->to_string() + " AND NOT " + answer->to_string());
                     if (new_query_answer->assignment.is_compatible(answer->assignment)) {
                         LOG_DEBUG("Discarding query answer");
                         delete new_query_answer;
@@ -256,10 +256,12 @@ class And : public Operator<N> {
         CandidateRecord candidate;
         unsigned int index_in_queue;
         bool abort_candidate;
-        for (unsigned int new_candidate_count = 0; new_candidate_count < this->num_and_clauses; new_candidate_count++) {
+        for (unsigned int new_candidate_count = 0; new_candidate_count < this->num_and_clauses;
+             new_candidate_count++) {
             abort_candidate = false;
             candidate.fitness = 1.0;
-            for (unsigned int answer_queue_index = 0; answer_queue_index < this->num_and_clauses; answer_queue_index++) {
+            for (unsigned int answer_queue_index = 0; answer_queue_index < this->num_and_clauses;
+                 answer_queue_index++) {
                 index_in_queue = last_used_candidate.index[answer_queue_index];
                 if (answer_queue_index == new_candidate_count) {
                     index_in_queue++;

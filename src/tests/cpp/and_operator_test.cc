@@ -16,7 +16,7 @@ using namespace query_element;
 class TestSource : public Source {
    public:
     TestSource(unsigned int count) { this->id = "TestSource_" + std::to_string(count); }
-    TestSource() { this->id = "TestSource_" +  Utils::random_string(30); }
+    TestSource() { this->id = "TestSource_" + Utils::random_string(30); }
 
     ~TestSource() {}
 
@@ -40,7 +40,8 @@ class TestSource : public Source {
 
 class TestSink : public Sink {
    public:
-    TestSink(shared_ptr<QueryElement> precedent) : Sink(precedent, "TestSink(" + precedent->id + "," + Utils::random_string(30) + ")") {}
+    TestSink(shared_ptr<QueryElement> precedent)
+        : Sink(precedent, "TestSink(" + precedent->id + "," + Utils::random_string(30) + ")") {}
     ~TestSink() {}
     bool empty() { return this->input_buffer->is_query_answers_empty(); }
     bool finished() { return this->input_buffer->is_query_answers_finished(); }
@@ -264,7 +265,8 @@ TEST(AndOperator, not_operator_1) {
     source[1] = make_shared<TestSource>();
     source[2] = make_shared<TestSource>();
     vector<shared_ptr<QueryElement>> dummy;
-    auto and_operator = make_shared<And<3>>(array<shared_ptr<QueryElement>, 3>({source[0], source[1], source[2]}), dummy, true);
+    auto and_operator = make_shared<And<3>>(
+        array<shared_ptr<QueryElement>, 3>({source[0], source[1], source[2]}), dummy, true);
     TestSink sink(and_operator);
     QueryAnswer* query_answer;
 
@@ -312,7 +314,8 @@ TEST(AndOperator, not_operator_2) {
     source[1] = make_shared<TestSource>();
     source[2] = make_shared<TestSource>();
     vector<shared_ptr<QueryElement>> dummy;
-    auto and_operator = make_shared<And<3>>(array<shared_ptr<QueryElement>, 3>({source[0], source[1], source[2]}), dummy, true);
+    auto and_operator = make_shared<And<3>>(
+        array<shared_ptr<QueryElement>, 3>({source[0], source[1], source[2]}), dummy, true);
     TestSink sink(and_operator);
     QueryAnswer* query_answer;
 
@@ -359,7 +362,8 @@ TEST(AndOperator, not_operator_3) {
     source[1] = make_shared<TestSource>();
     source[2] = make_shared<TestSource>();
     vector<shared_ptr<QueryElement>> dummy;
-    auto and_operator = make_shared<And<3>>(array<shared_ptr<QueryElement>, 3>({source[0], source[1], source[2]}), dummy, true);
+    auto and_operator = make_shared<And<3>>(
+        array<shared_ptr<QueryElement>, 3>({source[0], source[1], source[2]}), dummy, true);
     TestSink sink(and_operator);
     QueryAnswer* query_answer;
 
@@ -393,7 +397,8 @@ TEST(AndOperator, not_operator_4) {
     source[1] = make_shared<TestSource>();
     source[2] = make_shared<TestSource>();
     vector<shared_ptr<QueryElement>> dummy;
-    auto and_operator = make_shared<And<3>>(array<shared_ptr<QueryElement>, 3>({source[0], source[1], source[2]}), dummy, true);
+    auto and_operator = make_shared<And<3>>(
+        array<shared_ptr<QueryElement>, 3>({source[0], source[1], source[2]}), dummy, true);
     TestSink sink(and_operator);
     QueryAnswer* query_answer;
 
@@ -441,7 +446,8 @@ TEST(AndOperator, not_operator_5) {
     source[1] = make_shared<TestSource>();
     source[2] = make_shared<TestSource>();
     vector<shared_ptr<QueryElement>> dummy;
-    auto and_operator = make_shared<And<3>>(array<shared_ptr<QueryElement>, 3>({source[0], source[1], source[2]}), dummy, true);
+    auto and_operator = make_shared<And<3>>(
+        array<shared_ptr<QueryElement>, 3>({source[0], source[1], source[2]}), dummy, true);
     TestSink sink(and_operator);
     QueryAnswer* query_answer;
 
