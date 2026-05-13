@@ -108,6 +108,7 @@ enum ContextTaskType { UNDEFINED = 0, DETERMINER, CORRELATION, ACTIVATION };
 static shared_ptr<AtomDB> db;
 static shared_ptr<ServiceBus> bus;
 static vector<vector<string>> buffer_determiners;
+static map<string, unsigned int> buffer_activation;
 static map<string, vector<string>> weight_calculation_cache;
 static vector<pair<shared_ptr<QueryAnswer>, unsigned int>> recorded_answers;
 
@@ -321,6 +322,7 @@ static Link add_or_update_link(const string& type_handle,
             }
             db->add_link(&new_link);
             buffer_determiners.push_back({handle, target1, target2});
+            buffer_activation[handle] = 1;
         }
         if (WRITE_CREATED_LINKS_TO_FILE) {
             LOG_DEBUG("Writing Link to file: " + PRESET_LINKS_FILE);
@@ -332,26 +334,33 @@ static Link add_or_update_link(const string& type_handle,
 }
 
 static void extract_mentioned_predicates(set<string>& mentioned, const string& handle) {
-    LOG_INFO("XXXXXXXXXXXXXXXXXXXXXX " << "extract_mentioned_predicates() 1");
-    auto link = db->get_link(handle);
-    LOG_INFO("XXXXXXXXXXXXXXXXXXXXXX " << "extract_mentioned_predicates() 2 link: " << link->to_string());
+    shared_ptr<Node> node;
+    shared_ptr<Link> link = db->get_link(handle);
     if (link != nullptr) {
         for (string& target_handle : link->targets) {
-    LOG_INFO("XXXXXXXXXXXXXXXXXXXXXX " << "extract_mentioned_predicates() 3 target_handle: " << target_handle);
-            if (db->get_node(target_handle) != nullptr) {
-    LOG_INFO("XXXXXXXXXXXXXXXXXXXXXX " << "extract_mentioned_predicates() 4");
-                mentioned.insert(target_handle);
-    LOG_INFO("XXXXXXXXXXXXXXXXXXXXXX " << "extract_mentioned_predicates() 5");
+            if ((node = db->get_node(target_handle)) != nullptr) {
+                if ((node->name != PREDICATE) && (node->name != LOGICAL_AND)) {
+                    mentioned.insert(node->name);
+                }
             } else {
-    LOG_INFO("XXXXXXXXXXXXXXXXXXXXXX " << "extract_mentioned_predicates() 6");
                 extract_mentioned_predicates(mentioned, target_handle);
-    LOG_INFO("XXXXXXXXXXXXXXXXXXXXXX " << "extract_mentioned_predicates() 7");
             }
         }
     }
 }
 
-static shared_ptr<Link> add_predicate(const string& handle1, const string& handle2) {
+static shared_ptr<Link> add_and_predicate(const string& handle1, const string& handle2) {
+    if (handle1 == handle2) {
+        return nullptr;
+    }
+    set<string> mentioned_predicates1, mentioned_predicates2;
+    extract_mentioned_predicates(mentioned_predicates1, handle1);
+    extract_mentioned_predicates(mentioned_predicates2, handle2);
+    if (Utils::intersects(mentioned_predicates1, mentioned_predicates2)) {
+        LOG_DEBUG("Disregarded AND predicate: " + db->get_atom(handle1)->metta_representation(*static_pointer_cast<HandleDecoder>(db).get()) + " AND " + db->get_atom(handle2)->metta_representation(*static_pointer_cast<HandleDecoder>(db).get()));
+        return nullptr;
+    }
+
     string h1, h2;
     if (handle1 < handle2) {
         h1 = handle1;
@@ -360,35 +369,20 @@ static shared_ptr<Link> add_predicate(const string& handle1, const string& handl
         h1 = handle2;
         h2 = handle1;
     }
-    set<string> mentioned_predicates1, mentioned_predicates2;
-    LOG_INFO("XXXXXXXXXXXXXXXXXXXXXX " << "add_predicate() 1");
-    extract_mentioned_predicates(mentioned_predicates1, h1);
-    LOG_INFO("XXXXXXXXXXXXXXXXXXXXXX " << "add_predicate() 2");
-    extract_mentioned_predicates(mentioned_predicates2, h2);
-    LOG_INFO("XXXXXXXXXXXXXXXXXXXXXX " << "add_predicate() 3");
-
-    // Check if there is intersection between mentioned_predicates1 and mentioned_predicates2
-    auto iterator1 = mentioned_predicates1.begin();
-    auto iterator2 = mentioned_predicates2.begin();
-    while (iterator1 != mentioned_predicates1.end() && iterator2 != mentioned_predicates2.end()) {
-        if (*iterator1 < *iterator2) {
-            iterator1++;
-        } else if (*iterator2 < *iterator1) {
-            iterator2++;
-        } else {
-            // In case of intersection, abort the creation of a new predicate
-            return nullptr;
-        }
-    }
 
     shared_ptr<Link> new_link = make_shared<Link>(EXPRESSION, vector<string>({LOGICAL_AND_HANDLE, h1, h2}), false);
-    db->add_link(new_link.get(), false);
-    buffer_determiners.push_back({new_link->handle(), new_link->targets[1], new_link->targets[2]});
-    if (WRITE_CREATED_LINKS_TO_FILE) {
-        LOG_DEBUG("Writing Link to file: " + PRESET_LINKS_FILE);
-        save_link_metta(*new_link.get());
+    if (db->link_exists(new_link->handle())) {
+        return nullptr;
+    } else {
+        db->add_link(new_link.get(), false);
+        buffer_determiners.push_back({new_link->handle(), new_link->targets[1], new_link->targets[2]});
+        buffer_activation[new_link->handle()] = 1;
+        if (WRITE_CREATED_LINKS_TO_FILE) {
+            LOG_DEBUG("Writing Link to file: " + PRESET_LINKS_FILE);
+            save_link_metta(*new_link.get());
+        }
+        return new_link;
     }
-    return new_link;
 }
 
 static void build_and_predicate_link(shared_ptr<QueryAnswer> query_answer,
@@ -403,7 +397,7 @@ static void build_and_predicate_link(shared_ptr<QueryAnswer> query_answer,
         return;
     }
 
-    shared_ptr<Link> new_predicate = add_predicate(predicate1, predicate2);
+    shared_ptr<Link> new_predicate = add_and_predicate(predicate1, predicate2);
     if (new_predicate != nullptr) {
         add_or_update_link(EVALUATION_HANDLE, new_predicate->handle(), concept1, 1.0);
         set<string> ab_request = {new_predicate->handle(), concept1};
@@ -432,6 +426,14 @@ static bool build_implication_link(shared_ptr<QueryAnswer> query_answer,
 
     if (predicates[0] == predicates[1]) {
         LOG_DEBUG("Skipping link building because targets are the same: " + predicates[0]);
+        return false;
+    }
+
+    set<string> mentioned_predicates1, mentioned_predicates2;
+    extract_mentioned_predicates(mentioned_predicates1, predicates[0]);
+    extract_mentioned_predicates(mentioned_predicates2, predicates[1]);
+    if (Utils::intersects(mentioned_predicates1, mentioned_predicates2)) {
+        LOG_DEBUG("Disregarded IMPLICATION predicates: " + db->get_atom(predicates[0])->metta_representation(*static_pointer_cast<HandleDecoder>(db).get()) + " <=> " + db->get_atom(predicates[1])->metta_representation(*static_pointer_cast<HandleDecoder>(db).get()));
         return false;
     }
 
@@ -768,6 +770,7 @@ static void add_preset_links(const vector<string>& implication_to_target_predica
             count++;
             line.clear();
             buffer_determiners.push_back({link->handle(), link->targets[1], link->targets[2]});
+            buffer_activation[link->handle()] = 1;
             AttentionBrokerClient::correlate({link->targets[1], link->targets[2]}, context);
         }
         LOG_INFO(std::to_string(count) + " preset links read.");
@@ -795,7 +798,9 @@ static void add_preset_links(const vector<string>& implication_to_target_predica
     file.close();
     LOG_INFO("Updating determiners in AttentionBroker");
     AttentionBrokerClient::set_determiners(buffer_determiners, context);
+    AttentionBrokerClient::stimulate(buffer_activation, context);
     buffer_determiners.clear();
+    buffer_activation.clear();
 }
 
 static void run(const string& context_tag) {
@@ -1038,7 +1043,9 @@ static void run(const string& context_tag) {
             build_links(equivalence_query, context, LINK_BUILDING_QUERY_SIZE, "", build_equivalence_link);
             LOG_INFO("----- Updating AttentionBroker");
             AttentionBrokerClient::set_determiners(buffer_determiners, context);
+            AttentionBrokerClient::stimulate(buffer_activation, context);
             buffer_determiners.clear();
+            buffer_activation.clear();
         }
     }
 
