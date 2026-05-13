@@ -8,7 +8,6 @@ cc_library(
     deps = [
         ":bounded_shared_queue",
         ":context_loader",
-        ":database_adapter",
         ":database_connection",
         ":database_loader",
         ":database_mapper",
@@ -94,7 +93,6 @@ cc_library(
         ":database_wrapper",
         ":metta_file_writer",
         "//atomdb",
-        "//atomdb:atomdb_singleton",
         "//commons:commons_lib",
         "//commons/atoms:atoms_lib",
         "//db_adapter/postgres:postgres_lib",
@@ -108,20 +106,6 @@ cc_library(
     includes = ["."],
     deps = [
         "//commons:commons_lib",
-    ],
-)
-
-cc_library(
-    name = "database_adapter",
-    srcs = ["DatabaseAdapter.cc"],
-    hdrs = ["DatabaseAdapter.h"],
-    includes = ["."],
-    deps = [
-        ":bounded_shared_queue",
-        ":database_loader",
-        ":database_types",
-        "//commons:commons_lib",
-        "//commons/atoms:atoms_lib",
     ],
 )
 

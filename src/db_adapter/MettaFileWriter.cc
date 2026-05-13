@@ -25,7 +25,7 @@ MettaFileWriter::MettaFileWriter(string output_folder, size_t max_file_size)
     filesystem::create_directories(this->output_folder);
 }
 
-MettaFileWriter::~MettaFileWriter() { this->close(); }
+MettaFileWriter::~MettaFileWriter() {}
 
 // ==============================
 //  Public
@@ -77,7 +77,7 @@ void MettaFileWriter::close() {
         }
     }
 
-    LOG_INFO("MettaFileWriter closed | total_written: " << total_written.load());
+    LOG_DEBUG("MettaFileWriter closed | total_written: " << total_written.load());
 }
 
 // ==============================

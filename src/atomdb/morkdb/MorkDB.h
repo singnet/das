@@ -7,7 +7,6 @@
 #include <bsoncxx/json.hpp>
 #include <memory>
 #include <mongocxx/client.hpp>
-#include <mongocxx/instance.hpp>
 #include <mongocxx/options/find.hpp>
 #include <mongocxx/pool.hpp>
 #include <mutex>

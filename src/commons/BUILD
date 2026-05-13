@@ -17,6 +17,7 @@ cc_library(
         "JsonConfig.h",
         "JsonConfigParser.h",
         "Logger.h",
+        "MongoInitializer.h",
         "Profiler.h",
         "Properties.h",
         "RequestValidator.h",

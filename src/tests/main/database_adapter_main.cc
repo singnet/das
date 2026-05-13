@@ -3,9 +3,8 @@
 #include <iostream>
 #include <string>
 
+#include "AdapterDB.h"
 #include "AtomDBSingleton.h"
-#include "DatabaseAdapter.h"
-#include "DatabaseTypes.h"
 #include "JsonConfig.h"
 #include "JsonConfigParser.h"
 #include "Utils.h"
@@ -16,7 +15,6 @@
 using namespace std;
 using namespace commons;
 using namespace atomdb;
-using namespace db_adapter;
 
 void ctrl_c_handler(int) {
     std::cout << "Stopping database adapter..." << std::endl;
@@ -26,15 +24,14 @@ void ctrl_c_handler(int) {
 
 void usage(const char* a) {
     cerr << "Usage: " << a
-         << " <config_file> [save_metta] \n\n"
+         << " <config_file>\n\n"
             "Examples:\n"
-            "  ./bin config.json\n"
-            "  ./bin config.json true\n";
+            "  ./bin config.json\n";
     exit(1);
 }
 
 int main(int argc, char* argv[]) {
-    if (argc < 2 || argc > 3) {
+    if (argc != 2) {
         usage(argv[0]);
     }
 
@@ -43,15 +40,19 @@ int main(int argc, char* argv[]) {
     signal(SIGINT, &ctrl_c_handler);
     signal(SIGTERM, &ctrl_c_handler);
 
-    string config = argv[1];
-    bool save_metta = (argc >= 3) ? (string(argv[2]) == "true") : false;
-
-    JsonConfig json_config = JsonConfigParser::load(config);
+    JsonConfig json_config = JsonConfigParser::load(argv[1]);
 
     auto atomdb_config = json_config.at_path("atomdb").get_or<JsonConfig>(JsonConfig());
+
     AtomDBSingleton::init(atomdb_config);
 
-    run_database_adapter(json_config, save_metta);
+    // auto adapter = AtomDBSingleton::get_instance();;
+
+    // auto atom = adapter->get_atom("4fec22fd642b774756ca0dd8a892225f"); // Example : "FBti0019882"
+
+    // LOG_INFO("Retrieved atom with handle 4fec22fd642b774756ca0dd8a892225f: " << (atom ?
+    // atom->to_string()
+    //                                                                                   : "NOT_FOUND"));
 
     LOG_INFO("Database adapter stopped.");
 

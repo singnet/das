@@ -1,34 +1,51 @@
+# AdapterDB Test Quickstart
+
+This is a simple **test executable** for the `AdapterDB` implementation of `AtomDB`.
+ 
+It is **not** a production service and **not** a complete application. This is only a **manual smoke test**.
+Its only purpose is to verify that `AdapterDB` can be initialized correctly from a JSON config file.
+
+## Run
+
+After building the binary, run:
+
+```bash
+make run-adapter OPTIONS="config.json"
+```
+
+## Required setup
+
+Before running the test, make sure the resources referenced by `config.json` are available:
+
+- source PostgreSQL database;
+- MongoDB instance;
+- configured AtomDB backend (for example `morkdb`);
+- mapping file(s) listed in `context_mapping_paths`.
+
+For the provided example config, this file must exist:
+
+```text
+./feature.sql
+```
+
+## Example mapping file
+```sql
+SELECT
+f.feature_id as public_feature__feature_id,
+f.name as public_feature__name,
+f.uniquename as public_feature__uniquename,
+f.timeaccessioned as public_feature__timeaccessioned
+FROM
+feature as f WHERE f.feature_id<=500;   
+```
+
+## config.json example
+
+```json
 {
     "schema_version": "1.0",
     "atomdb": {
-        "type": "redismongodb",
-        "redis": {
-            "image": "redis:7.2.3-alpine",
-            "endpoint": "localhost:40020",
-            "cluster": false,
-            "nodes": [
-                {
-                    "context": "default",
-                    "ip": "localhost",
-                    "username": "arturgontijo"
-                }
-            ]
-        },
-        "mongodb": {
-            "image": "mongodb/mongodb-community-server:8.2-ubuntu2204",
-            "endpoint": "localhost:40021",
-            "username": "admin",
-            "password": "admin",
-            "cluster": false,
-            "cluster_secret_key": "8UDJSgpUCaVOTQG",
-            "nodes": [
-                {
-                    "context": "default",
-                    "ip": "localhost",
-                    "username": "arturgontijo"
-                }
-            ]
-        },
+        "type": "adapterdb",
         "adapterdb": {
             "endpoint": "localhost:40023",
             "type": "postgres",
@@ -40,12 +57,11 @@
                 "database": "flybase"
             },
             "context_mapping_paths": [
-                "./simple_test.sql",
-                "./tables.json"
+                "./feature.sql"
             ],
             "export_metta_on_mapping": {
                 "enabled": true,
-                "output_dir": "./mapped_metta/"
+                "output_dir": ".mapped_metta/"
             },
             "persistence": {
                 "reuse_mongodb": true
@@ -70,10 +86,6 @@
                     "endpoint": "localhost:40022"
                 }
             }
-        },
-        "morkdb": {
-            "image": "trueagi/das:mork-server-1.0.4",
-            "endpoint": "localhost:40022"
         },
         "remote_peers": [
             {
@@ -151,5 +163,38 @@
             "endpoint": "localhost:40007",
             "ports_range": "47000:47999"
         }
+    },
+    "params": {
+        "query": {
+            "max_answers": 100,
+            "max_bundle_size": 1000,
+            "count_flag": false,
+            "attention_update_flag": false,
+            "unique_assignment_flag": true,
+            "positive_importance_flag": false,
+            "populate_metta_mapping": true,
+            "use_metta_as_query_tokens": true
+        },
+        "link_creation": {
+            "repeat_count": 1,
+            "query_interval": 0,
+            "query_timeout": 0
+        },
+        "evolution": {
+            "elitism_rate": 0.08,
+            "max_generations": 10,
+            "population_size": 50,
+            "selection_rate": 0.1,
+            "total_attention_tokens": 100000
+        },
+        "context": {
+            "context": "context",
+            "use_cache": true,
+            "enforce_cache_recreation": false,
+            "initial_rent_rate": 0.25,
+            "initial_spreading_rate_lowerbound": 0.5,
+            "initial_spreading_rate_upperbound": 0.7
+        }
     }
 }
+```
