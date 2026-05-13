@@ -404,6 +404,10 @@ void PostgresWrapper::map_sql_query(const string& virtual_name, const string& ra
         vector<string> columns = table_columns.second;
         try {
             auto table_name_parts = Utils::split(table_name, '.');
+            LOG_INFO("[PostgresWrapper] after split(table_name), parts = " +
+                     std::to_string(table_name_parts.size()));
+
+            LOG_INFO("[PostgresWrapper] before get_table: " + table_name);
             tables_metadata[table_name] = this->get_table(table_name_parts[0], table_name_parts[1]);
             string pk = tables_metadata[table_name].primary_key;
             if (find(columns.begin(), columns.end(), pk) == columns.end()) {

@@ -25,33 +25,46 @@ using namespace db_adapter;
 
 namespace db_adapter {
 
+struct MappingTask {
+    string task_name;
+    optional<string> context;
+};
+
+class DatabaseMappingStrategy {
+   public:
+    virtual ~DatabaseMappingStrategy() = default;
+    virtual vector<MappingTask> create_tasks(const JsonConfig& config) = 0;
+    virtual void execute_task(const MappingTask& task) = 0;
+};
+
 class DatabaseMappingOrchestrator : public ThreadMethod {
    public:
-    DatabaseMappingOrchestrator(const JsonConfig& config,
-                                shared_ptr<BoundedSharedQueue> output_queue = nullptr);
-    ~DatabaseMappingOrchestrator();
+    DatabaseMappingOrchestrator(const JsonConfig& config, shared_ptr<BoundedSharedQueue> output_queue);
+    virtual ~DatabaseMappingOrchestrator();
 
-    void add_task_query(const string& virtual_name, const string& query);
-    void add_task_all_db();
     bool thread_one_step() override;
     bool is_finished() const;
 
    private:
     void database_setup(const JsonConfig& config, shared_ptr<BoundedSharedQueue> output_queue);
-    void task_setup(const JsonConfig& config);
 
-   protected:
-    struct MappingTask {
-        enum Type { ALLDB, QUERY } type;
-        string virtual_name;
-        string query;
-    };
-    unique_ptr<PostgresDatabaseConnection> db_conn;
-    unique_ptr<PostgresWrapper> wrapper;
+    unique_ptr<DatabaseConnection> db_conn;
+    unique_ptr<DatabaseMappingStrategy> strategy;
+
     vector<MappingTask> tasks;
     size_t current_task = 0;
     bool finished = false;
     bool initialized = false;
+};
+
+class PostgresMappingStrategy : public DatabaseMappingStrategy {
+   public:
+    explicit PostgresMappingStrategy(unique_ptr<PostgresWrapper> wrapper);
+    vector<MappingTask> create_tasks(const JsonConfig& config) override;
+    void execute_task(const MappingTask& task) override;
+
+   private:
+    unique_ptr<PostgresWrapper> wrapper;
 };
 
 class MultiThreadAtomPersister {
