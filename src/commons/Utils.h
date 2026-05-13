@@ -82,6 +82,23 @@ class Utils {
                                unsigned int wait_millis,
                                const string& function_name = "");
     static bool read_and_split(vector<string>& output, ifstream& file, char delimiter = ' ');
+
+    template <class C>
+    static bool intersects(const C& set1, const C& set2) {
+        auto iterator1 = set1.begin();
+        auto iterator2 = set2.begin();
+        while (iterator1 != set1.end() && iterator2 != set2.end()) {
+            if (*iterator1 < *iterator2) {
+                iterator1++;
+            } else if (*iterator2 < *iterator1) {
+                iterator2++;
+            } else {
+                return true;
+            }
+        }
+        return false;
+    }
+
 };
 
 }  // namespace commons
