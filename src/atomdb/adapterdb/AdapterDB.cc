@@ -220,8 +220,9 @@ size_t AdapterDB::atom_count() const {
 
 void AdapterDB::initialize(bool skip_atomdb_backend_empty) {
     string type = config.at_path("adapterdb.type").get_or<string>("");
+    auto adapter_type = parse_adapter_db_type(type);
 
-    if (type != "postgres") {
+    if (adapter_type != AdapterDbType::Postgres && adapter_type != AdapterDbType::Mork) {
         RAISE_ERROR("AdapterDB: Unsupported database type in config: " + type);
     }
 
