@@ -420,7 +420,7 @@ void PostgresWrapper::map_sql_query(const string& virtual_name, const string& ra
     }
 
     string base_query = Utils::trim(raw_query);
-adapterdb refactor
+
     if (!base_query.empty() && base_query.back() == ';') base_query.pop_back();
 
     for (const auto& table_columns : table_columns_map) {
