@@ -52,7 +52,7 @@ class Utils {
     Utils() {}
     ~Utils() {}
 
-    static void error(string msg, bool throw_flag);
+    static void error(string msg, bool throw_flag, bool log_flag = true);
     static bool flip_coin(double true_probability = 0.5);
     static unsigned int uint_rand(unsigned int open_upper_bound);
     static unsigned int uint_rand(unsigned int closed_lower_bound, unsigned int open_upper_bound);
