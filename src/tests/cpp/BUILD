@@ -802,6 +802,22 @@ cc_test(
 )
 
 cc_test(
+    name = "atomdb_test",
+    size = "small",
+    srcs = ["atomdb_test.cc"],
+    copts = [
+        "-Iexternal/gtest/googletest/include",
+        "-Iexternal/gtest/googletest",
+    ],
+    linkstatic = 1,
+    deps = [
+        "//atomdb:atomdb_lib",
+        "//commons/atoms:atoms_lib",
+        "@com_github_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
     name = "remote_atomdb_test",
     size = "small",
     srcs = ["remote_atomdb_test.cc"],

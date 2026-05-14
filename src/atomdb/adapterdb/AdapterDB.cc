@@ -3,8 +3,9 @@
 #include <chrono>
 #include <thread>
 
+#include "AtomPersister.h"
 #include "BoundedSharedQueue.h"
-#include "DatabaseLoader.h"
+#include "DatabaseOrchestrator.h"
 #include "DedicatedThread.h"
 #include "MongoInitializer.h"
 #include "MorkDB.h"
@@ -220,8 +221,9 @@ size_t AdapterDB::atom_count() const {
 
 void AdapterDB::initialize(bool skip_atomdb_backend_empty) {
     string type = config.at_path("adapterdb.type").get_or<string>("");
+    auto adapter_type = parse_adapter_db_type(type);
 
-    if (type != "postgres") {
+    if (adapter_type != AdapterDbType::Postgres) {
         RAISE_ERROR("AdapterDB: Unsupported database type in config: " + type);
     }
 
@@ -417,8 +419,7 @@ void AdapterDB::synchronous_source_database_to_atomdb() {
 
     LOG_INFO("Save metta: " << (save_metta ? "ENABLED" : "DISABLED"));
 
-    MultiThreadAtomPersister consumer(
-        queue, pool, this->atomdb_backend, BATCH_SIZE, save_metta, metta_output_dir);
+    AtomPersister consumer(queue, pool, this->atomdb_backend, BATCH_SIZE, save_metta, metta_output_dir);
 
     producer->setup();
     producer->start();

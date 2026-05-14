@@ -15,11 +15,19 @@
 #include "AtomDB.h"
 #include "DatabaseTypes.h"
 #include "JsonConfig.h"
+#include "Utils.h"
 
 using namespace std;
 using namespace db_adapter;
 
 namespace atomdb {
+
+enum class AdapterDbType { Postgres };
+
+inline AdapterDbType parse_adapter_db_type(const std::string& value) {
+    if (value == "postgres") return AdapterDbType::Postgres;
+    RAISE_ERROR("Unsupported adapterdb.type: " + value);
+}
 
 class AdapterDB : public AtomDB {
    public:

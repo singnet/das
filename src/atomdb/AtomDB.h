@@ -69,6 +69,49 @@ class AtomDB : public HandleDecoder {
     virtual size_t atom_count() const = 0;
 
     bool empty() const { return atom_count() == 0; }
+
+   private:
+    void reachable_terminal_set_recursive(set<string>& output,
+                                          shared_ptr<Link> link,
+                                          bool metta_mapping) {
+        bool first_target = true;
+        for (string& target_handle : link->targets) {
+            auto atom = this->get_atom(target_handle);
+            if (Atom::is_node(atom)) {
+                if (!(metta_mapping && first_target)) {
+                    output.insert(atom->handle());
+                }
+            } else {
+                reachable_terminal_set_recursive(
+                    output, dynamic_pointer_cast<Link>(atom), metta_mapping);
+            }
+            first_target = false;
+        }
+    }
+
+   public:
+    /**
+     * The reachable set of a given Link contains any Node in its target list plus any Node
+     * reachable through the recursive application of this method to the Links in its
+     * targets list. The reachable set of a Node is the Node itself.
+     *
+     * @param output A std::set where output is supposed to be placed.
+     * @param handle The handle of the starting link. If a Node handle is passed
+     * instead, the output will be this single handle.
+     * @param metta_mapping Optional flag to indicate the use of MeTTa mapping. When MeTTa mapping
+     * is being used, the first element in a expression is not considered to be put in the output.
+     */
+    void reachable_terminal_set(set<string>& output, const string& handle, bool metta_mapping = false) {
+        auto atom = this->get_atom(handle);
+        if (atom != nullptr) {
+            if (Atom::is_node(atom)) {
+                output.insert(handle);
+            } else {
+                reachable_terminal_set_recursive(
+                    output, dynamic_pointer_cast<Link>(atom), metta_mapping);
+            }
+        }
+    }
 };
 
 }  // namespace atomdb
