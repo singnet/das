@@ -22,10 +22,12 @@ namespace db_adapter {
  */
 class DatabaseWrapper {
    public:
-    DatabaseWrapper(DatabaseConnection& db_client, shared_ptr<Mapper> mapper, MAPPER_TYPE mapper_type);
+    DatabaseWrapper(DatabaseConnection& db_client, MAPPER_TYPE mapper_type);
     virtual ~DatabaseWrapper() = default;
 
     unsigned int mapper_handle_trie_size();
+
+    static shared_ptr<Mapper> create_mapper(MAPPER_TYPE mapper_type);
 
    protected:
     DatabaseConnection& db_client;
@@ -69,7 +71,5 @@ class SQLWrapper : public DatabaseWrapper {
      * @brief Executes a raw SQL query and maps the result.
      */
     virtual void map_sql_query(const string& virtual_name, const string& raw_query) = 0;
-
-    static shared_ptr<Mapper> create_mapper(MAPPER_TYPE mapper_type);
 };
 }  // namespace db_adapter
