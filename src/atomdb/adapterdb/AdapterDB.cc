@@ -3,8 +3,9 @@
 #include <chrono>
 #include <thread>
 
+#include "AtomPersister.h"
 #include "BoundedSharedQueue.h"
-#include "DatabaseLoader.h"
+#include "DatabaseOrchestrator.h"
 #include "DedicatedThread.h"
 #include "MongoInitializer.h"
 #include "MorkDB.h"
@@ -418,8 +419,7 @@ void AdapterDB::synchronous_source_database_to_atomdb() {
 
     LOG_INFO("Save metta: " << (save_metta ? "ENABLED" : "DISABLED"));
 
-    MultiThreadAtomPersister consumer(
-        queue, pool, this->atomdb_backend, BATCH_SIZE, save_metta, metta_output_dir);
+    AtomPersister consumer(queue, pool, this->atomdb_backend, BATCH_SIZE, save_metta, metta_output_dir);
 
     producer->setup();
     producer->start();
