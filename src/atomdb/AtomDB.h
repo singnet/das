@@ -70,25 +70,26 @@ class AtomDB : public HandleDecoder {
 
     bool empty() const { return atom_count() == 0; }
 
-private:
-
-    void reachable_terminal_set_recursive(set<string>& output, shared_ptr<Link> link, bool metta_mapping) {
+   private:
+    void reachable_terminal_set_recursive(set<string>& output,
+                                          shared_ptr<Link> link,
+                                          bool metta_mapping) {
         bool first_target = true;
         for (string& target_handle : link->targets) {
             auto atom = this->get_atom(target_handle);
             if (Atom::is_node(atom)) {
-                if (! (metta_mapping && first_target)) {
+                if (!(metta_mapping && first_target)) {
                     output.insert(atom->handle());
                 }
             } else {
-                reachable_terminal_set_recursive(output, dynamic_pointer_cast<Link>(atom), metta_mapping);
+                reachable_terminal_set_recursive(
+                    output, dynamic_pointer_cast<Link>(atom), metta_mapping);
             }
             first_target = false;
         }
     }
 
-public:
-
+   public:
     /**
      * The reachable set of a given Link contains any Node in its target list plus any Node
      * reachable through the recursive application of this method to the Links in its
@@ -106,7 +107,8 @@ public:
             if (Atom::is_node(atom)) {
                 output.insert(handle);
             } else {
-                reachable_terminal_set_recursive(output, dynamic_pointer_cast<Link>(atom), metta_mapping);
+                reachable_terminal_set_recursive(
+                    output, dynamic_pointer_cast<Link>(atom), metta_mapping);
             }
         }
     }
