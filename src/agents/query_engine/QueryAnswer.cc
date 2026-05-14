@@ -6,6 +6,7 @@
 
 #include "LinkSchema.h"
 #include "Utils.h"
+#include "Hasher.h"
 
 using namespace query_engine;
 using namespace commons;
@@ -412,4 +413,12 @@ vector<string>& QueryAnswer::get_path_vector(unsigned int path_index) {
                     " QueryAnswer: " + to_string());
     }
     return this->handles[path_index + 1];
+}
+
+string QueryAnswer::compute_hash() {
+    vector<string> hashes;
+    for (auto& v : this->handles) {
+        hashes.push_back(Hasher::composite_handle(v));
+    }
+    return Hasher::composite_handle(hashes);
 }
