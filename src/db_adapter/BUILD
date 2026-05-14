@@ -6,11 +6,12 @@ cc_library(
     name = "db_adapter_lib",
     includes = ["."],
     deps = [
+        ":atom_persister",
         ":bounded_shared_queue",
         ":context_loader",
         ":database_connection",
-        ":database_loader",
         ":database_mapper",
+        ":database_orchestrator",
         ":database_types",
         ":database_wrapper",
         ":metta_file_writer",
@@ -82,9 +83,9 @@ cc_library(
 )
 
 cc_library(
-    name = "database_loader",
-    srcs = ["DatabaseLoader.cc"],
-    hdrs = ["DatabaseLoader.h"],
+    name = "database_orchestrator",
+    srcs = ["DatabaseOrchestrator.cc"],
+    hdrs = ["DatabaseOrchestrator.h"],
     includes = ["."],
     deps = [
         ":bounded_shared_queue",
@@ -96,6 +97,23 @@ cc_library(
         "//commons:commons_lib",
         "//commons/atoms:atoms_lib",
         "//db_adapter/postgres:postgres_lib",
+    ],
+)
+
+cc_library(
+    name = "atom_persister",
+    srcs = ["AtomPersister.cc"],
+    hdrs = ["AtomPersister.h"],
+    includes = ["."],
+    deps = [
+        ":bounded_shared_queue",
+        ":context_loader",
+        ":database_types",
+        ":database_wrapper",
+        ":metta_file_writer",
+        "//atomdb",
+        "//commons:commons_lib",
+        "//commons/atoms:atoms_lib",
     ],
 )
 

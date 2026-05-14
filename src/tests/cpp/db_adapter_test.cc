@@ -14,7 +14,7 @@
 #include "AtomDBSingleton.h"
 #include "BoundedSharedQueue.h"
 #include "ContextLoader.h"
-#include "DatabaseLoader.h"
+#include "DatabaseOrchestrator.h"
 #include "DatabaseTypes.h"
 #include "DedicatedThread.h"
 #include "Logger.h"
