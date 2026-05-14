@@ -18,7 +18,6 @@ string QueryEvolutionProxy::POPULATION_SIZE = "population_size";
 string QueryEvolutionProxy::MAX_GENERATIONS = "max_generations";
 string QueryEvolutionProxy::ELITISM_RATE = "elitism_rate";
 string QueryEvolutionProxy::SELECTION_RATE = "selection_rate";
-string QueryEvolutionProxy::TOTAL_ATTENTION_TOKENS = "total_attention_tokens";
 
 QueryEvolutionProxy::QueryEvolutionProxy() {
     // constructor typically used in processor

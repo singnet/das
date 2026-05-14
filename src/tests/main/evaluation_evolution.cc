@@ -630,17 +630,20 @@ static void query_evolution(
         FITNESS_FUNCTION);
 
     shared_ptr<QueryEvolutionProxy> proxy(proxy_ptr);
-    proxy->parameters[BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS] = USE_MORK;
+
+    proxy->parameters[BaseQueryProxy::UNIQUE_ASSIGNMENT_FLAG] = false;
     proxy->parameters[BaseQueryProxy::POPULATE_METTA_MAPPING] = true;
+    proxy->parameters[BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS] = USE_MORK;
+    proxy->parameters[BaseQueryProxy::ALLOW_INCOMPLETE_CHAIN_PATH] = true;
+    proxy->parameters[BaseQueryProxy::MAX_BUNDLE_SIZE] = (unsigned int) 1000;
+    proxy->parameters[PatternMatchingQueryProxy::DISREGARD_IMPORTANCE_FLAG] = false;
+    proxy->parameters[PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG] = true;
+    proxy->parameters[PatternMatchingQueryProxy::UNIQUE_VALUE_FLAG] = false
     proxy->parameters[QueryEvolutionProxy::POPULATION_SIZE] = (unsigned int) POPULATION_SIZE;
     proxy->parameters[QueryEvolutionProxy::MAX_GENERATIONS] = (unsigned int) MAX_GENERATIONS;
     proxy->parameters[QueryEvolutionProxy::ELITISM_RATE] = (double) ELITISM_RATE;
     proxy->parameters[QueryEvolutionProxy::SELECTION_RATE] = (double) SELECTION_RATE;
-    proxy->parameters[QueryEvolutionProxy::TOTAL_ATTENTION_TOKENS] = (unsigned int) 100000;
-    proxy->parameters[BaseQueryProxy::MAX_BUNDLE_SIZE] = (unsigned int) 1000;
-    proxy->parameters[BaseQueryProxy::ALLOW_INCOMPLETE_CHAIN_PATH] = true;
-    proxy->parameters[PatternMatchingQueryProxy::DISREGARD_IMPORTANCE_FLAG] = false;
-    proxy->parameters[PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG] = true;
+
     bus->issue_bus_command(proxy);
 
     shared_ptr<QueryAnswer> query_answer;
