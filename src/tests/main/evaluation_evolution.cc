@@ -638,7 +638,8 @@ static void query_evolution(
     proxy->parameters[BaseQueryProxy::MAX_BUNDLE_SIZE] = (unsigned int) 1000;
     proxy->parameters[PatternMatchingQueryProxy::DISREGARD_IMPORTANCE_FLAG] = false;
     proxy->parameters[PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG] = true;
-    proxy->parameters[PatternMatchingQueryProxy::UNIQUE_VALUE_FLAG] = false
+    proxy->parameters[PatternMatchingQueryProxy::UNIQUE_VALUE_FLAG] = false;
+    proxy->parameters[PatternMatchingQueryProxy::COUNT_FLAG] = false;
     proxy->parameters[QueryEvolutionProxy::POPULATION_SIZE] = (unsigned int) POPULATION_SIZE;
     proxy->parameters[QueryEvolutionProxy::MAX_GENERATIONS] = (unsigned int) MAX_GENERATIONS;
     proxy->parameters[QueryEvolutionProxy::ELITISM_RATE] = (double) ELITISM_RATE;

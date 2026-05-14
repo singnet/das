@@ -227,8 +227,6 @@ class ProxyFactory {
                 string max_generations = params.get_or<string>(Helper::MAX_GENERATIONS, "");
                 string elitism_rate = params.get_or<string>(Helper::ELITISM_RATE, "");
                 string selection_rate = params.get_or<string>(Helper::SELECTION_RATE, "");
-                string total_attention_tokens =
-                    params.get_or<string>(Helper::TOTAL_ATTENTION_TOKENS, "");
                 auto proxy = make_shared<QueryEvolutionProxy>(query,
                                                               correlation_queries,
                                                               correlation_replacements,
@@ -240,10 +238,6 @@ class ProxyFactory {
                 set_param(proxy, QueryEvolutionProxy::MAX_GENERATIONS, max_generations, ParamType::UINT);
                 set_param(proxy, QueryEvolutionProxy::ELITISM_RATE, elitism_rate, ParamType::DOUBLE);
                 set_param(proxy, QueryEvolutionProxy::SELECTION_RATE, selection_rate, ParamType::DOUBLE);
-                set_param(proxy,
-                          QueryEvolutionProxy::TOTAL_ATTENTION_TOKENS,
-                          total_attention_tokens,
-                          ParamType::UINT);
                 return proxy;
             }
             case ProcessorType::QUERY_ENGINE: {

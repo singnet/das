@@ -58,7 +58,6 @@ void QueryEvolutionProxy::set_default_query_parameters() {
     this->parameters[MAX_GENERATIONS] = (unsigned int) 100;
     this->parameters[ELITISM_RATE] = (double) 0.01;
     this->parameters[SELECTION_RATE] = (double) 0.1;
-    this->parameters[TOTAL_ATTENTION_TOKENS] = (unsigned int) 100;
 }
 
 string QueryEvolutionProxy::to_string() {

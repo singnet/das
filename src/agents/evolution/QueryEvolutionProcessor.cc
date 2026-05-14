@@ -90,7 +90,7 @@ shared_ptr<PatternMatchingQueryProxy> QueryEvolutionProcessor::issue_sampling_qu
 shared_ptr<PatternMatchingQueryProxy> QueryEvolutionProcessor::issue_correlation_query(
     shared_ptr<QueryEvolutionProxy> proxy, vector<string> query_tokens) {
     auto pm_proxy = make_shared<PatternMatchingQueryProxy>(query_tokens, proxy->get_context());
-    pm_proxy.parameters = proxy->parameters;
+    pm_proxy->parameters = proxy->parameters;
     pm_proxy->parameters[BaseQueryProxy::UNIQUE_ASSIGNMENT_FLAG] = true;
     pm_proxy->parameters[BaseQueryProxy::ATTENTION_CORRELATION] = (unsigned int) BaseQueryProxy::NONE;
     pm_proxy->parameters[BaseQueryProxy::ATTENTION_UPDATE] = (unsigned int) BaseQueryProxy::NONE;
@@ -257,7 +257,7 @@ void QueryEvolutionProcessor::select_best_individuals(
         if (! metta_mapping) {
             proxy->populate_metta_mapping(selected[i].first.get());
         }
-        LOG_INFO("Selected: [" + std::to_string(selected[i].first->strength) + "] " + selected[i].first_to_string(true));
+        LOG_INFO("Selected: [" + std::to_string(selected[i].first->strength) + "] " + selected[i].first->to_string(true));
 #endif
     }
     LOG_INFO("Generation: " + std::to_string(this->generation_count) +
@@ -367,7 +367,7 @@ void QueryEvolutionProcessor::stimulate(shared_ptr<QueryEvolutionProxy> proxy,
     }
     if (min_fitness < MIN_SELECTED_FITNESS) {
         min_fitness = MIN_SELECTED_FITNESS;
-        LOG_WARNING("Minimal fitness if below MIN_SELECTED_FITNESS");
+        LOG_ERROR("Minimal fitness if below MIN_SELECTED_FITNESS");
     }
 
     float fitness_rate = (1.0 / min_fitness);
@@ -380,11 +380,11 @@ void QueryEvolutionProcessor::stimulate(shared_ptr<QueryEvolutionProxy> proxy,
         unsigned int value = (unsigned int) std::lround(v * fitness_rate);
         set<string> node_handles;
         for (string handle : pair.first->get_handles_vector()) {
-            db->reachable_terminal_set(node_handles, handle);
+            db->reachable_terminal_set(node_handles, handle, true);
         }
         for (unsigned int i = 0; i < pair.first->get_paths_size(); i++) {
             for (string handle : pair.first->get_path_vector(i)) {
-                db->reachable_terminal_set(node_handles, handle);
+                db->reachable_terminal_set(node_handles, handle, true);
             }
         }
         for (string handle : node_handles) {
@@ -403,8 +403,7 @@ void QueryEvolutionProcessor::update_attention_allocation(
     shared_ptr<QueryEvolutionProxy> proxy, vector<std::pair<shared_ptr<QueryAnswer>, float>>& selected) {
     unsigned int count = 1;
     for (auto pair : selected) {
-        LOG_INFO("Correlating QueryAnswer (" + std::to_string(count) + "/" +
-                 std::to_string(selected.size()) + "): " + pair.first->to_string());
+        LOG_INFO("Correlating QueryAnswer (" + std::to_string(count) + "/" + std::to_string(selected.size()) + ")");
         correlate_similar(proxy, pair.first);
         count++;
     }

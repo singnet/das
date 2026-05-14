@@ -40,7 +40,6 @@ if [ "$BUILD_BINARIES" = true ]; then
     # Other binaries
     BUILD_TARGETS+=" //:word_query"
     BUILD_TARGETS+=" //:word_query_evolution"
-    BUILD_TARGETS+=" //:implication_query_evolution"
     BUILD_TARGETS+=" //:evaluation_evolution"
     BUILD_TARGETS+=" //:tests_db_loader"
     BUILD_TARGETS+=" //:database_adapter"
@@ -56,7 +55,6 @@ if [ "$BUILD_BINARIES" = true ]; then
     # Other binaries
     MOVE_BIN_TARGETS+=" bazel-bin/word_query"
     MOVE_BIN_TARGETS+=" bazel-bin/word_query_evolution"
-    MOVE_BIN_TARGETS+=" bazel-bin/implication_query_evolution"
     MOVE_BIN_TARGETS+=" bazel-bin/evaluation_evolution"
     MOVE_BIN_TARGETS+=" bazel-bin/tests_db_loader"
     MOVE_BIN_TARGETS+=" bazel-bin/database_adapter"
