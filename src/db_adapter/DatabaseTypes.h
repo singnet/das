@@ -57,13 +57,18 @@ struct SqlRow {
     size_t size() const { return (primary_key ? 1 : 0) + fields.size(); }
 };
 
+struct MettaExpression {
+    string expression;
+};
+
 struct NoSqlDocument {};
 
 /**
  * @typedef DbInput
- * @brief A variant representing raw input from either SQL or NoSQL sources.
+ * @brief A variant representing raw input from the database, which can be a SQL row, a NoSQL document,
+ * or a Metta expression.
  */
-using DbInput = variant<SqlRow, NoSqlDocument, string>;
+using DbInput = variant<SqlRow, NoSqlDocument, MettaExpression>;
 
 /**
  * @struct Table

@@ -319,15 +319,17 @@ void SQL2AtomsMapper::map_foreign_keys_combinations(
 //  Construction / destruction
 // ==============================
 
-Mork2AtomsMapper::Mork2AtomsMapper() { RAISE_ERROR("Mork2AtomsMapper constructor not implemented yet"); }
+Metta2AtomsMapper::Metta2AtomsMapper() {
+    RAISE_ERROR("Metta2AtomsMapper constructor not implemented yet");
+}
 
-Mork2AtomsMapper::~Mork2AtomsMapper() {}
+Metta2AtomsMapper::~Metta2AtomsMapper() {}
 
 // ==============================
 //  Public
 // ==============================
 
-const vector<Atom*> Mork2AtomsMapper::map(const DbInput& data) {
-    RAISE_ERROR("Mork2AtomsMapper::map() not implemented yet");
+const vector<Atom*> Metta2AtomsMapper::map(const DbInput& data) {
+    RAISE_ERROR("Metta2AtomsMapper::map() not implemented yet");
     return vector<Atom*>{};
 }

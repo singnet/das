@@ -86,10 +86,10 @@ class SQL2AtomsMapper : public Mapper {
     void map_foreign_keys_combinations(const vector<tuple<string, string, string>>& all_foreign_keys);
 };
 
-class Mork2AtomsMapper : public Mapper {
+class Metta2AtomsMapper : public Mapper {
    public:
-    Mork2AtomsMapper();
-    ~Mork2AtomsMapper() override;
+    Metta2AtomsMapper();
+    ~Metta2AtomsMapper() override;
 
     const vector<Atom*> map(const DbInput& data) override;
 
