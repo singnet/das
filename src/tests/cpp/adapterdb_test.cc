@@ -356,7 +356,7 @@ TEST_F(AdapterDBTest, AddLinkWithThrowIfExists) {
 
     auto link = new Link("Expression", {h1, h2, h3});
 
-    EXPECT_EQ(db->add_link(link, true), link->handle());
+    EXPECT_EQ(db->add_link(link), link->handle());
     EXPECT_THROW({ db->add_link(link, true); }, runtime_error);
 
     EXPECT_TRUE(db->delete_node(h1));
