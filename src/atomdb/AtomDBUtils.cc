@@ -1,13 +1,12 @@
 #include "AtomDBUtils.h"
+
 #include "AtomDBSingleton.h"
 
 using namespace atomdb;
 
-AtomDBUtils::AtomDBUtils() {
-}
+AtomDBUtils::AtomDBUtils() {}
 
-AtomDBUtils::~AtomDBUtils() {
-}
+AtomDBUtils::~AtomDBUtils() {}
 
 // -------------------------------------------------------------------------------------------------
 // Public methods

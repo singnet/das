@@ -1,7 +1,7 @@
 #pragma once
+#include <memory>
 #include <set>
 #include <string>
-#include <memory>
 
 #include "AtomDB.h"
 
@@ -13,14 +13,14 @@ namespace atomdb {
  *
  */
 class AtomDBUtils {
-
-public:
-
+   public:
     AtomDBUtils();
     ~AtomDBUtils();
 
    private:
-    static void reachable_terminal_set_recursive(set<string>& output, shared_ptr<Link> link, bool metta_mapping);
+    static void reachable_terminal_set_recursive(set<string>& output,
+                                                 shared_ptr<Link> link,
+                                                 bool metta_mapping);
 
    public:
     /**
@@ -34,7 +34,9 @@ public:
      * @param metta_mapping Optional flag to indicate the use of MeTTa mapping. When MeTTa mapping
      * is being used, the first element in a expression is not considered to be put in the output.
      */
-    static void reachable_terminal_set(set<string>& output, const string& handle, bool metta_mapping = false);
+    static void reachable_terminal_set(set<string>& output,
+                                       const string& handle,
+                                       bool metta_mapping = false);
 };
 
-} // namespace atomdb
+}  // namespace atomdb
