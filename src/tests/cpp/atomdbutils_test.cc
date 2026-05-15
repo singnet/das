@@ -1,16 +1,16 @@
 #include "AtomDBUtils.h"
+
+#include <gtest/gtest.h>
+
 #include "AtomDBSingleton.h"
 #include "InMemoryDB.h"
 #include "TestAtomDBJsonConfig.h"
-
-#include <gtest/gtest.h>
 
 using namespace atomdb;
 using namespace atoms;
 using namespace std;
 
 TEST(AtomDBTest, reachable_terminal_set) {
-
     AtomDBSingleton::init(test_atomdb_json_config());
     auto db = AtomDBSingleton::get_instance();
 
@@ -118,5 +118,12 @@ TEST(AtomDBTest, reachable_terminal_set) {
     AtomDBUtils::reachable_terminal_set(handles, L1->handle(), true);
     EXPECT_EQ(handles, set({b, d, e, f}));
 
-    db->delete_links({L0->handle(), L1->handle(), L2->handle(), L3->handle(), L4->handle(), L5->handle(), L6->handle()}, true);
+    db->delete_links({L0->handle(),
+                      L1->handle(),
+                      L2->handle(),
+                      L3->handle(),
+                      L4->handle(),
+                      L5->handle(),
+                      L6->handle()},
+                     true);
 }
