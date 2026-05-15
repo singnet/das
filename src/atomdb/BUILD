@@ -9,6 +9,7 @@ cc_library(
         ":atomdb",
         ":atomdb_api_types",
         ":atomdb_singleton",
+        ":atomdbutils",
         "//atomdb/adapterdb:adapterdb_lib",
         "//atomdb/inmemorydb:inmemorydb_lib",
         "//atomdb/morkdb:morkdb_lib",
@@ -23,6 +24,17 @@ cc_library(
     includes = ["."],
     deps = [
         ":atomdb_api_types",
+    ],
+)
+
+cc_library(
+    name = "atomdbutils",
+    srcs = ["AtomDBUtils.cc"],
+    hdrs = ["AtomDBUtils.h"],
+    includes = ["."],
+    deps = [
+        ":atomdb",
+        ":atomdb_singleton",
     ],
 )
 
