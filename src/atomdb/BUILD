@@ -7,6 +7,7 @@ cc_library(
     includes = ["."],
     deps = [
         ":atomdb",
+        ":atomdbutils",
         ":atomdb_api_types",
         ":atomdb_singleton",
         "//atomdb/adapterdb:adapterdb_lib",
@@ -23,6 +24,17 @@ cc_library(
     includes = ["."],
     deps = [
         ":atomdb_api_types",
+    ],
+)
+
+cc_library(
+    name = "atomdbutils",
+    hdrs = ["AtomDBUtils.h"],
+    srcs = ["AtomDBUtils.cc"],
+    includes = ["."],
+    deps = [
+        ":atomdb",
+        ":atomdb_singleton",
     ],
 )
 
