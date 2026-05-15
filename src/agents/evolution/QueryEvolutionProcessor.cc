@@ -143,10 +143,8 @@ void QueryEvolutionProcessor::sample_population(
         }
     }
     double renew_rate = ((double) this->visited_individuals.size() - visited_count) / population_size;
-    LOG_INFO("Generation: " + std::to_string(this->generation_count) +
-             " - Individuals with non-zero importance: " + std::to_string(positive_importance_count));
-    LOG_INFO("Generation: " + std::to_string(this->generation_count) +
-             " - Renew rate: " + std::to_string(renew_rate));
+    LOG_INFO("Individuals with non-zero importance: " + std::to_string(positive_importance_count));
+    LOG_INFO("Renew rate: " + std::to_string(renew_rate));
     if (!pm_query->finished()) {
         pm_query->abort();
         unsigned int count = 0;
@@ -253,15 +251,14 @@ void QueryEvolutionProcessor::select_best_individuals(
     float sum = 0;
     for (unsigned int i = 0; i < count; i++) {
         sum += selected[i].second;
-#if LOG_LEVEL >= INFO_LEVEL
+#if LOG_LEVEL >= DEBUG_LEVEL
         if (! metta_mapping) {
             proxy->populate_metta_mapping(selected[i].first.get());
         }
-        LOG_INFO("Selected: [" + std::to_string(selected[i].first->strength) + "] " + selected[i].first->to_string(true));
+        LOG_DEBUG("Selected: [" + std::to_string(selected[i].first->strength) + "] " + selected[i].first->to_string(true));
 #endif
     }
-    LOG_INFO("Generation: " + std::to_string(this->generation_count) +
-             " - Average fitness in selected group: " + std::to_string(sum / count));
+    LOG_INFO("Average fitness in selected group: " + std::to_string(sum / count));
 }
 
 void QueryEvolutionProcessor::correlate_similar(shared_ptr<QueryEvolutionProxy> proxy,
@@ -352,7 +349,7 @@ void QueryEvolutionProcessor::correlate_similar(shared_ptr<QueryEvolutionProxy> 
 
 void QueryEvolutionProcessor::stimulate(shared_ptr<QueryEvolutionProxy> proxy,
                                         vector<std::pair<shared_ptr<QueryAnswer>, float>>& selected) {
-    LOG_INFO("Stimulating " + std::to_string(selected.size()) + " selected QueryAnswers: ");
+    LOG_INFO("Stimulating " + std::to_string(selected.size()) + " selected QueryAnswers");
     vector<pair<QueryAnswerElement, QueryAnswerElement>> correlation_mappings =
         proxy->get_correlation_mappings();
     if (correlation_mappings.size() == 0) {
@@ -380,11 +377,16 @@ void QueryEvolutionProcessor::stimulate(shared_ptr<QueryEvolutionProxy> proxy,
         unsigned int value = (unsigned int) std::lround(v * fitness_rate);
         set<string> node_handles;
         for (string handle : pair.first->get_handles_vector()) {
-            db->reachable_terminal_set(node_handles, handle, true);
+            //db->reachable_terminal_set(node_handles, handle, true);
+            //node_handles.insert(handle);
+        }
+        for (auto correlation_pair : correlation_mappings) {
+            node_handles.insert(pair.first->get(correlation_pair.first, true));
         }
         for (unsigned int i = 0; i < pair.first->get_paths_size(); i++) {
             for (string handle : pair.first->get_path_vector(i)) {
-                db->reachable_terminal_set(node_handles, handle, true);
+                node_handles.insert(handle);
+                //db->reachable_terminal_set(node_handles, handle, true);
             }
         }
         for (string handle : node_handles) {
@@ -403,7 +405,7 @@ void QueryEvolutionProcessor::update_attention_allocation(
     shared_ptr<QueryEvolutionProxy> proxy, vector<std::pair<shared_ptr<QueryAnswer>, float>>& selected) {
     unsigned int count = 1;
     for (auto pair : selected) {
-        LOG_INFO("Correlating QueryAnswer (" + std::to_string(count) + "/" + std::to_string(selected.size()) + ")");
+        LOG_DEBUG("Correlating QueryAnswer (" + std::to_string(count) + "/" + std::to_string(selected.size()) + ")");
         correlate_similar(proxy, pair.first);
         count++;
     }
@@ -425,21 +427,20 @@ void QueryEvolutionProcessor::evolve_query(shared_ptr<StoppableThread> monitor,
     RAM_FOOTPRINT_START(evolution);
     STOP_WATCH_START(evolution);
     while (!monitor->stopped() && !proxy->stop_criteria_met()) {
+        LOG_INFO("==================== Generation: " + std::to_string(this->generation_count) + " ====================");
         RAM_CHECKPOINT("Generation " + std::to_string(this->generation_count));
         STOP_WATCH_START(generation);
         STOP_WATCH_START(sample_population);
         sample_population(monitor, proxy, population);
         STOP_WATCH_FINISH(sample_population, "EvolutionPopulationSampling");
-        LOG_INFO("========== Generation: " + std::to_string(this->generation_count) + ". Sampled " +
-                 std::to_string(population.size()) + " individuals. ==========");
+        LOG_INFO("Sampled " + std::to_string(population.size()) + " individuals.");
         proxy->new_population_sampled(population);
-        if ((population.size() > 0) && !proxy->stop_criteria_met()) {
+        if (population.size() > 0) {
             proxy->flush_answer_bundle();
             STOP_WATCH_START(selection);
             select_best_individuals(proxy, population, selected);
             STOP_WATCH_FINISH(selection, "EvolutionIndividualSelection");
-            LOG_INFO("Selected " + std::to_string(selected.size()) +
-                     " individuals to update attention allocation.");
+            LOG_INFO("Selected " + std::to_string(selected.size()) + " individuals to update attention allocation.");
             if (selected.size() > 0) {
                 STOP_WATCH_START(attention_broker);
                 update_attention_allocation(proxy, selected);
