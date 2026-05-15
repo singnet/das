@@ -9,6 +9,7 @@
 #include "BoundedSharedQueue.h"
 #include "DedicatedThread.h"
 #include "JsonConfig.h"
+#include "MorkWrapper.h"
 #include "PostgresWrapper.h"
 
 using namespace atomdb;
@@ -59,6 +60,16 @@ class PostgresMappingStrategy : public DatabaseMappingStrategy {
 
    private:
     unique_ptr<PostgresWrapper> wrapper;
+};
+
+class MorkMappingStrategy : public DatabaseMappingStrategy {
+   public:
+    explicit MorkMappingStrategy(unique_ptr<MorkWrapper> wrapper);
+    vector<MappingTask> create_tasks(const JsonConfig& config) override;
+    void execute_task(const MappingTask& task) override;
+
+   private:
+    unique_ptr<MorkWrapper> wrapper;
 };
 
 }  // namespace db_adapter

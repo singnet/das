@@ -63,7 +63,7 @@ struct NoSqlDocument {};
  * @typedef DbInput
  * @brief A variant representing raw input from either SQL or NoSQL sources.
  */
-using DbInput = variant<SqlRow, NoSqlDocument>;
+using DbInput = variant<SqlRow, NoSqlDocument, string>;
 
 /**
  * @struct Table
@@ -81,7 +81,7 @@ struct Table {
  * @enum MAPPER_TYPE
  * @brief Defines the strategy used to transform database rows.
  */
-enum class MAPPER_TYPE { SQL2ATOMS };
+enum class MAPPER_TYPE { SQL2ATOMS, MORK2ATOMS };
 
 struct TableMapping {
     string table_name;

@@ -80,13 +80,23 @@ void DatabaseMappingOrchestrator::database_setup(const JsonConfig& config,
         auto postgres_strategy = make_unique<PostgresMappingStrategy>(move(postgres_wrapper));
         this->db_conn = move(conn);
         this->strategy = move(postgres_strategy);
+    } else if (adapterdb_type == "mork") {
+        RAISE_ERROR("Mork adapter support is not implemented yet");
     } else {
         RAISE_ERROR("Unsupported adapter type: " + adapterdb_type);
     }
 }
 
+// ==============================
+//  Construction / destruction
+// ==============================
+
 PostgresMappingStrategy::PostgresMappingStrategy(unique_ptr<PostgresWrapper> wrapper)
     : wrapper(move(wrapper)) {}
+
+// ==============================
+//  Public
+// ============================
 
 vector<MappingTask> PostgresMappingStrategy::create_tasks(const JsonConfig& config) {
     vector<string> file_paths =
@@ -108,7 +118,7 @@ vector<MappingTask> PostgresMappingStrategy::create_tasks(const JsonConfig& conf
                 RAISE_ERROR("Unsupported mapping file type: " + ext + " for file: " + path);
             }
 
-            auto queries_sql = ContextLoader::load_query_file(path);
+            auto queries_sql = ContextLoader::load_sql_queries(path);
 
             if (!queries_sql.empty()) {
                 for (size_t i = 0; i < queries_sql.size(); i++) {
@@ -137,4 +147,26 @@ void PostgresMappingStrategy::execute_task(const MappingTask& task) {
     } else {
         this->wrapper->map_sql_query(task.task_name, task.context.value());
     }
+}
+
+// ==============================
+//  Construction / destruction
+// ==============================
+
+MorkMappingStrategy::MorkMappingStrategy(unique_ptr<MorkWrapper> wrapper) {
+    RAISE_ERROR("MorkMappingStrategy constructor not implemented yet");
+}
+
+// ==============================
+//  Public
+// ============================
+
+vector<MappingTask> MorkMappingStrategy::create_tasks(const JsonConfig& config) {
+    RAISE_ERROR("MorkMappingStrategy::create_tasks() not implemented yet");
+    return vector<MappingTask>{};
+}
+
+void MorkMappingStrategy::execute_task(const MappingTask& task) {
+    RAISE_ERROR("MorkMappingStrategy::execute_task() not implemented yet");
+    return;
 }

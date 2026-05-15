@@ -9,6 +9,8 @@ shared_ptr<Mapper> DatabaseWrapper::create_mapper(MAPPER_TYPE mapper_type) {
     switch (mapper_type) {
         case MAPPER_TYPE::SQL2ATOMS:
             return make_shared<SQL2AtomsMapper>();
+        case MAPPER_TYPE::MORK2ATOMS:
+            return make_shared<Mork2AtomsMapper>();
         default:
             throw invalid_argument("Unknown mapper type");
     }
