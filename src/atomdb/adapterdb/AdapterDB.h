@@ -22,10 +22,11 @@ using namespace db_adapter;
 
 namespace atomdb {
 
-enum class AdapterDbType { Postgres };
+enum class AdapterDbType { Postgres, Mork };
 
 inline AdapterDbType parse_adapter_db_type(const std::string& value) {
     if (value == "postgres") return AdapterDbType::Postgres;
+    if (value == "mork") return AdapterDbType::Mork;
     RAISE_ERROR("Unsupported adapterdb.type: " + value);
 }
 

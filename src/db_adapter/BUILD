@@ -17,6 +17,7 @@ cc_library(
         ":metta_file_writer",
         "//commons:commons_lib",
         "//commons/atoms:atoms_lib",
+        "//db_adapter/mork:mork_lib",
         "//db_adapter/postgres:postgres_lib",
     ],
 )
@@ -40,6 +41,7 @@ cc_library(
         ":database_types",
         "//commons:commons_lib",
         "//commons/atoms:atoms_lib",
+        "//metta:metta_lib",
     ],
 )
 
@@ -96,6 +98,7 @@ cc_library(
         "//atomdb",
         "//commons:commons_lib",
         "//commons/atoms:atoms_lib",
+        "//db_adapter/mork:mork_lib",
         "//db_adapter/postgres:postgres_lib",
     ],
 )

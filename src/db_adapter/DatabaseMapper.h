@@ -10,6 +10,7 @@
 #include "DatabaseTypes.h"
 #include "HandleTrie.h"
 #include "MettaMapping.h"
+#include "MettaParserActions.h"
 
 using namespace std;
 using namespace atoms;
@@ -85,4 +86,15 @@ class SQL2AtomsMapper : public Mapper {
     void map_foreign_keys_combinations(const vector<tuple<string, string, string>>& all_foreign_keys);
 };
 
+class Metta2AtomsMapper : public Mapper {
+   public:
+    Metta2AtomsMapper();
+    ~Metta2AtomsMapper() override;
+
+    const vector<Atom*> map(const DbInput& data) override;
+
+   private:
+    vector<Atom*> atoms;
+    shared_ptr<MettaParserActions> parser_actions;
+};
 }  // namespace db_adapter

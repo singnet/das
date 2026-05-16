@@ -57,13 +57,18 @@ struct SqlRow {
     size_t size() const { return (primary_key ? 1 : 0) + fields.size(); }
 };
 
+struct MettaExpression {
+    string expression;
+};
+
 struct NoSqlDocument {};
 
 /**
  * @typedef DbInput
- * @brief A variant representing raw input from either SQL or NoSQL sources.
+ * @brief A variant representing raw input from the database, which can be a SQL row, a NoSQL document,
+ * or a Metta expression.
  */
-using DbInput = variant<SqlRow, NoSqlDocument>;
+using DbInput = variant<SqlRow, NoSqlDocument, MettaExpression>;
 
 /**
  * @struct Table
@@ -81,7 +86,7 @@ struct Table {
  * @enum MAPPER_TYPE
  * @brief Defines the strategy used to transform database rows.
  */
-enum class MAPPER_TYPE { SQL2ATOMS };
+enum class MAPPER_TYPE { SQL2ATOMS, METTA2ATOMS };
 
 struct TableMapping {
     string table_name;

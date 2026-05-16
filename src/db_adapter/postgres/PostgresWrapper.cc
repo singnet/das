@@ -14,6 +14,7 @@
 #include "Logger.h"
 
 using namespace std;
+using namespace db_adapter;
 
 // ==============================
 //  Construction / destruction

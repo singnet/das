@@ -8,6 +8,7 @@
 #include "Hasher.h"
 #include "Link.h"
 #include "MettaMapping.h"
+#include "MettaParser.h"
 #include "Node.h"
 
 #define LOG_LEVEL INFO_LEVEL
@@ -312,4 +313,23 @@ void SQL2AtomsMapper::map_foreign_keys_combinations(
             }
         }
     }
+}
+
+// ==============================
+//  Construction / destruction
+// ==============================
+
+Metta2AtomsMapper::Metta2AtomsMapper() {
+    RAISE_ERROR("Metta2AtomsMapper constructor not implemented yet");
+}
+
+Metta2AtomsMapper::~Metta2AtomsMapper() {}
+
+// ==============================
+//  Public
+// ==============================
+
+const vector<Atom*> Metta2AtomsMapper::map(const DbInput& data) {
+    RAISE_ERROR("Metta2AtomsMapper::map() not implemented yet");
+    return vector<Atom*>{};
 }
