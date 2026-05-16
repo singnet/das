@@ -139,8 +139,10 @@ vector<string> ContextLoader::load_query_file(const string& file_path) {
         if (!line.empty() && !is_comment) {
             query += line + " ";
         } else {
-            out.push_back(query);
-            query.clear();
+            if (!query.empty()) {
+                out.push_back(query);
+                query.clear();
+            }
         }
     }
 
