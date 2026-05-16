@@ -11,7 +11,6 @@
 #include "DatabaseTypes.h"
 
 using namespace std;
-using namespace db_adapter;
 using namespace commons;
 
 namespace db_adapter {

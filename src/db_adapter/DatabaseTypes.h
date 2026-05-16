@@ -86,7 +86,7 @@ struct Table {
  * @enum MAPPER_TYPE
  * @brief Defines the strategy used to transform database rows.
  */
-enum class MAPPER_TYPE { SQL2ATOMS, MORK2ATOMS };
+enum class MAPPER_TYPE { SQL2ATOMS, METTA2ATOMS };
 
 struct TableMapping {
     string table_name;
