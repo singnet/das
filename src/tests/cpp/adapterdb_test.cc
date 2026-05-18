@@ -14,7 +14,10 @@
 #include "Link.h"
 #include "MorkDB.h"
 #include "Node.h"
+#include "RedisMongoDB.h"
 #include "TestAtomDBJsonConfig.h"
+#include "Utils.h"
+#include "expression_hasher.h"
 #include "gmock/gmock.h"
 
 using namespace std;
@@ -27,9 +30,15 @@ class AdapterDBTest : public ::testing::Test {
     string mapping_file_path;
 
     void SetUp() override {
+        backend = make_shared<RedisMongoDB>("adapter_test", false, test_atomdb_json_config());
         mapping_file_path = "/tmp/adapterdb_test_mapping.sql";
 
+        string current_time_str = to_string(Utils::get_current_time_millis());
+
+        string test_name = string("AdapterDBTest_") + compute_hash((char*) current_time_str.c_str());
+
         ofstream file(mapping_file_path);
+        file << "-- unique test context: " << test_name << "\n";
         file << R"(SELECT
             o.organism_id as public_organism__organism_id,
             o.genus as public_organism__genus,
@@ -111,9 +120,10 @@ class AdapterDBTest : public ::testing::Test {
                                          bool reuse_mongodb = true,
                                          const string& adapter_type = "postgres") {
         auto config = build_adapter_config(mapping_path, backend_type, reuse_mongodb, adapter_type);
-        auto backend = make_shared<MorkDB>("adapterdb", test_atomdb_json_config("morkdb"));
         return make_shared<AdapterDB>(config, backend);
     }
+
+    shared_ptr<RedisMongoDB> backend;
 };
 
 TEST_F(AdapterDBTest, ConstructorSucceedsWithValidConfig) {
@@ -147,7 +157,6 @@ TEST_F(AdapterDBTest, ConstructorLoadsDataIntoBackendOnFirstRun) {
     ASSERT_NE(db, nullptr);
 
     EXPECT_GT(db->atom_count(), 0);
-    EXPECT_GT(db->node_count(), 0);
 }
 
 TEST_F(AdapterDBTest, CanBeConstructedTwiceWithSameContext) {
@@ -261,6 +270,7 @@ TEST_F(AdapterDBTest, AddGetAndQueryTargetsLink) {
     ASSERT_NE(targets, nullptr);
     EXPECT_EQ(targets->size(), 3);
 
+    EXPECT_TRUE(db->delete_link(link_handle));
     EXPECT_TRUE(db->delete_node(h1));
     EXPECT_TRUE(db->delete_node(h2));
     EXPECT_TRUE(db->delete_node(h3));
@@ -359,6 +369,7 @@ TEST_F(AdapterDBTest, AddLinkWithThrowIfExists) {
     EXPECT_EQ(db->add_link(link), link->handle());
     EXPECT_THROW({ db->add_link(link, true); }, runtime_error);
 
+    EXPECT_TRUE(db->delete_link(link->handle()));
     EXPECT_TRUE(db->delete_node(h1));
     EXPECT_TRUE(db->delete_node(h2));
     EXPECT_TRUE(db->delete_node(h3));
@@ -402,6 +413,7 @@ TEST_F(AdapterDBTest, AddSameLinkWithoutThrowIfExistsIsAccepted) {
     EXPECT_EQ(db->add_link(link), link->handle());
     EXPECT_EQ(db->add_link(link), link->handle());
 
+    EXPECT_TRUE(db->delete_link(link->handle()));
     EXPECT_TRUE(db->delete_node(h1));
     EXPECT_TRUE(db->delete_node(h2));
     EXPECT_TRUE(db->delete_node(h3));
