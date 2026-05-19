@@ -45,3 +45,8 @@ vector<string> ContextLoader::load_sql_queries(const string& file_path) {
 
     return queries;
 }
+
+vector<string> ContextLoader::load_metta_queries(const string& file_path) {
+    RAISE_ERROR("ContextLoader::load_metta_queries() not implemented yet");
+    return {};
+}
