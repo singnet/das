@@ -11,14 +11,14 @@ cc_library(
         ":context_loader",
         ":database_connection",
         ":database_mapper",
+        ":database_mapping_strategy",
         ":database_orchestrator",
         ":database_types",
         ":database_wrapper",
         ":metta_file_writer",
         "//commons:commons_lib",
         "//commons/atoms:atoms_lib",
-        "//db_adapter/mork:mork_lib",
-        "//db_adapter/postgres:postgres_lib",
+        "//db_adapter/sql:sql_lib",
     ],
 )
 
@@ -53,9 +53,7 @@ cc_library(
     deps = [
         ":database_connection",
         ":database_mapper",
-        ":database_types",
         "//commons:commons_lib",
-        "//commons/atoms:atoms_lib",
     ],
 )
 
@@ -91,15 +89,10 @@ cc_library(
     includes = ["."],
     deps = [
         ":bounded_shared_queue",
-        ":context_loader",
+        ":database_connection",
+        ":database_mapping_strategy",
         ":database_types",
-        ":database_wrapper",
-        ":metta_file_writer",
-        "//atomdb",
         "//commons:commons_lib",
-        "//commons/atoms:atoms_lib",
-        "//db_adapter/mork:mork_lib",
-        "//db_adapter/postgres:postgres_lib",
     ],
 )
 
@@ -137,5 +130,30 @@ cc_library(
     includes = ["."],
     deps = [
         "//commons:commons_lib",
+    ],
+)
+
+cc_library(
+    name = "database_mapping_strategy",
+    srcs = ["DatabaseMappingStrategy.cc"],
+    hdrs = ["DatabaseMappingStrategy.h"],
+    includes = ["."],
+    deps = [
+        ":database_connection",
+        ":database_types",
+        "//commons:commons_lib",
+    ],
+)
+
+cc_library(
+    name = "mapper_factory",
+    srcs = ["MapperFactory.cc"],
+    hdrs = ["MapperFactory.h"],
+    includes = ["."],
+    deps = [
+        ":database_mapper",
+        ":database_types",
+        "//commons:commons_lib",
+        "//db_adapter/sql:sql2atoms_mapper",
     ],
 )

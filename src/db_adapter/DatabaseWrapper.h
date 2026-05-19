@@ -1,17 +1,12 @@
 #pragma once
 
 #include <memory>
-#include <mutex>
-#include <stdexcept>
-#include <string>
-#include <vector>
 
 #include "DatabaseConnection.h"
 #include "DatabaseMapper.h"
 #include "DatabaseTypes.h"
 
 using namespace std;
-using namespace commons;
 
 namespace db_adapter {
 
@@ -21,54 +16,14 @@ namespace db_adapter {
  */
 class DatabaseWrapper {
    public:
-    DatabaseWrapper(DatabaseConnection& db_client, MAPPER_TYPE mapper_type);
+    DatabaseWrapper(DatabaseConnection& db_client, shared_ptr<DatabaseMapper> mapper);
     virtual ~DatabaseWrapper() = default;
 
     unsigned int mapper_handle_trie_size();
 
-    static shared_ptr<Mapper> create_mapper(MAPPER_TYPE mapper_type);
-
    protected:
     DatabaseConnection& db_client;
-    shared_ptr<Mapper> mapper;
-    MAPPER_TYPE mapper_type;
+    shared_ptr<DatabaseMapper> mapper;
 };
 
-/**
- * @class SQLWrapper
- * @brief Specialization of DatabaseWrapper for SQL-based databases.
- */
-class SQLWrapper : public DatabaseWrapper {
-   public:
-    SQLWrapper(DatabaseConnection& db_client, MAPPER_TYPE mapper_type);
-    virtual ~SQLWrapper() = default;
-
-    /**
-     * @brief Retrieves schema information for a specific table.
-     */
-    virtual Table get_table(const string& schema_name, const string& table_name) = 0;
-
-    /**
-     * @brief Lists all tables in the database.
-     */
-    virtual vector<Table> list_tables() = 0;
-
-    /**
-     * @brief Maps a table's data to the target format.
-     *
-     * @param table The table metadata.
-     * @param clauses Additional SQL WHERE clauses.
-     * @param skip_columns Columns to exclude from mapping.
-     * @param second_level Boolean flag for recursive/depth mapping logic.
-     */
-    virtual void map_table(const Table& table,
-                           const vector<string>& clauses,
-                           const vector<string>& skip_columns,
-                           bool second_level) = 0;
-
-    /**
-     * @brief Executes a raw SQL query and maps the result.
-     */
-    virtual void map_sql_query(const string& virtual_name, const string& raw_query) = 0;
-};
 }  // namespace db_adapter

@@ -94,4 +94,9 @@ struct TableMapping {
     optional<vector<string>> skip_columns = nullopt;
 };
 
+struct MappingTask {
+    string task_name;
+    optional<string> context;
+};
+
 }  // namespace db_adapter

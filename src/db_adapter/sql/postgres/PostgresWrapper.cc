@@ -3,12 +3,13 @@
 #include <algorithm>
 #include <iostream>
 #include <memory>
-#include <pqxx/pqxx>
 #include <queue>
 #include <regex>
 #include <stdexcept>
 #include <string>
 #include <unordered_set>
+
+#include "MapperFactory.h"
 
 #define LOG_LEVEL INFO_LEVEL
 #include "Logger.h"
@@ -20,121 +21,12 @@ using namespace db_adapter;
 //  Construction / destruction
 // ==============================
 
-PostgresDatabaseConnection::PostgresDatabaseConnection(const string& id,
-                                                       const string& host,
-                                                       int port,
-                                                       const string& database,
-                                                       const string& user,
-                                                       const string& password)
-    : DatabaseConnection(id, host, port), database(database), user(user), password(password) {}
-
-PostgresDatabaseConnection::~PostgresDatabaseConnection() {
-    this->close_cursor();
-    this->disconnect();
-}
-
-// ==============================
-//  Public
-// ==============================
-
-void PostgresDatabaseConnection::connect() {
-    LOG_INFO("Connecting to PostgreSQL database at " << host << ":" << port << "...");
-    try {
-        string conn_str = "host=" + host + " port=" + std::to_string(port) + " dbname=" + database;
-        if (!user.empty()) {
-            conn_str += " user=" + user;
-        }
-        if (!password.empty()) {
-            conn_str += " password=" + password;
-        }
-        LOG_DEBUG("Connection string: " << conn_str);
-        this->conn = make_unique<pqxx::connection>(conn_str);
-    } catch (const exception& e) {
-        throw runtime_error("Could not connect to database: " + string(e.what()));
-    }
-}
-
-void PostgresDatabaseConnection::disconnect() {
-    if (this->conn) {
-        this->conn->close();
-        this->conn.reset();
-    }
-}
-
-pqxx::result PostgresDatabaseConnection::execute_query(const string& query) {
-    if (!this->conn || !this->conn->is_open()) {
-        RAISE_ERROR("Postgres connection is not open.");
-    }
-
-    try {
-        pqxx::work transaction(*this->conn);
-        pqxx::result result = transaction.exec(query);
-        transaction.commit();
-        return result;
-    } catch (const exception& e) {
-        RAISE_ERROR("Error during query execution: " + string(e.what()));
-    }
-    return pqxx::result{};
-}
-
-void PostgresDatabaseConnection::begin_cursor(const string& cursor_name, const string& query) {
-    if (!this->conn || !this->conn->is_open()) {
-        RAISE_ERROR("Postgres connection is not open.");
-    }
-    if (this->transaction) {
-        RAISE_ERROR("A transaction is already active. Close the current cursor first.");
-    }
-    this->transaction = make_unique<pqxx::work>(*this->conn);
-
-    try {
-        this->transaction->exec("DECLARE " + cursor_name + " CURSOR FOR " + query);
-    } catch (const exception& e) {
-        this->transaction.reset();
-        RAISE_ERROR("Error executing cursor query: " + string(e.what()));
-    }
-}
-
-pqxx::result PostgresDatabaseConnection::fetch_cursor(const string& cursor_name, size_t limit) {
-    if (!this->transaction) {
-        RAISE_ERROR("No active transaction. Call begin_cursor first.");
-    }
-    return this->transaction->exec("FETCH " + std::to_string(limit) + " FROM " + cursor_name);
-}
-
-void PostgresDatabaseConnection::close_cursor() {
-    if (this->transaction) {
-        try {
-            this->transaction->commit();
-        } catch (...) {
-            // Ignore errors during commit on close
-        }
-        this->transaction.reset();
-    }
-}
-
-/**
- * PostgresWrapper implementation
- */
-
-static const unordered_set<pqxx::oid> TIME_TYPE_OIDS = {
-    1082,  // date
-    1083,  // time without time zone
-    1114,  // timestamp without time zone
-    1184,  // timestamp with time zone
-    1186,  // interval
-    1266,  // time with time zone
-};
-
-static bool is_time_type(pqxx::oid oid) { return TIME_TYPE_OIDS.count(oid) > 0; }
-
-// ==============================
-//  Construction / destruction
-// ==============================
-
-PostgresWrapper::PostgresWrapper(PostgresDatabaseConnection& db_conn,
+PostgresWrapper::PostgresWrapper(PostgresConnection& db_conn,
                                  shared_ptr<BoundedSharedQueue> output_queue,
                                  MAPPER_TYPE mapper_type)
-    : SQLWrapper(db_conn, mapper_type), db_conn(db_conn), output_queue(output_queue) {}
+    : SQLWrapper(db_conn, MapperFactory::create(mapper_type)),
+      db_conn(db_conn),
+      output_queue(output_queue) {}
 
 PostgresWrapper::~PostgresWrapper() {}
 
@@ -506,7 +398,7 @@ vector<string> PostgresWrapper::collect_fk_ids(const string& table_name,
 map<string, vector<string>> PostgresWrapper::extract_aliases_from_query(const string& query) {
     map<string, vector<string>> tables;
 
-    regex alias_pattern(alias_pattern_regex, regex_constants::icase);
+    regex alias_pattern(ALIAS_PATTERN_REGEX, regex_constants::icase);
 
     auto matches_begin = sregex_iterator(query.begin(), query.end(), alias_pattern);
     auto matches_end = sregex_iterator();
@@ -581,18 +473,16 @@ void PostgresWrapper::fetch_rows_paginated(const Table& table,
 
             vector<Atom*> atoms = this->mapper->map(DbInput{sql_row});
 
-            if (this->mapper_type == MAPPER_TYPE::SQL2ATOMS) {
-                atoms_count += atoms.size();
+            atoms_count += atoms.size();
 
-                std::queue<Atom*>* batch_queue = new std::queue<Atom*>();
-                for (const auto& atom : atoms) {
-                    batch_queue->push(atom);
-                }
-                unique_lock<mutex> lock(this->api_mutex);
-                this->output_queue->enqueue((void*) batch_queue);
-            } else {
-                RAISE_ERROR("Unsupported mapper type.");
+            std::queue<Atom*>* batch_queue = new std::queue<Atom*>();
+
+            for (const auto& atom : atoms) {
+                batch_queue->push(atom);
             }
+
+            unique_lock<mutex> lock(this->api_mutex);
+            this->output_queue->enqueue((void*) batch_queue);
 
             LOG_DEBUG("Mapper HandleTrie size: " << this->mapper->handle_trie_size());
 

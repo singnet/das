@@ -33,7 +33,7 @@ vector<string> ContextLoader::load_sql_queries(const string& file_path) {
             query += line + " ";
         } else {
             if (!query.empty()) {
-                out.push_back(query);
+                queries.push_back(query);
                 query.clear();
             }
         }

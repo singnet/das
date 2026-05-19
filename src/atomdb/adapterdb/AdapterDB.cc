@@ -9,6 +9,8 @@
 #include "DedicatedThread.h"
 #include "MongoInitializer.h"
 #include "MorkDB.h"
+#include "PostgresMappingStrategy.h"
+#include "PostgresWrapper.h"
 #include "Processor.h"
 #include "RedisMongoDB.h"
 #include "RemoteAtomDB.h"
@@ -221,9 +223,9 @@ size_t AdapterDB::atom_count() const {
 
 void AdapterDB::initialize(bool skip_atomdb_backend_empty) {
     string type = config.at_path("adapterdb.type").get_or<string>("");
-    auto adapter_type = parse_adapter_db_type(type);
+    this->adapter_type = parse_adapter_db_type(type);
 
-    if (adapter_type != AdapterDbType::Postgres && adapter_type != AdapterDbType::Mork) {
+    if (adapter_type != AdapterDbType::Postgres) {
         RAISE_ERROR("AdapterDB: Unsupported database type in config: " + type);
     }
 
@@ -400,12 +402,30 @@ vector<string> AdapterDB::get_mapping_file_contents() const {
     return contents;
 }
 
+shared_ptr<DatabaseMappingStrategy> AdapterDB::create_mapping_strategy(
+    shared_ptr<BoundedSharedQueue> queue) const {
+    if (this->adapter_type == AdapterDbType::Postgres) {
+        string host = config.at_path("adapterdb.database_credentials.host").get<string>();
+        uint port = config.at_path("adapterdb.database_credentials.port").get<uint>();
+        string username = config.at_path("adapterdb.database_credentials.username").get<string>();
+        string password = config.at_path("adapterdb.database_credentials.password").get<string>();
+        string database = config.at_path("adapterdb.database_credentials.database").get<string>();
+        auto conn =
+            make_shared<PostgresConnection>("psql-conn", host, port, database, username, password);
+        return make_shared<PostgresMappingStrategy>(this->config, conn, queue);
+    } else {
+        RAISE_ERROR("Unsupported adapter type");
+    }
+}
+
 void AdapterDB::synchronous_source_database_to_atomdb() {
     LOG_INFO("Start syncing source database to AtomDB.");
 
     auto queue = make_shared<BoundedSharedQueue>();
 
-    DatabaseMappingOrchestrator db_mapping_orchestrator(this->config, queue);
+    auto strategy = this->create_mapping_strategy(queue);
+
+    DatabaseMappingOrchestrator db_mapping_orchestrator(strategy);
     auto producer = make_shared<DedicatedThread>("producer", &db_mapping_orchestrator);
 
     ThreadPool pool("consumers_pool", THREAD_POOL_SIZE);
