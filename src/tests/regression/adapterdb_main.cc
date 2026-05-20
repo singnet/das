@@ -42,12 +42,14 @@ commons::JsonConfig morkdb_json_config() {
     return commons::JsonConfig(json);
 }
 
-void compare_counts(const string& name, size_t count1, size_t count2) {
-    if (count1 != count2) {
-        LOG_ERROR(name << " count mismatch: " << count1 << " vs " << count2);
-    } else {
-        LOG_INFO(name << " count matches: " << count1);
+bool compare_counts(const string& name, size_t actual, size_t expected) {
+    if (actual != expected) {
+        LOG_ERROR(name << " count mismatch: expected=" << expected << ", actual=" << actual);
+        return false;
     }
+
+    LOG_INFO(name << " count matches: " << actual);
+    return true;
 }
 
 tuple<size_t, size_t, size_t> read_expected_counts(const string& file_path) {
@@ -72,7 +74,7 @@ int main(int argc, char* argv[]) {
         usage(argv[0]);
     }
 
-    LOG_INFO("Starting database adapter...");
+    LOG_INFO("Starting AdapterDB regression test...");
 
     signal(SIGINT, &ctrl_c_handler);
     signal(SIGTERM, &ctrl_c_handler);
@@ -96,11 +98,16 @@ int main(int argc, char* argv[]) {
     auto [expected_nodes, expected_links, expected_atoms] =
         read_expected_counts("/opt/das/src/tests/assets/adapterdb_expected_counts.txt");
 
-    compare_counts("Node", nodes, expected_nodes);
-    compare_counts("Link", links, expected_links);
-    compare_counts("Atom", atoms, expected_atoms);
+    bool ok = true;
+    ok = compare_counts("Node", nodes, expected_nodes) && ok;
+    ok = compare_counts("Link", links, expected_links) && ok;
+    ok = compare_counts("Atom", atoms, expected_atoms) && ok;
 
-    LOG_INFO("Database adapter stopped.");
+    if (!ok) {
+        LOG_ERROR("AdapterDB regression test failed.");
+        return 1;
+    }
 
+    LOG_INFO("AdapterDB regression test passed.");
     return 0;
 }
