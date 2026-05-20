@@ -145,7 +145,8 @@ static void save_link_metta(Link& link) {
     ofstream file;
     file.open(PRESET_LINKS_FILE, ios::app);
     if (file.is_open()) {
-        file << link.custom_attributes.get_or<double>("strength", 1.0) << "," << link.metta_representation(*static_pointer_cast<HandleDecoder>(db).get()) << endl;
+        file << link.custom_attributes.get_or<double>("strength", 1.0) << ","
+             << link.metta_representation(*static_pointer_cast<HandleDecoder>(db).get()) << endl;
         file.close();
     } else {
         RAISE_ERROR("Couldn't open file for writing: " + PRESET_LINKS_FILE);
@@ -167,7 +168,8 @@ static string answer_to_string_1(shared_ptr<QueryAnswer> answer) {
             auto target2 = db->get_link(link->targets[2]);
             if (first) {
                 first = false;
-                path = target1->metta_representation(*static_pointer_cast<HandleDecoder>(db).get()) + path_link[i];
+                path = target1->metta_representation(*static_pointer_cast<HandleDecoder>(db).get()) +
+                       path_link[i];
             }
             path += target2->metta_representation(*static_pointer_cast<HandleDecoder>(db).get());
             path += path_link[i];
@@ -196,7 +198,8 @@ static string answer_to_string(shared_ptr<QueryAnswer> answer) {
         auto target2 = db->get_link(link->targets[2]);
         if (first) {
             first = false;
-            path = target1->metta_representation(*static_pointer_cast<HandleDecoder>(db).get()) + path_link;
+            path =
+                target1->metta_representation(*static_pointer_cast<HandleDecoder>(db).get()) + path_link;
         }
         path += target2->metta_representation(*static_pointer_cast<HandleDecoder>(db).get());
         path += path_link;
@@ -375,11 +378,12 @@ static Link add_or_update_link(const string& type_handle,
         if (WRITE_CREATED_LINKS_TO_DB) {
             LOG_DEBUG("Creating Link in AtomDB");
             if (PRINT_CREATED_LINKS_METTA) {
-                LOG_INFO("ADD LINK: " + new_link.metta_representation(*static_pointer_cast<HandleDecoder>(db).get()));
+                LOG_INFO("ADD LINK: " +
+                         new_link.metta_representation(*static_pointer_cast<HandleDecoder>(db).get()));
             }
             db->add_link(&new_link);
             buffer_determiners.push_back({handle, target1, target2});
-            //buffer_activation[handle] = 1;
+            // buffer_activation[handle] = 1;
         }
         if (WRITE_CREATED_LINKS_TO_FILE) {
             LOG_DEBUG("Writing Link to file: " + PRESET_LINKS_FILE);
@@ -414,7 +418,11 @@ static shared_ptr<Link> add_and_predicate(const string& handle1, const string& h
     extract_mentioned_predicates(mentioned_predicates1, handle1);
     extract_mentioned_predicates(mentioned_predicates2, handle2);
     if (Utils::intersects(mentioned_predicates1, mentioned_predicates2)) {
-        LOG_DEBUG("Disregarded AND predicate: " + db->get_atom(handle1)->metta_representation(*static_pointer_cast<HandleDecoder>(db).get()) + " AND " + db->get_atom(handle2)->metta_representation(*static_pointer_cast<HandleDecoder>(db).get()));
+        LOG_DEBUG(
+            "Disregarded AND predicate: " +
+            db->get_atom(handle1)->metta_representation(*static_pointer_cast<HandleDecoder>(db).get()) +
+            " AND " +
+            db->get_atom(handle2)->metta_representation(*static_pointer_cast<HandleDecoder>(db).get()));
         return nullptr;
     }
 
@@ -427,7 +435,8 @@ static shared_ptr<Link> add_and_predicate(const string& handle1, const string& h
         h2 = handle1;
     }
 
-    shared_ptr<Link> new_link = make_shared<Link>(EXPRESSION, vector<string>({LOGICAL_AND_HANDLE, h1, h2}), false);
+    shared_ptr<Link> new_link =
+        make_shared<Link>(EXPRESSION, vector<string>({LOGICAL_AND_HANDLE, h1, h2}), false);
     if (db->link_exists(new_link->handle())) {
         return nullptr;
     } else {
@@ -488,7 +497,12 @@ static bool build_implication_link(shared_ptr<QueryAnswer> query_answer,
     extract_mentioned_predicates(mentioned_predicates1, predicates[0]);
     extract_mentioned_predicates(mentioned_predicates2, predicates[1]);
     if (Utils::intersects(mentioned_predicates1, mentioned_predicates2)) {
-        LOG_DEBUG("Disregarded IMPLICATION predicates: " + db->get_atom(predicates[0])->metta_representation(*static_pointer_cast<HandleDecoder>(db).get()) + " <=> " + db->get_atom(predicates[1])->metta_representation(*static_pointer_cast<HandleDecoder>(db).get()));
+        LOG_DEBUG("Disregarded IMPLICATION predicates: " +
+                  db->get_atom(predicates[0])
+                      ->metta_representation(*static_pointer_cast<HandleDecoder>(db).get()) +
+                  " <=> " +
+                  db->get_atom(predicates[1])
+                      ->metta_representation(*static_pointer_cast<HandleDecoder>(db).get()));
         return false;
     }
 
@@ -672,7 +686,8 @@ static void build_links(const vector<string>& query,
             Utils::sleep();
         } else {
             if (query_answer->get_handles_size() == 2) {
-                LOG_DEBUG("Processing query answer " + to_string(count) + ": " + query_answer->to_string(USE_MORK));
+                LOG_DEBUG("Processing query answer " + to_string(count) + ": " +
+                          query_answer->to_string(USE_MORK));
                 if (build_link(query_answer, context, custom_handle)) {
                     count++;
                 }
@@ -848,14 +863,14 @@ static void add_preset_links(const vector<string>& implication_to_target_predica
                              const vector<string>& implication_query,
                              const vector<string>& equivalence_query,
                              const string& context) {
-
     ifstream file(PRESET_LINKS_FILE);
     if (file.is_open()) {
         LOG_INFO("Reading preset links from file: " + PRESET_LINKS_FILE);
         vector<string> line;
         unsigned int count = 0;
         while (Utils::read_and_split(line, file, ',')) {
-            shared_ptr<atoms::MettaParserActions> parser_handler = make_shared<atoms::MettaParserActions>();
+            shared_ptr<atoms::MettaParserActions> parser_handler =
+                make_shared<atoms::MettaParserActions>();
             MettaParser parser(line[1], parser_handler);
             parser.parse();
             auto link = std::dynamic_pointer_cast<Link>(parser_handler->element_stack.top());
@@ -872,12 +887,12 @@ static void add_preset_links(const vector<string>& implication_to_target_predica
     } else {
         LOG_INFO("Couldn't open file: " + PRESET_LINKS_FILE);
         LOG_INFO("Building Implication links to TARGET_PREDICATE");
-        build_links(
-            (USE_MORK ? implication_to_target_predicate_metta_query : implication_to_target_predicate_query),
-            context,
-            LINK_BUILDING_QUERY_SIZE,
-            TARGET_PREDICATE_HANDLE,
-            build_implication_link);
+        build_links((USE_MORK ? implication_to_target_predicate_metta_query
+                              : implication_to_target_predicate_query),
+                    context,
+                    LINK_BUILDING_QUERY_SIZE,
+                    TARGET_PREDICATE_HANDLE,
+                    build_implication_link);
         LOG_INFO("Building Equivalence links to TARGET_CONCEPT");
         build_links(
             (USE_MORK ? equivalence_to_target_concept_metta_query : equivalence_to_target_concept_query),
@@ -899,7 +914,6 @@ static void add_preset_links(const vector<string>& implication_to_target_predica
 }
 
 static void run(const string& context_tag) {
-
     // clang-format off
     vector<string> implication_query = {
         ANDNOT_OPERATOR, "3",
@@ -1122,16 +1136,15 @@ static void run(const string& context_tag) {
                             ACTIVATION,
                             (USE_MORK ? context_activation_metta_query2 : context_activation_query2),
                             {{qe_predicate}});
-        add_to_context_file(context_file_name,
-                            context,
-                            ACTIVATION,
-                            {TARGET_PREDICATE_HANDLE, TARGET_CONCEPT_HANDLE});
+        add_to_context_file(
+            context_file_name, context, ACTIVATION, {TARGET_PREDICATE_HANDLE, TARGET_CONCEPT_HANDLE});
 
     } else {
         LOG_INFO("Context file already exists. Reusing it...");
     }
     LOG_INFO("Updating AttentionBroker");
-    AttentionBrokerClient::stimulate({{TARGET_PREDICATE_HANDLE, 1}, {TARGET_CONCEPT_HANDLE, 1}}, context);
+    AttentionBrokerClient::stimulate({{TARGET_PREDICATE_HANDLE, 1}, {TARGET_CONCEPT_HANDLE, 1}},
+                                     context);
     AttentionBrokerClient::drop_and_load_context(context, string(context_file_name));
     LOG_INFO("Context " + context + " is ready");
 
@@ -1160,21 +1173,24 @@ static void run(const string& context_tag) {
         if (iteration != NUM_ITERATIONS) {
             LOG_INFO("----- Building links");
             LOG_INFO("Building Implication links");
-            build_links(implication_query, context, LINK_BUILDING_QUERY_SIZE, "", build_implication_link);
+            build_links(
+                implication_query, context, LINK_BUILDING_QUERY_SIZE, "", build_implication_link);
             LOG_INFO("Building Equivalence links");
-            build_links(equivalence_query, context, LINK_BUILDING_QUERY_SIZE, "", build_equivalence_link);
+            build_links(
+                equivalence_query, context, LINK_BUILDING_QUERY_SIZE, "", build_equivalence_link);
             LOG_INFO("----- Updating AttentionBroker");
             AttentionBrokerClient::set_determiners(buffer_determiners, context);
-            //AttentionBrokerClient::stimulate(buffer_activation, context);
+            // AttentionBrokerClient::stimulate(buffer_activation, context);
             buffer_determiners.clear();
-            //buffer_activation.clear();
+            // buffer_activation.clear();
         }
     }
 
     LOG_INFO("--------------------------------------------------------------------------------");
     LOG_INFO("Finished. Recorded results:");
     for (auto pair : recorded_answers) {
-        //LOG_INFO(std::to_string(pair.second) + " [" + std::to_string(pair.first->strength) + "]: " + pair.first->to_string(true));
+        // LOG_INFO(std::to_string(pair.second) + " [" + std::to_string(pair.first->strength) + "]: " +
+        // pair.first->to_string(true));
         LOG_INFO("ANSWER: " + answer_to_string(pair.first) + " [" + std::to_string(pair.second) + "]");
     }
     LOG_INFO("--------------------------------------------------------------------------------");
@@ -1240,7 +1256,6 @@ int main(int argc, char* argv[]) {
         RAISE_ERROR("Error setting up parameters");
     }
 
-
     auto json_config = JsonConfigParser::load(config_file);
     auto atomdb_config = json_config.at_path("atomdb").get_or<JsonConfig>(JsonConfig());
     AtomDBSingleton::init(atomdb_config);
@@ -1283,7 +1298,8 @@ int main(int argc, char* argv[]) {
     if (atom == nullptr) {
         LOG_INFO("Atom is nullptr");
     } else {
-        LOG_INFO("Atom " + handle_XXX + ": " + atom->metta_representation(*static_pointer_cast<HandleDecoder>(db).get()));
+        LOG_INFO("Atom " + handle_XXX + ": " +
+    atom->metta_representation(*static_pointer_cast<HandleDecoder>(db).get()));
     }
     return 0;
     */

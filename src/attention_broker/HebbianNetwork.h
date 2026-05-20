@@ -50,7 +50,12 @@ class HebbianNetwork : public Serializable {
     // Node and Link don't inherit from a common "Atom" class to avoid having virtual methods,
     // which couldn't be properly inlined.
 
-    enum DeterminerCompositionStrategy { GREATEST, MULTIPLICATION_BASE_ONE, MULTIPLICATION_BASE_HANDLE, AVERAGE };
+    enum DeterminerCompositionStrategy {
+        GREATEST,
+        MULTIPLICATION_BASE_ONE,
+        MULTIPLICATION_BASE_HANDLE,
+        AVERAGE
+    };
     static DeterminerCompositionStrategy determiner_composer;
 
     /**
@@ -79,7 +84,7 @@ class HebbianNetwork : public Serializable {
         inline ImportanceType get_importance() {
             ImportanceType answer = this->importance;
             if (this->determiners.size() > 0) {
-                switch(determiner_composer) {
+                switch (determiner_composer) {
                     case GREATEST:
                         for (auto determiner : this->determiners) {
                             ImportanceType determiner_importance = determiner->get_importance();
@@ -103,7 +108,8 @@ class HebbianNetwork : public Serializable {
                         }
                         answer /= (this->determiners.size() + 1);
                         break;
-                    default: RAISE_ERROR("Invalid determiner composition function.");
+                    default:
+                        RAISE_ERROR("Invalid determiner composition function.");
                 }
             }
             return answer;

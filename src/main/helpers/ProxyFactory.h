@@ -221,8 +221,10 @@ class ProxyFactory {
                 auto correlation_replacements =
                     parse_correlation_replacements(correlation_replacements_str, umaqt);
                 string correlation_mappings_str = params.get<string>(Helper::CORRELATION_MAPPINGS);
-                vector<pair<QueryAnswerElement, QueryAnswerElement>> correlation_mapping = parse_correlation_mappings(correlation_mappings_str, umaqt);
-                vector<vector<pair<QueryAnswerElement, QueryAnswerElement>>> correlation_mappings = {correlation_mapping};
+                vector<pair<QueryAnswerElement, QueryAnswerElement>> correlation_mapping =
+                    parse_correlation_mappings(correlation_mappings_str, umaqt);
+                vector<vector<pair<QueryAnswerElement, QueryAnswerElement>>> correlation_mappings = {
+                    correlation_mapping};
                 string fitness_function_tag = params.get<string>(Helper::FITNESS_FUNCTION_TAG);
                 string population_size = params.get_or<string>(Helper::POPULATION_SIZE, "");
                 string max_generations = params.get_or<string>(Helper::MAX_GENERATIONS, "");

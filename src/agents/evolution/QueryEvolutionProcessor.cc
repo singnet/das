@@ -3,11 +3,10 @@
 #include "AttentionBrokerClient.h"
 #include "Hasher.h"
 #include "LinkSchema.h"
+#include "Logger.h"
 #include "QueryEvolutionProxy.h"
 #include "ServiceBus.h"
 #include "ServiceBusSingleton.h"
-
-#include "Logger.h"
 
 using namespace evolution;
 using namespace query_engine;
@@ -76,12 +75,17 @@ void QueryEvolutionProcessor::thread_process_one_query(shared_ptr<StoppableThrea
 
 shared_ptr<PatternMatchingQueryProxy> QueryEvolutionProcessor::issue_sampling_query(
     shared_ptr<QueryEvolutionProxy> proxy) {
-    auto pm_proxy = make_shared<PatternMatchingQueryProxy>(proxy->get_query_tokens(), proxy->get_context());
+    auto pm_proxy =
+        make_shared<PatternMatchingQueryProxy>(proxy->get_query_tokens(), proxy->get_context());
     pm_proxy->parameters = proxy->parameters;
     pm_proxy->parameters[BaseQueryProxy::ATTENTION_CORRELATION] = (unsigned int) BaseQueryProxy::NONE;
     pm_proxy->parameters[BaseQueryProxy::ATTENTION_UPDATE] = (unsigned int) BaseQueryProxy::NONE;
-    pm_proxy->parameters[BaseQueryProxy::POPULATE_METTA_MAPPING] = proxy->parameters.get<bool>(BaseQueryProxy::POPULATE_METTA_MAPPING) || proxy->parameters.get<bool>(BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS);  // enforced when MeTTa queries are being used
-    pm_proxy->parameters[PatternMatchingQueryProxy::MAX_ANSWERS] = proxy->parameters.get<unsigned int>(QueryEvolutionProxy::POPULATION_SIZE);
+    pm_proxy->parameters[BaseQueryProxy::POPULATE_METTA_MAPPING] =
+        proxy->parameters.get<bool>(BaseQueryProxy::POPULATE_METTA_MAPPING) ||
+        proxy->parameters.get<bool>(
+            BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS);  // enforced when MeTTa queries are being used
+    pm_proxy->parameters[PatternMatchingQueryProxy::MAX_ANSWERS] =
+        proxy->parameters.get<unsigned int>(QueryEvolutionProxy::POPULATION_SIZE);
     ServiceBusSingleton::get_instance()->issue_bus_command(pm_proxy);
     return pm_proxy;
 }
@@ -94,10 +98,12 @@ shared_ptr<PatternMatchingQueryProxy> QueryEvolutionProcessor::issue_correlation
     pm_proxy->parameters[BaseQueryProxy::ATTENTION_CORRELATION] = (unsigned int) BaseQueryProxy::NONE;
     pm_proxy->parameters[BaseQueryProxy::ATTENTION_UPDATE] = (unsigned int) BaseQueryProxy::NONE;
     pm_proxy->parameters[BaseQueryProxy::USE_LINK_TEMPLATE_CACHE] = false;
-    pm_proxy->parameters[PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG] = true;  //(this->generation_count > 1);
+    pm_proxy->parameters[PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG] =
+        true;  //(this->generation_count > 1);
     pm_proxy->parameters[PatternMatchingQueryProxy::DISREGARD_IMPORTANCE_FLAG] = false;
     pm_proxy->parameters[PatternMatchingQueryProxy::UNIQUE_VALUE_FLAG] = false;
-    pm_proxy->parameters[PatternMatchingQueryProxy::MAX_ANSWERS] = proxy->parameters.get<unsigned int>(QueryEvolutionProxy::POPULATION_SIZE) * 5;
+    pm_proxy->parameters[PatternMatchingQueryProxy::MAX_ANSWERS] =
+        proxy->parameters.get<unsigned int>(QueryEvolutionProxy::POPULATION_SIZE) * 5;
     ServiceBusSingleton::get_instance()->issue_bus_command(pm_proxy);
     return pm_proxy;
 }
@@ -108,7 +114,8 @@ void QueryEvolutionProcessor::sample_population(
     vector<std::pair<shared_ptr<QueryAnswer>, float>>& population) {
     bool remote_fitness = proxy->is_fitness_function_remote();
     vector<string> answer_bundle_vector;
-    unsigned int population_size = proxy->parameters.get<unsigned int>(QueryEvolutionProxy::POPULATION_SIZE);
+    unsigned int population_size =
+        proxy->parameters.get<unsigned int>(QueryEvolutionProxy::POPULATION_SIZE);
     bool metta_mapping = proxy->parameters.get<bool>(BaseQueryProxy::POPULATE_METTA_MAPPING);
 
     auto pm_query = issue_sampling_query(proxy);
@@ -121,7 +128,7 @@ void QueryEvolutionProcessor::sample_population(
             float fitness;
             if (remote_fitness) {
                 fitness = 0;
-                if (! metta_mapping) {
+                if (!metta_mapping) {
                     // If PM agent didn't populate metta mapping as per parameter, we need to enforce
                     // these mappings get populated here, before calling remote fitness evaluation.
                     proxy->populate_metta_mapping(answer.get());
@@ -250,13 +257,15 @@ void QueryEvolutionProcessor::select_best_individuals(
     for (unsigned int i = 0; i < count; i++) {
         sum += selected[i].second;
 #if LOG_LEVEL >= DEBUG_LEVEL
-        if (! proxy->parameters.get<bool>(BaseQueryProxy::POPULATE_METTA_MAPPING)) {
+        if (!proxy->parameters.get<bool>(BaseQueryProxy::POPULATE_METTA_MAPPING)) {
             proxy->populate_metta_mapping(selected[i].first.get());
         }
-        LOG_DEBUG("Selected: [" + std::to_string(selected[i].first->strength) + "] " + selected[i].first->to_string(true));
+        LOG_DEBUG("Selected: [" + std::to_string(selected[i].first->strength) + "] " +
+                  selected[i].first->to_string(true));
 #endif
     }
-    LOG_INFO("Average fitness in selected group: " + (count > 0 ? std::to_string(sum / count) : string("NO SELECTION")));
+    LOG_INFO("Average fitness in selected group: " +
+             (count > 0 ? std::to_string(sum / count) : string("NO SELECTION")));
     proxy->set_no_selection_flag(count == 0);
 }
 
@@ -265,8 +274,10 @@ void QueryEvolutionProcessor::correlate_similar(shared_ptr<QueryEvolutionProxy> 
     vector<string> query_tokens;
     map<string, vector<string>> handle_lists;
     vector<vector<string>> correlation_queries = proxy->get_correlation_queries();
-    vector<map<string, QueryAnswerElement>> correlation_replacements = proxy->get_correlation_replacements();
-    vector<vector<pair<QueryAnswerElement, QueryAnswerElement>>> correlation_mappings = proxy->get_correlation_mappings();
+    vector<map<string, QueryAnswerElement>> correlation_replacements =
+        proxy->get_correlation_replacements();
+    vector<vector<pair<QueryAnswerElement, QueryAnswerElement>>> correlation_mappings =
+        proxy->get_correlation_mappings();
 
     if (correlation_queries.size() != correlation_replacements.size()) {
         RAISE_ERROR("Invalid correlation queries/replacements. Proxy: " + proxy->to_string());
@@ -320,7 +331,8 @@ void QueryEvolutionProcessor::correlate_similar(shared_ptr<QueryEvolutionProxy> 
 
         // Update AttentionBroker
         handle_lists.clear();
-        LOG_DEBUG("Correlation query: " + (query_tokens.size() == 1 ? query_tokens[0] : Utils::join(query_tokens)));
+        LOG_DEBUG("Correlation query: " +
+                  (query_tokens.size() == 1 ? query_tokens[0] : Utils::join(query_tokens)));
         auto pm_query = issue_correlation_query(proxy, query_tokens);
         while (!pm_query->finished()) {
             shared_ptr<QueryAnswer> answer = pm_query->pop();
@@ -329,7 +341,14 @@ void QueryEvolutionProcessor::correlate_similar(shared_ptr<QueryEvolutionProxy> 
                 for (auto pair : correlation_mappings[i]) {
                     string handle_original_answer = correlation_query_answer->get(pair.first, true);
                     string handle_correlation_answer = answer->get(pair.second, true);
-                    LOG_DEBUG("Picked to correlate: " + AtomDBSingleton::get_instance()->get_atom(handle_original_answer)->metta_representation(*AtomDBSingleton::get_instance().get()) + " -> " + AtomDBSingleton::get_instance()->get_atom(handle_correlation_answer)->metta_representation(*AtomDBSingleton::get_instance().get()));
+                    LOG_DEBUG("Picked to correlate: " +
+                              AtomDBSingleton::get_instance()
+                                  ->get_atom(handle_original_answer)
+                                  ->metta_representation(*AtomDBSingleton::get_instance().get()) +
+                              " -> " +
+                              AtomDBSingleton::get_instance()
+                                  ->get_atom(handle_correlation_answer)
+                                  ->metta_representation(*AtomDBSingleton::get_instance().get()));
                     if ((handle_original_answer != "") && (handle_correlation_answer != "")) {
                         if (handle_lists.find(handle_original_answer) == handle_lists.end()) {
                             handle_lists[handle_original_answer] = {handle_original_answer};
@@ -371,13 +390,14 @@ void QueryEvolutionProcessor::stimulate(shared_ptr<QueryEvolutionProxy> proxy,
 
     map<string, unsigned int> handle_count;
     for (auto pair : selected) {
-        LOG_DEBUG("Selected answer: " + pair.first->to_string(proxy->parameters.get<bool>(BaseQueryProxy::POPULATE_METTA_MAPPING)));
+        LOG_DEBUG("Selected answer: " + pair.first->to_string(proxy->parameters.get<bool>(
+                                            BaseQueryProxy::POPULATE_METTA_MAPPING)));
         float v = (pair.second > MIN_SELECTED_FITNESS ? pair.second : MIN_SELECTED_FITNESS);
         unsigned int value = (unsigned int) std::lround(v * fitness_rate);
         set<string> node_handles;
         for (string handle : pair.first->get_handles_vector()) {
-            //AtomDBSingleton::get_instance()->reachable_terminal_set(node_handles, handle, true);
-            //node_handles.insert(handle);
+            // AtomDBSingleton::get_instance()->reachable_terminal_set(node_handles, handle, true);
+            // node_handles.insert(handle);
         }
         for (auto& correlation : correlation_mappings) {
             for (auto& correlation_pair : correlation) {
@@ -387,11 +407,13 @@ void QueryEvolutionProcessor::stimulate(shared_ptr<QueryEvolutionProxy> proxy,
         for (unsigned int i = 0; i < pair.first->get_paths_size(); i++) {
             for (string handle : pair.first->get_path_vector(i)) {
                 node_handles.insert(handle);
-                //AtomDBSingleton::get_instance()->reachable_terminal_set(node_handles, handle, true);
+                // AtomDBSingleton::get_instance()->reachable_terminal_set(node_handles, handle, true);
             }
         }
         for (string handle : node_handles) {
-            LOG_DEBUG("Picked to stimulate: " + AtomDBSingleton::get_instance()->get_atom(handle)->metta_representation(*AtomDBSingleton::get_instance().get()));
+            LOG_DEBUG("Picked to stimulate: " +
+                      AtomDBSingleton::get_instance()->get_atom(handle)->metta_representation(
+                          *AtomDBSingleton::get_instance().get()));
             unsigned int old_value = handle_count[handle];
             if (value > old_value) {
                 handle_count[handle] = value;
@@ -406,7 +428,8 @@ void QueryEvolutionProcessor::update_attention_allocation(
     shared_ptr<QueryEvolutionProxy> proxy, vector<std::pair<shared_ptr<QueryAnswer>, float>>& selected) {
     unsigned int count = 1;
     for (auto pair : selected) {
-        LOG_DEBUG("Correlating QueryAnswer (" + std::to_string(count) + "/" + std::to_string(selected.size()) + ")");
+        LOG_DEBUG("Correlating QueryAnswer (" + std::to_string(count) + "/" +
+                  std::to_string(selected.size()) + ")");
         correlate_similar(proxy, pair.first);
         count++;
     }
@@ -428,7 +451,8 @@ void QueryEvolutionProcessor::evolve_query(shared_ptr<StoppableThread> monitor,
     RAM_FOOTPRINT_START(evolution);
     STOP_WATCH_START(evolution);
     while (!monitor->stopped() && !proxy->stop_criteria_met()) {
-        LOG_INFO("==================== Generation: " + std::to_string(this->generation_count) + " ====================");
+        LOG_INFO("==================== Generation: " + std::to_string(this->generation_count) +
+                 " ====================");
         RAM_CHECKPOINT("Generation " + std::to_string(this->generation_count));
         STOP_WATCH_START(generation);
         STOP_WATCH_START(sample_population);
@@ -441,7 +465,8 @@ void QueryEvolutionProcessor::evolve_query(shared_ptr<StoppableThread> monitor,
             STOP_WATCH_START(selection);
             select_best_individuals(proxy, population, selected);
             STOP_WATCH_FINISH(selection, "EvolutionIndividualSelection");
-            LOG_INFO("Selected " + std::to_string(selected.size()) + " individuals to update attention allocation.");
+            LOG_INFO("Selected " + std::to_string(selected.size()) +
+                     " individuals to update attention allocation.");
             if (selected.size() > 0) {
                 STOP_WATCH_START(attention_broker);
                 update_attention_allocation(proxy, selected);

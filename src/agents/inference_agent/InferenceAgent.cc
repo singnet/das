@@ -225,7 +225,8 @@ void InferenceAgent::send_distributed_inference_control_request(
     correlation_replacements.push_back(inference_request->get_correlation_query_constants());
     correlation_mapping.push_back(
         *inference_request->get_correlation_mapping().begin());  // TODO check correlation mapping
-    vector<vector<pair<QueryAnswerElement, QueryAnswerElement>>> correlation_mappings = {correlation_mapping};
+    vector<vector<pair<QueryAnswerElement, QueryAnswerElement>>> correlation_mappings = {
+        correlation_mapping};
     QueryEvolutionProxy* evolution_proxy_ptr = new QueryEvolutionProxy(evolution_request,
                                                                        correlation_queries,
                                                                        correlation_replacements,

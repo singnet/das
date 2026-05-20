@@ -53,7 +53,7 @@ void AttentionBrokerClient::asymmetric_correlate(const vector<string>& handles, 
     }
     if (handle_list.list_size() > 0) {
         LOG_DEBUG("Calling AttentionBroker GRPC. Correlating (asymmetric) " << handle_list.list_size()
-                                                                           << " handles");
+                                                                            << " handles");
         stub->asymmetric_correlate(new grpc::ClientContext(), handle_list, &ack);
         if (ack.msg() != "ASYMMETRIC_CORRELATE") {
             RAISE_ERROR("Failed GRPC command: AttentionBroker::asymmetric_correlate()");
@@ -78,7 +78,7 @@ void AttentionBrokerClient::stimulate(const map<string, unsigned int>& handle_ma
     }
     (*handle_count.mutable_map())["SUM"] = sum;
     LOG_DEBUG("Calling AttentionBroker GRPC. Stimulating " << handle_count.mutable_map()->size() - 1
-                                                          << " handles");
+                                                           << " handles");
     stub->stimulate(new grpc::ClientContext(), handle_count, &ack);
     if (ack.msg() != "STIMULATE") {
         RAISE_ERROR("Failed GRPC command: AttentionBroker::stimulate()");
@@ -110,7 +110,7 @@ void AttentionBrokerClient::set_determiners(const vector<vector<string>>& handle
             cursor++;
         }
         LOG_DEBUG("Calling AttentionBroker GRPC. Setting determiners for " << request.list_size()
-                                                                          << " handles");
+                                                                           << " handles");
         stub->set_determiners(new grpc::ClientContext(), request, &ack);
         if (ack.msg() != "SET_DETERMINERS") {
             RAISE_ERROR("Failed GRPC command: AttentionBroker::set_determiners()");
@@ -162,9 +162,9 @@ void AttentionBrokerClient::set_parameters(float rent_rate,
         grpc::CreateChannel(SERVER_ADDRESS, grpc::InsecureChannelCredentials()));
 
     LOG_DEBUG("Calling AttentionBroker GRPC. Setting dynamics parameters. RENT_RATE: "
-             << request.rent_rate()
-             << " SPREADING_RATE_LOWERBOUND: " << request.spreading_rate_lowerbound()
-             << " SPREADING_RATE_UPPERBOUND: " << request.spreading_rate_upperbound());
+              << request.rent_rate()
+              << " SPREADING_RATE_LOWERBOUND: " << request.spreading_rate_lowerbound()
+              << " SPREADING_RATE_UPPERBOUND: " << request.spreading_rate_upperbound());
     stub->set_parameters(new grpc::ClientContext(), request, &ack);
     if (ack.msg() != "SET_PARAMETERS") {
         RAISE_ERROR("Failed GRPC command: AttentionBroker::set_parameters()");

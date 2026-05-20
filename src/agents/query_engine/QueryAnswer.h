@@ -177,7 +177,9 @@ class QueryAnswer {
      * @param merge_handles A flag (defaulted to true) to indicate whether the handles should be
      *        merged (in addition to the assignments).
      */
-    bool merge(QueryAnswer* other, bool merge_handles = true, ImportanceMergeFunction importance_merger = GREATEST);
+    bool merge(QueryAnswer* other,
+               bool merge_handles = true,
+               ImportanceMergeFunction importance_merger = GREATEST);
 
     /**
      *  Make a shallow copy of the passed QueryAnswer.

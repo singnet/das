@@ -246,7 +246,8 @@ float QueryEvolutionProxy::compute_fitness(shared_ptr<QueryAnswer> answer) {
 }
 
 bool QueryEvolutionProxy::stop_criteria_met() {
-    return (this->no_selection_flag || (this->num_generations >= this->parameters.get<unsigned int>(MAX_GENERATIONS)));
+    return (this->no_selection_flag ||
+            (this->num_generations >= this->parameters.get<unsigned int>(MAX_GENERATIONS)));
 }
 
 void QueryEvolutionProxy::new_population_sampled(

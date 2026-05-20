@@ -4,9 +4,9 @@
 #include <cstring>
 #include <iostream>
 
+#include "Hasher.h"
 #include "LinkSchema.h"
 #include "Utils.h"
-#include "Hasher.h"
 
 using namespace query_engine;
 using namespace commons;
@@ -56,7 +56,9 @@ void QueryAnswer::merge_paths(QueryAnswer* other) {
     }
 }
 
-bool QueryAnswer::merge(QueryAnswer* other, bool merge_handles, ImportanceMergeFunction importance_merger) {
+bool QueryAnswer::merge(QueryAnswer* other,
+                        bool merge_handles,
+                        ImportanceMergeFunction importance_merger) {
     if (this->assignment.is_compatible(other->assignment)) {
         for (auto pair : other->assignment.table) {
             if (!other->metta_expression[pair.second].empty()) {

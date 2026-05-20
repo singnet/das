@@ -98,7 +98,6 @@ class Utils {
         }
         return false;
     }
-
 };
 
 }  // namespace commons
