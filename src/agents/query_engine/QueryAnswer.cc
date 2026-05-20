@@ -56,7 +56,7 @@ void QueryAnswer::merge_paths(QueryAnswer* other) {
     }
 }
 
-bool QueryAnswer::merge(QueryAnswer* other, bool merge_handles) {
+bool QueryAnswer::merge(QueryAnswer* other, bool merge_handles, ImportanceMergeFunction importance_merger) {
     if (this->assignment.is_compatible(other->assignment)) {
         for (auto pair : other->assignment.table) {
             if (!other->metta_expression[pair.second].empty()) {
@@ -65,7 +65,15 @@ bool QueryAnswer::merge(QueryAnswer* other, bool merge_handles) {
         }
         this->assignment.add_assignments(other->assignment);
         if (merge_handles) {
-            this->importance = fmax(this->importance, other->importance);
+            if (importance_merger == GREATEST) {
+                this->importance = fmax(this->importance, other->importance);
+            } else if (importance_merger == MULTIPLICATION) {
+                this->importance *= other->importance;
+            } else if (importance_merger == SUM) {
+                this->importance += other->importance;
+            } else {
+                RAISE_ERROR("Invalid importance merger function");
+            }
             this->strength = this->strength * other->strength;
             for (string handle1 : other->handles[0]) {
                 bool flag = true;

@@ -7,7 +7,6 @@
 #include "ServiceBus.h"
 #include "ServiceBusSingleton.h"
 
-#define LOG_LEVEL INFO_LEVEL
 #include "Logger.h"
 
 using namespace evolution;
@@ -142,7 +141,7 @@ void QueryEvolutionProcessor::sample_population(
             Utils::sleep();
         }
     }
-    double renew_rate = ((double) this->visited_individuals.size() - visited_count) / population_size;
+    double renew_rate = ((double) this->visited_individuals.size() - visited_count) / population.size();
     LOG_INFO("Individuals with non-zero importance: " + std::to_string(positive_importance_count));
     LOG_INFO("Renew rate: " + std::to_string(renew_rate));
     if (!pm_query->finished()) {
@@ -231,7 +230,6 @@ void QueryEvolutionProcessor::select_best_individuals(
     vector<std::pair<shared_ptr<QueryAnswer>, float>>& population,
     vector<std::pair<shared_ptr<QueryAnswer>, float>>& selected) {
     double selection_rate = proxy->parameters.get<double>(QueryEvolutionProxy::SELECTION_RATE);
-    bool metta_mapping = proxy->parameters.get<bool>(BaseQueryProxy::POPULATE_METTA_MAPPING);
     unsigned int count = (unsigned int) std::lround(selection_rate * population.size());
     unsigned int population_size = population.size();
 
@@ -252,13 +250,14 @@ void QueryEvolutionProcessor::select_best_individuals(
     for (unsigned int i = 0; i < count; i++) {
         sum += selected[i].second;
 #if LOG_LEVEL >= DEBUG_LEVEL
-        if (! metta_mapping) {
+        if (! proxy->parameters.get<bool>(BaseQueryProxy::POPULATE_METTA_MAPPING)) {
             proxy->populate_metta_mapping(selected[i].first.get());
         }
         LOG_DEBUG("Selected: [" + std::to_string(selected[i].first->strength) + "] " + selected[i].first->to_string(true));
 #endif
     }
-    LOG_INFO("Average fitness in selected group: " + std::to_string(sum / count));
+    LOG_INFO("Average fitness in selected group: " + (count > 0 ? std::to_string(sum / count) : string("NO SELECTION")));
+    proxy->set_no_selection_flag(count == 0);
 }
 
 void QueryEvolutionProcessor::correlate_similar(shared_ptr<QueryEvolutionProxy> proxy,
@@ -266,10 +265,9 @@ void QueryEvolutionProcessor::correlate_similar(shared_ptr<QueryEvolutionProxy> 
     vector<string> query_tokens;
     map<string, vector<string>> handle_lists;
     vector<vector<string>> correlation_queries = proxy->get_correlation_queries();
-    vector<map<string, QueryAnswerElement>> correlation_replacements =
-        proxy->get_correlation_replacements();
-    vector<pair<QueryAnswerElement, QueryAnswerElement>> correlation_mappings =
-        proxy->get_correlation_mappings();
+    vector<map<string, QueryAnswerElement>> correlation_replacements = proxy->get_correlation_replacements();
+    vector<vector<pair<QueryAnswerElement, QueryAnswerElement>>> correlation_mappings = proxy->get_correlation_mappings();
+
     if (correlation_queries.size() != correlation_replacements.size()) {
         RAISE_ERROR("Invalid correlation queries/replacements. Proxy: " + proxy->to_string());
     }
@@ -322,14 +320,16 @@ void QueryEvolutionProcessor::correlate_similar(shared_ptr<QueryEvolutionProxy> 
 
         // Update AttentionBroker
         handle_lists.clear();
+        LOG_DEBUG("Correlation query: " + (query_tokens.size() == 1 ? query_tokens[0] : Utils::join(query_tokens)));
         auto pm_query = issue_correlation_query(proxy, query_tokens);
         while (!pm_query->finished()) {
             shared_ptr<QueryAnswer> answer = pm_query->pop();
             string word;
             if (answer != NULL) {
-                for (auto pair : correlation_mappings) {
+                for (auto pair : correlation_mappings[i]) {
                     string handle_original_answer = correlation_query_answer->get(pair.first, true);
                     string handle_correlation_answer = answer->get(pair.second, true);
+                    LOG_DEBUG("Picked to correlate: " + AtomDBSingleton::get_instance()->get_atom(handle_original_answer)->metta_representation(*AtomDBSingleton::get_instance().get()) + " -> " + AtomDBSingleton::get_instance()->get_atom(handle_correlation_answer)->metta_representation(*AtomDBSingleton::get_instance().get()));
                     if ((handle_original_answer != "") && (handle_correlation_answer != "")) {
                         if (handle_lists.find(handle_original_answer) == handle_lists.end()) {
                             handle_lists[handle_original_answer] = {handle_original_answer};
@@ -350,7 +350,7 @@ void QueryEvolutionProcessor::correlate_similar(shared_ptr<QueryEvolutionProxy> 
 void QueryEvolutionProcessor::stimulate(shared_ptr<QueryEvolutionProxy> proxy,
                                         vector<std::pair<shared_ptr<QueryAnswer>, float>>& selected) {
     LOG_INFO("Stimulating " + std::to_string(selected.size()) + " selected QueryAnswers");
-    vector<pair<QueryAnswerElement, QueryAnswerElement>> correlation_mappings =
+    vector<vector<pair<QueryAnswerElement, QueryAnswerElement>>> correlation_mappings =
         proxy->get_correlation_mappings();
     if (correlation_mappings.size() == 0) {
         RAISE_ERROR("Invalid correlation mappings. Proxy: " + proxy->to_string());
@@ -370,27 +370,28 @@ void QueryEvolutionProcessor::stimulate(shared_ptr<QueryEvolutionProxy> proxy,
     float fitness_rate = (1.0 / min_fitness);
 
     map<string, unsigned int> handle_count;
-    auto db = AtomDBSingleton::get_instance();
     for (auto pair : selected) {
-        LOG_DEBUG("Selected answer: " + pair->first->to_string(proxy->parameters.get<bool>(BaseQueryProxy::POPULATE_METTA_MAPPING)));
+        LOG_DEBUG("Selected answer: " + pair.first->to_string(proxy->parameters.get<bool>(BaseQueryProxy::POPULATE_METTA_MAPPING)));
         float v = (pair.second > MIN_SELECTED_FITNESS ? pair.second : MIN_SELECTED_FITNESS);
         unsigned int value = (unsigned int) std::lround(v * fitness_rate);
         set<string> node_handles;
         for (string handle : pair.first->get_handles_vector()) {
-            //db->reachable_terminal_set(node_handles, handle, true);
+            //AtomDBSingleton::get_instance()->reachable_terminal_set(node_handles, handle, true);
             //node_handles.insert(handle);
         }
-        for (auto correlation_pair : correlation_mappings) {
-            node_handles.insert(pair.first->get(correlation_pair.first, true));
+        for (auto& correlation : correlation_mappings) {
+            for (auto& correlation_pair : correlation) {
+                node_handles.insert(pair.first->get(correlation_pair.first, true));
+            }
         }
         for (unsigned int i = 0; i < pair.first->get_paths_size(); i++) {
             for (string handle : pair.first->get_path_vector(i)) {
                 node_handles.insert(handle);
-                //db->reachable_terminal_set(node_handles, handle, true);
+                //AtomDBSingleton::get_instance()->reachable_terminal_set(node_handles, handle, true);
             }
         }
         for (string handle : node_handles) {
-            LOG_DEBUG("Picked to stimulate: " + db->get_atom(handle)->to_string());
+            LOG_DEBUG("Picked to stimulate: " + AtomDBSingleton::get_instance()->get_atom(handle)->metta_representation(*AtomDBSingleton::get_instance().get()));
             unsigned int old_value = handle_count[handle];
             if (value > old_value) {
                 handle_count[handle] = value;
@@ -454,6 +455,7 @@ void QueryEvolutionProcessor::evolve_query(shared_ptr<StoppableThread> monitor,
         this->generation_count++;
     }
     proxy->flush_answer_bundle();
+    LOG_INFO("--------------------");
     LOG_INFO("Total number of visited individuals: " + std::to_string(this->visited_individuals.size()));
     LOG_INFO("Average renew rate per generation: " +
              std::to_string(

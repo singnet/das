@@ -9,6 +9,8 @@ using namespace query_element;
 using namespace atomdb;
 using namespace commons;
 
+Chain::Path::ImportanceCompositionStrategy Chain::Path::importance_composer = Chain::Path::AVERAGE;
+
 static string convert_handle(const string& handle) {
 #if LOG_LEVEL >= DEBUG_LEVEL
     shared_ptr<Node> node =

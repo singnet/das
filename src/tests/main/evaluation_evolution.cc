@@ -25,8 +25,6 @@
 #include "Utils.h"
 #include "commons/atoms/MettaParserActions.h"
 
-#define USE_MORK ((bool) true)
-
 // Symbols
 #define AND_OPERATOR "AND"
 #define ANDNOT_OPERATOR "ANDNOT"
@@ -85,6 +83,7 @@ static string TARGET_PREDICATE = "undefined";
 static string TARGET_CONCEPT_HANDLE = "undefined";
 static string TARGET_PREDICATE_HANDLE = "undefined";
 
+static bool USE_MORK = false;
 static bool SETUP_ONLY = false;
 
 static string PRESET_LINKS_FILE_PREFIX = "/opt/das/_PRESET_LINKS_";
@@ -151,6 +150,64 @@ static void save_link_metta(Link& link) {
     } else {
         RAISE_ERROR("Couldn't open file for writing: " + PRESET_LINKS_FILE);
     }
+}
+
+static string answer_to_string_1(shared_ptr<QueryAnswer> answer) {
+    vector<string> paths;
+    for (unsigned int i = 0; i < 2; i++) {
+        if (answer->get_paths_size() != 2) {
+            RAISE_ERROR("Invalid answer: " + answer->to_string());
+        }
+        string path = "";
+        vector<string> path_link = {" -> ", " -> "};
+        bool first = true;
+        for (string& handle : answer->get_path_vector(i)) {
+            auto link = db->get_link(handle);
+            auto target1 = db->get_link(link->targets[1]);
+            auto target2 = db->get_link(link->targets[2]);
+            if (first) {
+                first = false;
+                path = target1->metta_representation(*static_pointer_cast<HandleDecoder>(db).get()) + path_link[i];
+            }
+            path += target2->metta_representation(*static_pointer_cast<HandleDecoder>(db).get());
+            path += path_link[i];
+        }
+        if (answer->get_path_vector(i).size() > 0) {
+            path.pop_back();
+            path.pop_back();
+            path.pop_back();
+            path.pop_back();
+        }
+        paths.push_back(path);
+    }
+    return "[" + std::to_string(answer->strength) + "]: " + paths[0] + " | " + paths[1];
+}
+
+static string answer_to_string(shared_ptr<QueryAnswer> answer) {
+    if (answer->get_paths_size() != 1) {
+        RAISE_ERROR("Invalid answer: " + answer->to_string());
+    }
+    string path = "";
+    string path_link = " -> ";
+    bool first = true;
+    for (string& handle : answer->get_path_vector(0)) {
+        auto link = db->get_link(handle);
+        auto target1 = db->get_link(link->targets[1]);
+        auto target2 = db->get_link(link->targets[2]);
+        if (first) {
+            first = false;
+            path = target1->metta_representation(*static_pointer_cast<HandleDecoder>(db).get()) + path_link;
+        }
+        path += target2->metta_representation(*static_pointer_cast<HandleDecoder>(db).get());
+        path += path_link;
+    }
+    if (answer->get_path_vector(0).size() > 0) {
+        path.pop_back();
+        path.pop_back();
+        path.pop_back();
+        path.pop_back();
+    }
+    return "[" + std::to_string(answer->strength) + "]: " + path;
 }
 
 static shared_ptr<PatternMatchingQueryProxy> issue_link_building_query(
@@ -322,7 +379,7 @@ static Link add_or_update_link(const string& type_handle,
             }
             db->add_link(&new_link);
             buffer_determiners.push_back({handle, target1, target2});
-            buffer_activation[handle] = 1;
+            //buffer_activation[handle] = 1;
         }
         if (WRITE_CREATED_LINKS_TO_FILE) {
             LOG_DEBUG("Writing Link to file: " + PRESET_LINKS_FILE);
@@ -410,8 +467,6 @@ static bool build_implication_link(shared_ptr<QueryAnswer> query_answer,
                                    const string& custom_handle) {
     string predicates[2];
     string metta_predicates[2];
-    // build Evaluation of the AND of both predicates
-    build_and_predicate_link(query_answer, context, custom_handle);
     if (custom_handle == "") {
         predicates[0] = query_answer->get(PREDICATE1);
         predicates[1] = query_answer->get(PREDICATE2);
@@ -437,10 +492,16 @@ static bool build_implication_link(shared_ptr<QueryAnswer> query_answer,
         return false;
     }
 
+    // build Evaluation of the AND of both predicates
+    build_and_predicate_link(query_answer, context, custom_handle);
+
     vector<vector<string>> query;
     for (unsigned int i = 0; i < 2; i++) {
         // clang-format off
         if (USE_MORK) {
+            /*
+            vector<string> metta_query = {metta_expr3(EVALUATION, metta_predicates[i], metta_var(CONCEPT1))};
+            */
             vector<string> metta_query = {
                 metta_or(
                     metta_expr3(EVALUATION, metta_predicates[i], metta_var(CONCEPT1)),
@@ -450,6 +511,14 @@ static bool build_implication_link(shared_ptr<QueryAnswer> query_answer,
             LOG_DEBUG("Counting query (implication): " + metta_query[0]);
             query.push_back(metta_query);
         } else {
+            /*
+            query.push_back({
+                LINK_TEMPLATE, EXPRESSION, "3",
+                    NODE, SYMBOL, EVALUATION,
+                    ATOM, predicates[i],
+                    VARIABLE, CONCEPT1,
+            });
+            */
             query.push_back({
                 OR_OPERATOR, "2",
                     LINK_TEMPLATE, EXPRESSION, "3",
@@ -526,6 +595,9 @@ static bool build_equivalence_link(shared_ptr<QueryAnswer> query_answer,
     for (unsigned int i = 0; i < 2; i++) {
         // clang-format off
         if (USE_MORK) {
+            /*
+            vector<string> metta_query = {metta_expr3(EVALUATION, metta_var(PREDICATE1), metta_concepts[i])};
+            */
             vector<string> metta_query = {
                 metta_or(
                     metta_expr3(EVALUATION, metta_var(PREDICATE1), metta_concepts[i]),
@@ -535,6 +607,14 @@ static bool build_equivalence_link(shared_ptr<QueryAnswer> query_answer,
             LOG_DEBUG("Counting query (equivalence): " + metta_query[0]);
             query.push_back(metta_query);
         } else {
+            /*
+            query.push_back({
+                LINK_TEMPLATE, EXPRESSION, "3",
+                    NODE, SYMBOL, EVALUATION,
+                    VARIABLE, PREDICATE1,
+                    ATOM, concepts[i],
+            });
+            */
             query.push_back({
                 OR_OPERATOR, "2",
                 LINK_TEMPLATE, EXPRESSION, "3",
@@ -614,18 +694,28 @@ static void query_evolution(
 
     QueryAnswerElement qa_predicate(PREDICATE);
     QueryAnswerElement qa_concept(CONCEPT);
+
+    vector<map<string, QueryAnswerElement>> correlation_query_constants_1 = {
+        {{V1, qa_predicate}},
+        {{V2, qa_concept}}
+    };
+    vector<vector<pair<QueryAnswerElement, QueryAnswerElement>>> correlation_mapping_1 = {
+        {{qa_concept, qa_concept}},
+        {{qa_predicate, qa_predicate}}
+    };
+
     vector<map<string, QueryAnswerElement>> correlation_query_constants = {
-        {{V1, qa_predicate}, {V2, qa_concept}}
+        {{V1, qa_predicate}},
     };
     vector<vector<pair<QueryAnswerElement, QueryAnswerElement>>> correlation_mapping = {
-        {{qa_predicate, qa_predicate}, {qa_concept, qa_concept}}
+        {{qa_concept, qa_concept}},
     };
 
     QueryEvolutionProxy* proxy_ptr = new QueryEvolutionProxy(
         query_to_evolve,
         correlation_query_template,
         correlation_query_constants,
-        correlation_mapping[0],
+        correlation_mapping,
         context,
         FITNESS_FUNCTION);
 
@@ -659,7 +749,8 @@ static void query_evolution(
             count_answers++;
             if (query_answer->strength > best_fitness) {
                 best_fitness = query_answer->strength;
-                LOG_INFO("ANSWER: [" + std::to_string(query_answer->strength) + "]: " + query_answer->to_string(true));
+                //LOG_INFO("ANSWER: [" + std::to_string(query_answer->strength) + "]: " + query_answer->to_string(true));
+                LOG_INFO("ANSWER: " + answer_to_string(query_answer));
                 recorded_answers.push_back({query_answer, iteration});
             }
         }
@@ -876,7 +967,7 @@ static void run(const string& context_tag) {
             metta_expr3(EVALUATION, metta_var(PREDICATE), TARGET_CONCEPT))
     };
 
-    vector<string> query_to_evolve = {
+    vector<string> query_to_evolve_1 = {
         AND_OPERATOR, "3",
             LINK_TEMPLATE, EXPRESSION, "3",
                 NODE, SYMBOL, EVALUATION,
@@ -897,30 +988,57 @@ static void run(const string& context_tag) {
                     VARIABLE, CONCEPT1,
                     VARIABLE, CONCEPT2,
     };
-    vector<string> metta_query_to_evolve = {
+    vector<string> metta_query_to_evolve_1 = {
         metta_and(
             metta_and(
                 metta_expr3(EVALUATION, metta_var(PREDICATE), metta_var(CONCEPT)),
                 metta_chain(metta_var(CONCEPT), TARGET_CONCEPT, metta_expr3(EQUIVALENCE, metta_var(CONCEPT1) , metta_var(CONCEPT2)))),
             metta_chain(metta_var(PREDICATE), TARGET_PREDICATE, metta_expr3(IMPLICATION, metta_var(PREDICATE1) , metta_var(PREDICATE2))))
     };
-
-    vector<vector<string>> correlation_query_template = {{
-        OR_OPERATOR, "2",
-            LINK_TEMPLATE, EXPRESSION, "3",
-                NODE, SYMBOL, EVALUATION,
-                VARIABLE, V1,
-                VARIABLE, CONCEPT,
+    vector<string> query_to_evolve = {
+        AND_OPERATOR, "2",
             LINK_TEMPLATE, EXPRESSION, "3",
                 NODE, SYMBOL, EVALUATION,
                 VARIABLE, PREDICATE,
-                VARIABLE, V2,
-    }};
-    vector<vector<string>> correlation_metta_query_template = {{
-        metta_or(
-            metta_expr3(EVALUATION, metta_var(V1), metta_var(CONCEPT)),
-            metta_expr3(EVALUATION, metta_var(PREDICATE), metta_var(V2)))
-    }};
+                ATOM, TARGET_CONCEPT_HANDLE,
+            CHAIN_OPERATOR, "0", "1", "2",
+                VARIABLE, PREDICATE,
+                ATOM, TARGET_PREDICATE_HANDLE,
+                LINK_TEMPLATE, EXPRESSION, "3",
+                    NODE, SYMBOL, IMPLICATION,
+                    VARIABLE, PREDICATE1,
+                    VARIABLE, PREDICATE2,
+    };
+    vector<string> metta_query_to_evolve = {
+        metta_and(
+            metta_expr3(EVALUATION, metta_var(PREDICATE), TARGET_CONCEPT),
+            metta_chain(metta_var(PREDICATE), TARGET_PREDICATE, metta_expr3(IMPLICATION, metta_var(PREDICATE1) , metta_var(PREDICATE2))))
+    };
+
+    vector<vector<string>> correlation_query_template_1 = {
+        {LINK_TEMPLATE, EXPRESSION, "3",
+            NODE, SYMBOL, EVALUATION,
+            VARIABLE, V1,
+            VARIABLE, CONCEPT},
+        {LINK_TEMPLATE, EXPRESSION, "3",
+            NODE, SYMBOL, EVALUATION,
+            VARIABLE, PREDICATE,
+            VARIABLE, V2}
+    };
+    vector<vector<string>> correlation_metta_query_template_1 = {
+        {metta_expr3(EVALUATION, metta_var(V1), metta_var(CONCEPT))},
+        {metta_expr3(EVALUATION, metta_var(PREDICATE), metta_var(V2))}
+    };
+
+    vector<vector<string>> correlation_query_template = {
+        {LINK_TEMPLATE, EXPRESSION, "3",
+            NODE, SYMBOL, EVALUATION,
+            VARIABLE, V1,
+            VARIABLE, CONCEPT},
+    };
+    vector<vector<string>> correlation_metta_query_template = {
+        {metta_expr3(EVALUATION, metta_var(V1), metta_var(CONCEPT))},
+    };
 
     vector<string> context_determiner_query = {
         LINK_TEMPLATE, EXPRESSION, "3",
@@ -1047,16 +1165,17 @@ static void run(const string& context_tag) {
             build_links(equivalence_query, context, LINK_BUILDING_QUERY_SIZE, "", build_equivalence_link);
             LOG_INFO("----- Updating AttentionBroker");
             AttentionBrokerClient::set_determiners(buffer_determiners, context);
-            AttentionBrokerClient::stimulate(buffer_activation, context);
+            //AttentionBrokerClient::stimulate(buffer_activation, context);
             buffer_determiners.clear();
-            buffer_activation.clear();
+            //buffer_activation.clear();
         }
     }
 
     LOG_INFO("--------------------------------------------------------------------------------");
     LOG_INFO("Finished. Recorded results:");
     for (auto pair : recorded_answers) {
-        LOG_INFO(std::to_string(pair.second) + " [" + std::to_string(pair.first->strength) + "]: " + pair.first->to_string(true));
+        //LOG_INFO(std::to_string(pair.second) + " [" + std::to_string(pair.first->strength) + "]: " + pair.first->to_string(true));
+        LOG_INFO("ANSWER: " + answer_to_string(pair.first) + " [" + std::to_string(pair.second) + "]");
     }
     LOG_INFO("--------------------------------------------------------------------------------");
 }

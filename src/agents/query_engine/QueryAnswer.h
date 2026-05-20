@@ -97,6 +97,7 @@ class QueryAnswerElement {
  */
 class QueryAnswer {
    public:
+    enum ImportanceMergeFunction { GREATEST, MULTIPLICATION, SUM };
     /**
      * Estimated importance of this QueryAnswer based on the importance of its constituents.
      */
@@ -176,7 +177,7 @@ class QueryAnswer {
      * @param merge_handles A flag (defaulted to true) to indicate whether the handles should be
      *        merged (in addition to the assignments).
      */
-    bool merge(QueryAnswer* other, bool merge_handles = true);
+    bool merge(QueryAnswer* other, bool merge_handles = true, ImportanceMergeFunction importance_merger = GREATEST);
 
     /**
      *  Make a shallow copy of the passed QueryAnswer.
