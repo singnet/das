@@ -30,6 +30,7 @@ using namespace metta;
 using namespace attention_broker;
 
 string PatternMatchingQueryProcessor::AND = "AND";
+string PatternMatchingQueryProcessor::ANDNOT = "ANDNOT";
 string PatternMatchingQueryProcessor::OR = "OR";
 string PatternMatchingQueryProcessor::CHAIN = "CHAIN";
 
@@ -297,7 +298,7 @@ shared_ptr<QueryElement> PatternMatchingQueryProcessor::setup_query_tree(
             cursor += 3;
         } else if ((query_tokens[cursor] == LinkSchema::UNTYPED_VARIABLE) ||
                    (query_tokens[cursor] == LinkSchema::ATOM) || (query_tokens[cursor] == AND) ||
-                   (query_tokens[cursor] == OR)) {
+                   (query_tokens[cursor] == ANDNOT) || (query_tokens[cursor] == OR)) {
             cursor += 2;
         } else if (query_tokens[cursor] == CHAIN) {
             cursor += 4;
@@ -327,7 +328,12 @@ shared_ptr<QueryElement> PatternMatchingQueryProcessor::setup_query_tree(
         } else if (query_tokens[cursor] == LinkSchema::LINK_TEMPLATE) {
             element_stack.push(build_link_template(proxy, cursor, element_stack));
         } else if (query_tokens[cursor] == AND) {
-            element_stack.push(build_and(proxy, cursor, element_stack));
+            element_stack.push(build_and(proxy, false, cursor, element_stack));
+            if (proxy->parameters.get<bool>(BaseQueryProxy::UNIQUE_ASSIGNMENT_FLAG)) {
+                element_stack.push(build_unique_assignment_filter(proxy, cursor, element_stack));
+            }
+        } else if (query_tokens[cursor] == ANDNOT) {
+            element_stack.push(build_and(proxy, true, cursor, element_stack));
             if (proxy->parameters.get<bool>(BaseQueryProxy::UNIQUE_ASSIGNMENT_FLAG)) {
                 element_stack.push(build_unique_assignment_filter(proxy, cursor, element_stack));
             }
@@ -381,7 +387,7 @@ shared_ptr<QueryElement> PatternMatchingQueryProcessor::build_link_template(
     return link_template;
 }
 
-#define BUILD_AND(N)                                                                              \
+#define BUILD_AND(N, AND_NOT_FLAG)                                                                \
     {                                                                                             \
         vector<shared_ptr<QueryElement>> link_templates;                                          \
         array<shared_ptr<QueryElement>, N> clauses;                                               \
@@ -400,11 +406,12 @@ shared_ptr<QueryElement> PatternMatchingQueryProcessor::build_link_template(
             }                                                                                     \
             element_stack.pop();                                                                  \
         }                                                                                         \
-        return make_shared<And<N>>(clauses, link_templates);                                      \
+        return make_shared<And<N>>(clauses, link_templates, AND_NOT_FLAG);                        \
     }
 
 shared_ptr<QueryElement> PatternMatchingQueryProcessor::build_and(
     shared_ptr<PatternMatchingQueryProxy> proxy,
+    bool and_not_flag,
     unsigned int cursor,
     stack<shared_ptr<QueryElement>>& element_stack) {
     const vector<string> query_tokens = proxy->get_query_tokens();
@@ -414,16 +421,16 @@ shared_ptr<QueryElement> PatternMatchingQueryProcessor::build_and(
     }
     // clang-format off
     switch (num_clauses) {
-        case  1: BUILD_AND(1)
-        case  2: BUILD_AND(2)
-        case  3: BUILD_AND(3)
-        case  4: BUILD_AND(4)
-        case  5: BUILD_AND(5)
-        case  6: BUILD_AND(6)
-        case  7: BUILD_AND(7)
-        case  8: BUILD_AND(8)
-        case  9: BUILD_AND(9)
-        case 10: BUILD_AND(10)
+        case  1: BUILD_AND(1, and_not_flag)
+        case  2: BUILD_AND(2, and_not_flag)
+        case  3: BUILD_AND(3, and_not_flag)
+        case  4: BUILD_AND(4, and_not_flag)
+        case  5: BUILD_AND(5, and_not_flag)
+        case  6: BUILD_AND(6, and_not_flag)
+        case  7: BUILD_AND(7, and_not_flag)
+        case  8: BUILD_AND(8, and_not_flag)
+        case  9: BUILD_AND(9, and_not_flag)
+        case 10: BUILD_AND(10, and_not_flag)
         // clang-format on
         default: {
             RAISE_ERROR("PATTERN_MATCHING_QUERY message: max supported num_clauses for AND: 10");

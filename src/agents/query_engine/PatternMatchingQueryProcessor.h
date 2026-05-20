@@ -64,6 +64,7 @@ class PatternMatchingQueryProcessor : public BusCommandProcessor {
                                                   stack<shared_ptr<QueryElement>>& element_stack);
 
     shared_ptr<QueryElement> build_and(shared_ptr<PatternMatchingQueryProxy> proxy,
+                                       bool and_not_flag,
                                        unsigned int cursor,
                                        stack<shared_ptr<QueryElement>>& element_stack);
 
@@ -91,6 +92,7 @@ class PatternMatchingQueryProcessor : public BusCommandProcessor {
     shared_ptr<PatternMatchingQueryProxy> proxy;
     shared_ptr<AtomDB> atomdb;
     static string AND;
+    static string ANDNOT;
     static string OR;
     static string CHAIN;
 };
