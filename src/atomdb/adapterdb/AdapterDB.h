@@ -13,6 +13,8 @@
 #include <vector>
 
 #include "AtomDB.h"
+#include "BoundedSharedQueue.h"
+#include "DatabaseMappingStrategy.h"
 #include "DatabaseTypes.h"
 #include "JsonConfig.h"
 #include "Utils.h"
@@ -24,7 +26,7 @@ namespace atomdb {
 
 enum class AdapterDbType { Postgres };
 
-inline AdapterDbType parse_adapter_db_type(const std::string& value) {
+inline AdapterDbType parse_adapter_db_type(const string& value) {
     if (value == "postgres") return AdapterDbType::Postgres;
     RAISE_ERROR("Unsupported adapterdb.type: " + value);
 }
@@ -32,7 +34,7 @@ inline AdapterDbType parse_adapter_db_type(const std::string& value) {
 class AdapterDB : public AtomDB {
    public:
     explicit AdapterDB(const JsonConfig& config);
-    AdapterDB(const JsonConfig& config, std::shared_ptr<AtomDB> backend);  // for testing
+    AdapterDB(const JsonConfig& config, shared_ptr<AtomDB> backend);  // for testing
     ~AdapterDB() override;
 
     static string MONGODB_ADAPTER_COLLECTION_NAME;
@@ -103,6 +105,7 @@ class AdapterDB : public AtomDB {
     size_t atom_count() const override;
 
    private:
+    AdapterDbType adapter_type;
     JsonConfig config;
     shared_ptr<AtomDB> atomdb_backend;
     atomic<bool> backend_ready{false};
@@ -141,6 +144,9 @@ class AdapterDB : public AtomDB {
      * vector of strings.
      */
     vector<string> get_mapping_file_contents() const;
+
+    shared_ptr<DatabaseMappingStrategy> create_mapping_strategy(
+        shared_ptr<BoundedSharedQueue> queue) const;
 
     /**
      * @brief Runs the full adapter pipeline (orchestrator -> persister) synchronously.

@@ -6,14 +6,13 @@
 #include <memory>
 #include <mutex>
 #include <optional>
-#include <pqxx/pqxx>
 #include <regex>
 #include <string>
 #include <vector>
 
 #include "BoundedSharedQueue.h"
-#include "DatabaseConnection.h"
-#include "DatabaseWrapper.h"
+#include "PostgresConnection.h"
+#include "SqlWrapper.h"
 
 #define MAX_VALUE_SIZE ((size_t) 1000)
 
@@ -22,31 +21,6 @@ using namespace atoms;
 using namespace commons;
 
 namespace db_adapter {
-
-class PostgresDatabaseConnection : public DatabaseConnection {
-   public:
-    PostgresDatabaseConnection(const string& id,
-                               const string& host,
-                               int port,
-                               const string& database,
-                               const string& user,
-                               const string& password);
-    ~PostgresDatabaseConnection();
-
-    void connect() override;
-    void disconnect() override;
-    pqxx::result execute_query(const string& query);
-    void begin_cursor(const string& cursor_name, const string& query);
-    pqxx::result fetch_cursor(const string& cursor_name, size_t limit);
-    void close_cursor();
-
-   protected:
-    unique_ptr<pqxx::connection> conn;
-    unique_ptr<pqxx::work> transaction;
-    string database;
-    string user;
-    string password;
-};
 
 /**
  * @class PostgresWrapper
@@ -61,7 +35,7 @@ class PostgresWrapper : public SQLWrapper {
      * @param output_queue Optional shared queue for outputting mapped data.
      * @param mapper_type The strategy for mapping results.
      */
-    PostgresWrapper(PostgresDatabaseConnection& db_conn,
+    PostgresWrapper(PostgresConnection& db_conn,
                     shared_ptr<BoundedSharedQueue> output_queue = nullptr,
                     MAPPER_TYPE mapper_type = MAPPER_TYPE::SQL2ATOMS);
 
@@ -75,17 +49,18 @@ class PostgresWrapper : public SQLWrapper {
                    bool second_level = false) override;
     void map_sql_query(const string& virtual_name, const string& raw_query) override;
 
-   protected:
-    // Regex for parsing alias patterns (e.g., "AS public_feature__uniquename")
-    const string alias_pattern_regex = R"(\bAS\s+([a-zA-Z_][a-zA-Z0-9_]*)__([a-zA-Z_][a-zA-Z0-9_]*))";
-
    private:
+    // Regex for parsing alias patterns (e.g., "AS public_feature__uniquename")
+    static constexpr const char* ALIAS_PATTERN_REGEX =
+        R"(\bAS\s+([a-zA-Z_][a-zA-Z0-9_]*)__([a-zA-Z_][a-zA-Z0-9_]*))";
+
     atomic<int> count = 0;
     mutex api_mutex;
-    PostgresDatabaseConnection& db_conn;
+    PostgresConnection& db_conn;
     shared_ptr<BoundedSharedQueue> output_queue;
     optional<vector<Table>> tables_cache;
     unordered_map<string, int> tables_rows_count;
+
     vector<string> build_columns_to_map(const Table& table, const vector<string>& skip_columns = {});
     vector<string> collect_fk_ids(const string& table_name,
                                   const string& column_name,
