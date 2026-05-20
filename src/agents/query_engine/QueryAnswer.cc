@@ -350,7 +350,9 @@ string QueryAnswer::get(unsigned int key, bool return_empty_when_not_found) {
     return answer;
 }
 
-string QueryAnswer::get(unsigned int key_path, unsigned int key_element, bool return_empty_when_not_found) {
+string QueryAnswer::get(unsigned int key_path,
+                        unsigned int key_element,
+                        bool return_empty_when_not_found) {
     string answer = "";
     if (key_path < (this->handles.size() - 1)) {
         if (key_element < this->handles[key_path + 1].size()) {
@@ -358,7 +360,8 @@ string QueryAnswer::get(unsigned int key_path, unsigned int key_element, bool re
         }
     }
     if ((answer == "") && (!return_empty_when_not_found)) {
-        RAISE_ERROR("Invalid path element key: " + std::to_string(key_path) + " " + std::to_string(key_element));
+        RAISE_ERROR("Invalid path element key: " + std::to_string(key_path) + " " +
+                    std::to_string(key_element));
     }
     return answer;
 }

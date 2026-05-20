@@ -1,7 +1,7 @@
 #include <cstdlib>
 #include <cstring>
-#include <unordered_set>
 #include <set>
+#include <unordered_set>
 
 #include "QueryAnswer.h"
 #include "Utils.h"
@@ -408,7 +408,7 @@ TEST(QueryAnswer, get_query_answer_element) {
     QueryAnswerElement element9(1, 0);
     QueryAnswerElement element10(2, 0);
     QueryAnswerElement element11(1, 1);
-    EXPECT_THROW({QueryAnswerElement element12(QueryAnswerElement::HANDLE);}, runtime_error);
+    EXPECT_THROW({ QueryAnswerElement element12(QueryAnswerElement::HANDLE); }, runtime_error);
     QueryAnswerElement element13(QueryAnswerElement::ALL_HANDLES);
     QueryAnswerElement element14(QueryAnswerElement::ALL_PATH_HANDLES);
     QueryAnswerElement element15(QueryAnswerElement::ALL_VARIABLE_VALUES);

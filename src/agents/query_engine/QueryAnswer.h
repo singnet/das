@@ -19,7 +19,15 @@ namespace query_engine {
 
 class QueryAnswerElement {
    public:
-    enum ElementType { UNDEFINED = 0, HANDLE, PATH, VARIABLE, ALL_HANDLES, ALL_PATH_HANDLES, ALL_VARIABLE_VALUES };
+    enum ElementType {
+        UNDEFINED = 0,
+        HANDLE,
+        PATH,
+        VARIABLE,
+        ALL_HANDLES,
+        ALL_PATH_HANDLES,
+        ALL_VARIABLE_VALUES
+    };
     ElementType type;
     unsigned int path_index;
     unsigned int element_index;
@@ -31,10 +39,14 @@ class QueryAnswerElement {
         }
     }
     QueryAnswerElement(unsigned int key) : type(HANDLE), element_index(key) {}
-    QueryAnswerElement(unsigned int key_path, unsigned int key_element) : type(PATH), path_index(key_path), element_index(key_element) {}
+    QueryAnswerElement(unsigned int key_path, unsigned int key_element)
+        : type(PATH), path_index(key_path), element_index(key_element) {}
     QueryAnswerElement(const string& key) : type(VARIABLE), name(key) {}
     QueryAnswerElement(const QueryAnswerElement& other)
-        : type(other.type), path_index(other.path_index), element_index(other.element_index), name(other.name) {}
+        : type(other.type),
+          path_index(other.path_index),
+          element_index(other.element_index),
+          name(other.name) {}
     QueryAnswerElement& operator=(const QueryAnswerElement& other) {
         this->type = other.type;
         this->path_index = other.path_index;
@@ -87,9 +99,10 @@ class QueryAnswerElement {
         } else if (s[0] == '>') {
             vector<string> keys = Utils::split(s.substr(1, s.size() - 1), '_');
             if (keys.size() == 2) {
-                return QueryAnswerElement(Utils::string_to_uint(keys[0]), Utils::string_to_uint(keys[1]));
+                return QueryAnswerElement(Utils::string_to_uint(keys[0]),
+                                          Utils::string_to_uint(keys[1]));
             }
-        } 
+        }
         RAISE_ERROR("Invalid QueryAnswerElement string representation: " + s);
         return QueryAnswerElement();
     }
@@ -264,7 +277,9 @@ class QueryAnswer {
     string get(const QueryAnswerElement& element_key, bool return_empty_when_not_found = false);
     string get(const string& key, bool return_empty_when_not_found = false);
     string get(unsigned int key, bool return_empty_when_not_found = false);
-    string get(unsigned int key_path, unsigned int key_element, bool return_empty_when_not_found = false);
+    string get(unsigned int key_path,
+               unsigned int key_element,
+               bool return_empty_when_not_found = false);
 
     /**
      * Returns the elements indicated by the passed QueryAnswerElement key, it can be either
