@@ -802,6 +802,30 @@ cc_test(
 )
 
 cc_test(
+    name = "atomdbutils_test",
+    size = "small",
+    srcs = ["atomdbutils_test.cc"],
+    copts = [
+        "-Iexternal/gtest/googletest/include",
+        "-Iexternal/gtest/googletest",
+    ],
+    linkopts = [
+        "-L/usr/local/lib",
+        "-lhiredis_cluster",
+        "-lhiredis",
+        "-lmongocxx",
+        "-lbsoncxx",
+    ],
+    linkstatic = 1,
+    deps = [
+        "//atomdb:atomdb_lib",
+        "//commons/atoms:atoms_lib",
+        "//tests/cpp/test_commons:test_atomdb_json_config",
+        "@com_github_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
     name = "remote_atomdb_test",
     size = "small",
     srcs = ["remote_atomdb_test.cc"],
