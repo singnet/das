@@ -60,7 +60,6 @@ BAZELISK_RUN_CMD="${BAZELISK_CMD} run"
 BAZEL_BINARY_TARGETS=(
   "//:word_query"
   "//:word_query_evolution"
-  "//:implication_query_evolution"
   "//:attention_broker_service"
   "//:attention_broker_client"
   "//:das"
@@ -73,7 +72,6 @@ BAZEL_BINARY_TARGETS=(
 BAZEL_BINARY_OUTPUTS=(
   "bazel-bin/word_query"
   "bazel-bin/word_query_evolution"
-  "bazel-bin/implication_query_evolution"
   "bazel-bin/attention_broker_service"
   "bazel-bin/attention_broker_client"
   "bazel-bin/tests_db_loader"
