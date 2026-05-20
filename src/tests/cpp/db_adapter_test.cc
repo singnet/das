@@ -36,7 +36,7 @@ class PostgresWrapperTestEnvironment : public ::testing::Environment {
     void TearDown() override {}
 };
 
-class PostgresDatabaseConnectionTest : public ::testing::Test {
+class PostgresConnectionTest : public ::testing::Test {
    protected:
     string TEST_HOST = "localhost";
     int TEST_PORT = 5433;
@@ -74,15 +74,15 @@ class PostgresDatabaseConnectionTest : public ::testing::Test {
         }
     }
 
-    shared_ptr<PostgresDatabaseConnection> create_db_connection() {
-        this->conn = make_shared<PostgresDatabaseConnection>(
+    shared_ptr<PostgresConnection> create_db_connection() {
+        this->conn = make_shared<PostgresConnection>(
             "test-conn", TEST_HOST, TEST_PORT, TEST_DB, TEST_USER, TEST_PASSWORD);
         this->conn->setup();
         this->conn->start();
         return this->conn;
     }
 
-    shared_ptr<PostgresDatabaseConnection> conn;
+    shared_ptr<PostgresConnection> conn;
 };
 
 class PostgresWrapperTest : public ::testing::Test {
@@ -217,7 +217,7 @@ class PostgresWrapperTest : public ::testing::Test {
         return metta_expressions;
     }
 
-    shared_ptr<PostgresWrapper> create_wrapper(PostgresDatabaseConnection& db_conn,
+    shared_ptr<PostgresWrapper> create_wrapper(PostgresConnection& db_conn,
                                                shared_ptr<BoundedSharedQueue> queue = nullptr,
                                                MAPPER_TYPE mapper_type = MAPPER_TYPE::SQL2ATOMS) {
         if (!queue) {
@@ -229,18 +229,18 @@ class PostgresWrapperTest : public ::testing::Test {
     string temp_file_path_1;
     string temp_file_path_2;
 
-    shared_ptr<PostgresDatabaseConnection> create_db_connection() {
-        this->conn = make_shared<PostgresDatabaseConnection>(
+    shared_ptr<PostgresConnection> create_db_connection() {
+        this->conn = make_shared<PostgresConnection>(
             "test-conn", TEST_HOST, TEST_PORT, TEST_DB, TEST_USER, TEST_PASSWORD);
         this->conn->setup();
         this->conn->start();
         return this->conn;
     }
 
-    shared_ptr<PostgresDatabaseConnection> conn;
+    shared_ptr<PostgresConnection> conn;
 };
 
-TEST_F(PostgresDatabaseConnectionTest, Connection) {
+TEST_F(PostgresConnectionTest, Connection) {
     auto conn = create_db_connection();
 
     EXPECT_TRUE(conn->is_connected());
@@ -254,20 +254,20 @@ TEST_F(PostgresDatabaseConnectionTest, Connection) {
 
     EXPECT_FALSE(conn->is_connected());
 
-    auto conn1 = new PostgresDatabaseConnection(
-        "test-conn1", INVALID_HOST, TEST_PORT, TEST_DB, TEST_USER, TEST_PASSWORD);
+    auto conn1 =
+        new PostgresConnection("test-conn1", INVALID_HOST, TEST_PORT, TEST_DB, TEST_USER, TEST_PASSWORD);
     EXPECT_THROW(conn1->connect(), std::runtime_error);
 
-    auto conn2 = new PostgresDatabaseConnection(
-        "test-conn2", TEST_HOST, INVALID_PORT, TEST_DB, TEST_USER, TEST_PASSWORD);
+    auto conn2 =
+        new PostgresConnection("test-conn2", TEST_HOST, INVALID_PORT, TEST_DB, TEST_USER, TEST_PASSWORD);
     EXPECT_THROW(conn2->connect(), std::runtime_error);
 
-    auto conn3 = new PostgresDatabaseConnection(
-        "test-conn3", TEST_HOST, TEST_PORT, INVALID_DB, TEST_USER, TEST_PASSWORD);
+    auto conn3 =
+        new PostgresConnection("test-conn3", TEST_HOST, TEST_PORT, INVALID_DB, TEST_USER, TEST_PASSWORD);
     EXPECT_THROW(conn3->connect(), std::runtime_error);
 }
 
-TEST_F(PostgresDatabaseConnectionTest, ConcurrentConnection) {
+TEST_F(PostgresConnectionTest, ConcurrentConnection) {
     const int num_threads = 100;
     vector<thread> threads;
     atomic<int> count_threads{0};
@@ -275,7 +275,7 @@ TEST_F(PostgresDatabaseConnectionTest, ConcurrentConnection) {
     auto worker = [&](int thread_id) {
         try {
             string thread_id_str = "conn-" + to_string(thread_id);
-            auto conn = new PostgresDatabaseConnection(
+            auto conn = new PostgresConnection(
                 thread_id_str, TEST_HOST, TEST_PORT, TEST_DB, TEST_USER, TEST_PASSWORD);
 
             EXPECT_FALSE(conn->is_connected());
@@ -307,7 +307,7 @@ TEST_F(PostgresDatabaseConnectionTest, ConcurrentConnection) {
     EXPECT_EQ(count_threads, num_threads);
 }
 
-TEST_F(PostgresDatabaseConnectionTest, CheckData) {
+TEST_F(PostgresConnectionTest, CheckData) {
     auto conn = create_db_connection();
 
     auto result = conn->execute_query(
