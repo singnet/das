@@ -221,14 +221,15 @@ class ProxyFactory {
                 auto correlation_replacements =
                     parse_correlation_replacements(correlation_replacements_str, umaqt);
                 string correlation_mappings_str = params.get<string>(Helper::CORRELATION_MAPPINGS);
-                auto correlation_mappings = parse_correlation_mappings(correlation_mappings_str, umaqt);
+                vector<pair<QueryAnswerElement, QueryAnswerElement>> correlation_mapping =
+                    parse_correlation_mappings(correlation_mappings_str, umaqt);
+                vector<vector<pair<QueryAnswerElement, QueryAnswerElement>>> correlation_mappings = {
+                    correlation_mapping};
                 string fitness_function_tag = params.get<string>(Helper::FITNESS_FUNCTION_TAG);
                 string population_size = params.get_or<string>(Helper::POPULATION_SIZE, "");
                 string max_generations = params.get_or<string>(Helper::MAX_GENERATIONS, "");
                 string elitism_rate = params.get_or<string>(Helper::ELITISM_RATE, "");
                 string selection_rate = params.get_or<string>(Helper::SELECTION_RATE, "");
-                string total_attention_tokens =
-                    params.get_or<string>(Helper::TOTAL_ATTENTION_TOKENS, "");
                 auto proxy = make_shared<QueryEvolutionProxy>(query,
                                                               correlation_queries,
                                                               correlation_replacements,
@@ -240,10 +241,6 @@ class ProxyFactory {
                 set_param(proxy, QueryEvolutionProxy::MAX_GENERATIONS, max_generations, ParamType::UINT);
                 set_param(proxy, QueryEvolutionProxy::ELITISM_RATE, elitism_rate, ParamType::DOUBLE);
                 set_param(proxy, QueryEvolutionProxy::SELECTION_RATE, selection_rate, ParamType::DOUBLE);
-                set_param(proxy,
-                          QueryEvolutionProxy::TOTAL_ATTENTION_TOKENS,
-                          total_attention_tokens,
-                          ParamType::UINT);
                 return proxy;
             }
             case ProcessorType::QUERY_ENGINE: {

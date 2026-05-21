@@ -74,9 +74,10 @@ TEST(HebbianNetworkUpdater, correlation) {
     EXPECT_TRUE(network->get_asymmetric_edge_count(handles[4], handles[5]) == 1);
 }
 
-TEST(HebbianNetworkUpdater, determiners) {
+TEST(HebbianNetworkUpdater, determiners_greatest) {
     string* handles = build_handle_space(5);
     HebbianNetwork* network = new HebbianNetwork();
+    HebbianNetwork::determiner_composer = HebbianNetwork::GREATEST;
     dasproto::HandleList* request;
     ExactCountHebbianUpdater* updater = (ExactCountHebbianUpdater*) HebbianNetworkUpdater::factory(
         HebbianNetworkUpdaterType::EXACT_COUNT);
@@ -119,5 +120,152 @@ TEST(HebbianNetworkUpdater, determiners) {
     EXPECT_TRUE(double_equals(network->get_node_importance(handles[1]), 0.3));
     EXPECT_TRUE(double_equals(network->get_node_importance(handles[2]), 0.3));
     EXPECT_TRUE(double_equals(network->get_node_importance(handles[3]), 0.15));
+    EXPECT_TRUE(double_equals(network->get_node_importance(handles[4]), 0.05));
+}
+
+TEST(HebbianNetworkUpdater, determiners_average) {
+    string* handles = build_handle_space(5);
+    HebbianNetwork* network = new HebbianNetwork();
+    HebbianNetwork::determiner_composer = HebbianNetwork::AVERAGE;
+    dasproto::HandleList* request;
+    ExactCountHebbianUpdater* updater = (ExactCountHebbianUpdater*) HebbianNetworkUpdater::factory(
+        HebbianNetworkUpdaterType::EXACT_COUNT);
+
+    request = new dasproto::HandleList();
+    request->set_hebbian_network((unsigned long) network);
+    request->add_list(handles[0]);
+    request->add_list(handles[1]);
+    updater->determiners(*request, network);
+    delete request;
+
+    request = new dasproto::HandleList();
+    request->set_hebbian_network((unsigned long) network);
+    request->add_list(handles[0]);
+    request->add_list(handles[3]);
+    updater->determiners(*request, network);
+    delete request;
+
+    request = new dasproto::HandleList();
+    request->set_hebbian_network((unsigned long) network);
+    request->add_list(handles[1]);
+    request->add_list(handles[2]);
+    updater->determiners(*request, network);
+    delete request;
+
+    request = new dasproto::HandleList();
+    request->set_hebbian_network((unsigned long) network);
+    request->add_list(handles[3]);
+    request->add_list(handles[4]);
+    updater->determiners(*request, network);
+    delete request;
+
+    network->lookup_node(handles[0])->importance = 0.1;
+    network->lookup_node(handles[1])->importance = 0.2;
+    network->lookup_node(handles[2])->importance = 0.3;
+    network->lookup_node(handles[3])->importance = 0.15;
+    network->lookup_node(handles[4])->importance = 0.05;
+
+    EXPECT_TRUE(double_equals(network->get_node_importance(handles[0]), 0.15));
+    EXPECT_TRUE(double_equals(network->get_node_importance(handles[1]), 0.25));
+    EXPECT_TRUE(double_equals(network->get_node_importance(handles[2]), 0.3));
+    EXPECT_TRUE(double_equals(network->get_node_importance(handles[3]), 0.1));
+    EXPECT_TRUE(double_equals(network->get_node_importance(handles[4]), 0.05));
+}
+
+TEST(HebbianNetworkUpdater, determiners_base_1) {
+    string* handles = build_handle_space(5);
+    HebbianNetwork* network = new HebbianNetwork();
+    HebbianNetwork::determiner_composer = HebbianNetwork::MULTIPLICATION_BASE_ONE;
+    dasproto::HandleList* request;
+    ExactCountHebbianUpdater* updater = (ExactCountHebbianUpdater*) HebbianNetworkUpdater::factory(
+        HebbianNetworkUpdaterType::EXACT_COUNT);
+
+    request = new dasproto::HandleList();
+    request->set_hebbian_network((unsigned long) network);
+    request->add_list(handles[0]);
+    request->add_list(handles[1]);
+    updater->determiners(*request, network);
+    delete request;
+
+    request = new dasproto::HandleList();
+    request->set_hebbian_network((unsigned long) network);
+    request->add_list(handles[0]);
+    request->add_list(handles[3]);
+    updater->determiners(*request, network);
+    delete request;
+
+    request = new dasproto::HandleList();
+    request->set_hebbian_network((unsigned long) network);
+    request->add_list(handles[1]);
+    request->add_list(handles[2]);
+    updater->determiners(*request, network);
+    delete request;
+
+    request = new dasproto::HandleList();
+    request->set_hebbian_network((unsigned long) network);
+    request->add_list(handles[3]);
+    request->add_list(handles[4]);
+    updater->determiners(*request, network);
+    delete request;
+
+    network->lookup_node(handles[0])->importance = 0.1;
+    network->lookup_node(handles[1])->importance = 0.2;
+    network->lookup_node(handles[2])->importance = 0.3;
+    network->lookup_node(handles[3])->importance = 0.15;
+    network->lookup_node(handles[4])->importance = 0.05;
+
+    EXPECT_TRUE(double_equals(network->get_node_importance(handles[0]), 0.015));
+    EXPECT_TRUE(double_equals(network->get_node_importance(handles[1]), 0.3));
+    EXPECT_TRUE(double_equals(network->get_node_importance(handles[2]), 0.3));
+    EXPECT_TRUE(double_equals(network->get_node_importance(handles[3]), 0.05));
+    EXPECT_TRUE(double_equals(network->get_node_importance(handles[4]), 0.05));
+}
+
+TEST(HebbianNetworkUpdater, determiners_base_handle) {
+    string* handles = build_handle_space(5);
+    HebbianNetwork* network = new HebbianNetwork();
+    HebbianNetwork::determiner_composer = HebbianNetwork::MULTIPLICATION_BASE_HANDLE;
+    dasproto::HandleList* request;
+    ExactCountHebbianUpdater* updater = (ExactCountHebbianUpdater*) HebbianNetworkUpdater::factory(
+        HebbianNetworkUpdaterType::EXACT_COUNT);
+
+    request = new dasproto::HandleList();
+    request->set_hebbian_network((unsigned long) network);
+    request->add_list(handles[0]);
+    request->add_list(handles[1]);
+    updater->determiners(*request, network);
+    delete request;
+
+    request = new dasproto::HandleList();
+    request->set_hebbian_network((unsigned long) network);
+    request->add_list(handles[0]);
+    request->add_list(handles[3]);
+    updater->determiners(*request, network);
+    delete request;
+
+    request = new dasproto::HandleList();
+    request->set_hebbian_network((unsigned long) network);
+    request->add_list(handles[1]);
+    request->add_list(handles[2]);
+    updater->determiners(*request, network);
+    delete request;
+
+    request = new dasproto::HandleList();
+    request->set_hebbian_network((unsigned long) network);
+    request->add_list(handles[3]);
+    request->add_list(handles[4]);
+    updater->determiners(*request, network);
+    delete request;
+
+    network->lookup_node(handles[0])->importance = 0.1;
+    network->lookup_node(handles[1])->importance = 0.2;
+    network->lookup_node(handles[2])->importance = 0.3;
+    network->lookup_node(handles[3])->importance = 0.15;
+    network->lookup_node(handles[4])->importance = 0.05;
+
+    EXPECT_TRUE(double_equals(network->get_node_importance(handles[0]), 0.000045));
+    EXPECT_TRUE(double_equals(network->get_node_importance(handles[1]), 0.06));
+    EXPECT_TRUE(double_equals(network->get_node_importance(handles[2]), 0.3));
+    EXPECT_TRUE(double_equals(network->get_node_importance(handles[3]), 0.0075));
     EXPECT_TRUE(double_equals(network->get_node_importance(handles[4]), 0.05));
 }

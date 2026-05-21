@@ -8,6 +8,8 @@
 
 using namespace attention_broker;
 
+HebbianNetwork::DeterminerCompositionStrategy HebbianNetwork::determiner_composer = AVERAGE;
+
 // --------------------------------------------------------------------------------
 // Public methods
 

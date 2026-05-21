@@ -97,6 +97,7 @@ class QueryAnswerElement {
  */
 class QueryAnswer {
    public:
+    enum ImportanceMergeFunction { GREATEST, MULTIPLICATION, SUM };
     /**
      * Estimated importance of this QueryAnswer based on the importance of its constituents.
      */
@@ -176,7 +177,9 @@ class QueryAnswer {
      * @param merge_handles A flag (defaulted to true) to indicate whether the handles should be
      *        merged (in addition to the assignments).
      */
-    bool merge(QueryAnswer* other, bool merge_handles = true);
+    bool merge(QueryAnswer* other,
+               bool merge_handles = true,
+               ImportanceMergeFunction importance_merger = GREATEST);
 
     /**
      *  Make a shallow copy of the passed QueryAnswer.
@@ -253,6 +256,7 @@ class QueryAnswer {
     unsigned int get_paths_size();
     vector<string>& get_handles_vector();
     vector<string>& get_path_vector(unsigned int path_index);
+    string compute_hash();
 
    private:
     void merge_paths(QueryAnswer* other);
@@ -266,21 +270,3 @@ class QueryAnswer {
 };
 
 }  // namespace query_engine
-
-template <>
-struct std::hash<Assignment> {
-    std::size_t operator()(const Assignment& k) const {
-        if (k.table.size() == 0) {
-            return 0;
-        }
-
-        std::size_t hash_value = 1;
-        for (auto pair : k.table) {
-            hash_value =
-                hash_value ^
-                ((std::hash<string>()(pair.first) ^ (std::hash<string>()(pair.second) << 1)) >> 1);
-        }
-
-        return hash_value;
-    }
-};

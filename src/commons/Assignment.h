@@ -137,3 +137,21 @@ class Assignment {
 };
 
 }  // namespace commons
+
+template <>
+struct std::hash<commons::Assignment> {
+    std::size_t operator()(const commons::Assignment& k) const {
+        if (k.table.size() == 0) {
+            return 0;
+        }
+
+        std::size_t hash_value = 1;
+        for (auto pair : k.table) {
+            hash_value =
+                hash_value ^
+                ((std::hash<string>()(pair.first) ^ (std::hash<string>()(pair.second) << 1)) >> 1);
+        }
+
+        return hash_value;
+    }
+};

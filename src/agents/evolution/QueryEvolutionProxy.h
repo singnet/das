@@ -37,9 +37,8 @@ class QueryEvolutionProxy : public BaseQueryProxy {
     // Query command's optional parameters
     static string POPULATION_SIZE;
     static string MAX_GENERATIONS;
-    static string ELITISM_RATE;            // Rate on POPULATION_SIZE
-    static string SELECTION_RATE;          // Rate on POPULATION_SIZE
-    static string TOTAL_ATTENTION_TOKENS;  // Used in attention allocation update
+    static string ELITISM_RATE;    // Rate on POPULATION_SIZE
+    static string SELECTION_RATE;  // Rate on POPULATION_SIZE
 
     /**
      * Empty constructor typically used on server side.
@@ -56,7 +55,7 @@ class QueryEvolutionProxy : public BaseQueryProxy {
         const vector<string>& tokens,
         const vector<vector<string>>& correlation_queries,
         const vector<map<string, QueryAnswerElement>>& correlation_replacements,
-        const vector<pair<QueryAnswerElement, QueryAnswerElement>>& correlation_mappings,
+        const vector<vector<pair<QueryAnswerElement, QueryAnswerElement>>>& correlation_mappings,
         const string& context,
         const string& fitness_function_tag,
         const shared_ptr<FitnessFunction> fitness_function = shared_ptr<FitnessFunction>(nullptr));
@@ -149,7 +148,10 @@ class QueryEvolutionProxy : public BaseQueryProxy {
 
     const vector<vector<string>>& get_correlation_queries();
     const vector<map<string, QueryAnswerElement>>& get_correlation_replacements();
-    const vector<pair<QueryAnswerElement, QueryAnswerElement>>& get_correlation_mappings();
+    const vector<vector<pair<QueryAnswerElement, QueryAnswerElement>>>& get_correlation_mappings();
+
+    bool get_no_selection_flag();
+    void set_no_selection_flag(bool value);
 
     // ---------------------------------------------------------------------------------------------
     // Virtual superclass API and the piggyback methods called by it
@@ -190,9 +192,10 @@ class QueryEvolutionProxy : public BaseQueryProxy {
     unsigned int num_generations;
     vector<vector<string>> correlation_queries;
     vector<map<string, QueryAnswerElement>> correlation_replacements;
-    vector<pair<QueryAnswerElement, QueryAnswerElement>> correlation_mappings;
+    vector<vector<pair<QueryAnswerElement, QueryAnswerElement>>> correlation_mappings;
     bool ongoing_remote_fitness_evaluation;
     vector<float> remote_fitness_evaluation_result;
+    bool no_selection_flag;
 };
 
 }  // namespace evolution

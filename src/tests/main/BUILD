@@ -53,21 +53,6 @@ cc_library(
 )
 
 cc_library(
-    name = "implication_query_evolution_main_lib",
-    srcs = ["implication_query_evolution_main.cc"],
-    deps = [
-        "//agents/context_broker:context_broker_lib",
-        "//agents/evolution:evolution_lib",
-        "//agents/query_engine:pattern_matching_query_proxy",
-        "//atomdb:atomdb_api_types",
-        "//atomdb:atomdb_singleton",
-        "//hasher:hasher_lib",
-        "//service_bus:service_bus_lib",
-        "//tests/cpp/test_commons:test_atomdb_json_config",
-    ],
-)
-
-cc_library(
     name = "evaluation_evolution_main_lib",
     srcs = ["evaluation_evolution.cc"],
     deps = [

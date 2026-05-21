@@ -19,6 +19,9 @@ namespace query_element {
 template <unsigned int N>
 class And : public Operator<N> {
    public:
+    enum ImportanceCompositionStrategy { GREATEST, AVERAGE };
+    ImportanceCompositionStrategy importance_composer;
+
     // --------------------------------------------------------------------------------------------
     // Constructors and destructors
 
@@ -137,6 +140,7 @@ class And : public Operator<N> {
     unsigned int num_and_clauses;
 
     void initialize(const array<shared_ptr<QueryElement>, N>& clauses) {
+        this->importance_composer = AVERAGE;
         this->operator_thread = NULL;
         for (unsigned int i = 0; i < N; i++) {
             this->next_input_to_process[i] = 0;
@@ -208,20 +212,31 @@ class And : public Operator<N> {
 
     void operate_candidate(const CandidateRecord& candidate) {
         QueryAnswer* new_query_answer = QueryAnswer::copy(candidate.answer[0]);
+        QueryAnswer::ImportanceMergeFunction importance_merger;
+        if (importance_composer == And::GREATEST) {
+            importance_merger = QueryAnswer::GREATEST;
+        } else if (importance_composer == And::AVERAGE) {
+            importance_merger = QueryAnswer::SUM;
+        } else {
+            RAISE_ERROR("Invalid importance composer function.");
+        }
         for (unsigned int i = 1; i < this->num_and_clauses; i++) {
-            if (!new_query_answer->merge(candidate.answer[i])) {
+            if (!new_query_answer->merge(candidate.answer[i], true, importance_merger)) {
                 delete new_query_answer;
                 return;
             }
         }
+        if (importance_composer == And::AVERAGE) {
+            new_query_answer->importance /= this->num_and_clauses;
+        }
         if (this->not_operator_flag) {
             if (this->query_answer[this->num_and_clauses].size() == 0) {
-                LOG_DEBUG("NOT clause didn't match. Disregarding it.");
+                LOG_LOCAL_DEBUG("NOT clause didn't match. Disregarding it.");
             } else {
                 for (auto answer : this->query_answer[this->num_and_clauses]) {
-                    LOG_DEBUG(new_query_answer->to_string() + " AND NOT " + answer->to_string());
+                    LOG_LOCAL_DEBUG(new_query_answer->to_string() + " AND NOT " + answer->to_string());
                     if (new_query_answer->assignment.is_compatible(answer->assignment)) {
-                        LOG_DEBUG("Discarding query answer");
+                        LOG_LOCAL_DEBUG("Discarding query answer");
                         delete new_query_answer;
                         return;
                     }

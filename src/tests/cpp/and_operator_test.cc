@@ -68,6 +68,7 @@ TEST(AndOperator, basics) {
     auto source1 = make_shared<TestSource>();
     auto source2 = make_shared<TestSource>();
     auto and_operator = make_shared<And<2>>(array<shared_ptr<QueryElement>, 2>({source1, source2}));
+    and_operator->importance_composer = And<2>::GREATEST;
     TestSink sink(and_operator);
     QueryAnswer* query_answer;
 
@@ -183,6 +184,7 @@ TEST(AndOperator, operation_logic) {
     }
     auto and_operator = make_shared<And<3>>(source);
     auto sink = make_shared<TestSink>(and_operator);
+    and_operator->importance_composer = And<3>::GREATEST;
 
     for (unsigned int clause = 0; clause < clause_count; clause++) {
         for (unsigned int link = 0; link < link_count; link++) {
@@ -227,8 +229,8 @@ TEST(AndOperator, operation_logic) {
         }
         EXPECT_FALSE((query_answer = dynamic_cast<QueryAnswer*>(sink->pop())) == NULL);
         pair = fitness_heap.top();
-        cout << count << " CHECK: " << query_answer->importance << " " << pair.importance << " ("
-             << pair.fitness << ")" << endl;
+        // cout << count << " CHECK: " << query_answer->importance << " " << pair.importance << " (" <<
+        // pair.fitness << ")" << endl;
         EXPECT_TRUE(double_equals(query_answer->importance, pair.importance));
         fitness_heap.pop();
         count++;

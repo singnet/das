@@ -24,8 +24,10 @@ using namespace std;
 // --------------------------------------------------------------------------------
 // Public methods
 
-void Utils::error(string msg, bool throw_flag) {
-    LOG_ERROR(msg);
+void Utils::error(string msg, bool throw_flag, bool log_flag) {
+    if (log_flag) {
+        LOG_ERROR(msg);
+    }
     if (throw_flag) {
         throw runtime_error(msg);
     }

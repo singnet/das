@@ -84,8 +84,12 @@ class Chain : public Operator<1>, public ThreadMethod {
 
     class Path {
        public:
+        enum ImportanceCompositionStrategy { GREATEST, AVERAGE };
+        static ImportanceCompositionStrategy importance_composer;
+
         vector<pair<pair<string, string>, shared_ptr<QueryAnswer>>> edges;
         double path_sti;
+        double sum_sti;
         bool forward_flag;
         Path(const string& tail, const string& head, QueryAnswer* answer, bool forward_flag) {
             if (tail == head) {
@@ -93,6 +97,7 @@ class Chain : public Operator<1>, public ThreadMethod {
             }
             this->edges.push_back({{tail, head}, shared_ptr<QueryAnswer>(answer)});
             this->path_sti = answer->importance;
+            this->sum_sti = answer->importance;
             this->forward_flag = forward_flag;
         }
         Path(shared_ptr<Link> link,  // Used in tests
@@ -102,15 +107,18 @@ class Chain : public Operator<1>, public ThreadMethod {
         Path(const Path& other) {
             this->edges = other.edges;
             this->path_sti = other.path_sti;
+            this->sum_sti = other.sum_sti;
             this->forward_flag = other.forward_flag;
         }
         Path(bool forward_flag) {
             this->path_sti = 0;
+            this->sum_sti = 0;
             this->forward_flag = forward_flag;
         }
         Path& operator=(const Path& other) {
             this->edges = other.edges;
             this->path_sti = other.path_sti;
+            this->sum_sti = other.sum_sti;
             this->forward_flag = other.forward_flag;
             return *this;
         }
@@ -119,13 +127,21 @@ class Chain : public Operator<1>, public ThreadMethod {
         inline void clear() {
             this->edges.clear();
             this->path_sti = 0;
+            this->sum_sti = 0;
         }
         inline void concatenate(const Path& other) {
             if (this->forward_flag != other.forward_flag) {
                 RAISE_ERROR("Invalid attempt to merge incompatible HeapElements");
             }
             this->edges.insert(this->edges.end(), other.edges.begin(), other.edges.end());
-            this->path_sti = max(this->path_sti, other.path_sti);
+            this->sum_sti += other.sum_sti;
+            if (importance_composer == GREATEST) {
+                this->path_sti = max(this->path_sti, other.path_sti);
+            } else if (importance_composer == AVERAGE) {
+                this->path_sti = this->sum_sti / (this->edges.size() + other.edges.size());
+            } else {
+                RAISE_ERROR("Invalid importance composition function.");
+            }
         }
         inline string end_point() {
             if (this->forward_flag) {
