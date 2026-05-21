@@ -20,22 +20,23 @@ namespace query_engine {
 class QueryAnswerElement {
    public:
     enum ElementType {
-        UNDEFINED = 0,
+        NOTHING = 0,
         HANDLE,
         PATH,
         VARIABLE,
         ALL_HANDLES,
         ALL_PATH_HANDLES,
-        ALL_VARIABLE_VALUES
+        ALL_VARIABLE_VALUES,
+        EVERYTHING
     };
     ElementType type;
     unsigned int path_index;
     unsigned int element_index;
     string name;
-    QueryAnswerElement() : type(UNDEFINED) {}
+    QueryAnswerElement() : type(NOTHING) {}
     QueryAnswerElement(ElementType type) : type(type) {
         if (type <= VARIABLE) {
-            RAISE_ERROR("Invalid multiple selector in QueryAnswerElement type: " + std::to_string(type));
+            RAISE_ERROR("Invalid attempt to setup a wildcard selector with type: " + std::to_string(type));
         }
     }
     QueryAnswerElement(unsigned int key) : type(HANDLE), element_index(key) {}
@@ -55,7 +56,7 @@ class QueryAnswerElement {
         return *this;
     }
     void set(const string& key) {
-        if (this->type == UNDEFINED) {
+        if (this->type == NOTHING) {
             this->type = VARIABLE;
             this->name = key;
         } else {
@@ -63,7 +64,7 @@ class QueryAnswerElement {
         }
     }
     void set(unsigned int key) {
-        if (this->type == UNDEFINED) {
+        if (this->type == NOTHING) {
             this->type = HANDLE;
             this->element_index = key;
         } else {
@@ -71,7 +72,7 @@ class QueryAnswerElement {
         }
     }
     void set(unsigned int key_path, unsigned int key_element) {
-        if (this->type == UNDEFINED) {
+        if (this->type == NOTHING) {
             this->type = PATH;
             this->path_index = key_path;
             this->element_index = key_element;
@@ -80,7 +81,9 @@ class QueryAnswerElement {
         }
     }
     string to_string() {
-        if (this->type == HANDLE) {
+        if (this->type == NOTHING) {
+            return "-";
+        } else if (this->type == HANDLE) {
             return "_" + std::to_string(this->element_index);
         } else if (this->type == VARIABLE) {
             return "$" + this->name;
@@ -92,14 +95,18 @@ class QueryAnswerElement {
             return "$*";
         } else if (this->type == ALL_PATH_HANDLES) {
             return ">*";
+        } else if (this->type == EVERYTHING) {
+            return "*";
         } else {
-            RAISE_ERROR("Invalid attempt to make a string out of an UNDEFINED QueryAnswerElement");
+            RAISE_ERROR("Invalid QueryAnswerElement type: " + std::to_string(this->type));
+            return "";
         }
-        return "";
     }
     static QueryAnswerElement from_string(const string& s) {
-        if (s.size() >= 2) {
-            if (s[0] == '_') {
+        if ((s.size() >= 2) || ((s.size() == 1) && ((s[0] == '-') || (s[0] == '*')))) {
+            if (s[0] == '-') {
+                return QueryAnswerElement();
+            } else if (s[0] == '_') {
                 if (s[1] == '*') {
                     return QueryAnswerElement(QueryAnswerElement::ALL_HANDLES);
                 } else {
@@ -121,10 +128,15 @@ class QueryAnswerElement {
                                                   Utils::string_to_uint(keys[1]));
                     }
                 }
+            } else if (s[0] == '*') {
+                return QueryAnswerElement(QueryAnswerElement::EVERYTHING);
             }
         }
         RAISE_ERROR("Invalid QueryAnswerElement string representation: " + s);
         return QueryAnswerElement();
+    }
+    bool is_wildcard() {
+        return (this->type >= ALL_HANDLES);
     }
 };
 

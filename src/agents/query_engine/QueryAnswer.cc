@@ -3,6 +3,7 @@
 #include <cmath>
 #include <cstring>
 #include <iostream>
+#include <set>
 
 #include "Hasher.h"
 #include "LinkSchema.h"
@@ -318,6 +319,11 @@ void QueryAnswer::untokenize(const string& tokens) {
 string QueryAnswer::get(const QueryAnswerElement& key, bool return_empty_when_not_found) {
     string answer = "";
     switch (key.type) {
+        case QueryAnswerElement::NOTHING:
+            if (!return_empty_when_not_found) {
+                RAISE_ERROR("Invalid attempt to use NOTHING as a QueryAnswerElement to get something from a QueryAnswer");
+            }
+            break;
         case QueryAnswerElement::HANDLE:
             return get(key.element_index, return_empty_when_not_found);
         case QueryAnswerElement::VARIABLE:
@@ -384,6 +390,21 @@ vector<string> QueryAnswer::get_all(const QueryAnswerElement& key) {
                 }
             }
             break;
+        case QueryAnswerElement::EVERYTHING: {
+            set<string> handle_set;
+            for (string handle : get_all(QueryAnswerElement::ALL_HANDLES)) {
+                handle_set.insert(handle);
+            }
+            for (string handle : get_all(QueryAnswerElement::ALL_VARIABLE_VALUES)) {
+                handle_set.insert(handle);
+            }
+            for (string handle : get_all(QueryAnswerElement::ALL_PATH_HANDLES)) {
+                handle_set.insert(handle);
+            }
+            answer.reserve(handle_set.size());
+            answer.insert(answer.begin(), handle_set.begin(), handle_set.end());
+            break;
+        }
         default:
             RAISE_ERROR("Invalid QueryAnswerElement type: " + std::to_string(key.type));
     }
