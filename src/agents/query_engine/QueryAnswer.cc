@@ -321,7 +321,9 @@ string QueryAnswer::get(const QueryAnswerElement& key, bool return_empty_when_no
     switch (key.type) {
         case QueryAnswerElement::NOTHING:
             if (!return_empty_when_not_found) {
-                RAISE_ERROR("Invalid attempt to use NOTHING as a QueryAnswerElement to get something from a QueryAnswer");
+                RAISE_ERROR(
+                    "Invalid attempt to use NOTHING as a QueryAnswerElement to get something from a "
+                    "QueryAnswer");
             }
             break;
         case QueryAnswerElement::HANDLE:

@@ -36,7 +36,8 @@ class QueryAnswerElement {
     QueryAnswerElement() : type(NOTHING) {}
     QueryAnswerElement(ElementType type) : type(type) {
         if (type <= VARIABLE) {
-            RAISE_ERROR("Invalid attempt to setup a wildcard selector with type: " + std::to_string(type));
+            RAISE_ERROR("Invalid attempt to setup a wildcard selector with type: " +
+                        std::to_string(type));
         }
     }
     QueryAnswerElement(unsigned int key) : type(HANDLE), element_index(key) {}
@@ -135,9 +136,7 @@ class QueryAnswerElement {
         RAISE_ERROR("Invalid QueryAnswerElement string representation: " + s);
         return QueryAnswerElement();
     }
-    bool is_wildcard() {
-        return (this->type >= ALL_HANDLES);
-    }
+    bool is_wildcard() { return (this->type >= ALL_HANDLES); }
 };
 
 /**

@@ -446,7 +446,6 @@ TEST(QueryAnswer, get_query_answer_element) {
     s2 = set<string>({"h1", "h2", "h3", "h4", "h5", "h6", "h7"});
     EXPECT_EQ(v.size(), 7);
     EXPECT_EQ(s1, s2);
-
 }
 
 TEST(QueryAnswer, rewrite_query) {
