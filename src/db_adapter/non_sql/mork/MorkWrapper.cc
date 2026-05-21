@@ -45,6 +45,10 @@ void MorkWrapper::map(const string& metta_query) {
             return;
         }
 
+        if (atoms.empty()) {
+            RAISE_ERROR("No atoms mapped from MORK expression: " + expr);
+        }
+
         std::queue<Atom*>* batch_queue = new std::queue<Atom*>();
 
         for (const auto& atom : atoms) {
