@@ -326,7 +326,7 @@ void MettaLexer::_error(LexerState state, const string& error_message, char c) {
         c_str = string(1, c);
     }
     string prefix = "MettaLexer error in line " + std::to_string(this->line_number) +
-                    " - near character '" + c_str + " - ";
+                    " - near character '" + c_str + "' - ";
     if (state == START) {
         prefix += "Unexpected character";
     } else if (state == READING_LITERAL_STRING) {
