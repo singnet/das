@@ -34,7 +34,7 @@ class QueryAnswerElement {
     string name;
     QueryAnswerElement() : type(UNDEFINED) {}
     QueryAnswerElement(ElementType type) : type(type) {
-        if ((type == HANDLE) || (type == PATH) || (type == VARIABLE)) {
+        if (type <= VARIABLE) {
             RAISE_ERROR("Invalid multiple selector in QueryAnswerElement type: " + std::to_string(type));
         }
     }
@@ -86,21 +86,40 @@ class QueryAnswerElement {
             return "$" + this->name;
         } else if (this->type == PATH) {
             return ">" + std::to_string(this->path_index) + "_" + std::to_string(this->element_index);
+        } else if (this->type == ALL_HANDLES) {
+            return "_*";
+        } else if (this->type == ALL_VARIABLE_VALUES) {
+            return "$*";
+        } else if (this->type == ALL_PATH_HANDLES) {
+            return ">*";
         } else {
             RAISE_ERROR("Invalid attempt to make a string out of an UNDEFINED QueryAnswerElement");
         }
         return "";
     }
     static QueryAnswerElement from_string(const string& s) {
-        if (s[0] == '_') {
-            return QueryAnswerElement(Utils::string_to_uint(s.substr(1, s.size() - 1)));
-        } else if (s[0] == '$') {
-            return QueryAnswerElement(s.substr(1, s.size() - 1));
-        } else if (s[0] == '>') {
-            vector<string> keys = Utils::split(s.substr(1, s.size() - 1), '_');
-            if (keys.size() == 2) {
-                return QueryAnswerElement(Utils::string_to_uint(keys[0]),
-                                          Utils::string_to_uint(keys[1]));
+        if (s.size() >= 2) {
+            if (s[0] == '_') {
+                if (s[1] == '*') {
+                    return QueryAnswerElement(QueryAnswerElement::ALL_HANDLES);
+                } else {
+                    return QueryAnswerElement(Utils::string_to_uint(s.substr(1, s.size() - 1)));
+                }
+            } else if (s[0] == '$') {
+                if (s[1] == '*') {
+                    return QueryAnswerElement(QueryAnswerElement::ALL_VARIABLE_VALUES);
+                } else {
+                    return QueryAnswerElement(s.substr(1, s.size() - 1));
+                }
+            } else if (s[0] == '>') {
+                if (s[1] == '*') {
+                    return QueryAnswerElement(QueryAnswerElement::ALL_PATH_HANDLES);
+                } else {
+                    vector<string> keys = Utils::split(s.substr(1, s.size() - 1), '_');
+                    if (keys.size() == 2) {
+                        return QueryAnswerElement(Utils::string_to_uint(keys[0]), Utils::string_to_uint(keys[1]));
+                    }
+                }
             }
         }
         RAISE_ERROR("Invalid QueryAnswerElement string representation: " + s);
