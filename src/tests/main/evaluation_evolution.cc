@@ -709,8 +709,10 @@ static void query_evolution(
 
     QueryAnswerElement qa_predicate(PREDICATE);
     QueryAnswerElement qa_concept(CONCEPT);
+    QueryAnswerElement qa_path(QueryAnswerElement::ALL_PATH_HANDLES);
+    QueryAnswerElement qa_nothing;
 
-    vector<map<string, QueryAnswerElement>> correlation_query_constants_1 = {
+    vector<map<string, QueryAnswerElement>> correlation_query_constants = {
         {{V1, qa_predicate}},
         {{V2, qa_concept}}
     };
@@ -718,12 +720,9 @@ static void query_evolution(
         {{qa_concept, qa_concept}},
         {{qa_predicate, qa_predicate}}
     };
-
-    vector<map<string, QueryAnswerElement>> correlation_query_constants = {
-        {{V1, qa_predicate}},
-    };
     vector<vector<pair<QueryAnswerElement, QueryAnswerElement>>> correlation_mapping = {
-        {{qa_concept, qa_concept}},
+        {{qa_concept, qa_concept}, {qa_path, qa_nothing}},
+        {{qa_predicate, qa_predicate}, {qa_path, qa_nothing}}
     };
 
     QueryEvolutionProxy* proxy_ptr = new QueryEvolutionProxy(
@@ -1010,26 +1009,43 @@ static void run(const string& context_tag) {
             metta_chain(metta_var(PREDICATE), TARGET_PREDICATE, metta_expr3(IMPLICATION, metta_var(PREDICATE1) , metta_var(PREDICATE2))))
     };
     vector<string> query_to_evolve = {
-        AND_OPERATOR, "2",
-            LINK_TEMPLATE, EXPRESSION, "3",
-                NODE, SYMBOL, EVALUATION,
-                VARIABLE, PREDICATE,
-                ATOM, TARGET_CONCEPT_HANDLE,
-            CHAIN_OPERATOR, "0", "1", "2",
-                VARIABLE, PREDICATE,
-                ATOM, TARGET_PREDICATE_HANDLE,
+        OR_OPERATOR, "2",
+            AND_OPERATOR, "2",
                 LINK_TEMPLATE, EXPRESSION, "3",
-                    NODE, SYMBOL, IMPLICATION,
-                    VARIABLE, PREDICATE1,
-                    VARIABLE, PREDICATE2,
+                    NODE, SYMBOL, EVALUATION,
+                    VARIABLE, PREDICATE,
+                    ATOM, TARGET_CONCEPT_HANDLE,
+                CHAIN_OPERATOR, "0", "1", "2",
+                    VARIABLE, PREDICATE,
+                    ATOM, TARGET_PREDICATE_HANDLE,
+                    LINK_TEMPLATE, EXPRESSION, "3",
+                        NODE, SYMBOL, IMPLICATION,
+                        VARIABLE, PREDICATE1,
+                        VARIABLE, PREDICATE2,
+            AND_OPERATOR, "2",
+                LINK_TEMPLATE, EXPRESSION, "3",
+                    NODE, SYMBOL, EVALUATION,
+                    ATOM, TARGET_PREDICATE_HANDLE,
+                    VARIABLE, CONCEPT,
+                CHAIN_OPERATOR, "0", "1", "2",
+                    VARIABLE, CONCEPT,
+                    ATOM, TARGET_CONCEPT_HANDLE,
+                    LINK_TEMPLATE, EXPRESSION, "3",
+                        NODE, SYMBOL, EQUIVALENCE,
+                        VARIABLE, CONCEPT1,
+                        VARIABLE, CONCEPT2,
     };
     vector<string> metta_query_to_evolve = {
-        metta_and(
-            metta_expr3(EVALUATION, metta_var(PREDICATE), TARGET_CONCEPT),
-            metta_chain(metta_var(PREDICATE), TARGET_PREDICATE, metta_expr3(IMPLICATION, metta_var(PREDICATE1) , metta_var(PREDICATE2))))
+        metta_or(
+            metta_and(
+                metta_expr3(EVALUATION, metta_var(PREDICATE), TARGET_CONCEPT),
+                metta_chain(metta_var(PREDICATE), TARGET_PREDICATE, metta_expr3(IMPLICATION, metta_var(PREDICATE1) , metta_var(PREDICATE2)))),
+            metta_and(
+                metta_expr3(EVALUATION, TARGET_PREDICATE, metta_var(CONCEPT)),
+                metta_chain(metta_var(CONCEPT), TARGET_CONCEPT, metta_expr3(EQUIVALENCE, metta_var(CONCEPT1) , metta_var(CONCEPT2)))))
     };
 
-    vector<vector<string>> correlation_query_template_1 = {
+    vector<vector<string>> correlation_query_template = {
         {LINK_TEMPLATE, EXPRESSION, "3",
             NODE, SYMBOL, EVALUATION,
             VARIABLE, V1,
@@ -1039,19 +1055,9 @@ static void run(const string& context_tag) {
             VARIABLE, PREDICATE,
             VARIABLE, V2}
     };
-    vector<vector<string>> correlation_metta_query_template_1 = {
-        {metta_expr3(EVALUATION, metta_var(V1), metta_var(CONCEPT))},
-        {metta_expr3(EVALUATION, metta_var(PREDICATE), metta_var(V2))}
-    };
-
-    vector<vector<string>> correlation_query_template = {
-        {LINK_TEMPLATE, EXPRESSION, "3",
-            NODE, SYMBOL, EVALUATION,
-            VARIABLE, V1,
-            VARIABLE, CONCEPT},
-    };
     vector<vector<string>> correlation_metta_query_template = {
         {metta_expr3(EVALUATION, metta_var(V1), metta_var(CONCEPT))},
+        {metta_expr3(EVALUATION, metta_var(PREDICATE), metta_var(V2))}
     };
 
     vector<string> context_determiner_query = {
@@ -1182,7 +1188,7 @@ static void run(const string& context_tag) {
             AttentionBrokerClient::set_determiners(buffer_determiners, context);
             // AttentionBrokerClient::stimulate(buffer_activation, context);
             buffer_determiners.clear();
-            // buffer_activation.clear();
+            buffer_activation.clear();
         }
     }
 

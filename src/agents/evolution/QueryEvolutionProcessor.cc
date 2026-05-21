@@ -272,7 +272,6 @@ void QueryEvolutionProcessor::select_best_individuals(
 void QueryEvolutionProcessor::correlate_similar(shared_ptr<QueryEvolutionProxy> proxy,
                                                 shared_ptr<QueryAnswer> correlation_query_answer) {
     vector<string> query_tokens;
-    map<string, vector<string>> handle_lists;
     vector<vector<string>> correlation_queries = proxy->get_correlation_queries();
     vector<map<string, QueryAnswerElement>> correlation_replacements =
         proxy->get_correlation_replacements();
@@ -330,7 +329,7 @@ void QueryEvolutionProcessor::correlate_similar(shared_ptr<QueryEvolutionProxy> 
         }
 
         // Update AttentionBroker
-        handle_lists.clear();
+        set<string> handle_set;
         LOG_DEBUG("Correlation query: " +
                   (query_tokens.size() == 1 ? query_tokens[0] : Utils::join(query_tokens)));
         auto pm_query = issue_correlation_query(proxy, query_tokens);
@@ -338,30 +337,31 @@ void QueryEvolutionProcessor::correlate_similar(shared_ptr<QueryEvolutionProxy> 
             shared_ptr<QueryAnswer> answer = pm_query->pop();
             string word;
             if (answer != NULL) {
+                handle_set.clear();
                 for (auto pair : correlation_mappings[i]) {
-                    string handle_original_answer = correlation_query_answer->get(pair.first, true);
-                    string handle_correlation_answer = answer->get(pair.second, true);
-                    LOG_DEBUG("Picked to correlate: " +
-                              AtomDBSingleton::get_instance()
-                                  ->get_atom(handle_original_answer)
-                                  ->metta_representation(*AtomDBSingleton::get_instance().get()) +
-                              " -> " +
-                              AtomDBSingleton::get_instance()
-                                  ->get_atom(handle_correlation_answer)
-                                  ->metta_representation(*AtomDBSingleton::get_instance().get()));
-                    if ((handle_original_answer != "") && (handle_correlation_answer != "")) {
-                        if (handle_lists.find(handle_original_answer) == handle_lists.end()) {
-                            handle_lists[handle_original_answer] = {handle_original_answer};
+                    if (pair.first.is_wildcard()) {
+                        for (string handle : correlation_query_answer->get_all(pair.first)) {
+                            handle_set.insert(handle);
                         }
-                        handle_lists[handle_original_answer].push_back(handle_correlation_answer);
+                    } else {
+                        if (pair.first.type != QueryAnswerElement::UNDEFINED) {
+                            handle_set.insert(correlation_query_answer->get(pair.first));
+                        }
+                    }
+                    if (pair.second.is_wildcard()) {
+                        for (string handle : answer->get_all(pair.second)) {
+                            handle_set.insert(handle);
+                        }
+                    } else {
+                        if (pair.second.type != QueryAnswerElement::UNDEFINED) {
+                            handle_set.insert(answer->get(pair.second));
+                        }
                     }
                 }
+                AttentionBrokerClient::correlate(handle_set, proxy->get_context());
             } else {
                 Utils::sleep();
             }
-        }
-        for (auto pair : handle_lists) {
-            AttentionBrokerClient::asymmetric_correlate(pair.second, proxy->get_context());
         }
     }
 }
@@ -389,28 +389,27 @@ void QueryEvolutionProcessor::stimulate(shared_ptr<QueryEvolutionProxy> proxy,
     float fitness_rate = (1.0 / min_fitness);
 
     map<string, unsigned int> handle_count;
+    set<string> handle_set;
     for (auto pair : selected) {
         LOG_DEBUG("Selected answer: " + pair.first->to_string(proxy->parameters.get<bool>(
                                             BaseQueryProxy::POPULATE_METTA_MAPPING)));
         float v = (pair.second > MIN_SELECTED_FITNESS ? pair.second : MIN_SELECTED_FITNESS);
         unsigned int value = (unsigned int) std::lround(v * fitness_rate);
-        set<string> node_handles;
-        for (string handle : pair.first->get_handles_vector()) {
-            // AtomDBSingleton::get_instance()->reachable_terminal_set(node_handles, handle, true);
-            // node_handles.insert(handle);
-        }
+        handle_set.clear();
         for (auto& correlation : correlation_mappings) {
             for (auto& correlation_pair : correlation) {
-                node_handles.insert(pair.first->get(correlation_pair.first, true));
+                if (correlation_pair.first.is_wildcard()) {
+                    for (string handle : pair.first->get_all(correlation_pair.first)) {
+                        handle_set.insert(handle);
+                    }
+                } else {
+                    if (correlation_pair.first.type != QueryAnswerElement::UNDEFINED) {
+                        handle_set.insert(pair.first->get(correlation_pair.first));
+                    }
+                }
             }
         }
-        for (unsigned int i = 0; i < pair.first->get_paths_size(); i++) {
-            for (string handle : pair.first->get_path_vector(i)) {
-                node_handles.insert(handle);
-                // AtomDBSingleton::get_instance()->reachable_terminal_set(node_handles, handle, true);
-            }
-        }
-        for (string handle : node_handles) {
+        for (string handle : handle_set) {
             LOG_DEBUG("Picked to stimulate: " +
                       AtomDBSingleton::get_instance()->get_atom(handle)->metta_representation(
                           *AtomDBSingleton::get_instance().get()));
