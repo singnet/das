@@ -344,7 +344,7 @@ void QueryEvolutionProcessor::correlate_similar(shared_ptr<QueryEvolutionProxy> 
                             handle_set.insert(handle);
                         }
                     } else {
-                        if (pair.first.type != QueryAnswerElement::UNDEFINED) {
+                        if (pair.first.type != QueryAnswerElement::NOTHING) {
                             handle_set.insert(correlation_query_answer->get(pair.first));
                         }
                     }
@@ -353,7 +353,7 @@ void QueryEvolutionProcessor::correlate_similar(shared_ptr<QueryEvolutionProxy> 
                             handle_set.insert(handle);
                         }
                     } else {
-                        if (pair.second.type != QueryAnswerElement::UNDEFINED) {
+                        if (pair.second.type != QueryAnswerElement::NOTHING) {
                             handle_set.insert(answer->get(pair.second));
                         }
                     }
@@ -403,7 +403,7 @@ void QueryEvolutionProcessor::stimulate(shared_ptr<QueryEvolutionProxy> proxy,
                         handle_set.insert(handle);
                     }
                 } else {
-                    if (correlation_pair.first.type != QueryAnswerElement::UNDEFINED) {
+                    if (correlation_pair.first.type != QueryAnswerElement::NOTHING) {
                         handle_set.insert(pair.first->get(correlation_pair.first));
                     }
                 }
