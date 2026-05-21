@@ -117,7 +117,8 @@ class QueryAnswerElement {
                 } else {
                     vector<string> keys = Utils::split(s.substr(1, s.size() - 1), '_');
                     if (keys.size() == 2) {
-                        return QueryAnswerElement(Utils::string_to_uint(keys[0]), Utils::string_to_uint(keys[1]));
+                        return QueryAnswerElement(Utils::string_to_uint(keys[0]),
+                                                  Utils::string_to_uint(keys[1]));
                     }
                 }
             }
