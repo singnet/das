@@ -180,16 +180,7 @@ void QueryEvolutionProxy::untokenize(vector<string>& tokens) {
         unsigned int mapping_size = std::stoi(tokens[0]);
         mapping.clear();
         for (unsigned int j = 0; j < mapping_size; j++) {
-            string key = tokens[2 * j + 1];
-            string value = tokens[2 * j + 2];
-            if (value[0] == '_') {
-                QueryAnswerElement element(
-                    (unsigned int) Utils::string_to_int(value.substr(1, value.size() - 1)));
-                mapping[key] = element;
-            } else {
-                QueryAnswerElement element(value.substr(1, value.size() - 1));
-                mapping[key] = element;
-            }
+            mapping[tokens[2 * j + 1]] = QueryAnswerElement::from_string(tokens[2 * j + 2]);
         }
         this->correlation_replacements.push_back(mapping);
         tokens.erase(tokens.begin(), tokens.begin() + 1 + (2 * mapping_size));
@@ -202,26 +193,8 @@ void QueryEvolutionProxy::untokenize(vector<string>& tokens) {
         unsigned int correlation_size = std::stoi(tokens[0]);
         correlation.clear();
         for (unsigned int j = 0; j < correlation_size; j++) {
-            string source = tokens[2 * j + 1];
-            string target = tokens[2 * j + 2];
-            QueryAnswerElement source_element;
-            QueryAnswerElement target_element;
-            if (source[0] == '_') {
-                QueryAnswerElement element(
-                    (unsigned int) Utils::string_to_int(source.substr(1, source.size() - 1)));
-                source_element = element;
-            } else {
-                QueryAnswerElement element(source.substr(1, source.size() - 1));
-                source_element = element;
-            }
-            if (target[0] == '_') {
-                QueryAnswerElement element(
-                    (unsigned int) Utils::string_to_int(target.substr(1, target.size() - 1)));
-                target_element = element;
-            } else {
-                QueryAnswerElement element(target.substr(1, target.size() - 1));
-                target_element = element;
-            }
+            QueryAnswerElement source_element = QueryAnswerElement::from_string(tokens[2 * j + 1]);
+            QueryAnswerElement target_element = QueryAnswerElement::from_string(tokens[2 * j + 2]);
             correlation.push_back({source_element, target_element});
         }
         this->correlation_mappings.push_back(correlation);
