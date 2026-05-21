@@ -270,35 +270,36 @@ void QueryEvolutionProcessor::select_best_individuals(
 }
 
 void QueryEvolutionProcessor::correlate_similar(shared_ptr<QueryEvolutionProxy> proxy,
-                                                shared_ptr<QueryAnswer> correlation_query_answer) {
+                                                shared_ptr<QueryAnswer> selected_answer) {
+
     vector<string> query_tokens;
     vector<vector<string>> correlation_queries = proxy->get_correlation_queries();
-    vector<map<string, QueryAnswerElement>> correlation_replacements =
-        proxy->get_correlation_replacements();
-    vector<vector<pair<QueryAnswerElement, QueryAnswerElement>>> correlation_mappings =
-        proxy->get_correlation_mappings();
+    vector<map<string, QueryAnswerElement>> correlation_replacements = proxy->get_correlation_replacements();
+    vector<vector<pair<QueryAnswerElement, QueryAnswerElement>>> correlation_mappings = proxy->get_correlation_mappings();
 
-    if (correlation_queries.size() != correlation_replacements.size()) {
-        RAISE_ERROR("Invalid correlation queries/replacements. Proxy: " + proxy->to_string());
-    }
-    if (correlation_mappings.size() == 0) {
-        RAISE_ERROR("Invalid correlation mappings. Proxy: " + proxy->to_string());
+    if ((correlation_queries.size() == 0) || (correlation_queries.size() != correlation_replacements.size()) || (correlation_queries.size() != correlation_mappings.size())) {
+        RAISE_ERROR("Invalid correlation queries/replacements/mappings. Proxy: " + proxy->to_string());
     }
 
     for (unsigned int i = 0; i < correlation_queries.size(); i++) {
         // Rewrite correlation query using handles from original query answer
         query_tokens.clear();
+        bool correlation_aborted = false;
         if (proxy->parameters.get<bool>(BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS)) {
             if (correlation_queries[i].size() != 1) {
                 RAISE_ERROR("Invalid MeTTa expression as correlation query");
                 return;
             }
             string expression = correlation_queries[i][0];
-            for (auto pair : correlation_replacements[i]) {
-                string atom_handle = correlation_query_answer->get(pair.second);
-                Utils::replace_all(expression,
-                                   "$" + pair.first,
-                                   correlation_query_answer->metta_expression[atom_handle]);
+            for (auto& pair : correlation_replacements[i]) {
+                string atom_handle = selected_answer->get(pair.second, true);
+                if (atom_handle != "") {
+                    Utils::replace_all(expression,
+                                       "$" + pair.first,
+                                       selected_answer->metta_expression[atom_handle]);
+                } else {
+                    correlation_aborted = true;
+                }
             }
             query_tokens = {expression};
         } else {
@@ -315,9 +316,13 @@ void QueryEvolutionProcessor::correlate_similar(shared_ptr<QueryEvolutionProxy> 
                     }
                     token = correlation_queries[i][cursor++];
                     if (correlation_replacements[i].find(token) != correlation_replacements[i].end()) {
-                        string value = correlation_query_answer->get(correlation_replacements[i][token]);
-                        query_tokens.push_back(LinkSchema::ATOM);
-                        query_tokens.push_back(value);
+                        string value = selected_answer->get(correlation_replacements[i][token], true);
+                        if (value != "") {
+                            query_tokens.push_back(LinkSchema::ATOM);
+                            query_tokens.push_back(value);
+                        } else {
+                            correlation_aborted = true;
+                        }
                     } else {
                         query_tokens.push_back(LinkSchema::UNTYPED_VARIABLE);
                         query_tokens.push_back(token);
@@ -328,40 +333,49 @@ void QueryEvolutionProcessor::correlate_similar(shared_ptr<QueryEvolutionProxy> 
             }
         }
 
-        // Update AttentionBroker
-        set<string> handle_set;
-        LOG_DEBUG("Correlation query: " +
-                  (query_tokens.size() == 1 ? query_tokens[0] : Utils::join(query_tokens)));
-        auto pm_query = issue_correlation_query(proxy, query_tokens);
-        while (!pm_query->finished()) {
-            shared_ptr<QueryAnswer> answer = pm_query->pop();
-            string word;
-            if (answer != NULL) {
-                handle_set.clear();
-                for (auto pair : correlation_mappings[i]) {
-                    if (pair.first.is_wildcard()) {
-                        for (string handle : correlation_query_answer->get_all(pair.first)) {
-                            handle_set.insert(handle);
+        if (! correlation_aborted) {
+            // Update AttentionBroker
+            set<string> handle_set;
+            LOG_DEBUG("Correlation query: " +
+                      (query_tokens.size() == 1 ? query_tokens[0] : Utils::join(query_tokens)));
+            auto pm_query = issue_correlation_query(proxy, query_tokens);
+            while (!pm_query->finished()) {
+                shared_ptr<QueryAnswer> correlated_answer = pm_query->pop();
+                string word;
+                if (correlated_answer != NULL) {
+                    handle_set.clear();
+                    for (auto& pair : correlation_mappings[i]) {
+                        if (pair.first.is_wildcard()) {
+                            for (string handle : selected_answer->get_all(pair.first)) {
+                                handle_set.insert(handle);
+                            }
+                        } else {
+                            if (pair.first.type != QueryAnswerElement::NOTHING) {
+                                string h = selected_answer->get(pair.first);
+                                if (h != "") {
+                                    handle_set.insert(h);
+                                }
+                            }
                         }
-                    } else {
-                        if (pair.first.type != QueryAnswerElement::NOTHING) {
-                            handle_set.insert(correlation_query_answer->get(pair.first));
+                        if (pair.second.is_wildcard()) {
+                            for (string handle : correlated_answer->get_all(pair.second)) {
+                                handle_set.insert(handle);
+                            }
+                        } else {
+                            if (pair.second.type != QueryAnswerElement::NOTHING) {
+                                string h = correlated_answer->get(pair.second);
+                                if (h != "") {
+                                    handle_set.insert(correlated_answer->get(pair.second));
+                                }
+                            }
                         }
                     }
-                    if (pair.second.is_wildcard()) {
-                        for (string handle : answer->get_all(pair.second)) {
-                            handle_set.insert(handle);
-                        }
-                    } else {
-                        if (pair.second.type != QueryAnswerElement::NOTHING) {
-                            handle_set.insert(answer->get(pair.second));
-                        }
-                    }
+                    AttentionBrokerClient::correlate(handle_set, proxy->get_context());
+                } else {
+                    Utils::sleep();
                 }
-                AttentionBrokerClient::correlate(handle_set, proxy->get_context());
-            } else {
-                Utils::sleep();
             }
+        } else {
         }
     }
 }
@@ -404,7 +418,10 @@ void QueryEvolutionProcessor::stimulate(shared_ptr<QueryEvolutionProxy> proxy,
                     }
                 } else {
                     if (correlation_pair.first.type != QueryAnswerElement::NOTHING) {
-                        handle_set.insert(pair.first->get(correlation_pair.first));
+                        string h = pair.first->get(correlation_pair.first, true);
+                        if (h != "") {
+                            handle_set.insert(pair.first->get(correlation_pair.first));
+                        }
                     }
                 }
             }

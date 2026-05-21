@@ -721,8 +721,8 @@ static void query_evolution(
         {{qa_predicate, qa_predicate}}
     };
     vector<vector<pair<QueryAnswerElement, QueryAnswerElement>>> correlation_mapping = {
-        {{qa_concept, qa_concept}, {qa_path, qa_nothing}},
-        {{qa_predicate, qa_predicate}, {qa_path, qa_nothing}}
+        {{qa_predicate, qa_concept}, {qa_path, qa_nothing}},
+        {{qa_concept, qa_predicate}, {qa_path, qa_nothing}}
     };
 
     QueryEvolutionProxy* proxy_ptr = new QueryEvolutionProxy(
