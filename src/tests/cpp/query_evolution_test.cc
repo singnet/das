@@ -89,10 +89,11 @@ TEST(QueryEvolution, proxy_object) {
     QueryAnswerElement e5(QueryAnswerElement::ALL_HANDLES);
     QueryAnswerElement e6(QueryAnswerElement::ALL_VARIABLE_VALUES);
     QueryAnswerElement e7(QueryAnswerElement::ALL_PATH_HANDLES);
+    QueryAnswerElement e8(QueryAnswerElement::EVERYTHING);
     QueryEvolutionProxy proxy({"t0", "t1"},
                               {{"tc00"}, {}, {"tc10", "tc11"}},
                               {{{"h1", e1}}, {}, {{"h2", e2}, {"h3", e3}}},
-                              {{{e2, e1}, {e1, e2}, {e1, e3}, {e4, e5}, {e6, e7}}},
+                              {{{e2, e1}, {e1, e2}, {e1, e3}, {e4, e5}, {e6, e7}, {e7, e8}}},
                               "query_evolution_test",
                               "unit_test");
 
@@ -106,7 +107,7 @@ TEST(QueryEvolution, proxy_object) {
         "0.100000, unique_assignment_flag: false, use_link_template_cache: "
         "false, use_metta_as_query_tokens: false}}}, fitness_function: unit_test, correlation_queries: "
         "[[tc00], [], [tc10, tc11]], correlation_replacements: [{{h1, _0}}, {}, {{h2, _1}, {h3, $s1}}], "
-        "correlation_mappings: [[(_1, _0), (_0, _1), (_0, $s1), (>0_1, _*), ($*, >*)]]}");
+        "correlation_mappings: [[(_1, _0), (_0, _1), (_0, $s1), (>0_1, _*), ($*, >*), (>*, *)]]}");
     vector<string> tokens1, tokens2, tokens3;
     proxy.tokenize(tokens1);
     tokens2 = tokens1;
