@@ -19,11 +19,11 @@ cc_library(
     includes = ["."],
     deps = [
         ":mork_connection",
-        "//commons:commons_lib",
         "//db_adapter:bounded_shared_queue",
         "//db_adapter:database_types",
         "//db_adapter:database_wrapper",
         "//db_adapter:mapper_factory",
+        "//commons:commons_lib",
     ],
 )
 
@@ -33,9 +33,9 @@ cc_library(
     hdrs = ["MorkConnection.h"],
     includes = ["."],
     deps = [
+        "//db_adapter:database_connection",
         "//atomdb/morkdb:morkdb_lib",
         "//commons:commons_lib",
-        "//db_adapter:database_connection",
     ],
 )
 
@@ -46,7 +46,8 @@ cc_library(
     includes = ["."],
     deps = [
         ":mork_wrapper",
-        "//commons:commons_lib",
         "//db_adapter:database_mapping_strategy",
+        "//db_adapter:context_loader",
+        "//commons:commons_lib",
     ],
 )

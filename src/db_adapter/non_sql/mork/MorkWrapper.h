@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <mutex>
 #include <string>
 
 #include "BoundedSharedQueue.h"
@@ -22,6 +23,7 @@ class MorkWrapper : public DatabaseWrapper {
     void map(const string& metta_query);
 
    private:
+    mutex api_mutex;
     MorkConnection& conn;
     shared_ptr<BoundedSharedQueue> output_queue;
 };
