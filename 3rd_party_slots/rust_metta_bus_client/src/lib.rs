@@ -191,9 +191,7 @@ pub fn evolution_query(
 	service_bus.issue_bus_command(proxy.base.clone())?;
 
 	let max_query_answers: u64 = params.properties.get(properties::MAX_ANSWERS);
-	let query_answers = pop_query_answers(&mut proxy, max_query_answers)?;
-
-	Ok(query_answers)
+	pop_query_answers(&mut proxy, max_query_answers)
 }
 
 pub fn link_creation_query(

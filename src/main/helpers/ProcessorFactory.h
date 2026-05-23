@@ -6,6 +6,7 @@
 
 #include "AtomDBProcessor.h"
 #include "BusCommandProcessor.h"
+#include "BusCommandRouterProcessor.h"
 #include "ContextBrokerProcessor.h"
 #include "Helper.h"
 #include "InferenceProcessor.h"
@@ -24,6 +25,7 @@ using namespace query_engine;
 using namespace evolution;
 using namespace atomdb;
 using namespace atomdb_broker;
+using namespace command_router;
 
 namespace mains {
 
@@ -47,6 +49,8 @@ class ProcessorFactory {
                 return make_shared<QueryEvolutionProcessor>();
             case ProcessorType::QUERY_ENGINE:
                 return make_shared<PatternMatchingQueryProcessor>();
+            case ProcessorType::BUS_COMMAND_ROUTER:
+                return make_shared<BusCommandRouterProcessor>();
             default:
                 RAISE_ERROR("Unknown processor type: " + processor_type);
         }

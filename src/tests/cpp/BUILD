@@ -481,6 +481,32 @@ cc_test(
 )
 
 cc_test(
+    name = "bus_command_router_test",
+    size = "medium",
+    srcs = ["bus_command_router_test.cc"],
+    copts = [
+        "-Iexternal/gtest/googletest/include",
+        "-Iexternal/gtest/googletest",
+    ],
+    linkopts = [
+        "-L/usr/local/lib",
+        "-lhiredis_cluster",
+        "-lhiredis",
+        "-lmongocxx",
+        "-lbsoncxx",
+    ],
+    linkstatic = 1,
+    deps = [
+        "//agents/command_router:command_router_lib",
+        "//atomdb:atomdb_singleton",
+        "//commons:commons_lib",
+        "//service_bus:service_bus_lib",
+        "//tests/cpp/test_commons:test_atomdb_json_config",
+        "@com_github_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
     name = "pattern_matching_query_test",
     size = "medium",
     srcs = ["pattern_matching_query_test.cc"],

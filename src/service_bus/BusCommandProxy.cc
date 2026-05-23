@@ -104,6 +104,8 @@ const vector<string>& BusCommandProxy::get_args() { return this->args; }
 
 unsigned int BusCommandProxy::get_serial() { return this->serial; }
 
+const string& BusCommandProxy::get_requestor_id() { return this->requestor_id; }
+
 string BusCommandProxy::my_id() { return this->proxy_node->node_id(); }
 
 string BusCommandProxy::peer_id() { return this->proxy_node->peer_id; }

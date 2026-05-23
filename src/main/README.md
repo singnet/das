@@ -79,6 +79,12 @@ Pass **`--config=<client.json>`** (schema 1.0) so **`atomdb`** can be merged fro
 ```
 make run-client OPTIONS="--client=atomdb-broker --endpoint=localhost:8887 --bus-endpoint=localhost:9000 --ports-range=27000:28000 --action=add_atoms --tokens=LINK Expression 2 NODE Symbol A NODE Symbol B"
 ```
+#### Bus Command Router:
+```
+make run-client OPTIONS="--config=config/client.json --client=bus-command-router --cmd=query --arg=(Similarity \"human\" %S)"
+```
+(`--service=bus-command-router` is an alias for `--client`. Use `%` for MeTTa variables; they are converted to `$`. Override the router listen address with `--bus-endpoint=localhost:40008` if needed. For `get` / `set`, the client prints `params_response` / `set_param_ack`; for `query`, it waits for routing then streams answers like the query-engine client.)
+
 #### Query Engine:
 ```
 make run-client OPTIONS="--config=config/client.json --client=query-engine --query=LINK_TEMPLATE Expression 2 NODE Symbol Predicate VARIABLE V1 --context=test"

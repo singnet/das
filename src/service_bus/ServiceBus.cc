@@ -11,6 +11,7 @@ string ServiceBus::LINK_CREATION = "link_creation";
 string ServiceBus::INFERENCE = "inference";
 string ServiceBus::CONTEXT = "context";
 string ServiceBus::ATOMDB = "atomdb";
+string ServiceBus::BUS_COMMAND_ROUTER = "bus_command_router";
 set<string> ServiceBus::SERVICE_LIST;
 
 // -------------------------------------------------------------------------------------------------
@@ -56,6 +57,7 @@ void ServiceBus::initialize_statics(const set<string>& commands,
         SERVICE_LIST.insert(INFERENCE);
         SERVICE_LIST.insert(CONTEXT);
         SERVICE_LIST.insert(ATOMDB);
+        SERVICE_LIST.insert(BUS_COMMAND_ROUTER);
     }
     for (string command : SERVICE_LIST) {
         LOG_INFO("BUS command: <" << command << ">");
@@ -96,6 +98,25 @@ void ServiceBus::issue_bus_command(shared_ptr<BusCommandProxy> proxy) {
         }
         this->bus_node->send_bus_command(proxy->command, args);
     }
+}
+
+void ServiceBus::forward_bus_command(shared_ptr<BusCommandProxy> proxy,
+                                     const string& requestor_id,
+                                     const string& requestor_proxy_node_id) {
+    lock_guard<mutex> semaphore(this->api_mutex);
+    LOG_DEBUG(bus_node->node_id() << " is forwarding BUS command <" << proxy->command << "> for "
+                                  << requestor_id);
+    proxy->serial = this->next_request_serial++;
+    proxy->args.clear();
+    proxy->pack_command_line_args();
+    vector<string> args;
+    args.push_back(requestor_id);
+    args.push_back(to_string(proxy->serial));
+    args.push_back(requestor_proxy_node_id);
+    for (auto arg : proxy->args) {
+        args.push_back(arg);
+    }
+    this->bus_node->send_bus_command(proxy->command, args);
 }
 
 // -------------------------------------------------------------------------------------------------

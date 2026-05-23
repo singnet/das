@@ -10,6 +10,7 @@ cc_library(
     includes = ["."],
     deps = [
         "//agents/atomdb_broker:atomdb_broker_lib",
+        "//agents/command_router:command_router_lib",
         "//agents/context_broker:context_broker_lib",
         "//agents/evolution:evolution_lib",
         "//agents/inference_agent:inference_agent_lib",
@@ -29,6 +30,7 @@ cc_library(
     includes = ["."],
     deps = [
         "//agents/atomdb_broker:atomdb_broker_lib",
+        "//agents/command_router:command_router_lib",
         "//agents/context_broker:context_broker_lib",
         "//agents/evolution:evolution_lib",
         "//agents/inference_agent:inference_agent_lib",

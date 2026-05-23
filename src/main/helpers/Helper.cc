@@ -51,9 +51,12 @@ string Helper::UNIQUE_ASSIGNMENT_FLAG = "unique-assignment-flag";
 string Helper::USE_LINK_TEMPLATE_CACHE = "use-link-template-cache";
 string Helper::POPULATE_METTA_MAPPING = "populate-metta-mapping";
 string Helper::QUERY = "query";
+string Helper::CMD = "cmd";
+string Helper::ARG = "arg";
 
 map<string, string> Helper::arg_to_json_config_key = {
     {"query-engine", "agents.query"},
+    {"bus-command-router", "agents.command_router"},
     {"evolution-agent", "agents.evolution"},
     {"link-creation-agent", "agents.link_creation"},
     {"inference-agent", "agents.inference"},
@@ -127,6 +130,11 @@ Required arguments:
                                                        {ProcessorType::ATOMDB_BROKER, string(R"(
 AtomDB Broker:
 This processor manages AtomDB broker requests from the service bus.
+)")},
+                                                       {ProcessorType::BUS_COMMAND_ROUTER, string(R"(
+Bus Command Router:
+Gateway peer that accepts text commands as {COMMAND, ARG} over bus_command_router.
+Routes query and evolution to other bus agents; get/set manage local default parameters.
 )")},
                                                        {ProcessorType::UNKNOWN, string(R"(
 Usage:
@@ -213,6 +221,16 @@ This client interacts with the AtomDB Broker via the service bus.
  Optional arguments:
     - use-mork: Whether to use MorkDB as the backend (true/false)
 )")},
+                                                         {ProcessorType::BUS_COMMAND_ROUTER, string(R"(
+Bus Command Router Client:
+Sends {COMMAND, ARG} to the Bus Command Router peer via bus_command_router.
+Required arguments:
+    - cmd: Router command (get, set, query, evolution)
+    - arg: Router argument (e.g. params, param max_answers 100, or a MeTTa query)
+ Optional arguments:
+    - bus-endpoint: Overrides agents.command_router.endpoint from das.json (router listen address)
+    - use-metta-as-query-tokens: Used when interpreting query/evolution args (default true in router)
+)")},
                                                          {ProcessorType::UNKNOWN, string(R"(
 Usage:
 busclient --client=<name> --endpoint=<remote_agent_host:port> --bus-endpoint=<this_client_host:port> --ports-range=<start_port:end_port> [--config=<client.json>] [--use-mork=true|false]
@@ -225,7 +243,8 @@ static map<string, ProcessorType> string_to_processor_type = {
     {"context-broker", ProcessorType::CONTEXT_BROKER},
     {"evolution-agent", ProcessorType::EVOLUTION_AGENT},
     {"query-engine", ProcessorType::QUERY_ENGINE},
-    {"atomdb-broker", ProcessorType::ATOMDB_BROKER}};
+    {"atomdb-broker", ProcessorType::ATOMDB_BROKER},
+    {"bus-command-router", ProcessorType::BUS_COMMAND_ROUTER}};
 
 string Helper::help(const ProcessorType& processor_type, ServiceCallerType caller_type) {
     string usage;
@@ -270,6 +289,12 @@ string Helper::help(const ProcessorType& processor_type, ServiceCallerType calle
                 return usage + client_service_help[ProcessorType::ATOMDB_BROKER];
             } else {
                 return usage + node_service_help[ProcessorType::ATOMDB_BROKER];
+            }
+        case ProcessorType::BUS_COMMAND_ROUTER:
+            if (caller_type == ServiceCallerType::CLIENT) {
+                return usage + node_service_help[ProcessorType::BUS_COMMAND_ROUTER];
+            } else {
+                return usage + node_service_help[ProcessorType::BUS_COMMAND_ROUTER];
             }
         default:
             vector<string> avaiable_services;
@@ -323,6 +348,12 @@ vector<string> Helper::get_required_arguments(const string& processor_type,
         case ProcessorType::ATOMDB_BROKER:
             if (caller_type == ServiceCallerType::CLIENT) {
                 return {ACTION, TOKENS};
+            } else {
+                return {};
+            }
+        case ProcessorType::BUS_COMMAND_ROUTER:
+            if (caller_type == ServiceCallerType::CLIENT) {
+                return {CMD, ARG};
             } else {
                 return {};
             }
