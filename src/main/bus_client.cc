@@ -175,6 +175,16 @@ int main(int argc, char* argv[]) {
                 }
                 LOG_INFO("Evolution routed; waiting for results...");
                 while (!router_proxy->finished() && Helper::is_running) {
+                    shared_ptr<QueryAnswer> answer;
+                    while ((answer = router_proxy->pop()) != nullptr) {
+                        LOG_INFO("Received answer: " + answer->to_string(use_metta_as_query_tokens));
+                        for (string handle : answer->get_handles_vector()) {
+                            if (answer->metta_expression.find(handle) !=
+                                answer->metta_expression.end()) {
+                                LOG_INFO(answer->metta_expression[handle]);
+                            }
+                        }
+                    }
                     Utils::sleep(100);
                 }
             } else {

@@ -3,6 +3,7 @@
 #include <thread>
 
 #include "BaseQueryProxy.h"
+#include "EvolutionMettaParser.h"
 #include "PatternMatchingQueryProxy.h"
 #include "QueryEvolutionProxy.h"
 #include "ServiceBusSingleton.h"
@@ -18,10 +19,10 @@ using namespace service_bus;
 namespace {
 
 const string CONTEXT_KEY = "context";
-const string CORRELATION_QUERIES_KEY = "correlation-queries";
-const string CORRELATION_REPLACEMENTS_KEY = "correlation-replacements";
-const string CORRELATION_MAPPINGS_KEY = "correlation-mappings";
-const string FITNESS_FUNCTION_TAG_KEY = "fitness-function-tag";
+const string CORRELATION_QUERIES_KEY = EVOLUTION_PARAM_CORRELATION_QUERIES;
+const string CORRELATION_REPLACEMENTS_KEY = EVOLUTION_PARAM_CORRELATION_REPLACEMENTS;
+const string CORRELATION_MAPPINGS_KEY = EVOLUTION_PARAM_CORRELATION_MAPPINGS;
+const string FITNESS_FUNCTION_TAG_KEY = EVOLUTION_PARAM_FITNESS;
 
 }  // namespace
 
@@ -155,6 +156,10 @@ void BusCommandRouterProcessor::handle_set(shared_ptr<BusCommandRouterProxy> pro
     if (key.empty() || value.empty()) {
         RAISE_ERROR("Invalid set ARG (empty key or value): " + arg);
     }
+    string canonical_key = canonical_evolution_param_key(key);
+    if (!canonical_key.empty()) {
+        key = canonical_key;
+    }
     set_router_param(proxy.get(), key, value);
     save_router_parameters(proxy);
     string ack = "ok " + key + " " + value;
@@ -231,18 +236,26 @@ BusCommandRouterProcessor::parse_correlation_mappings(const string& str, bool us
 
 void BusCommandRouterProcessor::relay_query_answers_to_client(
     shared_ptr<BusCommandRouterProxy> client_proxy, shared_ptr<BaseQueryProxy> downstream) {
-    while (!downstream->finished()) {
+    try {
         shared_ptr<QueryAnswer> answer;
+        while (!downstream->finished()) {
+            while ((answer = downstream->pop()) != nullptr) {
+                client_proxy->push(answer);
+            }
+            Utils::sleep(100);
+        }
         while ((answer = downstream->pop()) != nullptr) {
             client_proxy->push(answer);
         }
-        Utils::sleep(100);
+        if (downstream->error_flag) {
+            client_proxy->raise_error_on_peer(downstream->error_message, downstream->error_code);
+            return;
+        }
+        client_proxy->query_processing_finished();
+    } catch (const std::exception& exception) {
+        LOG_ERROR("Relay to client failed: " << exception.what());
+        client_proxy->raise_error_on_peer(exception.what());
     }
-    if (downstream->error_flag) {
-        client_proxy->raise_error_on_peer(downstream->error_message, downstream->error_code);
-        return;
-    }
-    client_proxy->query_processing_finished();
 }
 
 void BusCommandRouterProcessor::handle_query(shared_ptr<BusCommandRouterProxy> proxy,
@@ -273,16 +286,44 @@ void BusCommandRouterProcessor::handle_evolution(shared_ptr<BusCommandRouterProx
     bool use_metta = proxy->parameters.get<bool>(BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS);
     string context = proxy->parameters.get<string>(CONTEXT_KEY);
 
-    if (proxy->parameters.find(FITNESS_FUNCTION_TAG_KEY) == proxy->parameters.end()) {
-        RAISE_ERROR("Missing router parameter: " + FITNESS_FUNCTION_TAG_KEY);
+    string fitness_tag;
+    string cq_str;
+    string cr_str;
+    string cm_str;
+    vector<string> query;
+
+    EvolutionMettaArgs metta_args;
+    if (try_parse_evolution_metta_arg(arg, metta_args)) {
+        if (metta_args.query.empty()) {
+            RAISE_ERROR("Evolution MeTTa ARG is missing (query ...)");
+        }
+        query = parse_request(metta_args.query, use_metta);
+        fitness_tag = metta_args.fitness_function_tag;
+        cq_str = metta_args.correlation_queries;
+        cr_str = metta_args.correlation_replacements;
+        cm_str = metta_args.correlation_mappings;
+    } else {
+        query = parse_request(arg, use_metta);
+        cq_str = proxy->parameters.get_or<string>(CORRELATION_QUERIES_KEY, "");
+        cr_str = proxy->parameters.get_or<string>(CORRELATION_REPLACEMENTS_KEY, "");
+        cm_str = proxy->parameters.get_or<string>(CORRELATION_MAPPINGS_KEY, "");
     }
-    string fitness_tag = proxy->parameters.get<string>(FITNESS_FUNCTION_TAG_KEY);
 
-    vector<string> query = parse_request(arg, use_metta);
-
-    string cq_str = proxy->parameters.get_or<string>(CORRELATION_QUERIES_KEY, "");
-    string cr_str = proxy->parameters.get_or<string>(CORRELATION_REPLACEMENTS_KEY, "");
-    string cm_str = proxy->parameters.get_or<string>(CORRELATION_MAPPINGS_KEY, "");
+    if (fitness_tag.empty()) {
+        if (proxy->parameters.find(FITNESS_FUNCTION_TAG_KEY) == proxy->parameters.end()) {
+            RAISE_ERROR("Missing router parameter: " + FITNESS_FUNCTION_TAG_KEY);
+        }
+        fitness_tag = proxy->parameters.get<string>(FITNESS_FUNCTION_TAG_KEY);
+    }
+    if (cq_str.empty()) {
+        cq_str = proxy->parameters.get_or<string>(CORRELATION_QUERIES_KEY, "");
+    }
+    if (cr_str.empty()) {
+        cr_str = proxy->parameters.get_or<string>(CORRELATION_REPLACEMENTS_KEY, "");
+    }
+    if (cm_str.empty()) {
+        cm_str = proxy->parameters.get_or<string>(CORRELATION_MAPPINGS_KEY, "");
+    }
 
     auto correlation_queries = parse_correlation_queries(cq_str, use_metta);
     auto correlation_replacements = parse_correlation_replacements(cr_str, use_metta);

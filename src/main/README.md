@@ -35,7 +35,7 @@ Run the `bus_node` binary with the required parameters:
 make run-busnode OPTIONS="--service=<SERVICE_NAME> --endpoint=<ENDPOINT> --ports-range=<PORTS_RANGE> [--config=<config/das.json>]
 ```
 
-Optional: pass `--config=<JSON_FILE_PATH>` to load defaults from a JSON config file (schema version 1.0), for example `config/das.json`. Values from the config are used as defaults for the selected service; **command-line arguments always override** config (e.g. `--endpoint=localhost:9002` wins over `agents.query.endpoint` in the file). Node configs include `atomdb`, `loaders`, `agents`, and `brokers`; they do not include `params` (those apply to `bus_client` only).
+Optional: pass `--config=<JSON_FILE_PATH>` to load defaults from a JSON config file (schema version 1.0), for example `config/das.json`. Values from the config are used as defaults for the selected service; **command-line arguments always override** config (e.g. `--endpoint=localhost:9002` wins over `agents.query.endpoint` in the file). Node configs include `atomdb`, `loaders`, `agents`, and `brokers`; they do not include `params` (those apply to `bus_client` only). For every service except **query-engine**, **`--bus-endpoint` defaults to `agents.query.endpoint`** (the query mesh hub, e.g. `localhost:40002`); query-engine omits it and becomes the bus master.
 
 ### Examples
 
@@ -45,8 +45,9 @@ make run-busnode OPTIONS="--service=query-engine --endpoint=localhost:9000 --por
 ```
 #### Evolution Agent
 ```
-make run-busnode OPTIONS="--service=evolution-agent --endpoint=localhost:9001 --ports-range=4000:4100 --attention-broker-endpoint=localhost:37007 --bus-endpoint=localhost:9000"
+make run-busnode OPTIONS="--service=evolution-agent --config=config/das.json"
 ```
+(`--bus-endpoint` defaults to `agents.query.endpoint` from `das.json` when omitted.)
 #### LCA
 ```
 make run-busnode OPTIONS="--service=link-creation-agent --endpoint=localhost:9002 --ports-range=4000:4100 --attention-broker-endpoint=localhost:37007 --bus-endpoint=localhost:9000"
@@ -84,6 +85,12 @@ make run-client OPTIONS="--client=atomdb-broker --endpoint=localhost:8887 --bus-
 make run-client OPTIONS="--config=config/client.json --client=bus-command-router --cmd=query --arg=(Similarity \"human\" %S)"
 ```
 (`--service=bus-command-router` is an alias for `--client`. Use `%` for MeTTa variables; they are converted to `$`. Override the router listen address with `--bus-endpoint=localhost:40008` if needed. For `get` / `set`, the client prints `params_response` / `set_param_ack`; for `query`, it waits for routing then streams answers like the query-engine client.)
+
+Evolution with a labeled MeTTa `ARG` (set `context` via `set param context Aaa` first):
+
+```
+make run-client OPTIONS="--config=config/client.json --client=bus-command-router --cmd=evolution --arg='((query (Contains %sentence1 (Word \"bbb\"))) (ff count_letter) (cq (Contains %placeholder1 %word1)) (cr %placeholder1:sentence1) (cm sentence1:%word1))'"
+```
 
 #### Query Engine:
 ```

@@ -138,7 +138,8 @@ Routes query and evolution to other bus agents; get/set manage local default par
 )")},
                                                        {ProcessorType::UNKNOWN, string(R"(
 Usage:
-busnode --service=<service> --endpoint=<host:port> --ports-range=<start_port:end_port> [--bus-endpoint=<bus_host:bus_port>] [--use-mork=true|false]
+busnode --service=<service> --endpoint=<host:port> --ports-range=<start_port:end_port> [--config=<das.json>] [--bus-endpoint=<bus_host:bus_port>] [--use-mork=true|false]
+With --config=das.json, non-query-engine services default --bus-endpoint to agents.query.endpoint (query-engine mesh hub).
 )")}};
 
 static map<ProcessorType, string> client_service_help = {{ProcessorType::INFERENCE_AGENT, string(R"(
@@ -226,7 +227,15 @@ Bus Command Router Client:
 Sends {COMMAND, ARG} to the Bus Command Router peer via bus_command_router.
 Required arguments:
     - cmd: Router command (get, set, query, evolution)
-    - arg: Router argument (e.g. params, param max_answers 100, or a MeTTa query)
+    - arg: Router argument. For evolution, either a single MeTTa query (other fields from params via set)
+      or a labeled MeTTa list, e.g.:
+      ((query (Contains %s1 (Word "bbb")))
+       (ff count_letter)
+       (cq (Contains %p1 %w1))
+       (cr %p1:s1)
+       (cm s1:%w1))
+      Aliases: ff, cq, cr, cm (or full fitness-function-tag, correlation-* names). query has no alias.
+      Context is always taken from router params (set param context <name>).
  Optional arguments:
     - bus-endpoint: Overrides agents.command_router.endpoint from das.json (router listen address)
     - use-metta-as-query-tokens: Used when interpreting query/evolution args (default true in router)

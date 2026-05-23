@@ -33,9 +33,13 @@ bool BaseProxy::finished() {
 
 void BaseProxy::abort() {
     lock_guard<mutex> semaphore(this->api_mutex);
-    // RAISE_ERROR("Method not implemented");
     if (!this->command_finished_flag) {
-        to_remote_peer(ABORT, {});
+        // SERVER proxies (e.g. sampling queries) learn peer_id only after the processor connects.
+        if (peer_id() != "") {
+            to_remote_peer(ABORT, {});
+        } else {
+            LOG_DEBUG("Skipping remote ABORT; peer not connected yet");
+        }
     }
     this->abort_flag = true;
 }

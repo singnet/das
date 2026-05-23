@@ -2,6 +2,7 @@
 #include "BusCommandRouterProcessor.h"
 #include "BusCommandRouterProxy.h"
 #include "CommandLineParser.h"
+#include "EvolutionMettaParser.h"
 #include "ServiceBus.h"
 #include "TestAtomDBJsonConfig.h"
 #include "Utils.h"
@@ -77,6 +78,73 @@ class RouterTestProxy : public BusCommandRouterProxy {
         return false;
     }
 };
+
+TEST(EvolutionMettaParser, parse_labeled_evolution_arg_with_aliases) {
+    EvolutionMettaArgs args;
+    string metta_arg =
+        "((query (Contains %sentence1 (Word \"bbb\"))) "
+        "(ff count_letter) "
+        "(cq (Contains %placeholder1 %word1)) "
+        "(cr %placeholder1:sentence1) "
+        "(cm sentence1:%word1))";
+    ASSERT_TRUE(try_parse_evolution_metta_arg(metta_arg, args));
+    EXPECT_EQ(args.query, "(Contains %sentence1 (Word \"bbb\"))");
+    EXPECT_EQ(args.fitness_function_tag, "count_letter");
+    EXPECT_EQ(args.correlation_queries, "(Contains %placeholder1 %word1)");
+    EXPECT_EQ(args.correlation_replacements, "%placeholder1:sentence1");
+    EXPECT_EQ(args.correlation_mappings, "sentence1:%word1");
+}
+
+TEST(EvolutionMettaParser, canonical_param_key_accepts_name_or_alias) {
+    EXPECT_EQ(canonical_evolution_param_key("query"), "query");
+    EXPECT_EQ(canonical_evolution_param_key("ff"), "fitness-function-tag");
+    EXPECT_EQ(canonical_evolution_param_key("fitness-function-tag"), "fitness-function-tag");
+    EXPECT_EQ(canonical_evolution_param_key("cq"), "correlation-queries");
+    EXPECT_EQ(canonical_evolution_param_key("correlation-queries"), "correlation-queries");
+    EXPECT_EQ(canonical_evolution_param_key("cr"), "correlation-replacements");
+    EXPECT_EQ(canonical_evolution_param_key("cm"), "correlation-mappings");
+    EXPECT_TRUE(canonical_evolution_param_key("unknown").empty());
+}
+
+TEST(EvolutionMettaParser, parse_mixed_aliases_and_full_names) {
+    EvolutionMettaArgs args;
+    string metta_arg =
+        "((query (Contains %sentence1 (Word \"bbb\"))) "
+        "(fitness-function-tag count_letter) "
+        "(cq (Contains %placeholder1 %word1)) "
+        "(correlation-replacements %placeholder1:sentence1) "
+        "(cm sentence1:%word1))";
+    ASSERT_TRUE(try_parse_evolution_metta_arg(metta_arg, args));
+    EXPECT_EQ(args.query, "(Contains %sentence1 (Word \"bbb\"))");
+    EXPECT_EQ(args.fitness_function_tag, "count_letter");
+    EXPECT_EQ(args.correlation_queries, "(Contains %placeholder1 %word1)");
+    EXPECT_EQ(args.correlation_replacements, "%placeholder1:sentence1");
+    EXPECT_EQ(args.correlation_mappings, "sentence1:%word1");
+}
+
+TEST(EvolutionMettaParser, parse_labeled_evolution_arg_with_full_slot_names) {
+    EvolutionMettaArgs args;
+    string metta_arg =
+        "((query (Contains %sentence1 (Word \"bbb\"))) "
+        "(fitness-function-tag count_letter) "
+        "(correlation-queries (Contains %placeholder1 %word1)) "
+        "(correlation-replacements %placeholder1:sentence1) "
+        "(correlation-mappings sentence1:%word1))";
+    ASSERT_TRUE(try_parse_evolution_metta_arg(metta_arg, args));
+    EXPECT_EQ(args.query, "(Contains %sentence1 (Word \"bbb\"))");
+    EXPECT_EQ(args.fitness_function_tag, "count_letter");
+}
+
+TEST(EvolutionMettaParser, bare_query_expression_is_not_labeled_form) {
+    EvolutionMettaArgs args;
+    string metta_arg = "((Contains %sentence1 (Word \"bbb\")) (ff count_letter))";
+    EXPECT_FALSE(try_parse_evolution_metta_arg(metta_arg, args));
+}
+
+TEST(EvolutionMettaParser, plain_query_arg_is_not_labeled_form) {
+    EvolutionMettaArgs args;
+    EXPECT_FALSE(try_parse_evolution_metta_arg("(Similarity $a $b)", args));
+}
 
 TEST(CommandLineParser, split_command_line) {
     auto parts = split_command_line("query (Similarity $a $b)");
