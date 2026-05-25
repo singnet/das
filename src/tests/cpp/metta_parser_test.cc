@@ -388,6 +388,28 @@ TEST(MettaParser, basics) {
             "SYMBOL n3",
             "EXPRESSION (-> n2 n3)",
             "TOPLEVEL_EXPRESSION (: n1 (-> n2 n3))"});
+    check_parse("16", "(axiom (= (K $ (L _1 _1 $)) (K _1 _1)))", true, {
+            "BEGIN_EXPRESSION",
+            "SYMBOL axiom",
+            "BEGIN_EXPRESSION",
+            "SYMBOL =",
+            "BEGIN_EXPRESSION",
+            "SYMBOL K",
+            "SYMBOL $",
+            "BEGIN_EXPRESSION",
+            "SYMBOL L",
+            "SYMBOL _1",
+            "SYMBOL _1",
+            "SYMBOL $",
+            "EXPRESSION (L _1 _1 $)",
+            "EXPRESSION (K $ (L _1 _1 $))",
+            "BEGIN_EXPRESSION",
+            "SYMBOL K",
+            "SYMBOL _1",
+            "SYMBOL _1",
+            "EXPRESSION (K _1 _1)",
+            "EXPRESSION (= (K $ (L _1 _1 $)) (K _1 _1))",
+            "TOPLEVEL_EXPRESSION (axiom (= (K $ (L _1 _1 $)) (K _1 _1)))"});
 
     // clang-format on
 }
