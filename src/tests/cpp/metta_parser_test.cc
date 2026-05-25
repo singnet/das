@@ -366,6 +366,29 @@ TEST(MettaParser, basics) {
             "SYMBOL n11",
             "TOPLEVEL_EXPRESSION (n10 n11)",
         });
+    check_parse("12", "1a", true, {"SYMBOL 1a"});
+    check_parse("13", "(n1 123a1)", true, {
+            "BEGIN_EXPRESSION",
+            "SYMBOL n1",
+            "SYMBOL 123a1",
+            "TOPLEVEL_EXPRESSION (n1 123a1)"});
+    check_parse("14", "(12abc 12abc1 12abc12)", true, {
+            "BEGIN_EXPRESSION",
+            "SYMBOL 12abc",
+            "SYMBOL 12abc1",
+            "SYMBOL 12abc12",
+            "TOPLEVEL_EXPRESSION (12abc 12abc1 12abc12)"});
+    check_parse("15", "(: n1 (-> n2 n3))", true, {
+            "BEGIN_EXPRESSION",
+            "SYMBOL :",
+            "SYMBOL n1",
+            "BEGIN_EXPRESSION",
+            "SYMBOL ->",
+            "SYMBOL n2",
+            "SYMBOL n3",
+            "EXPRESSION (-> n2 n3)",
+            "TOPLEVEL_EXPRESSION (: n1 (-> n2 n3))"});
+
     // clang-format on
 }
 
