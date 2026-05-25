@@ -47,10 +47,6 @@ class BusCommandRouterProcessor : public BusCommandProcessor {
     static string parse_metta_expression(const string& metta_expression);
     static vector<string> parse_request(const string& request_str, bool use_metta);
     static vector<vector<string>> parse_correlation_queries(const string& str, bool use_metta);
-    static vector<map<string, QueryAnswerElement>> parse_correlation_replacements(const string& str,
-                                                                                  bool use_metta);
-    static vector<pair<QueryAnswerElement, QueryAnswerElement>> parse_correlation_mappings(
-        const string& str, bool use_metta);
 
     Properties& parameters_for_peer(const string& peer_id);
     void load_router_parameters(shared_ptr<BusCommandRouterProxy> proxy);

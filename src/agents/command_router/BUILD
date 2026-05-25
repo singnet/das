@@ -44,6 +44,7 @@ cc_library(
     hdrs = ["EvolutionMettaParser.h"],
     includes = ["."],
     deps = [
+        "//agents/query_engine:query_answer",
         "//commons:commons_lib",
     ],
 )

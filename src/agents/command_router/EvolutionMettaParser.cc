@@ -107,25 +107,99 @@ vector<string> top_level_expressions(const string& s) {
 }
 
 bool parse_labeled_clause(const string& clause, string& label, string& body) {
-    if (clause.empty() || clause[0] != '(') {
+    vector<string> children = top_level_expressions(clause);
+    if (children.empty()) {
         return false;
     }
-    string inner = clause.substr(1);
-    if (!inner.empty() && inner.back() == ')') {
-        inner.pop_back();
-    }
-    Utils::trim(inner);
-    size_t label_end = inner.find(' ');
-    if (label_end == string::npos) {
-        label = inner;
+    label = children[0];
+    if (children.size() == 1) {
         body = "";
+    } else if (children.size() == 2) {
+        body = children[1];
     } else {
-        label = inner.substr(0, label_end);
-        body = inner.substr(label_end + 1);
-        Utils::trim(label);
+        body = children[1];
+        for (size_t i = 2; i < children.size(); i++) {
+            body += " " + children[i];
+        }
         Utils::trim(body);
     }
     return !label.empty();
+}
+
+vector<string> parse_query_list_body(const string& body) {
+    if (body.empty()) {
+        return {};
+    }
+    if (body[0] != '(') {
+        return {body};
+    }
+    vector<string> queries = top_level_expressions(body);
+    if (queries.empty()) {
+        return {body};
+    }
+    if (queries.size() == 1) {
+        return queries;
+    }
+    // List of query S-expressions: ((Q1) (Q2)); not a single query tokenized as Contains, %v, ...
+    if (queries[0][0] == '(') {
+        return queries;
+    }
+    return {body};
+}
+
+bool looks_like_atom(const string& token) { return !token.empty() && token[0] != '('; }
+
+vector<pair<string, string>> parse_pair_clause(const string& pair_clause) {
+    vector<string> atoms = top_level_expressions(pair_clause);
+    if (atoms.size() >= 2 && looks_like_atom(atoms[0])) {
+        return {make_pair(atoms[0], atoms[1])};
+    }
+    return {};
+}
+
+string unwrap_single_child_group(string group_clause) {
+    while (true) {
+        vector<string> children = top_level_expressions(group_clause);
+        if (children.size() == 1 && !children[0].empty() && children[0][0] == '(') {
+            group_clause = children[0];
+            continue;
+        }
+        return group_clause;
+    }
+}
+
+vector<pair<string, string>> parse_pairs_from_group(const string& group_clause) {
+    vector<pair<string, string>> pairs;
+    string inner = unwrap_single_child_group(group_clause);
+    vector<string> elements = top_level_expressions(inner);
+    if (elements.size() >= 2 && looks_like_atom(elements[0])) {
+        pairs.emplace_back(elements[0], elements[1]);
+        return pairs;
+    }
+    for (const auto& pair_clause : elements) {
+        auto parsed = parse_pair_clause(pair_clause);
+        if (!parsed.empty()) {
+            pairs.push_back(parsed[0]);
+        }
+    }
+    return pairs;
+}
+
+vector<vector<pair<string, string>>> parse_pair_groups_body(const string& body) {
+    vector<vector<pair<string, string>>> groups;
+
+    string inner_body = unwrap_single_child_group(body);
+    vector<string> elements = top_level_expressions(inner_body);
+    if (elements.size() >= 2 && looks_like_atom(elements[0])) {
+        groups.push_back({make_pair(elements[0], elements[1])});
+        return groups;
+    }
+
+    for (const auto& group_clause : elements) {
+        auto pairs = parse_pairs_from_group(group_clause);
+        groups.push_back(pairs);
+    }
+    return groups;
 }
 
 void assign_slot(EvolutionMettaArgs& out, const string& canonical, const string& body) {
@@ -134,15 +208,41 @@ void assign_slot(EvolutionMettaArgs& out, const string& canonical, const string&
     } else if (canonical == EVOLUTION_PARAM_FITNESS) {
         out.fitness_function_tag = body;
     } else if (canonical == EVOLUTION_PARAM_CORRELATION_QUERIES) {
-        out.correlation_queries = body;
+        out.correlation_query_expressions = parse_correlation_query_list_body(body);
     } else if (canonical == EVOLUTION_PARAM_CORRELATION_REPLACEMENTS) {
-        out.correlation_replacements = body;
+        out.correlation_replacement_groups = parse_correlation_pair_groups_body(body);
     } else if (canonical == EVOLUTION_PARAM_CORRELATION_MAPPINGS) {
-        out.correlation_mappings = body;
+        out.correlation_mapping_groups = parse_correlation_pair_groups_body(body);
     }
 }
 
+string strip_leading_variable_sigil(const string& name) {
+    if (!name.empty() && (name[0] == '%' || name[0] == '$')) {
+        return name.substr(1);
+    }
+    return name;
+}
+
 }  // namespace
+
+vector<string> command_router::parse_correlation_query_list_body(const string& body) {
+    return parse_query_list_body(body);
+}
+
+vector<vector<pair<string, string>>> command_router::parse_correlation_pair_groups_body(
+    const string& body) {
+    string trimmed = body;
+    Utils::trim(trimmed);
+    if (trimmed.empty()) {
+        return {};
+    }
+    if (trimmed[0] != '(') {
+        RAISE_ERROR(
+            "correlation-replacements and correlation-mappings require MeTTa S-expressions "
+            "(e.g. ((placeholder1 sentence1))); key:value syntax is not supported");
+    }
+    return parse_pair_groups_body(trimmed);
+}
 
 string command_router::canonical_evolution_param_key(const string& key_or_alias) {
     auto iterator = param_key_aliases().find(key_or_alias);
@@ -150,6 +250,50 @@ string command_router::canonical_evolution_param_key(const string& key_or_alias)
         return "";
     }
     return iterator->second;
+}
+
+string command_router::normalize_metta_percent_variables(const string& expression) {
+    string parsed = expression;
+    Utils::replace_all(parsed, "%", "$");
+    return parsed;
+}
+
+vector<vector<string>> command_router::metta_correlation_queries(const vector<string>& expressions) {
+    vector<vector<string>> queries;
+    for (const auto& expression : expressions) {
+        queries.push_back({normalize_metta_percent_variables(expression)});
+    }
+    return queries;
+}
+
+vector<map<string, QueryAnswerElement>> command_router::metta_correlation_replacements(
+    const vector<vector<pair<string, string>>>& groups) {
+    vector<map<string, QueryAnswerElement>> replacements;
+    for (const auto& group : groups) {
+        map<string, QueryAnswerElement> replacement_map;
+        for (const auto& pair : group) {
+            string key = strip_leading_variable_sigil(normalize_metta_percent_variables(pair.first));
+            string value = strip_leading_variable_sigil(normalize_metta_percent_variables(pair.second));
+            replacement_map[key] = QueryAnswerElement(value);
+        }
+        replacements.push_back(replacement_map);
+    }
+    return replacements;
+}
+
+vector<vector<pair<QueryAnswerElement, QueryAnswerElement>>> command_router::metta_correlation_mappings(
+    const vector<vector<pair<string, string>>>& groups) {
+    vector<vector<pair<QueryAnswerElement, QueryAnswerElement>>> mappings;
+    for (const auto& group : groups) {
+        vector<pair<QueryAnswerElement, QueryAnswerElement>> mapping;
+        for (const auto& pair : group) {
+            string first = strip_leading_variable_sigil(normalize_metta_percent_variables(pair.first));
+            string second = strip_leading_variable_sigil(normalize_metta_percent_variables(pair.second));
+            mapping.push_back(make_pair(QueryAnswerElement(first), QueryAnswerElement(second)));
+        }
+        mappings.push_back(mapping);
+    }
+    return mappings;
 }
 
 bool command_router::try_parse_evolution_metta_arg(const string& arg, EvolutionMettaArgs& out) {

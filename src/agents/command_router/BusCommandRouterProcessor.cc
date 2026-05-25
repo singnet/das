@@ -199,41 +199,6 @@ vector<vector<string>> BusCommandRouterProcessor::parse_correlation_queries(cons
     return queries;
 }
 
-vector<map<string, QueryAnswerElement>> BusCommandRouterProcessor::parse_correlation_replacements(
-    const string& str, bool use_metta) {
-    string parsed = use_metta ? parse_metta_expression(str) : str;
-    vector<map<string, QueryAnswerElement>> replacements;
-    for (auto value : Utils::split(parsed, ';')) {
-        Utils::trim(value);
-        if (value.empty()) {
-            continue;
-        }
-        map<string, QueryAnswerElement> replacement_map;
-        for (auto pair_str : Utils::split(value, ',')) {
-            auto pair = Utils::split(pair_str, ':');
-            if (pair.size() == 2) {
-                replacement_map[pair[0]] = QueryAnswerElement(pair[1]);
-            }
-        }
-        replacements.push_back(replacement_map);
-    }
-    return replacements;
-}
-
-vector<pair<QueryAnswerElement, QueryAnswerElement>>
-BusCommandRouterProcessor::parse_correlation_mappings(const string& str, bool use_metta) {
-    string parsed = use_metta ? parse_metta_expression(str) : str;
-    vector<pair<QueryAnswerElement, QueryAnswerElement>> mappings;
-    for (auto value : Utils::split(parsed, ',')) {
-        Utils::trim(value);
-        auto pair = Utils::split(value, ':');
-        if (pair.size() == 2) {
-            mappings.push_back(make_pair(QueryAnswerElement(pair[0]), QueryAnswerElement(pair[1])));
-        }
-    }
-    return mappings;
-}
-
 void BusCommandRouterProcessor::relay_query_answers_to_client(
     shared_ptr<BusCommandRouterProxy> client_proxy, shared_ptr<BaseQueryProxy> downstream) {
     try {
@@ -293,15 +258,13 @@ void BusCommandRouterProcessor::handle_evolution(shared_ptr<BusCommandRouterProx
     vector<string> query;
 
     EvolutionMettaArgs metta_args;
-    if (try_parse_evolution_metta_arg(arg, metta_args)) {
+    bool parsed_metta_arg = try_parse_evolution_metta_arg(arg, metta_args);
+    if (parsed_metta_arg) {
         if (metta_args.query.empty()) {
             RAISE_ERROR("Evolution MeTTa ARG is missing (query ...)");
         }
         query = parse_request(metta_args.query, use_metta);
         fitness_tag = metta_args.fitness_function_tag;
-        cq_str = metta_args.correlation_queries;
-        cr_str = metta_args.correlation_replacements;
-        cm_str = metta_args.correlation_mappings;
     } else {
         query = parse_request(arg, use_metta);
         cq_str = proxy->parameters.get_or<string>(CORRELATION_QUERIES_KEY, "");
@@ -325,11 +288,44 @@ void BusCommandRouterProcessor::handle_evolution(shared_ptr<BusCommandRouterProx
         cm_str = proxy->parameters.get_or<string>(CORRELATION_MAPPINGS_KEY, "");
     }
 
-    auto correlation_queries = parse_correlation_queries(cq_str, use_metta);
-    auto correlation_replacements = parse_correlation_replacements(cr_str, use_metta);
-    auto correlation_mapping = parse_correlation_mappings(cm_str, use_metta);
-    vector<vector<pair<QueryAnswerElement, QueryAnswerElement>>> correlation_mappings = {
-        correlation_mapping};
+    vector<vector<string>> correlation_queries;
+    vector<map<string, QueryAnswerElement>> correlation_replacements;
+    vector<vector<pair<QueryAnswerElement, QueryAnswerElement>>> correlation_mappings;
+
+    if (parsed_metta_arg && !metta_args.correlation_query_expressions.empty()) {
+        correlation_queries = metta_correlation_queries(metta_args.correlation_query_expressions);
+    }
+    if (parsed_metta_arg && !metta_args.correlation_replacement_groups.empty()) {
+        correlation_replacements =
+            metta_correlation_replacements(metta_args.correlation_replacement_groups);
+    }
+    if (parsed_metta_arg && !metta_args.correlation_mapping_groups.empty()) {
+        correlation_mappings = metta_correlation_mappings(metta_args.correlation_mapping_groups);
+    }
+    if (correlation_queries.empty() && !cq_str.empty()) {
+        if (use_metta) {
+            correlation_queries = metta_correlation_queries(parse_correlation_query_list_body(cq_str));
+        } else {
+            correlation_queries = parse_correlation_queries(cq_str, false);
+        }
+    }
+    if (correlation_replacements.empty() && !cr_str.empty()) {
+        correlation_replacements =
+            metta_correlation_replacements(parse_correlation_pair_groups_body(cr_str));
+    }
+    if (correlation_mappings.empty() && !cm_str.empty()) {
+        correlation_mappings = metta_correlation_mappings(parse_correlation_pair_groups_body(cm_str));
+    }
+
+    if (!correlation_queries.empty() && !correlation_replacements.empty() &&
+        correlation_queries.size() != correlation_replacements.size()) {
+        RAISE_ERROR(
+            "correlation-queries and correlation-replacements must have the same number of entries");
+    }
+    if (!correlation_mappings.empty() && !correlation_queries.empty() &&
+        correlation_mappings.size() != correlation_queries.size()) {
+        RAISE_ERROR("correlation-mappings must have one group per correlation-query");
+    }
 
     auto evo_proxy = make_shared<QueryEvolutionProxy>(query,
                                                       correlation_queries,

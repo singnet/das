@@ -84,15 +84,88 @@ TEST(EvolutionMettaParser, parse_labeled_evolution_arg_with_aliases) {
     string metta_arg =
         "((query (Contains %sentence1 (Word \"bbb\"))) "
         "(ff count_letter) "
-        "(cq (Contains %placeholder1 %word1)) "
-        "(cr %placeholder1:sentence1) "
-        "(cm sentence1:%word1))";
+        "(cq ((Contains %placeholder1 %word1))) "
+        "(cr ((placeholder1 sentence1))) "
+        "(cm ((sentence1 word1)))";
     ASSERT_TRUE(try_parse_evolution_metta_arg(metta_arg, args));
     EXPECT_EQ(args.query, "(Contains %sentence1 (Word \"bbb\"))");
     EXPECT_EQ(args.fitness_function_tag, "count_letter");
-    EXPECT_EQ(args.correlation_queries, "(Contains %placeholder1 %word1)");
-    EXPECT_EQ(args.correlation_replacements, "%placeholder1:sentence1");
-    EXPECT_EQ(args.correlation_mappings, "sentence1:%word1");
+    ASSERT_EQ(args.correlation_query_expressions.size(), 1u);
+    EXPECT_EQ(args.correlation_query_expressions[0], "(Contains %placeholder1 %word1)");
+    ASSERT_EQ(args.correlation_replacement_groups.size(), 1u);
+    EXPECT_EQ(args.correlation_replacement_groups[0][0].first, "placeholder1");
+    EXPECT_EQ(args.correlation_mapping_groups[0][0].second, "word1");
+}
+
+TEST(EvolutionMettaParser, reject_colon_syntax_in_cr_and_cm) {
+    EvolutionMettaArgs args;
+    string metta_arg =
+        "((query (Contains %sentence1 (Word \"bbb\"))) "
+        "(ff count_letter) "
+        "(cq ((Contains %placeholder1 %word1))) "
+        "(cr %placeholder1:sentence1) "
+        "(cm sentence1:%word1))";
+    EXPECT_THROW(try_parse_evolution_metta_arg(metta_arg, args), runtime_error);
+    EXPECT_THROW(parse_correlation_pair_groups_body("%placeholder1:sentence1"), runtime_error);
+}
+
+TEST(EvolutionMettaParser, parse_simplified_wrapped_cr_cm_from_command_line) {
+    EvolutionMettaArgs args;
+    string metta_arg =
+        "((query (Contains %sentence1 (Word \"bbb\"))) "
+        "(ff count_letter) "
+        "(cq ((Contains %placeholder1 %word1))) "
+        "(cr ((placeholder1 sentence1))) "
+        "(cm ((sentence1 word1)))";
+    ASSERT_TRUE(try_parse_evolution_metta_arg(metta_arg, args));
+    EXPECT_EQ(args.fitness_function_tag, "count_letter");
+    ASSERT_EQ(args.correlation_query_expressions.size(), 1u);
+    EXPECT_EQ(args.correlation_query_expressions[0], "(Contains %placeholder1 %word1)");
+
+    auto queries = metta_correlation_queries(args.correlation_query_expressions);
+    ASSERT_EQ(queries.size(), 1u);
+    ASSERT_EQ(queries[0].size(), 1u);
+    EXPECT_EQ(queries[0][0], "(Contains $placeholder1 $word1)");
+
+    auto replacements = metta_correlation_replacements(args.correlation_replacement_groups);
+    ASSERT_EQ(replacements.size(), 1u);
+    EXPECT_EQ(replacements[0].at("placeholder1").to_string(), "$sentence1");
+
+    auto mappings = metta_correlation_mappings(args.correlation_mapping_groups);
+    ASSERT_EQ(mappings.size(), 1u);
+    ASSERT_EQ(mappings[0].size(), 1u);
+    EXPECT_EQ(mappings[0][0].first.to_string(), "$sentence1");
+    EXPECT_EQ(mappings[0][0].second.to_string(), "$word1");
+}
+
+TEST(EvolutionMettaParser, parse_multiple_correlation_slots_as_s_expr_lists) {
+    EvolutionMettaArgs args;
+    string metta_arg =
+        "((query (Contains %sentence1 (Word \"bbb\"))) "
+        "(ff count_letter) "
+        "(cq ((Contains %placeholder1 %word1) (Contains %placeholder1 %word2))) "
+        "(cr (((placeholder1 sentence1)) ((placeholder1 sentence1)))) "
+        "(cm (((sentence1 word1)) ((sentence1 word2))))";
+    ASSERT_TRUE(try_parse_evolution_metta_arg(metta_arg, args));
+    ASSERT_EQ(args.correlation_query_expressions.size(), 2u);
+    EXPECT_EQ(args.correlation_query_expressions[0], "(Contains %placeholder1 %word1)");
+    EXPECT_EQ(args.correlation_query_expressions[1], "(Contains %placeholder1 %word2)");
+    ASSERT_EQ(args.correlation_replacement_groups.size(), 2u);
+    EXPECT_EQ(args.correlation_replacement_groups[0][0].first, "placeholder1");
+    EXPECT_EQ(args.correlation_replacement_groups[1][0].second, "sentence1");
+    ASSERT_EQ(args.correlation_mapping_groups.size(), 2u);
+    EXPECT_EQ(args.correlation_mapping_groups[0][0].first, "sentence1");
+    EXPECT_EQ(args.correlation_mapping_groups[1][0].second, "word2");
+
+    auto queries = metta_correlation_queries(args.correlation_query_expressions);
+    ASSERT_EQ(queries.size(), 2u);
+    EXPECT_EQ(queries[0][0], "(Contains $placeholder1 $word1)");
+    auto replacements = metta_correlation_replacements(args.correlation_replacement_groups);
+    ASSERT_EQ(replacements.size(), 2u);
+    EXPECT_EQ(replacements[0].at("placeholder1").to_string(), "$sentence1");
+    auto mappings = metta_correlation_mappings(args.correlation_mapping_groups);
+    ASSERT_EQ(mappings.size(), 2u);
+    EXPECT_EQ(mappings[1][0].second.to_string(), "$word2");
 }
 
 TEST(EvolutionMettaParser, canonical_param_key_accepts_name_or_alias) {
@@ -112,14 +185,13 @@ TEST(EvolutionMettaParser, parse_mixed_aliases_and_full_names) {
         "((query (Contains %sentence1 (Word \"bbb\"))) "
         "(fitness-function-tag count_letter) "
         "(cq (Contains %placeholder1 %word1)) "
-        "(correlation-replacements %placeholder1:sentence1) "
-        "(cm sentence1:%word1))";
+        "(correlation-replacements ((placeholder1 sentence1))) "
+        "(cm ((sentence1 word1)))";
     ASSERT_TRUE(try_parse_evolution_metta_arg(metta_arg, args));
     EXPECT_EQ(args.query, "(Contains %sentence1 (Word \"bbb\"))");
     EXPECT_EQ(args.fitness_function_tag, "count_letter");
-    EXPECT_EQ(args.correlation_queries, "(Contains %placeholder1 %word1)");
-    EXPECT_EQ(args.correlation_replacements, "%placeholder1:sentence1");
-    EXPECT_EQ(args.correlation_mappings, "sentence1:%word1");
+    ASSERT_EQ(args.correlation_query_expressions.size(), 1u);
+    EXPECT_EQ(args.correlation_query_expressions[0], "(Contains %placeholder1 %word1)");
 }
 
 TEST(EvolutionMettaParser, parse_labeled_evolution_arg_with_full_slot_names) {
@@ -128,8 +200,8 @@ TEST(EvolutionMettaParser, parse_labeled_evolution_arg_with_full_slot_names) {
         "((query (Contains %sentence1 (Word \"bbb\"))) "
         "(fitness-function-tag count_letter) "
         "(correlation-queries (Contains %placeholder1 %word1)) "
-        "(correlation-replacements %placeholder1:sentence1) "
-        "(correlation-mappings sentence1:%word1))";
+        "(correlation-replacements ((placeholder1 sentence1))) "
+        "(correlation-mappings ((sentence1 word1)))";
     ASSERT_TRUE(try_parse_evolution_metta_arg(metta_arg, args));
     EXPECT_EQ(args.query, "(Contains %sentence1 (Word \"bbb\"))");
     EXPECT_EQ(args.fitness_function_tag, "count_letter");

@@ -89,8 +89,10 @@ make run-client OPTIONS="--config=config/client.json --client=bus-command-router
 Evolution with a labeled MeTTa `ARG` (set `context` via `set param context Aaa` first):
 
 ```
-make run-client OPTIONS="--config=config/client.json --client=bus-command-router --cmd=evolution --arg='((query (Contains %sentence1 (Word \"bbb\"))) (ff count_letter) (cq (Contains %placeholder1 %word1)) (cr %placeholder1:sentence1) (cm sentence1:%word1))'"
+make run-client OPTIONS="--config=config/client.json --client=bus-command-router --cmd=evolution --arg='((query (Contains %sentence1 (Word \"bbb\"))) (ff count_letter) (cq ((Contains %placeholder1 %word1))) (cr ((placeholder1 sentence1))) (cm ((sentence1 word1))))'"
 ```
+
+`cq` is a list of MeTTa query S-expressions; `cr` and `cm` are lists of groups, each group a list of `(X Y)` pairs (e.g. `(cr ((placeholder1 sentence1)))`).
 
 #### Query Engine:
 ```
