@@ -150,7 +150,7 @@ void QueryEvolutionProcessor::sample_population(
     }
     double renew_rate = ((double) this->visited_individuals.size() - visited_count) / population.size();
     LOG_INFO("Individuals with non-zero importance: " + std::to_string(positive_importance_count));
-    LOG_INFO("Renew rate: " + std::to_string(renew_rate));
+    LOG_INFO("Renew rate: " + std::to_string(std::lround(100 * renew_rate)) + "%");
     if (!pm_query->finished()) {
         pm_query->abort();
         unsigned int count = 0;
@@ -342,18 +342,22 @@ void QueryEvolutionProcessor::correlate_similar(shared_ptr<QueryEvolutionProxy> 
             while (!pm_query->finished()) {
                 shared_ptr<QueryAnswer> correlated_answer = pm_query->pop();
                 string word;
+                bool skip_correlation;
                 if (correlated_answer != NULL) {
-                    handle_set.clear();
                     for (auto& pair : correlation_mappings[i]) {
+                        handle_set.clear();
+                        skip_correlation = false;
                         if (pair.first.is_wildcard()) {
                             for (string handle : selected_answer->get_all(pair.first)) {
                                 handle_set.insert(handle);
                             }
                         } else {
                             if (pair.first.type != QueryAnswerElement::NOTHING) {
-                                string h = selected_answer->get(pair.first);
+                                string h = selected_answer->get(pair.first, true);
                                 if (h != "") {
                                     handle_set.insert(h);
+                                } else {
+                                    skip_correlation = true;
                                 }
                             }
                         }
@@ -363,14 +367,18 @@ void QueryEvolutionProcessor::correlate_similar(shared_ptr<QueryEvolutionProxy> 
                             }
                         } else {
                             if (pair.second.type != QueryAnswerElement::NOTHING) {
-                                string h = correlated_answer->get(pair.second);
+                                string h = correlated_answer->get(pair.second, true);
                                 if (h != "") {
                                     handle_set.insert(correlated_answer->get(pair.second));
+                                } else {
+                                    skip_correlation = true;
                                 }
                             }
                         }
+                        if (! skip_correlation) {
+                            AttentionBrokerClient::correlate(handle_set, proxy->get_context());
+                        }
                     }
-                    AttentionBrokerClient::correlate(handle_set, proxy->get_context());
                 } else {
                     Utils::sleep();
                 }
@@ -499,10 +507,10 @@ void QueryEvolutionProcessor::evolve_query(shared_ptr<StoppableThread> monitor,
     LOG_INFO("--------------------");
     LOG_INFO("Total number of visited individuals: " + std::to_string(this->visited_individuals.size()));
     LOG_INFO("Average renew rate per generation: " +
-             std::to_string(
+             std::to_string(std::lround(100 * (
                  (double) this->visited_individuals.size() /
                  ((double) proxy->parameters.get<unsigned int>(QueryEvolutionProxy::POPULATION_SIZE) *
-                  (this->generation_count - 1))));
+                  (this->generation_count - 1))))) + "%");
     STOP_WATCH_FINISH(evolution, "QueryEvolution");
     RAM_FOOTPRINT_FINISH(evolution, "");
     Utils::sleep(1000);

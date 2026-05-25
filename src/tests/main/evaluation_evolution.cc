@@ -37,12 +37,9 @@
 #define ATOM "ATOM"
 #define EXPRESSION "Expression"
 #define SYMBOL "Symbol"
-#define SENTENCE "Sentence"
-#define WORD "Word"
-#define CONTAINS "Contains"
 #define EVALUATION "Evaluation"
-#define PREDICATE "Predicate"
 #define CONCEPT "Concept"
+#define PREDICATE "Predicate"
 #define EQUIVALENCE "Equivalence"
 #define IMPLICATION "Implication"
 #define LOGICAL_AND "LogicalAnd"
@@ -153,7 +150,7 @@ static void save_link_metta(Link& link) {
     }
 }
 
-static string answer_to_string_1(shared_ptr<QueryAnswer> answer) {
+static string answer_to_string_2(shared_ptr<QueryAnswer> answer) {
     vector<string> paths;
     for (unsigned int i = 0; i < 2; i++) {
         if (answer->get_paths_size() != 2) {
@@ -185,7 +182,7 @@ static string answer_to_string_1(shared_ptr<QueryAnswer> answer) {
     return "[" + std::to_string(answer->strength) + "]: " + paths[0] + " | " + paths[1];
 }
 
-static string answer_to_string(shared_ptr<QueryAnswer> answer) {
+static string answer_to_string_1(shared_ptr<QueryAnswer> answer) {
     if (answer->get_paths_size() != 1) {
         RAISE_ERROR("Invalid answer: " + answer->to_string());
     }
@@ -211,6 +208,17 @@ static string answer_to_string(shared_ptr<QueryAnswer> answer) {
         path.pop_back();
     }
     return "[" + std::to_string(answer->strength) + "]: " + path;
+}
+
+static string answer_to_string(shared_ptr<QueryAnswer> answer) {
+    if (answer->get_paths_size() == 1) {
+        return answer_to_string_1(answer);
+    } else if (answer->get_paths_size() == 2) {
+        return answer_to_string_2(answer);
+    } else {
+        RAISE_ERROR("Invalid answer: " + answer->to_string());
+        return "";
+    }
 }
 
 static shared_ptr<PatternMatchingQueryProxy> issue_link_building_query(
@@ -383,7 +391,7 @@ static Link add_or_update_link(const string& type_handle,
             }
             db->add_link(&new_link);
             buffer_determiners.push_back({handle, target1, target2});
-            // buffer_activation[handle] = 1;
+            buffer_activation[handle] = 1;
         }
         if (WRITE_CREATED_LINKS_TO_FILE) {
             LOG_DEBUG("Writing Link to file: " + PRESET_LINKS_FILE);
@@ -565,6 +573,7 @@ static bool build_implication_link(shared_ptr<QueryAnswer> query_answer,
                    count_union);
     bool link_created = false;
     if (count_intersection > 0) {
+        /*
         if (count_0 > 0) {
             double strength = count_intersection / count_0;
             add_or_update_link(IMPLICATION_HANDLE, predicates[0], predicates[1], strength);
@@ -574,6 +583,24 @@ static bool build_implication_link(shared_ptr<QueryAnswer> query_answer,
             double strength = count_intersection / count_1;
             add_or_update_link(IMPLICATION_HANDLE, predicates[1], predicates[0], strength);
             link_created = true;
+        }
+        */
+        if (count_0 > 0) {
+            if (count_1 > 0) {
+                if (count_0 < count_1) {
+                    add_or_update_link(IMPLICATION_HANDLE, predicates[0], predicates[1], count_intersection / count_0);
+                } else {
+                    add_or_update_link(IMPLICATION_HANDLE, predicates[1], predicates[0], count_intersection / count_1);
+                }
+            } else {
+                add_or_update_link(IMPLICATION_HANDLE, predicates[0], predicates[1], count_intersection / count_0);
+            }
+            link_created = true;
+        } else {
+            if (count_1 > 0) {
+                add_or_update_link(IMPLICATION_HANDLE, predicates[1], predicates[0], count_intersection / count_1);
+                link_created = true;
+            }
         }
         if (link_created) {
             set<string> ab_request = {predicates[0], predicates[1]};
@@ -711,6 +738,7 @@ static void query_evolution(
     QueryAnswerElement qa_concept(CONCEPT);
     QueryAnswerElement qa_path(QueryAnswerElement::ALL_PATH_HANDLES);
     QueryAnswerElement qa_nothing;
+    QueryAnswerElement qa_everything(QueryAnswerElement::EVERYTHING);
 
     vector<map<string, QueryAnswerElement>> correlation_query_constants = {
         {{V1, qa_predicate}},
@@ -721,8 +749,8 @@ static void query_evolution(
         {{qa_predicate, qa_predicate}}
     };
     vector<vector<pair<QueryAnswerElement, QueryAnswerElement>>> correlation_mapping = {
-        {{qa_predicate, qa_concept}, {qa_path, qa_nothing}},
-        {{qa_concept, qa_predicate}, {qa_path, qa_nothing}}
+        {{qa_concept, qa_concept}, {qa_path, qa_nothing}},
+        {{qa_predicate, qa_predicate}, {qa_path, qa_nothing}}
     };
 
     QueryEvolutionProxy* proxy_ptr = new QueryEvolutionProxy(
@@ -1009,7 +1037,7 @@ static void run(const string& context_tag) {
             metta_chain(metta_var(PREDICATE), TARGET_PREDICATE, metta_expr3(IMPLICATION, metta_var(PREDICATE1) , metta_var(PREDICATE2))))
     };
     vector<string> query_to_evolve = {
-        OR_OPERATOR, "2",
+        OR_OPERATOR, "3",
             AND_OPERATOR, "2",
                 LINK_TEMPLATE, EXPRESSION, "3",
                     NODE, SYMBOL, EVALUATION,
@@ -1027,6 +1055,25 @@ static void run(const string& context_tag) {
                     NODE, SYMBOL, EVALUATION,
                     ATOM, TARGET_PREDICATE_HANDLE,
                     VARIABLE, CONCEPT,
+                CHAIN_OPERATOR, "0", "1", "2",
+                    VARIABLE, CONCEPT,
+                    ATOM, TARGET_CONCEPT_HANDLE,
+                    LINK_TEMPLATE, EXPRESSION, "3",
+                        NODE, SYMBOL, EQUIVALENCE,
+                        VARIABLE, CONCEPT1,
+                        VARIABLE, CONCEPT2,
+            AND_OPERATOR, "3",
+                LINK_TEMPLATE, EXPRESSION, "3",
+                    NODE, SYMBOL, EVALUATION,
+                    VARIABLE, PREDICATE,
+                    VARIABLE, CONCEPT,
+                CHAIN_OPERATOR, "0", "1", "2",
+                    VARIABLE, PREDICATE,
+                    ATOM, TARGET_PREDICATE_HANDLE,
+                    LINK_TEMPLATE, EXPRESSION, "3",
+                        NODE, SYMBOL, IMPLICATION,
+                        VARIABLE, PREDICATE1,
+                        VARIABLE, PREDICATE2,
                 CHAIN_OPERATOR, "0", "1", "2",
                     VARIABLE, CONCEPT,
                     ATOM, TARGET_CONCEPT_HANDLE,
@@ -1186,7 +1233,7 @@ static void run(const string& context_tag) {
                 equivalence_query, context, LINK_BUILDING_QUERY_SIZE, "", build_equivalence_link);
             LOG_INFO("----- Updating AttentionBroker");
             AttentionBrokerClient::set_determiners(buffer_determiners, context);
-            // AttentionBrokerClient::stimulate(buffer_activation, context);
+            //AttentionBrokerClient::stimulate(buffer_activation, context);
             buffer_determiners.clear();
             buffer_activation.clear();
         }
