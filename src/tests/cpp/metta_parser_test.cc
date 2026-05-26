@@ -366,6 +366,50 @@ TEST(MettaParser, basics) {
             "SYMBOL n11",
             "TOPLEVEL_EXPRESSION (n10 n11)",
         });
+    check_parse("12", "1a", true, {"SYMBOL 1a"});
+    check_parse("13", "(n1 123a1)", true, {
+            "BEGIN_EXPRESSION",
+            "SYMBOL n1",
+            "SYMBOL 123a1",
+            "TOPLEVEL_EXPRESSION (n1 123a1)"});
+    check_parse("14", "(12abc 12abc1 12abc12)", true, {
+            "BEGIN_EXPRESSION",
+            "SYMBOL 12abc",
+            "SYMBOL 12abc1",
+            "SYMBOL 12abc12",
+            "TOPLEVEL_EXPRESSION (12abc 12abc1 12abc12)"});
+    check_parse("15", "(: n1 (-> n2 n3))", true, {
+            "BEGIN_EXPRESSION",
+            "SYMBOL :",
+            "SYMBOL n1",
+            "BEGIN_EXPRESSION",
+            "SYMBOL ->",
+            "SYMBOL n2",
+            "SYMBOL n3",
+            "EXPRESSION (-> n2 n3)",
+            "TOPLEVEL_EXPRESSION (: n1 (-> n2 n3))"});
+    check_parse("16", "(axiom (= (K $ (L _1 _1 $)) (K _1 _1)))", true, {
+            "BEGIN_EXPRESSION",
+            "SYMBOL axiom",
+            "BEGIN_EXPRESSION",
+            "SYMBOL =",
+            "BEGIN_EXPRESSION",
+            "SYMBOL K",
+            "SYMBOL $",
+            "BEGIN_EXPRESSION",
+            "SYMBOL L",
+            "SYMBOL _1",
+            "SYMBOL _1",
+            "SYMBOL $",
+            "EXPRESSION (L _1 _1 $)",
+            "EXPRESSION (K $ (L _1 _1 $))",
+            "BEGIN_EXPRESSION",
+            "SYMBOL K",
+            "SYMBOL _1",
+            "SYMBOL _1",
+            "EXPRESSION (K _1 _1)",
+            "EXPRESSION (= (K $ (L _1 _1 $)) (K _1 _1))",
+            "TOPLEVEL_EXPRESSION (axiom (= (K $ (L _1 _1 $)) (K _1 _1)))"});
     // clang-format on
 }
 
