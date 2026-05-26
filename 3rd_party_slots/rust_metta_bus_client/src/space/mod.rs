@@ -52,18 +52,15 @@ impl DistributedAtomSpace {
 		match ServiceBusSingleton::get_instance() {
 			Ok(service_bus) => {
 				let sevice_bus_arc = Arc::new(Mutex::new(service_bus));
-				let params = self.params.lock().unwrap().clone();
-				let populate_metta_mapping = params.get::<bool>(properties::POPULATE_METTA_MAPPING);
 				match query_with_das(
 					sevice_bus_arc,
-					params,
+					self.params.lock().unwrap().clone(),
 					&QueryType::Atom(query.clone()),
 				) {
 					Ok(query_answers) => {
-						log::debug!(target: "das", "query_with_das() Query answers: {:?}", query_answers);
 						match query_answers_to_bindings_set(
 							query_answers,
-							populate_metta_mapping,
+							self.params.lock().unwrap().get(properties::POPULATE_METTA_MAPPING),
 						) {
 							Ok(bindings_set) => {
 								log::debug!(target: "das", "BindingsSet(len={}): {:?}", bindings_set.len(), bindings_set);
@@ -192,10 +189,9 @@ impl DistributedAtomSpace {
 		match ServiceBusSingleton::get_instance() {
 			Ok(service_bus) => {
 				let sevice_bus_arc = Arc::new(Mutex::new(service_bus));
-				let params = self.params.lock().unwrap().clone();
 				match query_with_das(
 					sevice_bus_arc,
-					params,
+					self.params.lock().unwrap().clone(),
 					&QueryType::Atom(query.clone()),
 				) {
 					Ok(query_answers) => {

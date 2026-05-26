@@ -35,6 +35,8 @@ cc_library(
     deps = [
         "//agents/query_engine:query_answer",
         "//commons:commons_lib",
+        "//commons/atoms:atoms_lib",
+        "//metta:metta_parser",
     ],
 )
 

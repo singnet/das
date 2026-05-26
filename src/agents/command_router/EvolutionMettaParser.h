@@ -33,7 +33,7 @@ struct EvolutionMettaArgs {
 
 /**
  * Map evolution slot label or router param key to its canonical name.
- * Accepts: query; ff | fitness-function-tag; cq | correlation-queries;
+ * Accepts: q | query; ff | fitness-function-tag; cq | correlation-queries;
  * cr | correlation-replacements; cm | correlation-mappings.
  * Returns empty string if unknown.
  */
@@ -41,11 +41,13 @@ string canonical_evolution_param_key(const string& key_or_alias);
 
 /**
  * Parse evolution ARG as a MeTTa list of labeled clauses, e.g.:
- *   ((query (Contains $s1 (Word "bbb")))
+ *   (
+ *    (q (Contains $sentence1 (Word "bbb")))
  *    (ff count_letter)
- *    (cq ((Contains $p1 $w1) (Contains $p1 $w2)))
- *    (cr (((placeholder1 sentence1)) ((placeholder1 sentence1))))
- *    (cm (((sentence1 word1)) ((sentence1 word2)))))
+ *    (cq ((Contains $placeholder1 $word1) (Contains $placeholder2 $word2)))
+ *    (cr (((placeholder1 sentence1) (placeholder2 sentence1)) ((placeholder2 sentence1)))
+ *    (cm (((sentence1 word1) (sentence2 word2)) ((sentence2 word2)))
+ *   )
  *
  * cq / cr / cm bodies use nested S-expressions (lists of queries or lists of (X Y) pairs).
  *

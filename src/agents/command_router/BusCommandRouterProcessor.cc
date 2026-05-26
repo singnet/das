@@ -230,8 +230,7 @@ void BusCommandRouterProcessor::handle_evolution(shared_ptr<BusCommandRouterProx
 
     proxy->to_remote_peer(BusCommandRouterProxy::ROUTED, {});
 
-    thread relay_thread([client_proxy = proxy, evo_proxy]() {
-        relay_query_answers_to_client(client_proxy, evo_proxy);
-    });
+    thread relay_thread(
+        [client_proxy = proxy, evo_proxy]() { relay_query_answers_to_client(client_proxy, evo_proxy); });
     relay_thread.detach();
 }

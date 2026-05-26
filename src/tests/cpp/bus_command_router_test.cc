@@ -84,8 +84,8 @@ TEST(EvolutionMettaParser, parse_labeled_evolution_arg_with_aliases) {
         "((query (Contains %sentence1 (Word \"bbb\"))) "
         "(ff count_letter) "
         "(cq ((Contains %placeholder1 %word1))) "
-        "(cr ((placeholder1 sentence1))) "
-        "(cm ((sentence1 word1)))";
+        "(cr (((placeholder1 sentence1)))) "
+        "(cm (((sentence1 word1)))))";
     ASSERT_TRUE(try_parse_evolution_metta_arg(metta_arg, args));
     EXPECT_EQ(args.query, "(Contains %sentence1 (Word \"bbb\"))");
     EXPECT_EQ(args.fitness_function_tag, "count_letter");
@@ -108,14 +108,26 @@ TEST(EvolutionMettaParser, reject_colon_syntax_in_cr_and_cm) {
     EXPECT_THROW(parse_correlation_pair_groups_body("%placeholder1:sentence1"), runtime_error);
 }
 
-TEST(EvolutionMettaParser, parse_simplified_wrapped_cr_cm_from_command_line) {
+TEST(EvolutionMettaParser, reject_two_level_cr_and_cm_layout) {
     EvolutionMettaArgs args;
     string metta_arg =
         "((query (Contains %sentence1 (Word \"bbb\"))) "
         "(ff count_letter) "
         "(cq ((Contains %placeholder1 %word1))) "
         "(cr ((placeholder1 sentence1))) "
-        "(cm ((sentence1 word1)))";
+        "(cm (((sentence1 word1)))))";
+    EXPECT_THROW(try_parse_evolution_metta_arg(metta_arg, args), runtime_error);
+    EXPECT_THROW(parse_correlation_pair_groups_body("((placeholder1 sentence1))"), runtime_error);
+}
+
+TEST(EvolutionMettaParser, parse_simplified_wrapped_cr_cm_from_command_line) {
+    EvolutionMettaArgs args;
+    string metta_arg =
+        "((query (Contains %sentence1 (Word \"bbb\"))) "
+        "(ff count_letter) "
+        "(cq ((Contains %placeholder1 %word1))) "
+        "(cr (((placeholder1 sentence1)))) "
+        "(cm (((sentence1 word1)))))";
     ASSERT_TRUE(try_parse_evolution_metta_arg(metta_arg, args));
     EXPECT_EQ(args.fitness_function_tag, "count_letter");
     ASSERT_EQ(args.correlation_query_expressions.size(), 1u);
@@ -144,7 +156,7 @@ TEST(EvolutionMettaParser, parse_multiple_correlation_slots_as_s_expr_lists) {
         "(ff count_letter) "
         "(cq ((Contains %placeholder1 %word1) (Contains %placeholder1 %word2))) "
         "(cr (((placeholder1 sentence1)) ((placeholder1 sentence1)))) "
-        "(cm (((sentence1 word1)) ((sentence1 word2))))";
+        "(cm (((sentence1 word1)) ((sentence1 word2)))))";
     ASSERT_TRUE(try_parse_evolution_metta_arg(metta_arg, args));
     ASSERT_EQ(args.correlation_query_expressions.size(), 2u);
     EXPECT_EQ(args.correlation_query_expressions[0], "(Contains %placeholder1 %word1)");
@@ -184,8 +196,8 @@ TEST(EvolutionMettaParser, parse_mixed_aliases_and_full_names) {
         "((query (Contains %sentence1 (Word \"bbb\"))) "
         "(fitness-function-tag count_letter) "
         "(cq (Contains %placeholder1 %word1)) "
-        "(correlation-replacements ((placeholder1 sentence1))) "
-        "(cm ((sentence1 word1)))";
+        "(correlation-replacements (((placeholder1 sentence1)))) "
+        "(cm (((sentence1 word1)))))";
     ASSERT_TRUE(try_parse_evolution_metta_arg(metta_arg, args));
     EXPECT_EQ(args.query, "(Contains %sentence1 (Word \"bbb\"))");
     EXPECT_EQ(args.fitness_function_tag, "count_letter");
@@ -199,8 +211,8 @@ TEST(EvolutionMettaParser, parse_labeled_evolution_arg_with_full_slot_names) {
         "((query (Contains %sentence1 (Word \"bbb\"))) "
         "(fitness-function-tag count_letter) "
         "(correlation-queries (Contains %placeholder1 %word1)) "
-        "(correlation-replacements ((placeholder1 sentence1))) "
-        "(correlation-mappings ((sentence1 word1)))";
+        "(correlation-replacements (((placeholder1 sentence1)))) "
+        "(correlation-mappings (((sentence1 word1)))))";
     ASSERT_TRUE(try_parse_evolution_metta_arg(metta_arg, args));
     EXPECT_EQ(args.query, "(Contains %sentence1 (Word \"bbb\"))");
     EXPECT_EQ(args.fitness_function_tag, "count_letter");
@@ -238,7 +250,7 @@ TEST(BusCommandRouter, get_and_set_params) {
     auto set_proxy = make_shared<RouterTestProxy>("set", "param max_answers 777");
     client_bus.issue_bus_command(set_proxy);
     Utils::sleep(1000);
-    EXPECT_EQ(set_proxy->set_param_ack, "ok max_answers 777");
+    EXPECT_EQ(set_proxy->set_param_ack, "Parameter updated: 'max_answers': 777");
     EXPECT_TRUE(set_proxy->finished());
 
     auto get_after_set = make_shared<RouterTestProxy>("get", "params");
@@ -250,7 +262,7 @@ TEST(BusCommandRouter, get_and_set_params) {
     auto set_one = make_shared<RouterTestProxy>("set", "param max_answers 1");
     client_bus.issue_bus_command(set_one);
     Utils::sleep(1000);
-    EXPECT_EQ(set_one->set_param_ack, "ok max_answers 1");
+    EXPECT_EQ(set_one->set_param_ack, "Parameter updated: 'max_answers': 1");
 
     auto get_one = make_shared<RouterTestProxy>("get", "params");
     client_bus.issue_bus_command(get_one);
