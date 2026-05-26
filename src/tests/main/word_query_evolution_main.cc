@@ -291,14 +291,14 @@ void run(const string& client_id,
         proxy_ptr = new QueryEvolutionProxy({or_two_words_metta},
                                             {{activation_spreading3_metta}},
                                             {{{sentence1, sentence_link}}},
-                                            {{sentence1, word_link}},
+                                            {{{sentence1, word_link}}},
                                             context_str,
                                             "count_letter");
     } else {
         proxy_ptr = new QueryEvolutionProxy(or_two_words,
                                             {activation_spreading3},
                                             {{{sentence1, sentence_link}}},
-                                            {{sentence1, word_link}},
+                                            {{{sentence1, word_link}}},
                                             context_str,
                                             "count_letter");
     }
@@ -310,7 +310,6 @@ void run(const string& client_id,
     proxy->parameters[QueryEvolutionProxy::MAX_GENERATIONS] = (unsigned int) 10;
     proxy->parameters[QueryEvolutionProxy::ELITISM_RATE] = (double) ELITISM_RATE;
     proxy->parameters[QueryEvolutionProxy::SELECTION_RATE] = (double) 0.10;
-    proxy->parameters[QueryEvolutionProxy::TOTAL_ATTENTION_TOKENS] = (unsigned int) 100000;
     proxy->parameters[BaseQueryProxy::MAX_BUNDLE_SIZE] = (unsigned int) 10000;
     service_bus->issue_bus_command(proxy);
 

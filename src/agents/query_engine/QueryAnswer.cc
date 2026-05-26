@@ -3,7 +3,9 @@
 #include <cmath>
 #include <cstring>
 #include <iostream>
+#include <set>
 
+#include "Hasher.h"
 #include "LinkSchema.h"
 #include "Utils.h"
 
@@ -55,7 +57,9 @@ void QueryAnswer::merge_paths(QueryAnswer* other) {
     }
 }
 
-bool QueryAnswer::merge(QueryAnswer* other, bool merge_handles) {
+bool QueryAnswer::merge(QueryAnswer* other,
+                        bool merge_handles,
+                        ImportanceMergeFunction importance_merger) {
     if (this->assignment.is_compatible(other->assignment)) {
         for (auto pair : other->assignment.table) {
             if (!other->metta_expression[pair.second].empty()) {
@@ -64,7 +68,15 @@ bool QueryAnswer::merge(QueryAnswer* other, bool merge_handles) {
         }
         this->assignment.add_assignments(other->assignment);
         if (merge_handles) {
-            this->importance = fmax(this->importance, other->importance);
+            if (importance_merger == GREATEST) {
+                this->importance = fmax(this->importance, other->importance);
+            } else if (importance_merger == MULTIPLICATION) {
+                this->importance *= other->importance;
+            } else if (importance_merger == SUM) {
+                this->importance += other->importance;
+            } else {
+                RAISE_ERROR("Invalid importance merger function");
+            }
             this->strength = this->strength * other->strength;
             for (string handle1 : other->handles[0]) {
                 bool flag = true;
@@ -307,12 +319,21 @@ void QueryAnswer::untokenize(const string& tokens) {
 string QueryAnswer::get(const QueryAnswerElement& key, bool return_empty_when_not_found) {
     string answer = "";
     switch (key.type) {
+        case QueryAnswerElement::NOTHING:
+            if (!return_empty_when_not_found) {
+                RAISE_ERROR(
+                    "Invalid attempt to use NOTHING as a QueryAnswerElement to get something from a "
+                    "QueryAnswer");
+            }
+            break;
         case QueryAnswerElement::HANDLE:
-            return get(key.index, return_empty_when_not_found);
+            return get(key.element_index, return_empty_when_not_found);
         case QueryAnswerElement::VARIABLE:
             return get(key.name, return_empty_when_not_found);
+        case QueryAnswerElement::PATH:
+            return get(key.path_index, key.element_index, return_empty_when_not_found);
         default:
-            RAISE_ERROR("Invalid QueryAnswerElemente: " + std::to_string(key.type));
+            RAISE_ERROR("Invalid QueryAnswerElement type: " + std::to_string(key.type));
     }
     return answer;
 }
@@ -333,6 +354,61 @@ string QueryAnswer::get(unsigned int key, bool return_empty_when_not_found) {
         if (!return_empty_when_not_found) {
             RAISE_ERROR("Invalid handle index: " + std::to_string(key));
         }
+    }
+    return answer;
+}
+
+string QueryAnswer::get(unsigned int key_path,
+                        unsigned int key_element,
+                        bool return_empty_when_not_found) {
+    string answer = "";
+    if (key_path < (this->handles.size() - 1)) {
+        if (key_element < this->handles[key_path + 1].size()) {
+            answer = this->handles[key_path + 1][key_element];
+        }
+    }
+    if ((answer == "") && (!return_empty_when_not_found)) {
+        RAISE_ERROR("Invalid path element key: " + std::to_string(key_path) + " " +
+                    std::to_string(key_element));
+    }
+    return answer;
+}
+
+vector<string> QueryAnswer::get_all(const QueryAnswerElement& key) {
+    vector<string> answer;
+    switch (key.type) {
+        case QueryAnswerElement::ALL_HANDLES:
+            answer = this->handles[0];
+            break;
+        case QueryAnswerElement::ALL_VARIABLE_VALUES:
+            for (auto& pair : this->assignment.table) {
+                answer.push_back(pair.second);
+            }
+            break;
+        case QueryAnswerElement::ALL_PATH_HANDLES:
+            for (unsigned int i = 1; i < this->handles.size(); i++) {
+                for (unsigned int j = 0; j < this->handles[i].size(); j++) {
+                    answer.push_back(this->handles[i][j]);
+                }
+            }
+            break;
+        case QueryAnswerElement::EVERYTHING: {
+            set<string> handle_set;
+            for (string handle : get_all(QueryAnswerElement::ALL_HANDLES)) {
+                handle_set.insert(handle);
+            }
+            for (string handle : get_all(QueryAnswerElement::ALL_VARIABLE_VALUES)) {
+                handle_set.insert(handle);
+            }
+            for (string handle : get_all(QueryAnswerElement::ALL_PATH_HANDLES)) {
+                handle_set.insert(handle);
+            }
+            answer.reserve(handle_set.size());
+            answer.insert(answer.begin(), handle_set.begin(), handle_set.end());
+            break;
+        }
+        default:
+            RAISE_ERROR("Invalid QueryAnswerElement type: " + std::to_string(key.type));
     }
     return answer;
 }
@@ -412,4 +488,12 @@ vector<string>& QueryAnswer::get_path_vector(unsigned int path_index) {
                     " QueryAnswer: " + to_string());
     }
     return this->handles[path_index + 1];
+}
+
+string QueryAnswer::compute_hash() {
+    vector<string> hashes;
+    for (auto& v : this->handles) {
+        hashes.push_back(Hasher::composite_handle(v));
+    }
+    return Hasher::composite_handle(hashes);
 }

@@ -159,25 +159,6 @@ cc_binary(
 )
 
 cc_binary(
-    name = "implication_query_evolution",
-    srcs = [],
-    defines = ["BAZEL_BUILD"],
-    linkopts = [
-        "-L/usr/local/lib",
-        "-lhiredis_cluster",
-        "-lhiredis",
-        "-lmongocxx",
-        "-lbsoncxx",
-    ],
-    linkstatic = 1,
-    deps = [
-        "//commons:commons_lib",
-        "//tests/main:implication_query_evolution_main_lib",
-        "@mbedtls",
-    ],
-)
-
-cc_binary(
     name = "evaluation_evolution",
     srcs = [],
     defines = ["BAZEL_BUILD"],

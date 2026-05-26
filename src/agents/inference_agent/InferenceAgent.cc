@@ -220,11 +220,13 @@ void InferenceAgent::send_distributed_inference_control_request(
     LOG_DEBUG("Distributed inference control request: " << Utils::join(evolution_request, ' '));
     vector<vector<string>> correlation_queries;
     vector<map<string, QueryAnswerElement>> correlation_replacements;
-    vector<pair<QueryAnswerElement, QueryAnswerElement>> correlation_mappings;
+    vector<pair<QueryAnswerElement, QueryAnswerElement>> correlation_mapping;
     correlation_queries.push_back(inference_request->get_correlation_query());
     correlation_replacements.push_back(inference_request->get_correlation_query_constants());
-    correlation_mappings.push_back(
+    correlation_mapping.push_back(
         *inference_request->get_correlation_mapping().begin());  // TODO check correlation mapping
+    vector<vector<pair<QueryAnswerElement, QueryAnswerElement>>> correlation_mappings = {
+        correlation_mapping};
     QueryEvolutionProxy* evolution_proxy_ptr = new QueryEvolutionProxy(evolution_request,
                                                                        correlation_queries,
                                                                        correlation_replacements,

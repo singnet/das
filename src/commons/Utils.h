@@ -52,7 +52,7 @@ class Utils {
     Utils() {}
     ~Utils() {}
 
-    static void error(string msg, bool throw_flag);
+    static void error(string msg, bool throw_flag, bool log_flag = true);
     static bool flip_coin(double true_probability = 0.5);
     static unsigned int uint_rand(unsigned int open_upper_bound);
     static unsigned int uint_rand(unsigned int closed_lower_bound, unsigned int open_upper_bound);
@@ -61,7 +61,7 @@ class Utils {
     static map<string, string> parse_config(string const& config_path);
     static vector<string> split(string const& str, char delimiter);
     static pair<size_t, size_t> parse_ports_range(string const& str, char delimiter = ':');
-    static string join(vector<string> const& tokens, char delimiter);
+    static string join(vector<string> const& tokens, char delimiter = ' ');
     static string random_string(size_t length);
     static string random_string(size_t length, const string& charset);
     static bool is_number(const string& s);
@@ -82,6 +82,22 @@ class Utils {
                                unsigned int wait_millis,
                                const string& function_name = "");
     static bool read_and_split(vector<string>& output, ifstream& file, char delimiter = ' ');
+
+    template <class C>
+    static bool intersects(const C& set1, const C& set2) {
+        auto iterator1 = set1.begin();
+        auto iterator2 = set2.begin();
+        while (iterator1 != set1.end() && iterator2 != set2.end()) {
+            if (*iterator1 < *iterator2) {
+                iterator1++;
+            } else if (*iterator2 < *iterator1) {
+                iterator2++;
+            } else {
+                return true;
+            }
+        }
+        return false;
+    }
 };
 
 }  // namespace commons

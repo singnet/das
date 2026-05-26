@@ -12,6 +12,8 @@
 using namespace std;
 using namespace service_bus;
 
+#define MIN_SELECTED_FITNESS ((float) 0.00001)
+
 namespace evolution {
 
 /**

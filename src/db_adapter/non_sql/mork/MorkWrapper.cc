@@ -8,6 +8,7 @@
 #include "Logger.h"
 
 using namespace std;
+using namespace commons;
 using namespace db_adapter;
 
 // ==============================

@@ -20,7 +20,8 @@ float InferenceToyFunction::eval(shared_ptr<QueryAnswer> query_answer) {
     LOG_DEBUG("Evaluation link: " << atom->to_string());
     float strength = atom->custom_attributes.get_or<double>(STRENGTH_TAG, 1.0);
 
-    for (unsigned int path_index = 0; path_index < 2; path_index++) {
+    unsigned int num_paths = query_answer->get_paths_size();
+    for (unsigned int path_index = 0; path_index < num_paths; path_index++) {
         LOG_DEBUG("Path index: " << path_index);
         vector<string>& path = query_answer->get_path_vector(path_index);
         for (string& handle : path) {

@@ -5,7 +5,6 @@
 #include <vector>
 
 #include "Assignment.h"
-#include "QueryAnswer.h"
 #include "Utils.h"
 #include "expression_hasher.h"
 
@@ -20,23 +19,45 @@ namespace query_engine {
 
 class QueryAnswerElement {
    public:
-    enum ElementType { UNDEFINED = 0, HANDLE, VARIABLE };
+    enum ElementType {
+        NOTHING = 0,
+        HANDLE,
+        PATH,
+        VARIABLE,
+        ALL_HANDLES,
+        ALL_PATH_HANDLES,
+        ALL_VARIABLE_VALUES,
+        EVERYTHING
+    };
     ElementType type;
-    unsigned int index;
+    unsigned int path_index;
+    unsigned int element_index;
     string name;
-    QueryAnswerElement() : type(UNDEFINED) {}
-    QueryAnswerElement(unsigned int key) : type(HANDLE), index(key) {}
+    QueryAnswerElement() : type(NOTHING) {}
+    QueryAnswerElement(ElementType type) : type(type) {
+        if (type <= VARIABLE) {
+            RAISE_ERROR("Invalid attempt to setup a wildcard selector with type: " +
+                        std::to_string(type));
+        }
+    }
+    QueryAnswerElement(unsigned int key) : type(HANDLE), element_index(key) {}
+    QueryAnswerElement(unsigned int key_path, unsigned int key_element)
+        : type(PATH), path_index(key_path), element_index(key_element) {}
     QueryAnswerElement(const string& key) : type(VARIABLE), name(key) {}
     QueryAnswerElement(const QueryAnswerElement& other)
-        : type(other.type), index(other.index), name(other.name) {}
+        : type(other.type),
+          path_index(other.path_index),
+          element_index(other.element_index),
+          name(other.name) {}
     QueryAnswerElement& operator=(const QueryAnswerElement& other) {
         this->type = other.type;
-        this->index = other.index;
+        this->path_index = other.path_index;
+        this->element_index = other.element_index;
         this->name = other.name;
         return *this;
     }
     void set(const string& key) {
-        if (this->type == UNDEFINED) {
+        if (this->type == NOTHING) {
             this->type = VARIABLE;
             this->name = key;
         } else {
@@ -44,27 +65,78 @@ class QueryAnswerElement {
         }
     }
     void set(unsigned int key) {
-        if (this->type == UNDEFINED) {
+        if (this->type == NOTHING) {
             this->type = HANDLE;
-            this->index = key;
+            this->element_index = key;
+        } else {
+            RAISE_ERROR("Invalid attempt to reset a QueryAnswerElement");
+        }
+    }
+    void set(unsigned int key_path, unsigned int key_element) {
+        if (this->type == NOTHING) {
+            this->type = PATH;
+            this->path_index = key_path;
+            this->element_index = key_element;
         } else {
             RAISE_ERROR("Invalid attempt to reset a QueryAnswerElement");
         }
     }
     string to_string() {
-        if (this->type == HANDLE) {
-            return "_" + std::to_string(this->index);
-        } else {
+        if (this->type == NOTHING) {
+            return "-";
+        } else if (this->type == HANDLE) {
+            return "_" + std::to_string(this->element_index);
+        } else if (this->type == VARIABLE) {
             return "$" + this->name;
-        }
-    }
-    static QueryAnswerElement from_string(const string& string) {
-        if (string[0] == '_') {
-            return QueryAnswerElement(std::stoi(string.substr(1, string.size() - 1)));
+        } else if (this->type == PATH) {
+            return ">" + std::to_string(this->path_index) + "_" + std::to_string(this->element_index);
+        } else if (this->type == ALL_HANDLES) {
+            return "_*";
+        } else if (this->type == ALL_VARIABLE_VALUES) {
+            return "$*";
+        } else if (this->type == ALL_PATH_HANDLES) {
+            return ">*";
+        } else if (this->type == EVERYTHING) {
+            return "*";
         } else {
-            return QueryAnswerElement(string.substr(1, string.size() - 1));
+            RAISE_ERROR("Invalid QueryAnswerElement type: " + std::to_string(this->type));
+            return "";
         }
     }
+    static QueryAnswerElement from_string(const string& s) {
+        if ((s.size() >= 2) || ((s.size() == 1) && ((s[0] == '-') || (s[0] == '*')))) {
+            if (s[0] == '-') {
+                return QueryAnswerElement();
+            } else if (s[0] == '_') {
+                if (s[1] == '*') {
+                    return QueryAnswerElement(QueryAnswerElement::ALL_HANDLES);
+                } else {
+                    return QueryAnswerElement(Utils::string_to_uint(s.substr(1, s.size() - 1)));
+                }
+            } else if (s[0] == '$') {
+                if (s[1] == '*') {
+                    return QueryAnswerElement(QueryAnswerElement::ALL_VARIABLE_VALUES);
+                } else {
+                    return QueryAnswerElement(s.substr(1, s.size() - 1));
+                }
+            } else if (s[0] == '>') {
+                if (s[1] == '*') {
+                    return QueryAnswerElement(QueryAnswerElement::ALL_PATH_HANDLES);
+                } else {
+                    vector<string> keys = Utils::split(s.substr(1, s.size() - 1), '_');
+                    if (keys.size() == 2) {
+                        return QueryAnswerElement(Utils::string_to_uint(keys[0]),
+                                                  Utils::string_to_uint(keys[1]));
+                    }
+                }
+            } else if (s[0] == '*') {
+                return QueryAnswerElement(QueryAnswerElement::EVERYTHING);
+            }
+        }
+        RAISE_ERROR("Invalid QueryAnswerElement string representation: " + s);
+        return QueryAnswerElement();
+    }
+    bool is_wildcard() { return (this->type >= ALL_HANDLES); }
 };
 
 /**
@@ -97,6 +169,7 @@ class QueryAnswerElement {
  */
 class QueryAnswer {
    public:
+    enum ImportanceMergeFunction { GREATEST, MULTIPLICATION, SUM };
     /**
      * Estimated importance of this QueryAnswer based on the importance of its constituents.
      */
@@ -176,7 +249,9 @@ class QueryAnswer {
      * @param merge_handles A flag (defaulted to true) to indicate whether the handles should be
      *        merged (in addition to the assignments).
      */
-    bool merge(QueryAnswer* other, bool merge_handles = true);
+    bool merge(QueryAnswer* other,
+               bool merge_handles = true,
+               ImportanceMergeFunction importance_merger = GREATEST);
 
     /**
      *  Make a shallow copy of the passed QueryAnswer.
@@ -227,12 +302,25 @@ class QueryAnswer {
      * "assignment". In the former, the key is the index of the handle in the vector and in the i
      * later, the key is the name of the variable.
      *
-     * @param element_key A key indicating which elem,ent is to be returned.
+     * @param element_key A key indicating which element is to be returned.
      * $return The element indicated by the passed QueryAnswerElement key.
      */
     string get(const QueryAnswerElement& element_key, bool return_empty_when_not_found = false);
     string get(const string& key, bool return_empty_when_not_found = false);
     string get(unsigned int key, bool return_empty_when_not_found = false);
+    string get(unsigned int key_path,
+               unsigned int key_element,
+               bool return_empty_when_not_found = false);
+
+    /**
+     * Returns the elements indicated by the passed QueryAnswerElement key, it can be either
+     * all handles in the "handles" vector, the values assigned to all the variables in
+     * "assignment" or all the handles in the path vectors.
+     *
+     * @param element_key A key indicating which element is to be returned.
+     * $return The element indicated by the passed QueryAnswerElement key.
+     */
+    vector<string> get_all(const QueryAnswerElement& element_key);
 
     /**
      * Rewrites the passed query (tokens only, no MeTTa expression allowed) replacing variables
@@ -242,7 +330,7 @@ class QueryAnswer {
      * @param A vector with pairs (variable name --> QueryAnswerElement) which specifies
      * which variables in Original_query are supposed to be replaced by the corresponding
      * QueryAnswerElement.
-     * @parem new_query A new query with the the proper variables replaced by concrete QueryAnswer
+     * @param new_query A new query with the the proper variables replaced by concrete QueryAnswer
      * elements.
      */
     void rewrite_query(const vector<string>& original_query,
@@ -253,6 +341,7 @@ class QueryAnswer {
     unsigned int get_paths_size();
     vector<string>& get_handles_vector();
     vector<string>& get_path_vector(unsigned int path_index);
+    string compute_hash();
 
    private:
     void merge_paths(QueryAnswer* other);
@@ -266,21 +355,3 @@ class QueryAnswer {
 };
 
 }  // namespace query_engine
-
-template <>
-struct std::hash<Assignment> {
-    std::size_t operator()(const Assignment& k) const {
-        if (k.table.size() == 0) {
-            return 0;
-        }
-
-        std::size_t hash_value = 1;
-        for (auto pair : k.table) {
-            hash_value =
-                hash_value ^
-                ((std::hash<string>()(pair.first) ^ (std::hash<string>()(pair.second) << 1)) >> 1);
-        }
-
-        return hash_value;
-    }
-};

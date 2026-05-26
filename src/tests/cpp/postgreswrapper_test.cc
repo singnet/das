@@ -1,3 +1,5 @@
+#include "PostgresWrapper.h"
+
 #include <gtest/gtest.h>
 
 #include <algorithm>
@@ -19,7 +21,6 @@
 #include "DedicatedThread.h"
 #include "Logger.h"
 #include "Node.h"
-#include "PostgresWrapper.h"
 #include "Processor.h"
 #include "TestAtomDBJsonConfig.h"
 

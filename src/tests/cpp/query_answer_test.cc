@@ -1,5 +1,6 @@
 #include <cstdlib>
 #include <cstring>
+#include <set>
 #include <unordered_set>
 
 #include "QueryAnswer.h"
@@ -388,20 +389,63 @@ TEST(QueryAnswer, get_query_answer_element) {
     QueryAnswer answer;
     answer.get_handles_vector().push_back("h1");
     answer.get_handles_vector().push_back("h2");
+    answer.get_handles_vector().push_back("h3");
     answer.assignment.assign("v1", "h3");
     answer.assignment.assign("v2", "h4");
+    answer.add_path();
+    answer.add_path_element(0, "h5");
+    answer.add_path();
+    answer.add_path_element(0, "h6");
+    answer.add_path_element(1, "h7");
+
     QueryAnswerElement element1(0);
     QueryAnswerElement element2(1);
     QueryAnswerElement element3("v1");
     QueryAnswerElement element4("v2");
-    QueryAnswerElement element5(2);
+    QueryAnswerElement element5(3);
     QueryAnswerElement element6("v3");
+    QueryAnswerElement element7(0, 0);
+    QueryAnswerElement element8(0, 1);
+    QueryAnswerElement element9(1, 0);
+    QueryAnswerElement element10(2, 0);
+    QueryAnswerElement element11(1, 1);
+    EXPECT_THROW({ QueryAnswerElement element12(QueryAnswerElement::HANDLE); }, runtime_error);
+    QueryAnswerElement element13(QueryAnswerElement::ALL_HANDLES);
+    QueryAnswerElement element14(QueryAnswerElement::ALL_PATH_HANDLES);
+    QueryAnswerElement element15(QueryAnswerElement::ALL_VARIABLE_VALUES);
+    QueryAnswerElement element16(QueryAnswerElement::EVERYTHING);
+
     EXPECT_EQ(answer.get(element1), "h1");
     EXPECT_EQ(answer.get(element2), "h2");
     EXPECT_EQ(answer.get(element3), "h3");
     EXPECT_EQ(answer.get(element4), "h4");
     EXPECT_THROW(answer.get(element5), runtime_error);
     EXPECT_THROW(answer.get(element6), runtime_error);
+    EXPECT_EQ(answer.get(element7), "h5");
+    EXPECT_EQ(answer.get(element8), "h6");
+    EXPECT_EQ(answer.get(element9), "h7");
+    EXPECT_THROW(answer.get(element10), runtime_error);
+    EXPECT_THROW(answer.get(element11), runtime_error);
+    EXPECT_EQ(answer.get(element5, true), "");
+    EXPECT_EQ(answer.get(element6, true), "");
+    EXPECT_EQ(answer.get(element10, true), "");
+    EXPECT_EQ(answer.get(element11, true), "");
+
+    EXPECT_EQ(answer.get_all(element13), vector<string>({"h1", "h2", "h3"}));
+    EXPECT_EQ(answer.get_all(element14), vector<string>({"h5", "h6", "h7"}));
+    vector<string> v = answer.get_all(element15);
+    set<string> s1(v.begin(), v.end());
+    set<string> s2({"h3", "h4"});
+    EXPECT_EQ(v.size(), 2);
+    EXPECT_EQ(s1, s2);
+    v.clear();
+    s1.clear();
+    s2.clear();
+    v = answer.get_all(element16);
+    s1 = set<string>(v.begin(), v.end());
+    s2 = set<string>({"h1", "h2", "h3", "h4", "h5", "h6", "h7"});
+    EXPECT_EQ(v.size(), 7);
+    EXPECT_EQ(s1, s2);
 }
 
 TEST(QueryAnswer, rewrite_query) {

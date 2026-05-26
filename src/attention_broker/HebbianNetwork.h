@@ -6,6 +6,7 @@
 
 #include "HandleTrie.h"
 #include "Serializable.h"
+#include "Utils.h"
 #include "expression_hasher.h"
 
 using namespace std;
@@ -49,6 +50,14 @@ class HebbianNetwork : public Serializable {
     // Node and Link don't inherit from a common "Atom" class to avoid having virtual methods,
     // which couldn't be properly inlined.
 
+    enum DeterminerCompositionStrategy {
+        GREATEST,
+        MULTIPLICATION_BASE_ONE,
+        MULTIPLICATION_BASE_HANDLE,
+        AVERAGE
+    };
+    static DeterminerCompositionStrategy determiner_composer;
+
     /**
      * Node object used as the value in HandleTrie.
      */
@@ -74,10 +83,33 @@ class HebbianNetwork : public Serializable {
         }
         inline ImportanceType get_importance() {
             ImportanceType answer = this->importance;
-            for (auto determiner : this->determiners) {
-                ImportanceType determiner_importance = determiner->get_importance();
-                if (determiner_importance > answer) {
-                    answer = determiner_importance;
+            if (this->determiners.size() > 0) {
+                switch (determiner_composer) {
+                    case GREATEST:
+                        for (auto determiner : this->determiners) {
+                            ImportanceType determiner_importance = determiner->get_importance();
+                            if (determiner_importance > answer) {
+                                answer = determiner_importance;
+                            }
+                        }
+                        break;
+                    case MULTIPLICATION_BASE_ONE:
+                        answer = 1;
+                    case MULTIPLICATION_BASE_HANDLE:
+                        for (auto determiner : this->determiners) {
+                            ImportanceType determiner_importance = determiner->get_importance();
+                            answer *= determiner_importance;
+                        }
+                        break;
+                    case AVERAGE:
+                        for (auto determiner : this->determiners) {
+                            ImportanceType determiner_importance = determiner->get_importance();
+                            answer += determiner_importance;
+                        }
+                        answer /= (this->determiners.size() + 1);
+                        break;
+                    default:
+                        RAISE_ERROR("Invalid determiner composition function.");
                 }
             }
             return answer;

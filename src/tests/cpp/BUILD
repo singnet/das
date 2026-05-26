@@ -802,6 +802,30 @@ cc_test(
 )
 
 cc_test(
+    name = "atomdbutils_test",
+    size = "small",
+    srcs = ["atomdbutils_test.cc"],
+    copts = [
+        "-Iexternal/gtest/googletest/include",
+        "-Iexternal/gtest/googletest",
+    ],
+    linkopts = [
+        "-L/usr/local/lib",
+        "-lhiredis_cluster",
+        "-lhiredis",
+        "-lmongocxx",
+        "-lbsoncxx",
+    ],
+    linkstatic = 1,
+    deps = [
+        "//atomdb:atomdb_lib",
+        "//commons/atoms:atoms_lib",
+        "//tests/cpp/test_commons:test_atomdb_json_config",
+        "@com_github_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
     name = "remote_atomdb_test",
     size = "small",
     srcs = ["remote_atomdb_test.cc"],
@@ -870,10 +894,39 @@ cc_test(
 )
 
 cc_test(
-    name = "db_adapter_test",
+    name = "postgreswrapper_test",
     size = "small",
     srcs = [
-        "db_adapter_test.cc",
+        "postgreswrapper_test.cc",
+    ],
+    copts = [
+        "-Iexternal/gtest/googletest/include",
+        "-Iexternal/gtest/googletest",
+    ],
+    linkopts = [
+        "-L/usr/local/lib",
+        "-lpqxx",
+        "-lpq",
+        "-lhiredis_cluster",
+        "-lhiredis",
+        "-lmongocxx",
+        "-lbsoncxx",
+    ],
+    linkstatic = 1,
+    deps = [
+        "//atomdb:atomdb_singleton",
+        "//db_adapter:db_adapter_lib",
+        "//tests/cpp/test_commons:test_atomdb_json_config",
+        "@com_github_google_googletest//:gtest_main",
+        "@mbedtls",
+    ],
+)
+
+cc_test(
+    name = "morkwrapper_test",
+    size = "small",
+    srcs = [
+        "morkwrapper_test.cc",
     ],
     copts = [
         "-Iexternal/gtest/googletest/include",

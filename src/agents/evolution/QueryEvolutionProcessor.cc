@@ -3,12 +3,10 @@
 #include "AttentionBrokerClient.h"
 #include "Hasher.h"
 #include "LinkSchema.h"
+#include "Logger.h"
 #include "QueryEvolutionProxy.h"
 #include "ServiceBus.h"
 #include "ServiceBusSingleton.h"
-
-#define LOG_LEVEL INFO_LEVEL
-#include "Logger.h"
 
 using namespace evolution;
 using namespace query_engine;
@@ -77,22 +75,15 @@ void QueryEvolutionProcessor::thread_process_one_query(shared_ptr<StoppableThrea
 
 shared_ptr<PatternMatchingQueryProxy> QueryEvolutionProcessor::issue_sampling_query(
     shared_ptr<QueryEvolutionProxy> proxy) {
-    bool allow_incomplete_chain_path_flag =
-        proxy->parameters.get<bool>(BaseQueryProxy::ALLOW_INCOMPLETE_CHAIN_PATH);
-    bool positive_importance_flag =
-        proxy->parameters.get<bool>(PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG);
     auto pm_proxy =
         make_shared<PatternMatchingQueryProxy>(proxy->get_query_tokens(), proxy->get_context());
-    pm_proxy->parameters[BaseQueryProxy::UNIQUE_ASSIGNMENT_FLAG] = true;
+    pm_proxy->parameters = proxy->parameters;
     pm_proxy->parameters[BaseQueryProxy::ATTENTION_CORRELATION] = (unsigned int) BaseQueryProxy::NONE;
     pm_proxy->parameters[BaseQueryProxy::ATTENTION_UPDATE] = (unsigned int) BaseQueryProxy::NONE;
-    pm_proxy->parameters[BaseQueryProxy::USE_LINK_TEMPLATE_CACHE] = false;
-    pm_proxy->parameters[BaseQueryProxy::ALLOW_INCOMPLETE_CHAIN_PATH] = allow_incomplete_chain_path_flag;
-    pm_proxy->parameters[PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG] = positive_importance_flag;
-    pm_proxy->parameters[BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS] =
-        proxy->parameters.get<bool>(BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS);
-    pm_proxy->parameters[BaseQueryProxy::POPULATE_METTA_MAPPING] = proxy->parameters.get<bool>(
-        BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS);  // enforced when MeTTa queries are being used
+    pm_proxy->parameters[BaseQueryProxy::POPULATE_METTA_MAPPING] =
+        proxy->parameters.get<bool>(BaseQueryProxy::POPULATE_METTA_MAPPING) ||
+        proxy->parameters.get<bool>(
+            BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS);  // enforced when MeTTa queries are being used
     pm_proxy->parameters[PatternMatchingQueryProxy::MAX_ANSWERS] =
         proxy->parameters.get<unsigned int>(QueryEvolutionProxy::POPULATION_SIZE);
     ServiceBusSingleton::get_instance()->issue_bus_command(pm_proxy);
@@ -102,17 +93,17 @@ shared_ptr<PatternMatchingQueryProxy> QueryEvolutionProcessor::issue_sampling_qu
 shared_ptr<PatternMatchingQueryProxy> QueryEvolutionProcessor::issue_correlation_query(
     shared_ptr<QueryEvolutionProxy> proxy, vector<string> query_tokens) {
     auto pm_proxy = make_shared<PatternMatchingQueryProxy>(query_tokens, proxy->get_context());
+    pm_proxy->parameters = proxy->parameters;
     pm_proxy->parameters[BaseQueryProxy::UNIQUE_ASSIGNMENT_FLAG] = true;
     pm_proxy->parameters[BaseQueryProxy::ATTENTION_CORRELATION] = (unsigned int) BaseQueryProxy::NONE;
     pm_proxy->parameters[BaseQueryProxy::ATTENTION_UPDATE] = (unsigned int) BaseQueryProxy::NONE;
     pm_proxy->parameters[BaseQueryProxy::USE_LINK_TEMPLATE_CACHE] = false;
     pm_proxy->parameters[PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG] =
         true;  //(this->generation_count > 1);
-    pm_proxy->parameters[BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS] =
-        proxy->parameters.get<bool>(BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS);
+    pm_proxy->parameters[PatternMatchingQueryProxy::DISREGARD_IMPORTANCE_FLAG] = false;
+    pm_proxy->parameters[PatternMatchingQueryProxy::UNIQUE_VALUE_FLAG] = false;
     pm_proxy->parameters[PatternMatchingQueryProxy::MAX_ANSWERS] =
         proxy->parameters.get<unsigned int>(QueryEvolutionProxy::POPULATION_SIZE) * 5;
-
     ServiceBusSingleton::get_instance()->issue_bus_command(pm_proxy);
     return pm_proxy;
 }
@@ -125,6 +116,7 @@ void QueryEvolutionProcessor::sample_population(
     vector<string> answer_bundle_vector;
     unsigned int population_size =
         proxy->parameters.get<unsigned int>(QueryEvolutionProxy::POPULATION_SIZE);
+    bool metta_mapping = proxy->parameters.get<bool>(BaseQueryProxy::POPULATE_METTA_MAPPING);
 
     auto pm_query = issue_sampling_query(proxy);
 
@@ -136,7 +128,11 @@ void QueryEvolutionProcessor::sample_population(
             float fitness;
             if (remote_fitness) {
                 fitness = 0;
-                proxy->populate_metta_mapping(answer.get());
+                if (!metta_mapping) {
+                    // If PM agent didn't populate metta mapping as per parameter, we need to enforce
+                    // these mappings get populated here, before calling remote fitness evaluation.
+                    proxy->populate_metta_mapping(answer.get());
+                }
                 answer_bundle_vector.push_back(answer->tokenize());
             } else {
                 fitness = (remote_fitness ? 0 : proxy->compute_fitness(answer));
@@ -147,16 +143,14 @@ void QueryEvolutionProcessor::sample_population(
             }
             LOG_DEBUG("Sampling: " + answer->to_string());
             population.push_back(make_pair(answer, fitness));
-            this->visited_individuals.insert(Hasher::composite_handle(answer->get_handles_vector()));
+            this->visited_individuals.insert(answer->compute_hash());
         } else {
             Utils::sleep();
         }
     }
-    double renew_rate = ((double) this->visited_individuals.size() - visited_count) / population_size;
-    LOG_INFO("Generation: " + std::to_string(this->generation_count) +
-             " - Individuals with non-zero importance: " + std::to_string(positive_importance_count));
-    LOG_INFO("Generation: " + std::to_string(this->generation_count) +
-             " - Renew rate: " + std::to_string(renew_rate));
+    double renew_rate = ((double) this->visited_individuals.size() - visited_count) / population.size();
+    LOG_INFO("Individuals with non-zero importance: " + std::to_string(positive_importance_count));
+    LOG_INFO("Renew rate: " + std::to_string(renew_rate));
     if (!pm_query->finished()) {
         pm_query->abort();
         unsigned int count = 0;
@@ -261,39 +255,18 @@ void QueryEvolutionProcessor::select_best_individuals(
     }
     float sum = 0;
     for (unsigned int i = 0; i < count; i++) {
-        LOG_INFO("Selected: " +
-                 (proxy->populate_metta_mapping(selected[i].first.get()),
-                  sum += selected[i].second,
-                  selected[i].first->metta_expression[selected[i].first->get_handles_vector()[0]] + " " +
-                      std::to_string(selected[i].first->strength)));
-    }
-    LOG_INFO("Generation: " + std::to_string(this->generation_count) +
-             " - Average fitness in selected group: " + std::to_string(sum / count));
-}
-
-float eval_word(const string& handle, string& word) {
-    auto db = AtomDBSingleton::get_instance();
-    shared_ptr<Link> word_link;
-    shared_ptr<Node> word_name_node;
-    word_link = db->get_link(handle);
-    string symbol_handle = word_link->targets[1];
-    word_name_node = db->get_node(symbol_handle);
-    word = word_name_node->name;
-    unsigned int count = 0;
-    unsigned int sentence_length = 0;
-    for (unsigned int i = 0; i < word.length(); i++) {
-        if ((word[i] != ' ') && (word[i] != '"')) {
-            sentence_length++;
+        sum += selected[i].second;
+#if LOG_LEVEL >= DEBUG_LEVEL
+        if (!proxy->parameters.get<bool>(BaseQueryProxy::POPULATE_METTA_MAPPING)) {
+            proxy->populate_metta_mapping(selected[i].first.get());
         }
-        if (word[i] == 'c') {
-            count++;
-        }
+        LOG_DEBUG("Selected: [" + std::to_string(selected[i].first->strength) + "] " +
+                  selected[i].first->to_string(true));
+#endif
     }
-    if (sentence_length == 0) {
-        return 0;
-    } else {
-        return ((float) count) / ((float) sentence_length);
-    }
+    LOG_INFO("Average fitness in selected group: " +
+             (count > 0 ? std::to_string(sum / count) : string("NO SELECTION")));
+    proxy->set_no_selection_flag(count == 0);
 }
 
 void QueryEvolutionProcessor::correlate_similar(shared_ptr<QueryEvolutionProxy> proxy,
@@ -303,8 +276,9 @@ void QueryEvolutionProcessor::correlate_similar(shared_ptr<QueryEvolutionProxy> 
     vector<vector<string>> correlation_queries = proxy->get_correlation_queries();
     vector<map<string, QueryAnswerElement>> correlation_replacements =
         proxy->get_correlation_replacements();
-    vector<pair<QueryAnswerElement, QueryAnswerElement>> correlation_mappings =
+    vector<vector<pair<QueryAnswerElement, QueryAnswerElement>>> correlation_mappings =
         proxy->get_correlation_mappings();
+
     if (correlation_queries.size() != correlation_replacements.size()) {
         RAISE_ERROR("Invalid correlation queries/replacements. Proxy: " + proxy->to_string());
     }
@@ -312,8 +286,8 @@ void QueryEvolutionProcessor::correlate_similar(shared_ptr<QueryEvolutionProxy> 
         RAISE_ERROR("Invalid correlation mappings. Proxy: " + proxy->to_string());
     }
 
-    // Rewrite correlation query using handles from original query answer
     for (unsigned int i = 0; i < correlation_queries.size(); i++) {
+        // Rewrite correlation query using handles from original query answer
         query_tokens.clear();
         if (proxy->parameters.get<bool>(BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS)) {
             if (correlation_queries[i].size() != 1) {
@@ -357,20 +331,29 @@ void QueryEvolutionProcessor::correlate_similar(shared_ptr<QueryEvolutionProxy> 
 
         // Update AttentionBroker
         handle_lists.clear();
+        LOG_DEBUG("Correlation query: " +
+                  (query_tokens.size() == 1 ? query_tokens[0] : Utils::join(query_tokens)));
         auto pm_query = issue_correlation_query(proxy, query_tokens);
         while (!pm_query->finished()) {
             shared_ptr<QueryAnswer> answer = pm_query->pop();
             string word;
             if (answer != NULL) {
-                for (auto pair : correlation_mappings) {
-                    string key = answer->get(pair.first, true);
-                    string handle = answer->get(pair.second, true);
-                    if ((key != "") && (handle != "")) {
-                        if (handle_lists.find(key) == handle_lists.end()) {
-                            handle_lists[key] = {key};
-                        } else {
-                            handle_lists[key].push_back(handle);
+                for (auto pair : correlation_mappings[i]) {
+                    string handle_original_answer = correlation_query_answer->get(pair.first, true);
+                    string handle_correlation_answer = answer->get(pair.second, true);
+                    LOG_DEBUG("Picked to correlate: " +
+                              AtomDBSingleton::get_instance()
+                                  ->get_atom(handle_original_answer)
+                                  ->metta_representation(*AtomDBSingleton::get_instance().get()) +
+                              " -> " +
+                              AtomDBSingleton::get_instance()
+                                  ->get_atom(handle_correlation_answer)
+                                  ->metta_representation(*AtomDBSingleton::get_instance().get()));
+                    if ((handle_original_answer != "") && (handle_correlation_answer != "")) {
+                        if (handle_lists.find(handle_original_answer) == handle_lists.end()) {
+                            handle_lists[handle_original_answer] = {handle_original_answer};
                         }
+                        handle_lists[handle_original_answer].push_back(handle_correlation_answer);
                     }
                 }
             } else {
@@ -385,41 +368,59 @@ void QueryEvolutionProcessor::correlate_similar(shared_ptr<QueryEvolutionProxy> 
 
 void QueryEvolutionProcessor::stimulate(shared_ptr<QueryEvolutionProxy> proxy,
                                         vector<std::pair<shared_ptr<QueryAnswer>, float>>& selected) {
-    LOG_INFO("Stimulating " + std::to_string(selected.size()) + " selected QueryAnswers: ");
-    vector<pair<QueryAnswerElement, QueryAnswerElement>> correlation_mappings =
+    LOG_INFO("Stimulating " + std::to_string(selected.size()) + " selected QueryAnswers");
+    vector<vector<pair<QueryAnswerElement, QueryAnswerElement>>> correlation_mappings =
         proxy->get_correlation_mappings();
     if (correlation_mappings.size() == 0) {
         RAISE_ERROR("Invalid correlation mappings. Proxy: " + proxy->to_string());
     }
-    unsigned int importance_tokens =
-        proxy->parameters.get<unsigned int>(QueryEvolutionProxy::TOTAL_ATTENTION_TOKENS);
+
+    float min_fitness = 1;
+    for (auto pair : selected) {
+        if (pair.second < min_fitness) {
+            min_fitness = pair.second;
+        }
+    }
+    if (min_fitness < MIN_SELECTED_FITNESS) {
+        min_fitness = MIN_SELECTED_FITNESS;
+        LOG_ERROR("Minimal fitness if below MIN_SELECTED_FITNESS");
+    }
+
+    float fitness_rate = (1.0 / min_fitness);
 
     map<string, unsigned int> handle_count;
     for (auto pair : selected) {
-        unsigned int value = (unsigned int) std::lround(pair.second * importance_tokens);
-        string handle = pair.first->get(correlation_mappings[0].first);
-        if (handle_count.find(handle) == handle_count.end()) {
-            handle_count[handle] = value;
-        } else {
-            if (value > handle_count[handle]) {
-                handle_count[handle] = value;
-            }
-        }
-    }
-    /*
-    for (auto pair : selected) {
+        LOG_DEBUG("Selected answer: " + pair.first->to_string(proxy->parameters.get<bool>(
+                                            BaseQueryProxy::POPULATE_METTA_MAPPING)));
+        float v = (pair.second > MIN_SELECTED_FITNESS ? pair.second : MIN_SELECTED_FITNESS);
+        unsigned int value = (unsigned int) std::lround(v * fitness_rate);
+        set<string> node_handles;
         for (string handle : pair.first->get_handles_vector()) {
-            unsigned int value = (unsigned int) std::lround(pair.second * importance_tokens);
-            if (handle_count.find(handle) == handle_count.end()) {
+            // AtomDBSingleton::get_instance()->reachable_terminal_set(node_handles, handle, true);
+            // node_handles.insert(handle);
+        }
+        for (auto& correlation : correlation_mappings) {
+            for (auto& correlation_pair : correlation) {
+                node_handles.insert(pair.first->get(correlation_pair.first, true));
+            }
+        }
+        for (unsigned int i = 0; i < pair.first->get_paths_size(); i++) {
+            for (string handle : pair.first->get_path_vector(i)) {
+                node_handles.insert(handle);
+                // AtomDBSingleton::get_instance()->reachable_terminal_set(node_handles, handle, true);
+            }
+        }
+        for (string handle : node_handles) {
+            LOG_DEBUG("Picked to stimulate: " +
+                      AtomDBSingleton::get_instance()->get_atom(handle)->metta_representation(
+                          *AtomDBSingleton::get_instance().get()));
+            unsigned int old_value = handle_count[handle];
+            if (value > old_value) {
                 handle_count[handle] = value;
-            } else {
-                if (value > handle_count[handle]) {
-                    handle_count[handle] = value;
-                }
             }
         }
     }
-    */
+
     AttentionBrokerClient::stimulate(handle_count, proxy->get_context());
 }
 
@@ -427,8 +428,8 @@ void QueryEvolutionProcessor::update_attention_allocation(
     shared_ptr<QueryEvolutionProxy> proxy, vector<std::pair<shared_ptr<QueryAnswer>, float>>& selected) {
     unsigned int count = 1;
     for (auto pair : selected) {
-        LOG_INFO("Correlating QueryAnswer (" + std::to_string(count) + "/" +
-                 std::to_string(selected.size()) + "): " + pair.first->to_string());
+        LOG_DEBUG("Correlating QueryAnswer (" + std::to_string(count) + "/" +
+                  std::to_string(selected.size()) + ")");
         correlate_similar(proxy, pair.first);
         count++;
     }
@@ -437,6 +438,12 @@ void QueryEvolutionProcessor::update_attention_allocation(
 
 void QueryEvolutionProcessor::evolve_query(shared_ptr<StoppableThread> monitor,
                                            shared_ptr<QueryEvolutionProxy> proxy) {
+    bool metta_flag = (proxy->get_query_tokens().size() == 1);
+    for (auto correlation_query : proxy->get_correlation_queries()) {
+        if ((correlation_query.size() == 1) != metta_flag) {
+            RAISE_ERROR("Evolution and correlation queries should be either both tokens or both MeTTa.");
+        }
+    }
     vector<std::pair<shared_ptr<QueryAnswer>, float>> population;
     vector<std::pair<shared_ptr<QueryAnswer>, float>> selected;
     this->generation_count = 1;
@@ -444,15 +451,16 @@ void QueryEvolutionProcessor::evolve_query(shared_ptr<StoppableThread> monitor,
     RAM_FOOTPRINT_START(evolution);
     STOP_WATCH_START(evolution);
     while (!monitor->stopped() && !proxy->stop_criteria_met()) {
+        LOG_INFO("==================== Generation: " + std::to_string(this->generation_count) +
+                 " ====================");
         RAM_CHECKPOINT("Generation " + std::to_string(this->generation_count));
         STOP_WATCH_START(generation);
         STOP_WATCH_START(sample_population);
         sample_population(monitor, proxy, population);
         STOP_WATCH_FINISH(sample_population, "EvolutionPopulationSampling");
-        LOG_INFO("========== Generation: " + std::to_string(this->generation_count) + ". Sampled " +
-                 std::to_string(population.size()) + " individuals. ==========");
+        LOG_INFO("Sampled " + std::to_string(population.size()) + " individuals.");
         proxy->new_population_sampled(population);
-        if ((population.size() > 0) && !proxy->stop_criteria_met()) {
+        if (population.size() > 0) {
             proxy->flush_answer_bundle();
             STOP_WATCH_START(selection);
             select_best_individuals(proxy, population, selected);
@@ -472,6 +480,7 @@ void QueryEvolutionProcessor::evolve_query(shared_ptr<StoppableThread> monitor,
         this->generation_count++;
     }
     proxy->flush_answer_bundle();
+    LOG_INFO("--------------------");
     LOG_INFO("Total number of visited individuals: " + std::to_string(this->visited_individuals.size()));
     LOG_INFO("Average renew rate per generation: " +
              std::to_string(

@@ -14,9 +14,7 @@ using namespace atoms;
 // ---------------------------------------------------------------------------------------------
 //  Construction / destruction
 
-Metta2AtomsMapper::Metta2AtomsMapper() {
-    RAISE_ERROR("Metta2AtomsMapper constructor not implemented yet");
-}
+Metta2AtomsMapper::Metta2AtomsMapper() {}
 
 Metta2AtomsMapper::~Metta2AtomsMapper() {}
 
