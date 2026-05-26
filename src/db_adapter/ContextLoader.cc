@@ -47,6 +47,17 @@ vector<string> ContextLoader::load_sql_queries(const string& file_path) {
 }
 
 vector<string> ContextLoader::load_metta_queries(const string& file_path) {
-    RAISE_ERROR("ContextLoader::load_metta_queries() not implemented yet");
-    return {};
+    if (!fs::exists(file_path)) {
+        RAISE_ERROR("File " + file_path + " does not exist");
+    }
+
+    ifstream file(file_path);
+
+    vector<string> lines;
+    string line;
+    while (getline(file, line)) {
+        lines.push_back(line);
+    }
+
+    return lines;
 }

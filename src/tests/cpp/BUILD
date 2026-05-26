@@ -892,6 +892,7 @@ cc_test(
     deps = [
         "//atomdb:atomdb_singleton",
         "//db_adapter:db_adapter_lib",
+        "//metta:metta_lib",
         "//tests/cpp/test_commons:test_atomdb_json_config",
         "@com_github_google_googletest//:gtest_main",
         "@mbedtls",
