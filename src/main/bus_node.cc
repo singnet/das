@@ -53,7 +53,7 @@ int main(int argc, char* argv[]) {
             auto bus_hub = json_config.at_path("agents.query.endpoint");
             if (!bus_hub.is_null()) {
                 cmd_args[Helper::BUS_ENDPOINT] = bus_hub.get<string>();
-                LOG_INFO("Default bus-endpoint (query mesh hub): " + cmd_args[Helper::BUS_ENDPOINT]);
+                LOG_INFO("Default bus-endpoint (query-engine): " + cmd_args[Helper::BUS_ENDPOINT]);
             }
         }
 

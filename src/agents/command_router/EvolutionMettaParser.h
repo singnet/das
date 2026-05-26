@@ -13,11 +13,11 @@ using namespace query_engine;
 namespace command_router {
 
 /** Canonical router / evolution param keys (also used in Properties). */
-extern const string EVOLUTION_PARAM_QUERY;
-extern const string EVOLUTION_PARAM_FITNESS;
-extern const string EVOLUTION_PARAM_CORRELATION_QUERIES;
-extern const string EVOLUTION_PARAM_CORRELATION_REPLACEMENTS;
-extern const string EVOLUTION_PARAM_CORRELATION_MAPPINGS;
+extern const string PARAM_QUERY;
+extern const string PARAM_FITNESS_FUNCTION;
+extern const string PARAM_CORRELATION_QUERIES;
+extern const string PARAM_CORRELATION_REPLACEMENTS;
+extern const string PARAM_CORRELATION_MAPPINGS;
 
 /** Fields parsed from a labeled MeTTa evolution ARG (context comes from router params). */
 struct EvolutionMettaArgs {
@@ -62,6 +62,7 @@ vector<string> parse_correlation_query_list_body(const string& body);
  */
 vector<vector<pair<string, string>>> parse_correlation_pair_groups_body(const string& body);
 
+/** Replace MeTTa `%` variable prefix with the canonical `$` form. */
 string normalize_metta_percent_variables(const string& expression);
 
 vector<vector<string>> metta_correlation_queries(const vector<string>& expressions);

@@ -32,7 +32,6 @@ class BusCommandRouterProcessor : public BusCommandProcessor {
     void run_command(shared_ptr<BusCommandProxy> proxy) override;
 
    private:
-    void dispatch(shared_ptr<BusCommandRouterProxy> proxy, const string& command, const string& arg);
     void handle_get(shared_ptr<BusCommandRouterProxy> proxy, const string& arg);
     void handle_set(shared_ptr<BusCommandRouterProxy> proxy, const string& arg);
     void handle_query(shared_ptr<BusCommandRouterProxy> proxy, const string& arg);
@@ -42,15 +41,8 @@ class BusCommandRouterProcessor : public BusCommandProcessor {
                                               shared_ptr<BaseQueryProxy> downstream);
 
     void set_router_param(BusCommandRouterProxy* proxy, const string& key, const string& value);
-    void copy_query_parameters(shared_ptr<BaseProxy> target, shared_ptr<BusCommandRouterProxy> router);
-
-    static string parse_metta_expression(const string& metta_expression);
-    static vector<string> parse_request(const string& request_str, bool use_metta);
-    static vector<vector<string>> parse_correlation_queries(const string& str, bool use_metta);
 
     Properties& parameters_for_peer(const string& peer_id);
-    void load_router_parameters(shared_ptr<BusCommandRouterProxy> proxy);
-    void save_router_parameters(shared_ptr<BusCommandRouterProxy> proxy);
 
     /** Router params keyed by bus requestor_id (client ServiceBus host_id). */
     unordered_map<string, Properties> router_parameters_by_peer;

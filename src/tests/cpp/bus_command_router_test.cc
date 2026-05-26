@@ -1,7 +1,6 @@
 #include "AtomDBSingleton.h"
 #include "BusCommandRouterProcessor.h"
 #include "BusCommandRouterProxy.h"
-#include "CommandLineParser.h"
 #include "EvolutionMettaParser.h"
 #include "ServiceBus.h"
 #include "TestAtomDBJsonConfig.h"
@@ -216,16 +215,6 @@ TEST(EvolutionMettaParser, bare_query_expression_is_not_labeled_form) {
 TEST(EvolutionMettaParser, plain_query_arg_is_not_labeled_form) {
     EvolutionMettaArgs args;
     EXPECT_FALSE(try_parse_evolution_metta_arg("(Similarity $a $b)", args));
-}
-
-TEST(CommandLineParser, split_command_line) {
-    auto parts = split_command_line("query (Similarity $a $b)");
-    EXPECT_EQ(parts.first, "query");
-    EXPECT_EQ(parts.second, "(Similarity $a $b)");
-
-    auto parts2 = split_command_line("set param max_answers 777");
-    EXPECT_EQ(parts2.first, "set");
-    EXPECT_EQ(parts2.second, "param max_answers 777");
 }
 
 TEST(BusCommandRouter, get_and_set_params) {

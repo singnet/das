@@ -34,7 +34,6 @@ bool BaseProxy::finished() {
 void BaseProxy::abort() {
     lock_guard<mutex> semaphore(this->api_mutex);
     if (!this->command_finished_flag) {
-        // SERVER proxies (e.g. sampling queries) learn peer_id only after the processor connects.
         if (peer_id() != "") {
             to_remote_peer(ABORT, {});
         } else {
