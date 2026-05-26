@@ -39,7 +39,7 @@ void MorkWrapper::map(const string& metta_query) {
         try {
             MettaExpression metta_expr{expr};
             atoms = this->mapper->map(DbInput{metta_expr});
-            LOG_INFO("Mapped " << atoms.size() << " atoms from MORK expression");
+            LOG_DEBUG("Mapped " << atoms.size() << " atoms from MORK expression");
         } catch (const exception& e) {
             RAISE_ERROR("Error mapping MORK expression: " + expr + " : " + string(e.what()));
             return;
