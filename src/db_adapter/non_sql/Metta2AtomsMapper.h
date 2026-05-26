@@ -21,14 +21,14 @@ class Metta2AtomsMapper : public DatabaseMapper {
     Metta2AtomsMapper();
     ~Metta2AtomsMapper() override;
 
-    const vector<Atom*> map(const DbInput& data) override;
-    void collect_atoms(vector<Atom*>& output,
+    vector<shared_ptr<Atom>> map(const DbInput& data) override;
+    void collect_atoms(vector<shared_ptr<Atom>>& output,
                        const string& handle,
                        shared_ptr<MettaParserActions> parser_actions);
 
    private:
-    vector<Atom*> atoms;
-    void collect_atoms_recursive(vector<Atom*>& output,
+    vector<shared_ptr<Atom>> atoms;
+    void collect_atoms_recursive(vector<shared_ptr<Atom>>& output,
                                  shared_ptr<Link> link,
                                  shared_ptr<MettaParserActions> parser_actions);
 };

@@ -21,7 +21,7 @@ Metta2AtomsMapper::~Metta2AtomsMapper() {}
 // ---------------------------------------------------------------------------------------------
 //  Public
 
-const vector<Atom*> Metta2AtomsMapper::map(const DbInput& data) {
+vector<shared_ptr<Atom>> Metta2AtomsMapper::map(const DbInput& data) {
     MettaExpression metta_expression = get<MettaExpression>(data);
 
     LOG_DEBUG("[Metta2AtomsMapper::map] Parsing MORK expression: " << metta_expression.expression);
@@ -50,13 +50,13 @@ const vector<Atom*> Metta2AtomsMapper::map(const DbInput& data) {
     return this->atoms;
 }
 
-void Metta2AtomsMapper::collect_atoms(vector<Atom*>& output,
+void Metta2AtomsMapper::collect_atoms(vector<shared_ptr<Atom>>& output,
                                       const string& handle,
                                       shared_ptr<MettaParserActions> parser_actions) {
     shared_ptr<Atom> atom = parser_actions->handle_to_atom[handle];
     if (atom != nullptr) {
         if (Atom::is_node(*atom)) {
-            output.push_back(atom.get());
+            output.push_back(atom);
         } else {
             this->collect_atoms_recursive(output, dynamic_pointer_cast<Link>(atom), parser_actions);
         }
@@ -66,18 +66,18 @@ void Metta2AtomsMapper::collect_atoms(vector<Atom*>& output,
 // ---------------------------------------------------------------------------------------------
 //  Private
 
-void Metta2AtomsMapper::collect_atoms_recursive(vector<Atom*>& output,
+void Metta2AtomsMapper::collect_atoms_recursive(vector<shared_ptr<Atom>>& output,
                                                 shared_ptr<Link> link,
                                                 shared_ptr<MettaParserActions> parser_actions) {
     for (string& target_handle : link->targets) {
         shared_ptr<Atom> atom = parser_actions->handle_to_atom[target_handle];
         if (atom != nullptr) {
             if (Atom::is_node(*atom)) {
-                output.push_back(atom.get());
+                output.push_back(atom);
             } else {
                 this->collect_atoms_recursive(output, dynamic_pointer_cast<Link>(atom), parser_actions);
             }
         }
     }
-    output.push_back(link.get());
+    output.push_back(link);
 }
