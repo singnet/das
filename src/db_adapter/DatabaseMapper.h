@@ -29,9 +29,9 @@ class DatabaseMapper {
     /**
      * @brief Transforms the input data into a list of Atom pointers.
      * @param data The database row or document to map.
-     * @return vector<Atom*> A list of Atom pointers.
+     * @return vector<shared_ptr<Atom>> A list of Atom pointers.
      */
-    virtual const vector<Atom*> map(const DbInput& data) = 0;
+    virtual vector<shared_ptr<Atom>> map(const DbInput& data) = 0;
 
     unsigned int handle_trie_size();
 

@@ -20,10 +20,10 @@ class Metta2AtomsMapper : public DatabaseMapper {
     Metta2AtomsMapper();
     ~Metta2AtomsMapper() override;
 
-    const vector<Atom*> map(const DbInput& data) override;
+    vector<shared_ptr<Atom>> map(const DbInput& data) override;
 
    private:
-    vector<Atom*> atoms;
+    vector<shared_ptr<Atom>> atoms;
     shared_ptr<MettaParserActions> parser_actions;
 };
 
