@@ -1,6 +1,8 @@
 #include "BusCommandRouterProcessor.h"
 
+#include <algorithm>
 #include <thread>
+#include <variant>
 
 #include "BaseQueryProxy.h"
 #include "EvolutionMettaParser.h"
@@ -75,13 +77,12 @@ void BusCommandRouterProcessor::handle_get(shared_ptr<BusCommandRouterProxy> pro
     if (arg != "params") {
         RAISE_ERROR("Unsupported get command ARG: " + arg + " (expected 'params')");
     }
-    vector<string> response_args;
+    vector<string> lines;
     vector<string> tokens = proxy->parameters.tokenize();
     for (unsigned int i = 0; i + 2 < tokens.size(); i += 3) {
-        response_args.push_back(tokens[i]);
-        response_args.push_back(tokens[i + 2]);
+        lines.push_back(tokens[i] + ": " + tokens[i + 2]);
     }
-    string response = Utils::join(response_args, '\n');
+    string response = Utils::join(lines, '\n');
     proxy->to_remote_peer(BusCommandRouterProxy::PARAMS_RESPONSE, {response});
     proxy->to_remote_peer(BaseProxy::FINISHED, {});
 }
@@ -89,35 +90,62 @@ void BusCommandRouterProcessor::handle_get(shared_ptr<BusCommandRouterProxy> pro
 void BusCommandRouterProcessor::set_router_param(BusCommandRouterProxy* proxy,
                                                  const string& key,
                                                  const string& value) {
-    if (value == "true") {
-        proxy->parameters[key] = true;
-    } else if (value == "false") {
-        proxy->parameters[key] = false;
-    } else {
-        bool is_int = !value.empty();
-        for (char c : value) {
-            if (!isdigit(c)) {
-                is_int = false;
-                break;
-            }
-        }
-        if (is_int) {
-            proxy->parameters[key] = (unsigned int) stoi(value);
+    auto iterator = proxy->parameters.find(key);
+    if (iterator == proxy->parameters.end()) {
+        RAISE_ERROR("Unknown parameter: '" + key + "'");
+    }
+    PropertyValue& current = iterator->second;
+
+    auto type_mismatch = [&](const string& expected) {
+        RAISE_ERROR("Parameter '" + key + "' is " + expected + "; cannot assign value: '" + value + "'");
+    };
+
+    if (std::holds_alternative<bool>(current)) {
+        if (value == "true") {
+            current = true;
+        } else if (value == "false") {
+            current = false;
         } else {
-            bool is_double = false;
-            try {
-                size_t idx = 0;
-                stod(value, &idx);
-                is_double = (idx == value.size());
-            } catch (...) {
-                is_double = false;
-            }
-            if (is_double) {
-                proxy->parameters[key] = stod(value);
-            } else {
-                proxy->parameters[key] = value;
-            }
+            type_mismatch("bool");
         }
+    } else if (std::holds_alternative<unsigned int>(current)) {
+        bool all_digits = !value.empty() && std::all_of(value.begin(), value.end(), [](char c) {
+            return isdigit(static_cast<unsigned char>(c));
+        });
+        if (!all_digits) {
+            type_mismatch("unsigned_int");
+        }
+        try {
+            current = (unsigned int) std::stoul(value);
+        } catch (const std::exception&) {
+            type_mismatch("unsigned_int");
+        }
+    } else if (std::holds_alternative<long>(current)) {
+        try {
+            size_t consumed = 0;
+            long parsed = std::stol(value, &consumed);
+            if (consumed != value.size()) {
+                type_mismatch("long");
+            }
+            current = parsed;
+        } catch (const std::exception&) {
+            type_mismatch("long");
+        }
+    } else if (std::holds_alternative<double>(current)) {
+        try {
+            size_t consumed = 0;
+            double parsed = std::stod(value, &consumed);
+            if (consumed != value.size()) {
+                type_mismatch("double");
+            }
+            current = parsed;
+        } catch (const std::exception&) {
+            type_mismatch("double");
+        }
+    } else if (std::holds_alternative<string>(current)) {
+        current = value;
+    } else {
+        RAISE_ERROR("Parameter '" + key + "' has an unsupported type for 'set'");
     }
 }
 

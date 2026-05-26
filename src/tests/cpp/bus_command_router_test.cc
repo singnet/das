@@ -59,22 +59,7 @@ class RouterTestProxy : public BusCommandRouterProxy {
             routed_flag = true;
             return true;
         }
-        if (BusCommandRouterProxy::from_remote_peer(command, args)) {
-            return true;
-        }
-        if (command == BusCommandRouterProxy::PARAMS_RESPONSE && !args.empty()) {
-            params_response = args[0];
-            return true;
-        }
-        if (command == BusCommandRouterProxy::SET_PARAM_ACK && !args.empty()) {
-            set_param_ack = args[0];
-            return true;
-        }
-        if (command == BusCommandRouterProxy::ROUTED) {
-            routed_flag = true;
-            return true;
-        }
-        return false;
+        return BusCommandRouterProxy::from_remote_peer(command, args);
     }
 };
 
@@ -256,7 +241,7 @@ TEST(BusCommandRouter, get_and_set_params) {
     auto get_after_set = make_shared<RouterTestProxy>("get", "params");
     client_bus.issue_bus_command(get_after_set);
     Utils::sleep(1000);
-    EXPECT_NE(get_after_set->params_response.find("max_answers\n777"), string::npos);
+    EXPECT_NE(get_after_set->params_response.find("max_answers: 777"), string::npos);
     EXPECT_TRUE(get_after_set->finished());
 
     auto set_one = make_shared<RouterTestProxy>("set", "param max_answers 1");
@@ -267,8 +252,46 @@ TEST(BusCommandRouter, get_and_set_params) {
     auto get_one = make_shared<RouterTestProxy>("get", "params");
     client_bus.issue_bus_command(get_one);
     Utils::sleep(1000);
-    EXPECT_NE(get_one->params_response.find("max_answers\n1"), string::npos);
-    EXPECT_EQ(get_one->params_response.find("max_answers\ntrue"), string::npos);
+    EXPECT_NE(get_one->params_response.find("max_answers: 1"), string::npos);
+    EXPECT_EQ(get_one->params_response.find("max_answers: true"), string::npos);
+}
+
+TEST(BusCommandRouter, set_param_rejects_unknown_and_type_mismatch) {
+    set<string> commands = {ServiceBus::BUS_COMMAND_ROUTER};
+    ServiceBus::initialize_statics(commands, 40800, 40899);
+
+    auto router_processor = make_shared<BusCommandRouterProcessor>();
+    ServiceBus router_bus("localhost:40810");
+    router_bus.register_processor(router_processor);
+    Utils::sleep(500);
+
+    ServiceBus client_bus("localhost:40811", "localhost:40810");
+    Utils::sleep(500);
+
+    auto set_unknown = make_shared<RouterTestProxy>("set", "param does_not_exist hello");
+    client_bus.issue_bus_command(set_unknown);
+    Utils::sleep(1000);
+    EXPECT_TRUE(set_unknown->error_flag);
+    EXPECT_NE(set_unknown->error_message.find("Unknown parameter: 'does_not_exist'"), string::npos);
+    EXPECT_TRUE(set_unknown->set_param_ack.empty());
+
+    auto set_wrong_type = make_shared<RouterTestProxy>("set", "param max_answers not_a_number");
+    client_bus.issue_bus_command(set_wrong_type);
+    Utils::sleep(1000);
+    EXPECT_TRUE(set_wrong_type->error_flag);
+    EXPECT_NE(set_wrong_type->error_message.find("unsigned_int"), string::npos);
+
+    auto set_bool_with_int = make_shared<RouterTestProxy>("set", "param unique_assignment_flag 7");
+    client_bus.issue_bus_command(set_bool_with_int);
+    Utils::sleep(1000);
+    EXPECT_TRUE(set_bool_with_int->error_flag);
+    EXPECT_NE(set_bool_with_int->error_message.find("bool"), string::npos);
+
+    auto set_bool_value = make_shared<RouterTestProxy>("set", "param unique_assignment_flag false");
+    client_bus.issue_bus_command(set_bool_value);
+    Utils::sleep(1000);
+    EXPECT_FALSE(set_bool_value->error_flag);
+    EXPECT_EQ(set_bool_value->set_param_ack, "Parameter updated: 'unique_assignment_flag': false");
 }
 
 TEST(BusCommandRouter, params_isolated_per_peer) {
@@ -295,14 +318,14 @@ TEST(BusCommandRouter, params_isolated_per_peer) {
     auto get_a = make_shared<RouterTestProxy>("get", "params");
     client_a.issue_bus_command(get_a);
     Utils::sleep(1000);
-    EXPECT_NE(get_a->params_response.find("max_answers\n111"), string::npos);
-    EXPECT_EQ(get_a->params_response.find("max_answers\n222"), string::npos);
+    EXPECT_NE(get_a->params_response.find("max_answers: 111"), string::npos);
+    EXPECT_EQ(get_a->params_response.find("max_answers: 222"), string::npos);
 
     auto get_b = make_shared<RouterTestProxy>("get", "params");
     client_b.issue_bus_command(get_b);
     Utils::sleep(1000);
-    EXPECT_NE(get_b->params_response.find("max_answers\n222"), string::npos);
-    EXPECT_EQ(get_b->params_response.find("max_answers\n111"), string::npos);
+    EXPECT_NE(get_b->params_response.find("max_answers: 222"), string::npos);
+    EXPECT_EQ(get_b->params_response.find("max_answers: 111"), string::npos);
 }
 
 TEST(BusCommandRouter, forward_query_preserves_caller_identity) {

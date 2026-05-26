@@ -141,19 +141,34 @@ int main(int argc, char* argv[]) {
             bool use_metta_as_query_tokens =
                 router_proxy->parameters.get_or<bool>(BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS, true);
 
+            auto router_finished_or_error = [&]() {
+                return router_proxy->finished() || router_proxy->error_flag;
+            };
+
             if (router_cmd == "get") {
-                while (router_proxy->params_response.empty() && Helper::is_running) {
+                while (router_proxy->params_response.empty() && !router_finished_or_error() &&
+                       Helper::is_running) {
                     Utils::sleep(100);
+                }
+                if (router_proxy->error_flag) {
+                    return 1;
                 }
                 cout << router_proxy->params_response << endl;
             } else if (router_cmd == "set") {
-                while (router_proxy->set_param_ack.empty() && Helper::is_running) {
+                while (router_proxy->set_param_ack.empty() && !router_finished_or_error() &&
+                       Helper::is_running) {
                     Utils::sleep(100);
+                }
+                if (router_proxy->error_flag) {
+                    return 1;
                 }
                 cout << router_proxy->set_param_ack << endl;
             } else if (router_cmd == "query") {
-                while (!router_proxy->routed_flag && Helper::is_running) {
+                while (!router_proxy->routed_flag && !router_finished_or_error() && Helper::is_running) {
                     Utils::sleep(100);
+                }
+                if (router_proxy->error_flag) {
+                    return 1;
                 }
                 LOG_INFO("Query routed; waiting for answers...");
                 while (!router_proxy->finished() && Helper::is_running) {
@@ -169,9 +184,15 @@ int main(int argc, char* argv[]) {
                     }
                     Utils::sleep(100);
                 }
+                if (router_proxy->error_flag) {
+                    return 1;
+                }
             } else if (router_cmd == "evolution") {
-                while (!router_proxy->routed_flag && Helper::is_running) {
+                while (!router_proxy->routed_flag && !router_finished_or_error() && Helper::is_running) {
                     Utils::sleep(100);
+                }
+                if (router_proxy->error_flag) {
+                    return 1;
                 }
                 LOG_INFO("Evolution routed; waiting for results...");
                 while (!router_proxy->finished() && Helper::is_running) {
@@ -186,6 +207,9 @@ int main(int argc, char* argv[]) {
                         }
                     }
                     Utils::sleep(100);
+                }
+                if (router_proxy->error_flag) {
+                    return 1;
                 }
             } else {
                 RAISE_ERROR("Unknown router cmd: " + router_cmd);
