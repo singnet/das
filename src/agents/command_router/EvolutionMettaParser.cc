@@ -253,41 +253,6 @@ string command_router::normalize_metta_percent_variables(const string& expressio
     return parsed;
 }
 
-vector<string> command_router::parse_correlation_query_list_body(const string& body) {
-    string trimmed = body;
-    Utils::trim(trimmed);
-    if (trimmed.empty()) {
-        return {};
-    }
-    if (trimmed[0] != '(') {
-        return {trimmed};
-    }
-    auto actions = parse_metta(trimmed);
-    if (actions->root_handle.empty()) {
-        return {trimmed};
-    }
-    return walk_query_list(actions->handle_to_atom.at(actions->root_handle), *actions);
-}
-
-vector<vector<pair<string, string>>> command_router::parse_correlation_pair_groups_body(
-    const string& body) {
-    string trimmed = body;
-    Utils::trim(trimmed);
-    if (trimmed.empty()) {
-        return {};
-    }
-    if (trimmed[0] != '(') {
-        RAISE_ERROR(
-            "correlation-replacements and correlation-mappings require MeTTa S-expressions "
-            "(e.g. ((placeholder1 sentence1))); key:value syntax is not supported");
-    }
-    auto actions = parse_metta(trimmed);
-    if (actions->root_handle.empty()) {
-        return {};
-    }
-    return walk_pair_groups(actions->handle_to_atom.at(actions->root_handle), *actions);
-}
-
 vector<vector<string>> command_router::metta_correlation_queries(const vector<string>& expressions) {
     vector<vector<string>> queries;
     for (const auto& expression : expressions) {

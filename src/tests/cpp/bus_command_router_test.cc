@@ -90,7 +90,6 @@ TEST(EvolutionMettaParser, reject_colon_syntax_in_cr_and_cm) {
         "(cr %placeholder1:sentence1) "
         "(cm sentence1:%word1))";
     EXPECT_THROW(try_parse_evolution_metta_arg(metta_arg, args), runtime_error);
-    EXPECT_THROW(parse_correlation_pair_groups_body("%placeholder1:sentence1"), runtime_error);
 }
 
 TEST(EvolutionMettaParser, reject_two_level_cr_and_cm_layout) {
@@ -102,7 +101,6 @@ TEST(EvolutionMettaParser, reject_two_level_cr_and_cm_layout) {
         "(cr ((placeholder1 sentence1))) "
         "(cm (((sentence1 word1)))))";
     EXPECT_THROW(try_parse_evolution_metta_arg(metta_arg, args), runtime_error);
-    EXPECT_THROW(parse_correlation_pair_groups_body("((placeholder1 sentence1))"), runtime_error);
 }
 
 TEST(EvolutionMettaParser, parse_simplified_wrapped_cr_cm_from_command_line) {

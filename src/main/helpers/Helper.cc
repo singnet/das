@@ -225,20 +225,44 @@ This client interacts with the AtomDB Broker via the service bus.
                                                          {ProcessorType::BUS_COMMAND_ROUTER, string(R"(
 Bus Command Router Client:
 Sends {COMMAND, ARG} to the Bus Command Router peer via bus_command_router.
+
 Required arguments:
     - cmd: Router command (get, set, query, evolution)
-    - arg: Router argument. For evolution, either a single MeTTa query (other fields from params via set)
-      or a labeled MeTTa list, e.g.:
-      ((query (Contains %s1 (Word "bbb")))
-       (ff count_letter)
-       (cq (Contains %p1 %w1))
-       (cr %p1:s1)
-       (cm s1:%w1))
-      Aliases: ff, cq, cr, cm (or full fitness-function-tag, correlation-* names). query has no alias.
-      Context is always taken from router params (set param context <name>).
+    - arg: Router argument; format depends on cmd:
+
+        get  ARG: 'params'
+            Returns the per-peer router parameters as 'key: value' lines.
+
+        set  ARG: 'param <key> <value>'
+            Updates an existing router parameter; raises an error if the key
+            is unknown or the value does not match the current type.
+
+        query  ARG: a MeTTa query S-expression (use % for variables).
+            Example: '(Contains (Sentence "ede ebe ...") (Word %W))'
+
+        evolution  ARG: a labeled MeTTa list with these clauses:
+            (q | query)                  required: MeTTa query S-expression
+            (ff | fitness-function-tag)  required: fitness function tag
+            (cq | correlation-queries)   list of MeTTa query S-expressions
+            (cr | correlation-replacements) strict 3-level form
+            (cm | correlation-mappings)     strict 3-level form
+
+            cr/cm bodies must be (((X Y) ...) ...): a list of groups,
+            each group a list of (X Y) pairs (one pair per group needs
+            triple-wrapping, e.g. (cr (((p1 s1))))).
+
+            Example:
+            ((q (Contains %sentence1 (Word "bbb")))
+             (ff count_letter)
+             (cq ((Contains %placeholder1 %word1)))
+             (cr (((placeholder1 sentence1))))
+             (cm (((sentence1 word1)))))
+
+        Context for query/evolution is taken from router params
+        (set it once via: --cmd=set --arg='param context <name>').
+
  Optional arguments:
-    - bus-endpoint: Overrides agents.command_router.endpoint from das.json (router listen address)
-    - use-metta-as-query-tokens: Used when interpreting query/evolution args (default true in router)
+    - bus-endpoint: Overrides agents.router.endpoint from das.json (router listen address)
 )")},
                                                          {ProcessorType::UNKNOWN, string(R"(
 Usage:
@@ -301,7 +325,7 @@ string Helper::help(const ProcessorType& processor_type, ServiceCallerType calle
             }
         case ProcessorType::BUS_COMMAND_ROUTER:
             if (caller_type == ServiceCallerType::CLIENT) {
-                return usage + node_service_help[ProcessorType::BUS_COMMAND_ROUTER];
+                return usage + client_service_help[ProcessorType::BUS_COMMAND_ROUTER];
             } else {
                 return usage + node_service_help[ProcessorType::BUS_COMMAND_ROUTER];
             }

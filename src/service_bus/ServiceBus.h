@@ -126,16 +126,6 @@ class ServiceBus {
      */
     virtual void issue_bus_command(shared_ptr<BusCommandProxy> bus_command);
 
-    /**
-     * Routes a bus command to its owner on behalf of another requestor (e.g. BusCommandRouter).
-     *
-     * Does not set up a proxy node on this bus element; the downstream processor links RPC
-     * directly to requestor_proxy_node_id.
-     */
-    virtual void forward_bus_command(shared_ptr<BusCommandProxy> bus_command,
-                                     const string& requestor_id,
-                                     const string& requestor_proxy_node_id);
-
     // ---------------------------------------------------------------------------------------------
     // Used by ServiceBusSingleton
 

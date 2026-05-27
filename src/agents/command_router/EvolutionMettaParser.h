@@ -55,15 +55,6 @@ string canonical_evolution_param_key(const string& key_or_alias);
  */
 bool try_parse_evolution_metta_arg(const string& arg, EvolutionMettaArgs& out);
 
-/** Parse cq body or correlation-queries router param (MeTTa list of query S-expressions). */
-vector<string> parse_correlation_query_list_body(const string& body);
-
-/**
- * Parse cr/cm body or router param (MeTTa list of groups; each group is a list of (X Y) pairs).
- * @throws std::runtime_error if body is not parenthesized MeTTa (e.g. key:value syntax).
- */
-vector<vector<pair<string, string>>> parse_correlation_pair_groups_body(const string& body);
-
 /** Replace MeTTa `%` variable prefix with the canonical `$` form. */
 string normalize_metta_percent_variables(const string& expression);
 
