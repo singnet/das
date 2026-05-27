@@ -439,7 +439,6 @@ void PostgresWrapper::fetch_rows_paginated(const Table& table,
 
     size_t limit = 100000;
     int rows_count = 0;
-    int atoms_count = 0;
 
     string table_name = table.name;
     Utils::replace_all(table_name, ".", "_");
@@ -471,32 +470,22 @@ void PostgresWrapper::fetch_rows_paginated(const Table& table,
             }
 #endif
 
-            vector<shared_ptr<Atom>> atoms = this->mapper->map(DbInput{sql_row});
-
-            atoms_count += atoms.size();
-
             std::queue<shared_ptr<Atom>>* batch_queue = new std::queue<shared_ptr<Atom>>();
 
-            for (const auto& atom : atoms) {
-                batch_queue->push(atom);
-            }
+            this->mapper->map(DbInput{sql_row}, *batch_queue);
 
             unique_lock<mutex> lock(this->api_mutex);
             this->output_queue->enqueue((void*) batch_queue);
-
-            LOG_DEBUG("Mapper HandleTrie size: " << this->mapper->handle_trie_size());
 
             rows_count++;
 
             this->log_progress(table.name, rows_count);
         }
-        LOG_INFO("Mapping table " << table.name << ". Total atoms generated: " << atoms_count);
     }
 
     this->db_conn.close_cursor();
 
-    LOG_INFO("[END] Mapping table " << table.name << ". Total atoms generated: " << atoms_count);
-    LOG_DEBUG("[END] Mapper HandleTrie size: " << this->mapper->handle_trie_size());
+    LOG_INFO("[END] Mapping table " << table.name);
 }
 
 SqlRow PostgresWrapper::build_sql_row(const pqxx::row& row, const Table& table, vector<string> columns) {
