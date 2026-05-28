@@ -59,7 +59,11 @@ vector<string> ContextLoader::load_metta_queries(const string& file_path) {
     int parentheses_depth = 0;
 
     while (getline(file, line)) {
-        if (line.empty()) continue;
+        bool is_comment = line.size() >= 2 && line[0] == ';';
+
+        if (line.empty() || is_comment) continue;
+
+        LOG_DEBUG("Read line: " + line);
 
         if (!current_expression.empty()) {
             current_expression += " ";
