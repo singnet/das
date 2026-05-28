@@ -56,7 +56,7 @@
 #define CONCEPT3 "Concept3"
 
 // Misc
-#define STRENGTH "strength"
+#define STRENGTH_TAG "strength"
 #define IS_LITERAL "is_literal"
 #define FITNESS_FUNCTION "inference_toy"
 
@@ -324,7 +324,7 @@ static void compute_counts(const vector<vector<string>>& query_tokens,
                     d = 1.0;
                 } else {
                     auto link = db->get_atom(query_answer->get(1));
-                    d = link->custom_attributes.get<double>(STRENGTH);
+                    d = link->custom_attributes.get<double>(STRENGTH_TAG);
                 }
                 handle = query_answer->get(target_element);
                 insert_or_update(count_map[i], handle, d);
@@ -365,13 +365,13 @@ static Link add_or_update_link(const string& type_handle,
                                double strength) {
     LOG_DEBUG("add_or_update_link(" + type_handle + ", " + target1 + ", " + target2 + ", " +
               to_string(strength) + ")");
-    Link new_link(EXPRESSION, {type_handle, target1, target2}, true, {{STRENGTH, strength}});
+    Link new_link(EXPRESSION, {type_handle, target1, target2}, true, {{STRENGTH_TAG, strength}});
     LOG_DEBUG("Add or update: " + new_link.to_string());
     string handle = new_link.handle();
     if (db->link_exists(handle)) {
         auto old_link = db->get_atom(handle);
         LOG_DEBUG("Link already exists: " + old_link->to_string());
-        if (strength > old_link->custom_attributes.get<double>(STRENGTH)) {
+        if (strength > old_link->custom_attributes.get<double>(STRENGTH_TAG)) {
             if (WRITE_CREATED_LINKS_TO_DB) {
                 LOG_DEBUG("Updating Link in AtomDB");
                 db->delete_link(handle, false);
@@ -386,7 +386,7 @@ static Link add_or_update_link(const string& type_handle,
         if (WRITE_CREATED_LINKS_TO_DB) {
             LOG_DEBUG("Creating Link in AtomDB");
             if (PRINT_CREATED_LINKS_METTA) {
-                LOG_INFO("ADD LINK: " +
+                LOG_INFO("ADD LINK: [" + std::to_string(strength) + "] " +
                          new_link.metta_representation(*static_pointer_cast<HandleDecoder>(db).get()));
             }
             db->add_link(&new_link);
@@ -698,6 +698,23 @@ static bool build_equivalence_link(shared_ptr<QueryAnswer> query_answer,
     }
 }
 
+static bool build_evaluation_link(shared_ptr<QueryAnswer> query_answer,
+                                                  const string& context,
+                                                  const string& custom_handle) {
+
+    string predicate = query_answer->get(PREDICATE);
+    string concept_ = query_answer->get(CONCEPT);
+    double strength = 1;
+    for (unsigned int i = 0; i < 2; i++) {
+        auto atom = db->get_atom(query_answer->get(i));
+        strength *= atom->custom_attributes.get_or<double>(STRENGTH_TAG, 1.0);
+    }
+    add_or_update_link(EVALUATION_HANDLE, predicate, concept_, strength);
+    set<string> ab_request = {predicate, concept_};
+    AttentionBrokerClient::correlate(ab_request, context);
+    return true;
+}
+
 static void build_links(const vector<string>& query,
                         const string& context,
                         unsigned int num_links,
@@ -889,6 +906,8 @@ static void add_preset_links(const vector<string>& implication_to_target_predica
                              const vector<string>& equivalence_to_target_concept_query,
                              const vector<string>& implication_query,
                              const vector<string>& equivalence_query,
+                             const vector<string>& evaluation_fixed_predicate_query,
+                             const vector<string>& evaluation_fixed_concept_query,
                              const string& context) {
     ifstream file(PRESET_LINKS_FILE);
     if (file.is_open()) {
@@ -927,10 +946,13 @@ static void add_preset_links(const vector<string>& implication_to_target_predica
             LINK_BUILDING_QUERY_SIZE,
             TARGET_CONCEPT_HANDLE,
             build_equivalence_link);
-        LOG_INFO("Building Implication links");
-        build_links(implication_query, context, LINK_BUILDING_QUERY_SIZE, "", build_implication_link);
-        LOG_INFO("Building Equivalence links");
-        build_links(equivalence_query, context, LINK_BUILDING_QUERY_SIZE, "", build_equivalence_link);
+        //LOG_INFO("Building Implication links");
+        //build_links(implication_query, context, LINK_BUILDING_QUERY_SIZE, "", build_implication_link);
+        //LOG_INFO("Building Equivalence links");
+        //build_links(equivalence_query, context, LINK_BUILDING_QUERY_SIZE, "", build_equivalence_link);
+        //LOG_INFO("Building Evaluation links");
+        //build_links(evaluation_fixed_predicate_query, context, LINK_BUILDING_QUERY_SIZE, "", build_evaluation_link);
+        //build_links(evaluation_fixed_concept_query, context, LINK_BUILDING_QUERY_SIZE, "", build_evaluation_link);
     }
     file.close();
     LOG_INFO("Updating determiners in AttentionBroker");
@@ -1006,6 +1028,38 @@ static void run(const string& context_tag) {
         metta_and(
             metta_expr3(EVALUATION, metta_var(PREDICATE), metta_var(CONCEPT1)),
             metta_expr3(EVALUATION, metta_var(PREDICATE), TARGET_CONCEPT))
+    };
+
+    vector<string> evaluation_fixed_predicate_query = {
+        ANDNOT_OPERATOR, "3",
+            LINK_TEMPLATE, EXPRESSION, "3",
+                NODE, SYMBOL, EVALUATION,
+                VARIABLE, PREDICATE,
+                VARIABLE, CONCEPT1,
+            LINK_TEMPLATE, EXPRESSION, "3",
+                NODE, SYMBOL, EQUIVALENCE,
+                VARIABLE, CONCEPT1,
+                VARIABLE, CONCEPT,
+            LINK_TEMPLATE, EXPRESSION, "3",
+                NODE, SYMBOL, EVALUATION,
+                VARIABLE, PREDICATE,
+                VARIABLE, CONCEPT,
+    };
+
+    vector<string> evaluation_fixed_concept_query = {
+        ANDNOT_OPERATOR, "3",
+            LINK_TEMPLATE, EXPRESSION, "3",
+                NODE, SYMBOL, EVALUATION,
+                VARIABLE, PREDICATE1,
+                VARIABLE, CONCEPT,
+            LINK_TEMPLATE, EXPRESSION, "3",
+                NODE, SYMBOL, IMPLICATION,
+                VARIABLE, PREDICATE1,
+                VARIABLE, PREDICATE,
+            LINK_TEMPLATE, EXPRESSION, "3",
+                NODE, SYMBOL, EVALUATION,
+                VARIABLE, PREDICATE,
+                VARIABLE, CONCEPT,
     };
 
     vector<string> query_to_evolve_1 = {
@@ -1207,6 +1261,8 @@ static void run(const string& context_tag) {
                      equivalence_to_target_concept_query,
                      implication_query,
                      equivalence_query,
+                     evaluation_fixed_predicate_query,
+                     evaluation_fixed_concept_query,
                      context);
 
     if (SETUP_ONLY) {
@@ -1218,25 +1274,24 @@ static void run(const string& context_tag) {
         LOG_INFO("--------------------------------------------------------------------------------");
         LOG_INFO("Iteration " + to_string(iteration));
         LOG_INFO("--------------------------------------------------------------------------------");
+        LOG_INFO("----- Building links");
+        LOG_INFO("Building Implication links");
+        build_links(implication_query, context, LINK_BUILDING_QUERY_SIZE, "", build_implication_link);
+        LOG_INFO("Building Equivalence links");
+        build_links(equivalence_query, context, LINK_BUILDING_QUERY_SIZE, "", build_equivalence_link);
+        LOG_INFO("Building Evaluation links");
+        build_links(evaluation_fixed_predicate_query, context, LINK_BUILDING_QUERY_SIZE, "", build_evaluation_link);
+        build_links(evaluation_fixed_concept_query, context, LINK_BUILDING_QUERY_SIZE, "", build_evaluation_link);
+        LOG_INFO("----- Updating AttentionBroker");
+        AttentionBrokerClient::set_determiners(buffer_determiners, context);
+        //AttentionBrokerClient::stimulate(buffer_activation, context);
+        buffer_determiners.clear();
+        buffer_activation.clear();
         LOG_INFO("----- Evolving query");
         query_evolution((USE_MORK ? metta_query_to_evolve : query_to_evolve),
                         (USE_MORK ? correlation_metta_query_template : correlation_query_template),
                         iteration,
                         context);
-        if (iteration != NUM_ITERATIONS) {
-            LOG_INFO("----- Building links");
-            LOG_INFO("Building Implication links");
-            build_links(
-                implication_query, context, LINK_BUILDING_QUERY_SIZE, "", build_implication_link);
-            LOG_INFO("Building Equivalence links");
-            build_links(
-                equivalence_query, context, LINK_BUILDING_QUERY_SIZE, "", build_equivalence_link);
-            LOG_INFO("----- Updating AttentionBroker");
-            AttentionBrokerClient::set_determiners(buffer_determiners, context);
-            //AttentionBrokerClient::stimulate(buffer_activation, context);
-            buffer_determiners.clear();
-            buffer_activation.clear();
-        }
     }
 
     LOG_INFO("--------------------------------------------------------------------------------");
