@@ -34,10 +34,10 @@ class SQL2AtomsMapper : public DatabaseMapper {
         EXPRESSION = MettaMapping::EXPRESSION_LINK_TYPE;
     }
 
-    const vector<Atom*> map(const DbInput& data) override;
+    vector<shared_ptr<Atom>> map(const DbInput& data) override;
 
    private:
-    vector<Atom*> atoms;
+    vector<shared_ptr<Atom>> atoms;
 
     bool is_foreign_key(const string& column_name);
     string escape_inner_quotes(string text);
