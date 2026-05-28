@@ -19,6 +19,4 @@ Metta2AtomsMapper::~Metta2AtomsMapper() {}
 //  Public
 // ==============================
 
-vector<shared_ptr<Atom>> Metta2AtomsMapper::map(const DbInput& data) {
-    return vector<shared_ptr<Atom>>{};
-}
+void Metta2AtomsMapper::map(const DbInput& data, std::queue<shared_ptr<Atom>>& output) { return; }
