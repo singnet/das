@@ -12,6 +12,7 @@ cc_library(
         "StoppableThread.cc",
         "SystemParameters.cc",
         "SystemParametersSingleton.cc",
+        "SystemParametersValidation.cc",
         "Utils.cc",
     ],
     hdrs = [
@@ -29,6 +30,7 @@ cc_library(
         "StoppableThread.h",
         "SystemParameters.h",
         "SystemParametersSingleton.h",
+        "SystemParametersValidation.h",
         "ThreadPool.h",
         "ThreadSafeHashmap.h",
         "ThreadSafeHeap.h",

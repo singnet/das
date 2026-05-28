@@ -8,6 +8,7 @@ using nlohmann::json;
 namespace das_test {
 
 const char kAgentsJson[] = R"({
+  "schema_version": "1.0",
   "agents": {
     "base_query": {
       "params": {

@@ -2,6 +2,7 @@
 
 #include "SystemParameters.h"
 #include "SystemParametersSingleton.h"
+#include "SystemParametersValidation.h"
 #include "TestSystemParams.h"
 
 using namespace commons;
@@ -59,6 +60,43 @@ TEST(SystemParametersTest, singleton_matches_direct_instance) {
     auto direct = make_test_parameters().get_query_agent_params();
     EXPECT_EQ(from_singleton.get<unsigned int>("max_answers"), direct.get<unsigned int>("max_answers"));
     EXPECT_EQ(from_singleton.get<bool>("count_flag"), direct.get<bool>("count_flag"));
+}
+
+TEST(SystemParametersValidationTest, rejects_unsupported_schema_version) {
+    EXPECT_FALSE(SystemParametersValidation::is_supported_schema_version("99.0"));
+    EXPECT_THROW(SystemParametersValidation::validate_schema_version("99.0"), runtime_error);
+}
+
+TEST(SystemParametersValidationTest, rejects_unknown_parameter_key) {
+    const char* json_with_extra = R"({
+      "schema_version": "1.0",
+      "agents": {
+        "query": {
+          "params": {
+            "positive_importance_flag": false,
+            "disregard_importance_flag": false,
+            "unique_value_flag": false,
+            "count_flag": false,
+            "unknown_param": true
+          }
+        }
+      }
+    })";
+    EXPECT_THROW(SystemParameters(nlohmann::json::parse(json_with_extra)), runtime_error);
+}
+
+TEST(SystemParametersValidationTest, rejects_missing_required_parameter) {
+    const char* json_missing = R"({
+      "schema_version": "1.0",
+      "agents": {
+        "query": {
+          "params": {
+            "count_flag": false
+          }
+        }
+      }
+    })";
+    EXPECT_THROW(SystemParameters(nlohmann::json::parse(json_missing)), runtime_error);
 }
 
 TEST(SystemParametersTest, properties_merge_prioritizes_right_hand_side) {
