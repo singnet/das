@@ -6,6 +6,7 @@
 #include "PatternMatchingQueryProxy.h"
 #include "ServiceBus.h"
 #include "TestAtomDBJsonConfig.h"
+#include "TestSystemParams.h"
 #include "Utils.h"
 #include "gtest/gtest.h"
 
@@ -15,6 +16,7 @@
 using namespace query_engine;
 using namespace query_element;
 using namespace atomdb;
+using das_test::init_test_system_parameters_singleton;
 
 string handle_to_atom(const string& handle) {
     shared_ptr<AtomDB> db = AtomDBSingleton::get_instance();
@@ -250,6 +252,7 @@ void check_query_chain(const string& query_tag,
 
 TEST(PatternMatchingQuery, queries) {
     AtomDBSingleton::init(test_atomdb_json_config());
+    init_test_system_parameters_singleton();
     ServiceBus::initialize_statics({}, 40200, 40299);
 
     string peer1_id = "localhost:40041";
@@ -581,7 +584,7 @@ TEST(PatternMatchingQuery, queries) {
             EXPECT_EQ(answer->metta_expression[answer->assignment.get("v1")], "\"ent\"");
         }
     }
-    EXPECT_EQ(count, 1);
+    EXPECT_EQ(count, 1U);
 
     // clang-format on
 }

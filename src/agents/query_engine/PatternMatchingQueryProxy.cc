@@ -1,6 +1,7 @@
 #include "PatternMatchingQueryProxy.h"
 
 #include "ServiceBus.h"
+#include "SystemParametersSingleton.h"
 
 #define LOG_LEVEL INFO_LEVEL
 #include "Logger.h"
@@ -32,10 +33,7 @@ PatternMatchingQueryProxy::PatternMatchingQueryProxy(const vector<string>& token
 }
 
 void PatternMatchingQueryProxy::set_default_parameters() {
-    this->parameters[POSITIVE_IMPORTANCE_FLAG] = false;
-    this->parameters[DISREGARD_IMPORTANCE_FLAG] = false;
-    this->parameters[UNIQUE_VALUE_FLAG] = false;
-    this->parameters[COUNT_FLAG] = false;
+    this->parameters = SystemParametersSingleton::get_instance()->get_query_agent_params();
 }
 
 PatternMatchingQueryProxy::~PatternMatchingQueryProxy() {}

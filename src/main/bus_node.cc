@@ -8,6 +8,7 @@
 #include "ProcessorFactory.h"
 #include "Properties.h"
 #include "RemoteAtomDB.h"
+#include "SystemParametersSingleton.h"
 #include "Utils.h"
 
 using namespace commons;
@@ -31,6 +32,7 @@ int main(int argc, char* argv[]) {
         JsonConfig json_config;
         if (it_config != cmd_args.end() && !it_config->second.empty()) {
             json_config = JsonConfigParser::load(it_config->second);
+            SystemParametersSingleton::init(json_config);
         }
         // Map service name (e.g. "query-engine") to config section path (e.g. "agents.query")
         string service_name = cmd_args[Helper::SERVICE];

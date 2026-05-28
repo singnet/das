@@ -17,18 +17,9 @@ namespace commons {
 
 namespace {
 
-// bus_node: required fields.
-const unordered_map<string, vector<string>>& required_node_fields_by_version() {
+const unordered_map<string, vector<string>>& required_fields_by_version() {
     static const unordered_map<string, vector<string>> m = {
-        {"1.0", {"atomdb", "atomdb.type", "loaders", "agents", "brokers"}},
-    };
-    return m;
-}
-
-// bus_client: required fields.
-const unordered_map<string, vector<string>>& required_client_fields_by_version() {
-    static const unordered_map<string, vector<string>> m = {
-        {"1.0", {"params", "params.das-config-file", "params.endpoint", "params.ports-range"}},
+        {"1.0", {"atomdb", "atomdb.type", "loaders", "agents"}},
     };
     return m;
 }
@@ -57,7 +48,7 @@ void validate_schema_version(const JsonConfig& config, vector<string>& required)
     }
 }
 
-JsonConfig parse_and_validate(const string& json_str, bool is_node) {
+JsonConfig parse_and_validate(const string& json_str) {
     JsonConfig config;
     try {
         config = JsonConfig(json::parse(json_str));
@@ -66,8 +57,7 @@ JsonConfig parse_and_validate(const string& json_str, bool is_node) {
     }
     string version = config.get_schema_version();
     try {
-        vector<string> required = is_node ? required_node_fields_by_version().at(version)
-                                          : required_client_fields_by_version().at(version);
+        vector<string> required = required_fields_by_version().at(version);
         validate_schema_version(config, required);
     } catch (const exception& e) {
         RAISE_ERROR("Invalid schema version: " + version + " " + string(e.what()));
@@ -85,26 +75,11 @@ JsonConfig JsonConfigParser::load(const string& file_path, bool throw_flag) {
     }
     stringstream buf;
     buf << f.rdbuf();
-    return parse_and_validate(buf.str(), true);
+    return parse_and_validate(buf.str());
 }
 
 JsonConfig JsonConfigParser::load_from_string(const string& json_content) {
-    return parse_and_validate(json_content, true);
-}
-
-JsonConfig JsonConfigParser::load_client_config(const string& file_path, bool throw_flag) {
-    ifstream f(file_path);
-    if (!f.good()) {
-        Utils::error("JsonConfigParser: Cannot open client config file: " + file_path, throw_flag);
-        return JsonConfig();
-    }
-    stringstream buf;
-    buf << f.rdbuf();
-    return parse_and_validate(buf.str(), false);
-}
-
-JsonConfig JsonConfigParser::load_client_config_from_string(const string& json_content) {
-    return parse_and_validate(json_content, false);
+    return parse_and_validate(json_content);
 }
 
 }  // namespace commons

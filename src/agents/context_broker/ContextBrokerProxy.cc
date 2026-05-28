@@ -1,18 +1,17 @@
 #include "ContextBrokerProxy.h"
 
 #include "AtomDBSingleton.h"
-#include "AttentionBrokerServer.h"
 #include "Hasher.h"
 #include "RedisMongoDB.h"
 #include "ServiceBus.h"
 #include "ServiceBusSingleton.h"
+#include "SystemParametersSingleton.h"
 
 #define LOG_LEVEL INFO_LEVEL
 #include "Logger.h"
 
 using namespace context_broker;
 using namespace atomdb;
-using namespace attention_broker;
 using namespace query_engine;
 using namespace service_bus;
 using namespace commons;
@@ -35,13 +34,6 @@ string ContextBrokerProxy::ENFORCE_CACHE_RECREATION = "enforce_cache_recreation"
 string ContextBrokerProxy::INITIAL_RENT_RATE = "initial_rent_rate";
 string ContextBrokerProxy::INITIAL_SPREADING_RATE_LOWERBOUND = "initial_spreading_rate_lowerbound";
 string ContextBrokerProxy::INITIAL_SPREADING_RATE_UPPERBOUND = "initial_spreading_rate_upperbound";
-
-// Default values for AttentionBrokerClient::set_parameters()
-double ContextBrokerProxy::DEFAULT_RENT_RATE = AttentionBrokerServer::RENT_RATE;
-double ContextBrokerProxy::DEFAULT_SPREADING_RATE_LOWERBOUND =
-    AttentionBrokerServer::SPREADING_RATE_LOWERBOUND;
-double ContextBrokerProxy::DEFAULT_SPREADING_RATE_UPPERBOUND =
-    AttentionBrokerServer::SPREADING_RATE_UPPERBOUND;
 
 // -------------------------------------------------------------------------------------------------
 // Constructors, destructors and initialization
@@ -196,11 +188,7 @@ void ContextBrokerProxy::init(const string& name) {
 }
 
 void ContextBrokerProxy::set_default_query_parameters() {
-    this->parameters[USE_CACHE] = (bool) true;
-    this->parameters[ENFORCE_CACHE_RECREATION] = (bool) false;
-    this->parameters[INITIAL_RENT_RATE] = (double) DEFAULT_RENT_RATE;
-    this->parameters[INITIAL_SPREADING_RATE_LOWERBOUND] = (double) DEFAULT_SPREADING_RATE_LOWERBOUND;
-    this->parameters[INITIAL_SPREADING_RATE_UPPERBOUND] = (double) DEFAULT_SPREADING_RATE_UPPERBOUND;
+    this->parameters = SystemParametersSingleton::get_instance()->get_context_agent_params();
 }
 
 // ---------------------------------------------------------------------------------------------

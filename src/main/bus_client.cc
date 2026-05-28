@@ -9,11 +9,18 @@
 #include "ProxyFactory.h"
 #include "RemoteAtomDB.h"
 #include "ServiceBusSingleton.h"
+#include "SystemParametersSingleton.h"
 #include "Utils.h"
 
 using namespace commons;
 using namespace mains;
 using namespace std;
+
+namespace {
+
+const char* kDefaultConfigPath = "config/das.json";
+
+}  // namespace
 
 int main(int argc, char* argv[]) {
     try {
@@ -31,38 +38,40 @@ int main(int argc, char* argv[]) {
             RAISE_ERROR("Required argument missing: " + Helper::CLIENT);
         }
 
-        ///////// Optional JsonConfig
+        string config_path = kDefaultConfigPath;
         auto it_config = cmd_args.find("config");
-        JsonConfig json_config;
-        const bool has_client_config = it_config != cmd_args.end() && !it_config->second.empty();
-        if (has_client_config) {
-            json_config = JsonConfigParser::load_client_config(it_config->second);
-            auto das_config_file = json_config.at_path("params.das-config-file");
-            if (!das_config_file.is_null()) {
-                JsonConfig das_config = JsonConfigParser::load(das_config_file.get<string>());
-                // Merge atomdb config from das.json
-                json_config["atomdb"] = das_config["atomdb"];
-
-                // Get bus node endpoint from das.json
-                auto it_known_peer = Helper::arg_to_json_config_key.find(cmd_args[Helper::CLIENT]);
-                if (it_known_peer != Helper::arg_to_json_config_key.end()) {
-                    cmd_args[Helper::BUS_ENDPOINT] =
-                        das_config.at_path(it_known_peer->second + ".endpoint").get<string>();
-                } else {
-                    RAISE_ERROR("Required argument missing: " + cmd_args[Helper::CLIENT] +
-                                " is not a bus node.");
-                }
-
-            } else {
-                RAISE_ERROR("params.das-config-file is missing");
-            }
-
-            cmd_args[Helper::ENDPOINT] = json_config.at_path("params.endpoint").get<string>();
-            cmd_args[Helper::PORTS_RANGE] = json_config.at_path("params.ports-range").get<string>();
-
-            // Merge all params from client json config to cmd_args, existing cmd_args have precedence
-            Helper::merge_params_from_client_json_config(cmd_args, json_config);
+        if (it_config != cmd_args.end() && !it_config->second.empty()) {
+            config_path = it_config->second;
         }
+
+        JsonConfig json_config = JsonConfigParser::load(config_path);
+        SystemParametersSingleton::init(json_config);
+
+        if (cmd_args.find(Helper::ENDPOINT) == cmd_args.end()) {
+            cmd_args[Helper::ENDPOINT] = "localhost:40000";
+        }
+        if (cmd_args.find(Helper::PORTS_RANGE) == cmd_args.end()) {
+            cmd_args[Helper::PORTS_RANGE] = "52000:52999";
+        }
+
+        auto it_known_peer = Helper::arg_to_json_config_key.find(cmd_args[Helper::CLIENT]);
+        if (it_known_peer != Helper::arg_to_json_config_key.end()) {
+            if (cmd_args.find(Helper::BUS_ENDPOINT) == cmd_args.end()) {
+                cmd_args[Helper::BUS_ENDPOINT] =
+                    json_config.at_path(it_known_peer->second + ".endpoint").get<string>();
+            }
+        } else {
+            RAISE_ERROR("Unknown client: " + cmd_args[Helper::CLIENT]);
+        }
+
+        if (cmd_args.find(Helper::ATTENTION_BROKER_ENDPOINT) == cmd_args.end()) {
+            auto attention = json_config.at_path("agents.attention.endpoint");
+            if (!attention.is_null()) {
+                cmd_args[Helper::ATTENTION_BROKER_ENDPOINT] = attention.get<string>();
+            }
+        }
+
+        Helper::merge_params_from_config(cmd_args, json_config);
 
         for (auto req_arg : required_cmd_args) {
             if (cmd_args.find(req_arg) == cmd_args.end()) {
@@ -138,7 +147,6 @@ int main(int argc, char* argv[]) {
             cmd_args.find(Helper::USE_METTA_AS_QUERY_TOKENS) != cmd_args.end() &&
             cmd_args[Helper::USE_METTA_AS_QUERY_TOKENS] == "true";
 
-        // Default case for other clients
         while (proxy->finished() == false && Helper::is_running) {
             if (dynamic_cast<BaseQueryProxy*>(proxy.get()) != nullptr) {
                 auto query_proxy = dynamic_cast<BaseQueryProxy*>(proxy.get());

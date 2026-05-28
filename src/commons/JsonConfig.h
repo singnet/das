@@ -72,7 +72,7 @@ class JsonConfig : public nlohmann::json {
     const nlohmann::json& get_json() const { return *this; }
 
     /**
-     * Get a nested value by dotted path (e.g. "brokers.attention.endpoint").
+     * Get a nested value by dotted path (e.g. "agents.attention.endpoint").
      * @return JsonPathValue at that path; use .get<T>() or .get_or<T>(default) on the result.
      * Example: config.at_path("atomdb.type").get_or<string>("NOT_FOUND");
      */

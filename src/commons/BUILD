@@ -10,6 +10,8 @@ cc_library(
         "JsonConfigParser.cc",
         "SharedQueue.cc",
         "StoppableThread.cc",
+        "SystemParameters.cc",
+        "SystemParametersSingleton.cc",
         "Utils.cc",
     ],
     hdrs = [
@@ -25,6 +27,8 @@ cc_library(
         "SharedQueue.h",
         "Stoppable.h",
         "StoppableThread.h",
+        "SystemParameters.h",
+        "SystemParametersSingleton.h",
         "ThreadPool.h",
         "ThreadSafeHashmap.h",
         "ThreadSafeHeap.h",
