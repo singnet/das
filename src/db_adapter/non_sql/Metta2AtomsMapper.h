@@ -20,7 +20,7 @@ class Metta2AtomsMapper : public DatabaseMapper {
     Metta2AtomsMapper();
     ~Metta2AtomsMapper() override;
 
-    vector<shared_ptr<Atom>> map(const DbInput& data) override;
+    void map(const DbInput& data, std::queue<shared_ptr<Atom>>& output) override;
 
    private:
     vector<shared_ptr<Atom>> atoms;

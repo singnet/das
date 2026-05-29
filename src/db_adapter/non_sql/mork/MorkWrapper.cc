@@ -34,25 +34,14 @@ void MorkWrapper::map(const string& metta_query) {
     for (const auto& expr : metta_expressions) {
         LOG_DEBUG("Mapping MORK expression: " << expr);
 
-        vector<shared_ptr<Atom>> atoms;
+        std::queue<shared_ptr<Atom>>* batch_queue = new std::queue<shared_ptr<Atom>>();
 
         try {
             MettaExpression metta_expr{expr};
-            atoms = this->mapper->map(DbInput{metta_expr});
-            LOG_DEBUG("Mapped " << atoms.size() << " atoms from MORK expression");
+            this->mapper->map(DbInput{metta_expr}, *batch_queue);
         } catch (const exception& e) {
             RAISE_ERROR("Error mapping MORK expression: " + expr + " : " + string(e.what()));
             return;
-        }
-
-        if (atoms.empty()) {
-            RAISE_ERROR("No atoms mapped from MORK expression: " + expr);
-        }
-
-        std::queue<shared_ptr<Atom>>* batch_queue = new std::queue<shared_ptr<Atom>>();
-
-        for (const auto& atom : atoms) {
-            batch_queue->push(atom);
         }
 
         unique_lock<mutex> lock(this->api_mutex);
