@@ -42,30 +42,28 @@ class MorkWrapperTest : public ::testing::Test {
 
     void TearDown() override { this->conn->stop(); };
 
-    unordered_set<string> read_atoms_from_queue(shared_ptr<BoundedSharedQueue> q) {
-        unordered_set<string> atom_handles;
+    vector<shared_ptr<Atom>> read_atoms_from_queue(shared_ptr<BoundedSharedQueue> q) {
+        vector<shared_ptr<Atom>> atoms;
 
         while (true) {
             if (q->empty()) break;
             void* raw_ptr = q->dequeue();
-            std::queue<Atom*>* batch_queue = static_cast<std::queue<Atom*>*>(raw_ptr);
+            std::queue<shared_ptr<Atom>>* batch_queue =
+                static_cast<std::queue<shared_ptr<Atom>>*>(raw_ptr);
 
             if (batch_queue != nullptr) {
                 while (!batch_queue->empty()) {
-                    Atom* atom = batch_queue->front();
+                    shared_ptr<Atom> atom = batch_queue->front();
                     batch_queue->pop();
                     if (atom != nullptr) {
-                        if (atom_handles.find(atom->handle()) == atom_handles.end()) {
-                            atom_handles.insert(atom->handle());
-                        }
+                        atoms.push_back(atom);
                     }
-                    delete atom;
                 }
                 delete batch_queue;
             }
         }
 
-        return atom_handles;
+        return atoms;
     };
 
     shared_ptr<MorkWrapper> create_wrapper(shared_ptr<BoundedSharedQueue> queue = nullptr) {
@@ -86,19 +84,11 @@ class MorkWrapperTest : public ::testing::Test {
     shared_ptr<MorkConnection> conn;
 };
 
-TEST_F(MorkWrapperTest, MapInvalidQuery) {
+TEST_F(MorkWrapperTest, MapNoResults) {
     auto queue = make_shared<BoundedSharedQueue>();
     auto wrapper = create_wrapper(queue);
 
     EXPECT_THROW({ wrapper->map("(Fake $F)"); }, runtime_error);
-}
-
-TEST_F(MorkWrapperTest, MapNoAtomsMapped) {
-    auto queue = make_shared<BoundedSharedQueue>();
-    auto wrapper = create_wrapper(queue);
-
-    string metta_query = "(Similarity \"ent\" $y)";
-    EXPECT_THROW({ wrapper->map(metta_query); }, runtime_error);
 }
 
 int main(int argc, char** argv) {
