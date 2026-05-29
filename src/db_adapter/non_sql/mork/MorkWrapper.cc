@@ -18,7 +18,7 @@ using namespace db_adapter;
 MorkWrapper::MorkWrapper(shared_ptr<MorkConnection> conn,
                          shared_ptr<BoundedSharedQueue> output_queue,
                          MAPPER_TYPE mapper_type)
-    : DatabaseWrapper(*conn, MapperFactory::create(mapper_type)),
+    : DatabaseWrapper(conn, MapperFactory::create(mapper_type)),
       conn(conn),
       output_queue(output_queue) {}
 
