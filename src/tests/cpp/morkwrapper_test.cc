@@ -58,7 +58,6 @@ class MorkWrapperTest : public ::testing::Test {
                     shared_ptr<Atom> atom = batch_queue->front();
                     batch_queue->pop();
                     if (atom != nullptr) {
-                        LOG_INFO("Read atom from queue: " << atom->to_string());
                         atoms.push_back(atom);
                     }
                 }

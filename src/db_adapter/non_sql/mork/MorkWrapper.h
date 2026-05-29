@@ -24,8 +24,9 @@ class MorkWrapper : public DatabaseWrapper {
 
    private:
     mutex api_mutex;
-    shared_ptr<MorkConnection> conn;
     shared_ptr<BoundedSharedQueue> output_queue;
+
+    shared_ptr<MorkConnection> get_connection();
 };
 
 }  // namespace db_adapter
