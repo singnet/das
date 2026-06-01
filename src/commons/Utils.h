@@ -59,9 +59,7 @@ class StackTrace {
         string file;
         string function;
         int line;
-        string to_string() {
-            return file + "#L" + std::to_string(line) + " " + function;
-        }
+        string to_string() { return file + "#L" + std::to_string(line) + " " + function; }
     };
     static void push(StackRecord& record) {
         lock_guard<mutex> semaphore(api_mutex);
@@ -82,7 +80,8 @@ class StackTrace {
     }
     static mutex api_mutex;
     static map<pid_t, stack<StackRecord>> stack_trace;
-    public:
+
+   public:
     StackTrace(const string& file, const string& function, int line) {
         StackRecord record;
         record.file = file;

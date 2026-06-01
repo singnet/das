@@ -29,9 +29,10 @@
  */
 #pragma once
 #include <string.h>
-#include <time.h>
 #include <sys/types.h>
+#include <time.h>
 #include <unistd.h>
+
 #include <iostream>
 
 static inline char* timenow();
@@ -47,19 +48,19 @@ static inline char* timenow();
 #endif
 
 #if LOG_LEVEL >= LOCAL_DEBUG_LEVEL
-#define LOG_LOCAL_DEBUG(msg)                                                                                                         \
-    (std::cout << timenow() << " | "                                                                                                 \
-               << "LOCAL_DEBUG | " << std::to_string(gettid()) << " " << __FILE__ << ":" << __LINE__ << " " << __FUNCTION__ << " | " \
-               << msg << std::endl)
+#define LOG_LOCAL_DEBUG(msg)                                                                         \
+    (std::cout << timenow() << " | "                                                                 \
+               << "LOCAL_DEBUG | " << std::to_string(gettid()) << " " << __FILE__ << ":" << __LINE__ \
+               << " " << __FUNCTION__ << " | " << msg << std::endl)
 #else
 #define LOG_LOCAL_DEBUG(msg)
 #endif
 
 #if LOG_LEVEL >= DEBUG_LEVEL
-#define LOG_DEBUG(msg)                                                                                                         \
-    (std::cout << timenow() << " | "                                                                                           \
-               << "DEBUG | " << std::to_string(gettid()) << " " << __FILE__ << ":" << __LINE__ << " " << __FUNCTION__ << " | " \
-               << msg << std::endl)
+#define LOG_DEBUG(msg)                                                                                \
+    (std::cout << timenow() << " | "                                                                  \
+               << "DEBUG | " << std::to_string(gettid()) << " " << __FILE__ << ":" << __LINE__ << " " \
+               << __FUNCTION__ << " | " << msg << std::endl)
 #else
 #define LOG_DEBUG(msg)
 #endif
@@ -73,10 +74,10 @@ static inline char* timenow();
 #endif
 
 #if LOG_LEVEL >= ERROR_LEVEL
-#define LOG_ERROR(msg)                                                                                                         \
-    (std::cerr << timenow() << " | "                                                                                           \
-               << "ERROR | " << std::to_string(gettid()) << " " << __FILE__ << ":" << __LINE__ << " " << __FUNCTION__ << " | " \
-               << msg << std::endl)
+#define LOG_ERROR(msg)                                                                                \
+    (std::cerr << timenow() << " | "                                                                  \
+               << "ERROR | " << std::to_string(gettid()) << " " << __FILE__ << ":" << __LINE__ << " " \
+               << __FUNCTION__ << " | " << msg << std::endl)
 #else
 #define LOG_ERROR(msg)
 #endif
