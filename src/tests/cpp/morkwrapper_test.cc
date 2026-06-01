@@ -94,6 +94,11 @@ TEST_F(MorkWrapperTest, MapNoResults) {
 }
 
 TEST_F(MorkWrapperTest, MapSuccess) {
+    // Note: Load some data into MORK before running this test:
+    auto mork_client = make_shared<MorkClient>(TEST_HOST + ":" + to_string(TEST_PORT));
+    mork_client->post("(Similarity \"ent\" \"human\")");
+    mork_client->post("(Inheritance \"human\" \"mammal\")");
+
     auto queue = make_shared<BoundedSharedQueue>();
     auto wrapper = create_wrapper(queue);
 
