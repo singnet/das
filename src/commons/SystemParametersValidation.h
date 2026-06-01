@@ -12,22 +12,13 @@ namespace commons {
 
 /**
  * Validates and parses agent params from das.json against a versioned field schema.
- * Schema versions align with the top-level config schema_version (e.g. "1.0").
+ * Schema version is read from agents.schema_version in das.json (e.g. "1.0").
  */
 class SystemParametersValidation {
    public:
-    static constexpr const char* SCHEMA_VERSION_1_0 = "1.0";
-
-    static void validate_schema_version(const string& schema_version);
-    static bool is_supported_schema_version(const string& schema_version);
-
-    static Properties parse_agent_params(const nlohmann::json& agent_params,
-                                         const string& agent,
-                                         const string& schema_version);
-
-    static void load_from_agents(const nlohmann::json& agents,
-                                 const string& schema_version,
-                                 map<string, Properties>& params_by_agent);
+    static string SCHEMA_VERSION;
+    static string params_schema_to_json_string();
+    static void load_from_agents(const nlohmann::json& agents, map<string, Properties>& params_by_agent);
 };
 
 }  // namespace commons

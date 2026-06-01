@@ -65,9 +65,6 @@ class JsonConfig : public nlohmann::json {
 
     JsonConfig();
 
-    /** @return Schema version string (e.g. "2.0"). */
-    string get_schema_version() const;
-
     /** @return The root JSON (same as *this; for API compatibility). */
     const nlohmann::json& get_json() const { return *this; }
 

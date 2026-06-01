@@ -8,23 +8,11 @@ using namespace commons;
 using nlohmann::json;
 using namespace std;
 
-namespace {
-
-string resolve_schema_version(const json& root) {
-    if (root.contains("schema_version") && !root["schema_version"].is_null()) {
-        return root["schema_version"].get<string>();
-    }
-    return SystemParametersValidation::SCHEMA_VERSION_1_0;
-}
-
-}  // namespace
-
 SystemParameters::SystemParameters(const json& root) {
     if (!root.is_object() || !root.contains("agents")) {
         RAISE_ERROR("Missing 'agents' section in parameters JSON");
     }
-    SystemParametersValidation::load_from_agents(
-        root["agents"], resolve_schema_version(root), this->params_by_agent);
+    SystemParametersValidation::load_from_agents(root["agents"], this->params_by_agent);
 }
 
 SystemParameters::SystemParameters(const JsonConfig& das_config) {
@@ -32,8 +20,7 @@ SystemParameters::SystemParameters(const JsonConfig& das_config) {
     if (agents.is_null()) {
         RAISE_ERROR("Missing 'agents' section in system config");
     }
-    SystemParametersValidation::load_from_agents(
-        *agents, das_config.get_schema_version(), this->params_by_agent);
+    SystemParametersValidation::load_from_agents(*agents, this->params_by_agent);
 }
 
 Properties SystemParameters::get_agent_params(const string& agent) const {

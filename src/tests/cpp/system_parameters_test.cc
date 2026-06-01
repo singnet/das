@@ -63,14 +63,26 @@ TEST(SystemParametersTest, singleton_matches_direct_instance) {
 }
 
 TEST(SystemParametersValidationTest, rejects_unsupported_schema_version) {
-    EXPECT_FALSE(SystemParametersValidation::is_supported_schema_version("99.0"));
-    EXPECT_THROW(SystemParametersValidation::validate_schema_version("99.0"), runtime_error);
+    const char* json_with_extra = R"({
+      "agents": {
+        "schema_version": "99.0",
+        "query": {
+          "params": {
+            "positive_importance_flag": false,
+            "disregard_importance_flag": false,
+            "unique_value_flag": false,
+            "count_flag": false
+          }
+        }
+      }
+    })";
+    EXPECT_THROW(SystemParameters(nlohmann::json::parse(json_with_extra)), runtime_error);
 }
 
 TEST(SystemParametersValidationTest, rejects_unknown_parameter_key) {
     const char* json_with_extra = R"({
-      "schema_version": "1.0",
       "agents": {
+        "schema_version": "1.0",
         "query": {
           "params": {
             "positive_importance_flag": false,
@@ -87,8 +99,8 @@ TEST(SystemParametersValidationTest, rejects_unknown_parameter_key) {
 
 TEST(SystemParametersValidationTest, rejects_missing_required_parameter) {
     const char* json_missing = R"({
-      "schema_version": "1.0",
       "agents": {
+        "schema_version": "1.0",
         "query": {
           "params": {
             "count_flag": false

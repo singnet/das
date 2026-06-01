@@ -24,16 +24,24 @@ void ctrl_c_handler(int) {
 
 int main(int argc, char* argv[]) {
     try {
-        auto required_cmd_args = {Helper::SERVICE};
+        auto required_cmd_args = {Helper::SERVICE, Helper::CONFIG};
         auto cmd_args = Utils::parse_command_line(argc, argv);
-        auto it_config = cmd_args.find("config");
+
+        ///////// Checking args
+        if (cmd_args.find("help") != cmd_args.end()) {
+            cout << Helper::help(Helper::processor_type_from_string(cmd_args[Helper::SERVICE])) << endl;
+            return 0;
+        }
+        for (auto req_arg : required_cmd_args) {
+            if (cmd_args.find(req_arg) == cmd_args.end()) {
+                RAISE_ERROR("Required argument missing: " + string(req_arg));
+            }
+        }
 
         ///////// Loading JSON config
-        JsonConfig json_config;
-        if (it_config != cmd_args.end() && !it_config->second.empty()) {
-            json_config = JsonConfigParser::load(it_config->second);
-            SystemParametersSingleton::init(json_config);
-        }
+        JsonConfig json_config = JsonConfigParser::load(cmd_args[Helper::CONFIG]);
+        SystemParametersSingleton::init(json_config);
+
         // Map service name (e.g. "query-engine") to config section path (e.g. "agents.query")
         string service_name = cmd_args[Helper::SERVICE];
         auto it_section = Helper::arg_to_json_config_key.find(service_name);
@@ -49,16 +57,6 @@ int main(int argc, char* argv[]) {
             }
         }
 
-        ///////// Checking args
-        if (cmd_args.find("help") != cmd_args.end()) {
-            cout << Helper::help(Helper::processor_type_from_string(cmd_args[Helper::SERVICE])) << endl;
-            return 0;
-        }
-        for (auto req_arg : required_cmd_args) {
-            if (cmd_args.find(req_arg) == cmd_args.end()) {
-                RAISE_ERROR("Required argument missing: " + string(req_arg));
-            }
-        }
         auto required_args = Helper::get_required_arguments(cmd_args[Helper::SERVICE]);
         for (auto req_arg : required_args) {
             if (cmd_args.find(req_arg) == cmd_args.end()) {

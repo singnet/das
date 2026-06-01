@@ -16,16 +16,9 @@ using namespace commons;
 using namespace mains;
 using namespace std;
 
-namespace {
-
-const char* kDefaultConfigPath = "config/das.json";
-
-}  // namespace
-
 int main(int argc, char* argv[]) {
     try {
-        auto required_cmd_args = {
-            Helper::CLIENT, Helper::ENDPOINT, Helper::BUS_ENDPOINT, Helper::PORTS_RANGE};
+        auto required_cmd_args = {Helper::ENDPOINT, Helper::BUS_ENDPOINT, Helper::PORTS_RANGE};
         auto cmd_args = Utils::parse_command_line(argc, argv);
         if (cmd_args.find("help") != cmd_args.end()) {
             cout << Helper::help(Helper::processor_type_from_string(cmd_args[Helper::CLIENT]),
@@ -38,13 +31,11 @@ int main(int argc, char* argv[]) {
             RAISE_ERROR("Required argument missing: " + Helper::CLIENT);
         }
 
-        string config_path = kDefaultConfigPath;
-        auto it_config = cmd_args.find("config");
-        if (it_config != cmd_args.end() && !it_config->second.empty()) {
-            config_path = it_config->second;
+        if (cmd_args.find(Helper::CONFIG) == cmd_args.end()) {
+            RAISE_ERROR("Required argument missing: " + Helper::CONFIG);
         }
 
-        JsonConfig json_config = JsonConfigParser::load(config_path);
+        JsonConfig json_config = JsonConfigParser::load(cmd_args[Helper::CONFIG]);
         SystemParametersSingleton::init(json_config);
 
         if (cmd_args.find(Helper::ENDPOINT) == cmd_args.end()) {
@@ -162,7 +153,6 @@ int main(int argc, char* argv[]) {
         }
 
     } catch (const std::exception& e) {
-        LOG_ERROR("Exception in bus_client: " + string(e.what()));
         return 1;
     }
     return 0;

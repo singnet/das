@@ -5,7 +5,6 @@
 #include <nlohmann/json.hpp>
 #include <sstream>
 #include <stdexcept>
-#include <unordered_map>
 #include <vector>
 
 #include "Utils.h"
@@ -17,35 +16,9 @@ namespace commons {
 
 namespace {
 
-const unordered_map<string, vector<string>>& required_fields_by_version() {
-    static const unordered_map<string, vector<string>> m = {
-        {"1.0", {"atomdb", "atomdb.type", "loaders", "agents"}},
-    };
-    return m;
-}
-
-string required_fields_error(const string& version, const vector<string>& missing) {
-    string msg = "Config schema version \"" + version +
-                 "\" requires the following fields that are missing or null: ";
-    for (size_t i = 0; i < missing.size(); ++i) {
-        if (i > 0) msg += ", ";
-        msg += "\"" + missing[i] + "\"";
-    }
-    msg += ". Please add them to your config file or use a compatible schema version.";
-    return msg;
-}
-
-void validate_schema_version(const JsonConfig& config, vector<string>& required) {
-    vector<string> missing;
-    for (const string& key : required) {
-        if (config.at_path(key).is_null()) {
-            missing.push_back(key);
-        }
-    }
-    if (!missing.empty()) {
-        string version = config.get_schema_version();
-        RAISE_ERROR(required_fields_error(version, missing));
-    }
+const vector<string> required_fields_by_version() {
+    static const vector<string> required = {"atomdb", "atomdb.type", "loaders", "agents"};
+    return required;
 }
 
 JsonConfig parse_and_validate(const string& json_str) {
@@ -55,12 +28,10 @@ JsonConfig parse_and_validate(const string& json_str) {
     } catch (const exception& e) {
         RAISE_ERROR("Invalid JSON in config: " + string(e.what()));
     }
-    string version = config.get_schema_version();
-    try {
-        vector<string> required = required_fields_by_version().at(version);
-        validate_schema_version(config, required);
-    } catch (const exception& e) {
-        RAISE_ERROR("Invalid schema version: " + version + " " + string(e.what()));
+    for (const string& key : required_fields_by_version()) {
+        if (config.at_path(key).is_null()) {
+            RAISE_ERROR("Missing required field: " + key);
+        }
     }
     return config;
 }

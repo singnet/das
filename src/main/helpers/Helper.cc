@@ -13,6 +13,7 @@ using namespace commons;
 
 bool Helper::is_running = true;
 // Args names
+string Helper::CONFIG = "config";
 string Helper::SERVICE = "service";
 string Helper::CLIENT = "client";
 string Helper::ENDPOINT = "endpoint";

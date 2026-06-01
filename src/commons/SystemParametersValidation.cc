@@ -8,12 +8,14 @@ using namespace commons;
 using nlohmann::json;
 using namespace std;
 
+string SystemParametersValidation::SCHEMA_VERSION = "1.0";
+
 namespace {
 
 using FieldTypeSchema = unordered_map<string, string>;
 using AgentParamsSchema = unordered_map<string, FieldTypeSchema>;
 
-const AgentParamsSchema& schema_v1_0() {
+const AgentParamsSchema& params_schema() {
     static const AgentParamsSchema schema = {
         {"base_query",
          {{"unique_assignment_flag", "bool"},
@@ -60,22 +62,6 @@ const AgentParamsSchema& schema_v1_0() {
     return schema;
 }
 
-const unordered_map<string, const AgentParamsSchema*>& schemas_by_version() {
-    static const AgentParamsSchema v1 = schema_v1_0();
-    static const unordered_map<string, const AgentParamsSchema*> registry = {
-        {SystemParametersValidation::SCHEMA_VERSION_1_0, &v1},
-    };
-    return registry;
-}
-
-const AgentParamsSchema* agent_schema_for_version(const string& schema_version) {
-    auto registry_it = schemas_by_version().find(schema_version);
-    if (registry_it == schemas_by_version().end()) {
-        RAISE_ERROR("Unsupported system parameters schema version: '" + schema_version + "'");
-    }
-    return registry_it->second;
-}
-
 PropertyValue json_scalar_to_property(const json& value, const string& key) {
     if (value.is_string()) return value.get<string>();
     if (value.is_number_unsigned()) return value.get<unsigned int>();
@@ -117,11 +103,19 @@ Properties parse_agent_params_with_schema(const json& agent_params,
     const bool has_schema = schema_it != agent_schema.end();
 
     if (has_schema) {
+        vector<string> missing_fields;
         for (const auto& field : schema_it->second) {
             if (!agent_params.contains(field.first)) {
-                RAISE_ERROR("Missing required parameter '" + field.first + "' for agent '" + agent +
-                            "'");
+                missing_fields.push_back(field.first);
             }
+        }
+        if (!missing_fields.empty()) {
+            string err_msg = "Missing required parameters for agent '" + agent + "': ";
+            for (const auto& field : missing_fields) {
+                err_msg += field + ", ";
+            }
+            err_msg.substr(0, err_msg.size() - 2);
+            RAISE_ERROR(err_msg + "\n\n" + SystemParametersValidation::params_schema_to_json_string());
         }
     }
 
@@ -150,28 +144,37 @@ Properties parse_agent_params_with_schema(const json& agent_params,
 
 }  // namespace
 
-void SystemParametersValidation::validate_schema_version(const string& schema_version) {
-    agent_schema_for_version(schema_version);
-}
-
-bool SystemParametersValidation::is_supported_schema_version(const string& schema_version) {
-    return schemas_by_version().find(schema_version) != schemas_by_version().end();
-}
-
-Properties SystemParametersValidation::parse_agent_params(const json& agent_params,
-                                                          const string& agent,
-                                                          const string& schema_version) {
-    return parse_agent_params_with_schema(
-        agent_params, agent, *agent_schema_for_version(schema_version));
+string SystemParametersValidation::params_schema_to_json_string() {
+    json schema_json = json::object();
+    for (const auto& agent : params_schema()) {
+        schema_json[agent.first]["params"] = json::object();
+        for (const auto& param : agent.second) {
+            schema_json[agent.first]["params"][param.first] = param.second;
+        }
+    }
+    return schema_json.dump(4);
 }
 
 void SystemParametersValidation::load_from_agents(const json& agents,
-                                                  const string& schema_version,
                                                   map<string, Properties>& params_by_agent) {
-    validate_schema_version(schema_version);
     if (!agents.is_object()) {
         RAISE_ERROR("'agents' must be a JSON object");
     }
+
+    if (!agents.contains("schema_version") || !agents["schema_version"].is_string()) {
+        RAISE_ERROR("Missing or invalid 'agents.schema_version' (expected \"" +
+                    SystemParametersValidation::SCHEMA_VERSION + "\")");
+    }
+
+    const string schema_version = agents["schema_version"].get<string>();
+    if (schema_version != SystemParametersValidation::SCHEMA_VERSION) {
+        RAISE_ERROR("Unsupported system parameters schema version: \"" + schema_version +
+                    "\" (expected \"" + SystemParametersValidation::SCHEMA_VERSION + "\")\n\n" +
+                    params_schema_to_json_string());
+    }
+
+    const AgentParamsSchema& schema = params_schema();
+
     for (auto it = agents.begin(); it != agents.end(); ++it) {
         const string agent = it.key();
         const json& agent_json = it.value();
@@ -182,6 +185,6 @@ void SystemParametersValidation::load_from_agents(const json& agents,
         if (agent_params_it == agent_json.end() || agent_params_it->is_null()) {
             continue;
         }
-        params_by_agent[agent] = parse_agent_params(*agent_params_it, agent, schema_version);
+        params_by_agent[agent] = parse_agent_params_with_schema(*agent_params_it, agent, schema);
     }
 }

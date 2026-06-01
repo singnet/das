@@ -67,14 +67,6 @@ JsonConfig::JsonConfig() : nlohmann::json() {}
 
 JsonConfig::JsonConfig(nlohmann::json root) : nlohmann::json(std::move(root)) {}
 
-string JsonConfig::get_schema_version() const {
-    string version = value("schema_version", string(""));
-    if (version.empty()) {
-        RAISE_ERROR("schema_version is missing");
-    }
-    return version;
-}
-
 JsonPathValue JsonConfig::at_path(const string& dotted_path) const {
     vector<string> keys = Utils::split(dotted_path, '.');
     const nlohmann::json* j = this;

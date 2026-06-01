@@ -12,7 +12,6 @@ using namespace commons;
 namespace {
 
 const char* kValidConfigV1 = R"({
-  "schema_version": "1.0",
   "atomdb": {
     "type": "redismongodb",
     "redis": {
@@ -44,17 +43,8 @@ const char* kValidConfigV1 = R"({
 
 }  // namespace
 
-TEST(ConfigParserTest, LoadFromStringValidSchemaV1) {
-    JsonConfig config = JsonConfigParser::load_from_string(kValidConfigV1);
-    EXPECT_EQ(config.get_schema_version(), "1.0");
-}
-
 TEST(ConfigParserTest, GetNestedStructure) {
     JsonConfig config = JsonConfigParser::load_from_string(kValidConfigV1);
-
-    // Top-level scalar
-    string schema = config.at_path("schema_version").get_or<string>("");
-    EXPECT_EQ(schema, "1.0");
 
     // Nested sections
     auto atomdb = config.at_path("atomdb").get_or<JsonConfig>(JsonConfig());
@@ -104,36 +94,6 @@ TEST(ConfigParserTest, GetNestedMissingKeyReturnsEmptyString) {
     EXPECT_EQ(config.at_path("atomdb.nonexistent").get_or<string>(""), "");
 }
 
-TEST(ConfigParserTest, MissingSchemaVersionThrows) {
-    const char* no_version = R"({ "atomdb": {}, "loaders": {}, "agents": {} })";
-    EXPECT_THROW(JsonConfigParser::load_from_string(no_version), runtime_error);
-}
-
-TEST(ConfigParserTest, UnsupportedSchemaVersionThrows) {
-    const char* bad_version = R"({
-      "schema_version": "99.0",
-      "atomdb": {}, "loaders": {}, "agents": {}
-    })";
-    EXPECT_THROW(JsonConfigParser::load_from_string(bad_version), runtime_error);
-}
-
-TEST(ConfigParserTest, MissingRequiredFieldThrows) {
-    const char* no_atomdb = R"({
-      "schema_version": "1.0",
-      "loaders": {}, "agents": {}
-    })";
-    EXPECT_THROW(JsonConfigParser::load_from_string(no_atomdb), runtime_error);
-}
-
-TEST(ConfigParserTest, NullRequiredFieldThrows) {
-    const char* null_atomdb = R"({
-      "schema_version": "1.0",
-      "atomdb": null,
-      "loaders": {}, "agents": {}
-    })";
-    EXPECT_THROW(JsonConfigParser::load_from_string(null_atomdb), runtime_error);
-}
-
 TEST(ConfigParserTest, InvalidJsonThrows) {
     EXPECT_THROW(JsonConfigParser::load_from_string("{ invalid json }"), runtime_error);
 }
@@ -142,6 +102,5 @@ TEST(ConfigParserTest, GetJsonReturnsRoot) {
     JsonConfig config = JsonConfigParser::load_from_string(kValidConfigV1);
     const auto& j = config.get_json();
     EXPECT_TRUE(j.is_object());
-    EXPECT_EQ(j["schema_version"].get<string>(), "1.0");
     EXPECT_EQ(j["atomdb"]["redis"]["port"].get<long>(), 40020);
 }

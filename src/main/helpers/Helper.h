@@ -25,6 +25,8 @@ class Helper {
     Helper() = default;
     ~Helper() = default;
 
+    // Path to the DAS JSON configuration file.
+    static string CONFIG;
     // Args names (CLI keys). bus_client: required --client; SERVICE is derived (not a CLI flag).
     // bus_node vs bus_client use ENDPOINT / BUS_ENDPOINT differently; see merge_client_json_defaults.
     static string SERVICE;

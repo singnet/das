@@ -1,5 +1,4 @@
 {
-    "schema_version": "1.0",
     "atomdb": {
         "type": "redismongodb",
         "redis": {
@@ -122,6 +121,7 @@
         }
     },
     "agents": {
+        "schema_version": "1.0",
         "attention": {
             "endpoint": "localhost:40001"
         },
