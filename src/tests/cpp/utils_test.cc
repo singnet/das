@@ -79,4 +79,5 @@ TEST(UtilsTest, stack_trace) {
     EXPECT_THROW(f3(), runtime_error);
     EXPECT_THROW(f2(), runtime_error);
     EXPECT_THROW(f1(), runtime_error);
+    //FAIL();
 }
