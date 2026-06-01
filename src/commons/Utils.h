@@ -1,15 +1,16 @@
 #ifndef _COMMONS_UTILS_H
 #define _COMMONS_UTILS_H
 
-#include <unistd.h>
 #include <sys/types.h>
+#include <unistd.h>
+
 #include <chrono>
 #include <functional>
 #include <map>
+#include <mutex>
+#include <stack>
 #include <string>
 #include <vector>
-#include <stack>
-#include <mutex>
 
 #include "Logger.h"
 
@@ -52,9 +53,9 @@ class MemoryFootprint {
 };
 
 class StackTrace {
-    private:
+   private:
     class StackRecord {
-        public:
+       public:
         string file;
         string function;
         int line;
@@ -82,7 +83,8 @@ class StackTrace {
     }
     static mutex api_mutex;
     static map<pid_t, stack<StackRecord>> stack_trace;
-    public:
+
+   public:
     StackTrace(const string& file, const string& function, int line, const string& message) {
         StackRecord record;
         record.file = file;
@@ -91,9 +93,7 @@ class StackTrace {
         record.message = message;
         StackTrace::push(record);
     }
-    ~StackTrace() {
-        StackTrace::pop();
-    }
+    ~StackTrace() { StackTrace::pop(); }
     static string to_string() {
         lock_guard<mutex> semaphore(api_mutex);
         string answer = "";
@@ -102,7 +102,7 @@ class StackTrace {
             for (auto pair : stack_trace) {
                 answer += "Thread tid: " + std::to_string((unsigned int) pair.first) + "\n";
                 stack<StackRecord> stack_copy = pair.second;
-                while (! stack_copy.empty()) {
+                while (!stack_copy.empty()) {
                     answer += "  " + stack_copy.top().to_string() + "\n";
                     stack_copy.pop();
                 }
@@ -168,16 +168,15 @@ class Utils {
 
 }  // namespace commons
 
-#define RAISE_ERROR(msg)                                 \
-    {                                                    \
+#define RAISE_ERROR(msg)                                  \
+    {                                                     \
         LOG_ERROR(string(msg) + StackTrace::to_string()); \
-        Utils::error(msg, true, false);                  \
+        Utils::error(msg, true, false);                   \
     }
 
 #ifdef LOG_LEVEL
 #if LOG_LEVEL >= DEBUG_LEVEL
-#define STACK_TRACE(msg)                                                  \
-    StackTrace scope_variable(__FILE__, __FUNCTION__, __LINE__, msg);
+#define STACK_TRACE(msg) StackTrace scope_variable(__FILE__, __FUNCTION__, __LINE__, msg);
 #else
 #define STACK_TRACE(msg)
 #endif
