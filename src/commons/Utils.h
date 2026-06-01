@@ -105,7 +105,7 @@ class Utils {
 #define RAISE_ERROR(msg)         \
     {                            \
         LOG_ERROR(msg);          \
-        Utils::error(msg, true); \
+        Utils::error(msg, true, false); \
     }
 
 #endif  // _COMMONS_UTILS_H
