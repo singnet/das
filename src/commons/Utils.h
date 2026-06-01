@@ -59,9 +59,8 @@ class StackTrace {
         string file;
         string function;
         int line;
-        string message;
         string to_string() {
-            return file + "#L" + std::to_string(line) + " " + function + " " + message;
+            return file + "#L" + std::to_string(line) + " " + function;
         }
     };
     static void push(StackRecord& record) {
@@ -83,14 +82,12 @@ class StackTrace {
     }
     static mutex api_mutex;
     static map<pid_t, stack<StackRecord>> stack_trace;
-
-   public:
-    StackTrace(const string& file, const string& function, int line, const string& message) {
+    public:
+    StackTrace(const string& file, const string& function, int line) {
         StackRecord record;
         record.file = file;
         record.function = function;
         record.line = line;
-        record.message = message;
         StackTrace::push(record);
     }
     ~StackTrace() { StackTrace::pop(); }
@@ -176,9 +173,10 @@ class Utils {
 
 #ifdef LOG_LEVEL
 #if LOG_LEVEL >= DEBUG_LEVEL
-#define STACK_TRACE(msg) StackTrace scope_variable(__FILE__, __FUNCTION__, __LINE__, msg);
+#define STACK_TRACE() StackTrace scope_variable(__FILE__, __FUNCTION__, __LINE__);
 #else
-#define STACK_TRACE(msg)
+#define STACK_TRACE()
 #endif
 #endif
+
 #endif  // _COMMONS_UTILS_H

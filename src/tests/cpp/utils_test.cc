@@ -13,19 +13,19 @@ using namespace std;
 using namespace commons;
 
 void f1() {
-    STACK_TRACE("f1() scope");
-    RAISE_ERROR("Error on f1()");
+    STACK_TRACE();
+    RAISE_ERROR("Error in f1()");
     return;
 }
 
 void f2() {
-    STACK_TRACE("");
+    STACK_TRACE();
     f1();
     return;
 }
 
 void f3() {
-    STACK_TRACE("f3() scope");
+    STACK_TRACE();
     f2();
     return;
 }
@@ -74,7 +74,7 @@ TEST(UtilsTest, read_and_split) {
 }
 
 TEST(UtilsTest, stack_trace) {
-    STACK_TRACE("UtilsTest::stack_trace()");
+    STACK_TRACE();
     EXPECT_THROW(RAISE_ERROR("Error on toplevel"), runtime_error);
     EXPECT_THROW(f3(), runtime_error);
     EXPECT_THROW(f2(), runtime_error);
