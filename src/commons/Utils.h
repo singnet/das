@@ -102,9 +102,9 @@ class Utils {
 
 }  // namespace commons
 
-#define RAISE_ERROR(msg)         \
-    {                            \
-        LOG_ERROR(msg);          \
+#define RAISE_ERROR(msg)                \
+    {                                   \
+        LOG_ERROR(msg);                 \
         Utils::error(msg, true, false); \
     }
 
