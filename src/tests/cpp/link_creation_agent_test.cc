@@ -12,7 +12,10 @@
 #include "MockAtomDB.h"
 #include "MockServiceBus.h"
 #include "TemplateProcessor.h"
+#include "TestSystemParams.h"
 #include "Utils.h"
+
+using das_test::init_test_system_parameters_singleton;
 
 using namespace std;
 using namespace link_creation_agent;
@@ -49,6 +52,7 @@ class LinkCreationAgentTest : public ::testing::Test {
         this->save_links_to_db = false;
         this->server_id = "localhost:40040";
         AtomDBSingleton::provide(move(make_shared<AtomDBMock>()));
+        init_test_system_parameters_singleton();
         ServiceBusSingleton::provide(
             move(make_shared<MockServiceBus>("localhost:40038", "localhost:40039")));
     }

@@ -404,6 +404,14 @@ bool Utils::read_and_split(vector<string>& output, ifstream& file, char delimite
     return false;
 }
 
+bool Utils::starts_with(const string& s, const string& prefix) {
+    if (s.size() < prefix.size()) {
+        return false;
+    }
+
+    return s.compare(0, prefix.size(), prefix) == 0;
+}
+
 // --------------------------------------------------------------------------------
 // MemoryFootprint
 

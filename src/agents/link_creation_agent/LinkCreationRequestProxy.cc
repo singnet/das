@@ -2,6 +2,7 @@
 
 #include "BaseQueryProxy.h"
 #include "ServiceBus.h"
+#include "SystemParametersSingleton.h"
 
 using namespace link_creation_agent;
 
@@ -29,16 +30,7 @@ LinkCreationRequestProxy::~LinkCreationRequestProxy() {}
 void LinkCreationRequestProxy::pack_command_line_args() { tokenize(this->args); }
 
 void LinkCreationRequestProxy::set_default_parameters() {
-    this->parameters[LinkCreationRequestProxy::MAX_ANSWERS] = (unsigned int) 10;
-    this->parameters[LinkCreationRequestProxy::REPEAT_COUNT] = (unsigned int) 1;
-    this->parameters[LinkCreationRequestProxy::CONTEXT] = string("");
-    this->parameters[LinkCreationRequestProxy::ATTENTION_UPDATE] = (unsigned int) BaseQueryProxy::NONE;
-    this->parameters[LinkCreationRequestProxy::ATTENTION_CORRELATION] =
-        (unsigned int) BaseQueryProxy::NONE;
-    this->parameters[LinkCreationRequestProxy::POSITIVE_IMPORTANCE_FLAG] = true;
-    this->parameters[LinkCreationRequestProxy::QUERY_INTERVAL] = (unsigned int) 0;
-    this->parameters[LinkCreationRequestProxy::QUERY_TIMEOUT] = (unsigned int) 0;
-    this->parameters[LinkCreationRequestProxy::USE_METTA_AS_QUERY_TOKENS] = false;
+    this->parameters = SystemParametersSingleton::get_instance()->get_link_creation_agent_params();
 }
 
 void LinkCreationRequestProxy::set_parameter(const string& key, const PropertyValue& value) {

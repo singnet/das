@@ -2,6 +2,7 @@
 
 #include "FitnessFunctionRegistry.h"
 #include "ServiceBus.h"
+#include "SystemParametersSingleton.h"
 
 #define LOG_LEVEL INFO_LEVEL
 #include "Logger.h"
@@ -55,10 +56,7 @@ void QueryEvolutionProxy::init() {
 }
 
 void QueryEvolutionProxy::set_default_query_parameters() {
-    this->parameters[POPULATION_SIZE] = (unsigned int) 1000;
-    this->parameters[MAX_GENERATIONS] = (unsigned int) 100;
-    this->parameters[ELITISM_RATE] = (double) 0.01;
-    this->parameters[SELECTION_RATE] = (double) 0.1;
+    this->parameters = SystemParametersSingleton::get_instance()->get_evolution_agent_params();
 }
 
 string QueryEvolutionProxy::to_string() {

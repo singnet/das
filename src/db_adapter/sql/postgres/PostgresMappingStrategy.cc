@@ -23,7 +23,7 @@ PostgresMappingStrategy::PostgresMappingStrategy(const JsonConfig& config,
                                                  shared_ptr<PostgresConnection> conn,
                                                  shared_ptr<BoundedSharedQueue> queue)
     : DatabaseMappingStrategy(conn), config(config) {
-    this->wrapper = make_shared<PostgresWrapper>(*conn, queue);
+    this->wrapper = make_shared<PostgresWrapper>(conn, queue);
 }
 
 // ==============================
