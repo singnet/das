@@ -15,7 +15,7 @@ namespace db_adapter {
 
 class MorkWrapper : public DatabaseWrapper {
    public:
-    MorkWrapper(MorkConnection& conn,
+    MorkWrapper(shared_ptr<MorkConnection> conn,
                 shared_ptr<BoundedSharedQueue> output_queue,
                 MAPPER_TYPE mapper_type = MAPPER_TYPE::METTA2ATOMS);
     ~MorkWrapper();
@@ -24,8 +24,9 @@ class MorkWrapper : public DatabaseWrapper {
 
    private:
     mutex api_mutex;
-    MorkConnection& conn;
     shared_ptr<BoundedSharedQueue> output_queue;
+
+    shared_ptr<MorkConnection> get_connection();
 };
 
 }  // namespace db_adapter

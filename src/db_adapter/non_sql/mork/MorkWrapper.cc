@@ -11,21 +11,21 @@ using namespace std;
 using namespace commons;
 using namespace db_adapter;
 
-// ==============================
+// --------------------------------------------------------------------------------
 //  Construction / destruction
-// ==============================
 
-MorkWrapper::MorkWrapper(MorkConnection& conn,
+MorkWrapper::MorkWrapper(shared_ptr<MorkConnection> conn,
                          shared_ptr<BoundedSharedQueue> output_queue,
                          MAPPER_TYPE mapper_type)
-    : DatabaseWrapper(conn, MapperFactory::create(mapper_type)),
-      conn(conn),
-      output_queue(output_queue) {}
+    : DatabaseWrapper(conn, MapperFactory::create(mapper_type)), output_queue(output_queue) {}
 
 MorkWrapper::~MorkWrapper() {}
 
+// --------------------------------------------------------------------------------
+// Public
+
 void MorkWrapper::map(const string& metta_query) {
-    vector<string> metta_expressions = this->conn.query(metta_query);
+    vector<string> metta_expressions = this->get_connection()->query(metta_query);
 
     if (metta_expressions.empty()) {
         RAISE_ERROR("No results returned from MORK query: " + metta_query);
@@ -47,4 +47,11 @@ void MorkWrapper::map(const string& metta_query) {
         unique_lock<mutex> lock(this->api_mutex);
         this->output_queue->enqueue((void*) batch_queue);
     }
+}
+
+// --------------------------------------------------------------------------------
+// Private
+
+shared_ptr<MorkConnection> MorkWrapper::get_connection() {
+    return dynamic_pointer_cast<MorkConnection>(this->db_conn);
 }

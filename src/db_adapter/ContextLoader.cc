@@ -47,6 +47,41 @@ vector<string> ContextLoader::load_sql_queries(const string& file_path) {
 }
 
 vector<string> ContextLoader::load_metta_queries(const string& file_path) {
-    RAISE_ERROR("ContextLoader::load_metta_queries() not implemented yet");
-    return {};
+    if (!fs::exists(file_path)) {
+        RAISE_ERROR("File " + file_path + " does not exist");
+    }
+
+    ifstream file(file_path);
+
+    vector<string> expressions;
+    string line;
+    string current_expression;
+    int parentheses_depth = 0;
+
+    while (getline(file, line)) {
+        if (line.empty()) continue;
+
+        if (!current_expression.empty()) {
+            current_expression += " ";
+        }
+        current_expression += line;
+
+        for (char c : line) {
+            if (c == '(')
+                parentheses_depth++;
+            else if (c == ')')
+                parentheses_depth--;
+        }
+
+        if (parentheses_depth == 0 && !current_expression.empty()) {
+            expressions.push_back(current_expression);
+            current_expression.clear();
+        }
+    }
+
+    if (parentheses_depth != 0) {
+        RAISE_ERROR("Error in queries " + file_path);
+    }
+
+    return expressions;
 }
