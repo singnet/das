@@ -82,6 +82,7 @@ class Utils {
                                unsigned int wait_millis,
                                const string& function_name = "");
     static bool read_and_split(vector<string>& output, ifstream& file, char delimiter = ' ');
+    static bool starts_with(const string& s, const string& prefix);
 
     template <class C>
     static bool intersects(const C& set1, const C& set2) {

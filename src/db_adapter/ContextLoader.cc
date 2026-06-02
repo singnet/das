@@ -28,7 +28,7 @@ vector<string> ContextLoader::load_sql_queries(const string& file_path) {
 
     while (getline(f, line)) {
         line = Utils::trim(line);
-        bool is_comment = line.size() >= 2 && line[0] == '-' && line[1] == '-';
+        bool is_comment = Utils::starts_with(line, "--");
         if (!line.empty() && !is_comment) {
             query += line + " ";
         } else {
@@ -59,7 +59,12 @@ vector<string> ContextLoader::load_metta_queries(const string& file_path) {
     int parentheses_depth = 0;
 
     while (getline(file, line)) {
-        if (line.empty()) continue;
+        line = Utils::trim(line);
+        bool is_comment = Utils::starts_with(line, ";");
+
+        if (line.empty() || is_comment) continue;
+
+        LOG_DEBUG("Read line: " + line);
 
         if (!current_expression.empty()) {
             current_expression += " ";

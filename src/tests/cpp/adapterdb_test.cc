@@ -25,81 +25,33 @@ using namespace atomdb;
 using namespace atoms;
 using namespace commons;
 
-class AdapterDBTest : public ::testing::Test {
+struct AdapterTestParams {
+    string adapter_type;
+    string mapping_file_ext;
+    string mapping_file_content;
+    nlohmann::json db_credentials;
+    string test_name;
+};
+
+class AdapterDBTestBase : public ::testing::Test {
    protected:
-    string mapping_file_path;
+    shared_ptr<RedisMongoDB> backend;
 
-    void SetUp() override {
+    void SetUpBackend() {
         backend = make_shared<RedisMongoDB>("adapter_test", false, test_atomdb_json_config());
-        mapping_file_path = "/tmp/adapterdb_test_mapping.sql";
-
-        string current_time_str = to_string(Utils::get_current_time_millis());
-
-        string test_name = string("AdapterDBTest_") + compute_hash((char*) current_time_str.c_str());
-
-        ofstream file(mapping_file_path);
-        file << "-- unique test context: " << test_name << "\n";
-        file << R"(SELECT
-            o.organism_id as public_organism__organism_id,
-            o.genus as public_organism__genus,
-            o.species as public_organism__species,
-            o.common_name as public_organism__common_name,
-            o.abbreviation as public_organism__abbreviation,
-            o.comment as public_organism__comment,
-            o.created_at as public_organism__created_at
-            FROM
-            public.organism as o WHERE o.organism_id=1;
-
-            SELECT
-            f.feature_id as public_feature__feature_id,
-            f.organism_id as public_feature__organism_id,
-            f.type_id as public_feature__type_id,
-            f.name as public_feature__name,
-            f.uniquename as public_feature__uniquename,
-            f.residues as public_feature__residues,
-            f.seqlen as public_feature__seqlen,
-            f.md5checksum as public_feature__md5checksum,
-            f.is_analysis as public_feature__is_analysis,
-            f.is_obsolete as public_feature__is_obsolete,
-            f.timeaccessioned as public_feature__timeaccessioned,
-            f.timelastmodified as public_feature__timelastmodified
-            FROM
-            public.feature as f WHERE f.feature_id=1;
-
-            SELECT
-            c.cvterm_id as public_cvterm__cvterm_id,
-            c.name as public_cvterm__name,
-            c.definition as public_cvterm__definition,
-            c.is_obsolete as public_cvterm__is_obsolete,
-            c.is_relationshiptype as public_cvterm__is_relationshiptype,
-            c.created_at as public_cvterm__created_at
-            FROM
-            public.cvterm as c WHERE c.cvterm_id=1;
-        )";
-        file.close();
     }
 
-    void TearDown() override { remove(mapping_file_path.c_str()); }
-
     JsonConfig build_adapter_config(const string& mapping_path,
+                                    const string& adapter_type,
+                                    const nlohmann::json& db_credentials,
                                     const string& backend_type = "morkdb",
-                                    bool reuse_mongodb = true,
-                                    const string& adapter_type = "postgres") {
+                                    bool reuse_mongodb = true) {
         nlohmann::json json;
-
         json["type"] = "adapterdb";
-
         json["adapterdb"] = {
             {"type", adapter_type},
             {"context_mapping_paths", nlohmann::json::array({mapping_path})},
-            {"database_credentials",
-             {
-                 {"host", "localhost"},
-                 {"port", 5433},
-                 {"username", "postgres"},
-                 {"password", "test"},
-                 {"database", "postgres_wrapper_test"},
-             }},
+            {"database_credentials", db_credentials},
             {"persistence", {{"reuse_mongodb", reuse_mongodb}}},
             {"export_metta_on_mapping", {{"enabled", false}, {"output_dir", "/tmp"}}},
             {"atomdb_backend",
@@ -111,68 +63,154 @@ class AdapterDBTest : public ::testing::Test {
                  {"morkdb", {{"endpoint", "localhost:40022"}}},
              }},
         };
-
         return JsonConfig(json);
     }
 
     shared_ptr<AdapterDB> create_adapter(const string& mapping_path,
+                                         const string& adapter_type,
+                                         const nlohmann::json& db_credentials,
                                          const string& backend_type = "morkdb",
-                                         bool reuse_mongodb = true,
-                                         const string& adapter_type = "postgres") {
-        auto config = build_adapter_config(mapping_path, backend_type, reuse_mongodb, adapter_type);
+                                         bool reuse_mongodb = true) {
+        auto config = build_adapter_config(
+            mapping_path, adapter_type, db_credentials, backend_type, reuse_mongodb);
         return make_shared<AdapterDB>(config, backend);
     }
-
-    shared_ptr<RedisMongoDB> backend;
 };
 
-TEST_F(AdapterDBTest, ConstructorSucceedsWithValidConfig) {
-    auto db = create_adapter(mapping_file_path);
+class AdapterDBTest : public AdapterDBTestBase, public ::testing::WithParamInterface<AdapterTestParams> {
+   protected:
+    string mapping_file_path;
+
+    void SetUp() override {
+        SetUpBackend();
+
+        const AdapterTestParams& p = GetParam();
+        mapping_file_path = "/tmp/adapterdb_test_mapping" + p.mapping_file_ext;
+
+        string current_time_str = to_string(Utils::get_current_time_millis());
+        string test_name = string("AdapterDBTest_") + compute_hash((char*) current_time_str.c_str());
+
+        string comment;
+
+        if (p.adapter_type == "postgres") {
+            comment = "-- unique test context: " + test_name + "\n";
+        } else if (p.adapter_type == "mork") {
+            comment = "; unique test context: " + test_name + "\n";
+        }
+
+        ofstream file(mapping_file_path);
+        file << comment;
+        file << p.mapping_file_content;
+        file.close();
+    }
+
+    void TearDown() override { remove(mapping_file_path.c_str()); }
+
+    shared_ptr<AdapterDB> create_current_adapter(const string& backend_type = "morkdb",
+                                                 bool reuse_mongodb = true) {
+        const AdapterTestParams& p = GetParam();
+        return create_adapter(
+            mapping_file_path, p.adapter_type, p.db_credentials, backend_type, reuse_mongodb);
+    }
+};
+
+// ---------------------------------------------------------------------------
+// Test parameter definitions
+
+static const AdapterTestParams PostgresParams = {
+    "postgres",
+    ".sql",
+    R"(SELECT
+        o.organism_id as public_organism__organism_id,
+        o.genus as public_organism__genus,
+        o.species as public_organism__species,
+        o.common_name as public_organism__common_name,
+        o.abbreviation as public_organism__abbreviation,
+        o.comment as public_organism__comment,
+        o.created_at as public_organism__created_at
+        FROM
+        public.organism as o WHERE o.organism_id=1;
+
+        SELECT
+        f.feature_id as public_feature__feature_id,
+        f.organism_id as public_feature__organism_id,
+        f.type_id as public_feature__type_id,
+        f.name as public_feature__name,
+        f.uniquename as public_feature__uniquename,
+        f.residues as public_feature__residues,
+        f.seqlen as public_feature__seqlen,
+        f.md5checksum as public_feature__md5checksum,
+        f.is_analysis as public_feature__is_analysis,
+        f.is_obsolete as public_feature__is_obsolete,
+        f.timeaccessioned as public_feature__timeaccessioned,
+        f.timelastmodified as public_feature__timelastmodified
+        FROM
+        public.feature as f WHERE f.feature_id=1;
+
+        SELECT
+        c.cvterm_id as public_cvterm__cvterm_id,
+        c.name as public_cvterm__name,
+        c.definition as public_cvterm__definition,
+        c.is_obsolete as public_cvterm__is_obsolete,
+        c.is_relationshiptype as public_cvterm__is_relationshiptype,
+        c.created_at as public_cvterm__created_at
+        FROM
+        public.cvterm as c WHERE c.cvterm_id=1;
+    )",
+    {{"host", "localhost"},
+     {"port", 5433},
+     {"username", "postgres"},
+     {"password", "test"},
+     {"database", "postgres_wrapper_test"}},
+    "Postgres",
+};
+
+static const AdapterTestParams MorkParams = {
+    "mork",
+    ".metta",
+    R"(
+(Similarity "ent" $h)
+(Inheritance "human" $m))",
+    {{"host", "localhost"}, {"port", 40022}},
+    "Mork",
+};
+
+INSTANTIATE_TEST_SUITE_P(AdapterTypes,
+                         AdapterDBTest,
+                         ::testing::Values(PostgresParams, MorkParams),
+                         [](const ::testing::TestParamInfo<AdapterTestParams>& info) {
+                             return info.param.test_name;
+                         });
+
+// ---------------------------------------------------------------------------
+// Parameterized tests
+
+TEST_P(AdapterDBTest, ConstructorSucceedsWithValidConfig) {
+    auto db = create_current_adapter();
     ASSERT_NE(db, nullptr);
     EXPECT_GT(db->atom_count(), 0);
 }
 
-TEST_F(AdapterDBTest, ConstructorFailsWithInvalidAdapterType) {
-    EXPECT_THROW({ auto db = create_adapter(mapping_file_path, "morkdb", true, "mysql"); },
-                 runtime_error);
-}
-
-TEST_F(AdapterDBTest, ConstructorFailsWhenPersistenceReuseMongoIsFalse) {
-    EXPECT_THROW({ auto db = create_adapter(mapping_file_path, "morkdb", false, "postgres"); },
-                 runtime_error);
-}
-
-TEST_F(AdapterDBTest, ConstructorFailsWithUnsupportedBackendForMongoPersistence) {
-    EXPECT_THROW({ auto db = create_adapter(mapping_file_path, "remotedb", true, "postgres"); },
-                 runtime_error);
-}
-
-TEST_F(AdapterDBTest, ConstructorFailsWhenMappingFileDoesNotExist) {
-    EXPECT_THROW({ auto db = create_adapter("/tmp/does_not_exist_adapterdb_mapping.json"); },
-                 runtime_error);
-}
-
-TEST_F(AdapterDBTest, ConstructorLoadsDataIntoBackendOnFirstRun) {
-    auto db = create_adapter(mapping_file_path);
+TEST_P(AdapterDBTest, ConstructorLoadsDataIntoBackendOnFirstRun) {
+    auto db = create_current_adapter();
     ASSERT_NE(db, nullptr);
-
     EXPECT_GT(db->atom_count(), 0);
 }
 
-TEST_F(AdapterDBTest, CanBeConstructedTwiceWithSameContext) {
-    auto db1 = create_adapter(mapping_file_path);
+TEST_P(AdapterDBTest, CanBeConstructedTwiceWithSameContext) {
+    auto db1 = create_current_adapter();
     ASSERT_NE(db1, nullptr);
     EXPECT_GT(db1->atom_count(), 0);
 
     EXPECT_NO_THROW({
-        auto db2 = create_adapter(mapping_file_path);
+        auto db2 = create_current_adapter();
         ASSERT_NE(db2, nullptr);
         EXPECT_GT(db2->atom_count(), 0);
     });
 }
 
-TEST_F(AdapterDBTest, ReloadDoesNotThrowAndKeepsBackendUsable) {
-    auto db = create_adapter(mapping_file_path);
+TEST_P(AdapterDBTest, ReloadDoesNotThrowAndKeepsBackendUsable) {
+    auto db = create_current_adapter();
     ASSERT_NE(db, nullptr);
 
     EXPECT_NO_THROW({ db->reload(); });
@@ -188,15 +226,14 @@ TEST_F(AdapterDBTest, ReloadDoesNotThrowAndKeepsBackendUsable) {
     });
 }
 
-TEST_F(AdapterDBTest, NeedsSyncIsNotImplemented) {
-    auto db = create_adapter(mapping_file_path);
+TEST_P(AdapterDBTest, NeedsSyncIsNotImplemented) {
+    auto db = create_current_adapter();
     ASSERT_NE(db, nullptr);
-
     EXPECT_THROW({ db->needs_sync(); }, runtime_error);
 }
 
-TEST_F(AdapterDBTest, AddGetAndDeleteNode) {
-    auto db = create_adapter(mapping_file_path);
+TEST_P(AdapterDBTest, AddGetAndDeleteNode) {
+    auto db = create_current_adapter();
     ASSERT_NE(db, nullptr);
 
     auto node = new Node("Symbol", "AdapterDBTestNode");
@@ -220,8 +257,8 @@ TEST_F(AdapterDBTest, AddGetAndDeleteNode) {
     delete node;
 }
 
-TEST_F(AdapterDBTest, AddAndDeleteNodes) {
-    auto db = create_adapter(mapping_file_path);
+TEST_P(AdapterDBTest, AddAndDeleteNodes) {
+    auto db = create_current_adapter();
     ASSERT_NE(db, nullptr);
 
     vector<Node*> nodes;
@@ -239,8 +276,8 @@ TEST_F(AdapterDBTest, AddAndDeleteNodes) {
     for (auto* n : nodes) delete n;
 }
 
-TEST_F(AdapterDBTest, AddGetAndQueryTargetsLink) {
-    auto db = create_adapter(mapping_file_path);
+TEST_P(AdapterDBTest, AddGetAndQueryTargetsLink) {
+    auto db = create_current_adapter();
     ASSERT_NE(db, nullptr);
 
     auto n1 = new Node("Symbol", "AdapterLinkNode1");
@@ -281,8 +318,8 @@ TEST_F(AdapterDBTest, AddGetAndQueryTargetsLink) {
     delete link;
 }
 
-TEST_F(AdapterDBTest, AddLinkFailsWhenTargetsDoNotExist) {
-    auto db = create_adapter(mapping_file_path);
+TEST_P(AdapterDBTest, AddLinkFailsWhenTargetsDoNotExist) {
+    auto db = create_current_adapter();
     ASSERT_NE(db, nullptr);
 
     auto fake1 = new Node("Symbol", "AdapterLinkFailNode1");
@@ -299,8 +336,8 @@ TEST_F(AdapterDBTest, AddLinkFailsWhenTargetsDoNotExist) {
     delete link;
 }
 
-TEST_F(AdapterDBTest, DeleteNonExistingAtomReturnsFalse) {
-    auto db = create_adapter(mapping_file_path);
+TEST_P(AdapterDBTest, DeleteNonExistingAtomReturnsFalse) {
+    auto db = create_current_adapter();
     ASSERT_NE(db, nullptr);
 
     EXPECT_FALSE(db->delete_atom("NonExistingHandle"));
@@ -308,8 +345,8 @@ TEST_F(AdapterDBTest, DeleteNonExistingAtomReturnsFalse) {
     EXPECT_FALSE(db->delete_link("NonExistingHandle"));
 }
 
-TEST_F(AdapterDBTest, DeleteEmptyCollectionsReturnsZero) {
-    auto db = create_adapter(mapping_file_path);
+TEST_P(AdapterDBTest, DeleteEmptyCollectionsReturnsZero) {
+    auto db = create_current_adapter();
     ASSERT_NE(db, nullptr);
 
     EXPECT_EQ(db->delete_atoms({}), 0);
@@ -317,8 +354,8 @@ TEST_F(AdapterDBTest, DeleteEmptyCollectionsReturnsZero) {
     EXPECT_EQ(db->delete_links({}), 0);
 }
 
-TEST_F(AdapterDBTest, ExistsQueriesReturnEmptyForUnknownHandles) {
-    auto db = create_adapter(mapping_file_path);
+TEST_P(AdapterDBTest, ExistsQueriesReturnEmptyForUnknownHandles) {
+    auto db = create_current_adapter();
     ASSERT_NE(db, nullptr);
 
     vector<string> handles = {
@@ -332,15 +369,14 @@ TEST_F(AdapterDBTest, ExistsQueriesReturnEmptyForUnknownHandles) {
     EXPECT_EQ(db->links_exist(handles).size(), 0);
 }
 
-TEST_F(AdapterDBTest, ReIndexPatternsDoesNotThrow) {
-    auto db = create_adapter(mapping_file_path);
+TEST_P(AdapterDBTest, ReIndexPatternsDoesNotThrow) {
+    auto db = create_current_adapter();
     ASSERT_NE(db, nullptr);
-
     EXPECT_NO_THROW({ db->re_index_patterns(); });
 }
 
-TEST_F(AdapterDBTest, AddNodeWithThrowIfExists) {
-    auto db = create_adapter(mapping_file_path);
+TEST_P(AdapterDBTest, AddNodeWithThrowIfExists) {
+    auto db = create_current_adapter();
     ASSERT_NE(db, nullptr);
 
     auto node = new Node("Symbol", "AdapterThrowIfExistsNode");
@@ -352,8 +388,8 @@ TEST_F(AdapterDBTest, AddNodeWithThrowIfExists) {
     delete node;
 }
 
-TEST_F(AdapterDBTest, AddLinkWithThrowIfExists) {
-    auto db = create_adapter(mapping_file_path);
+TEST_P(AdapterDBTest, AddLinkWithThrowIfExists) {
+    auto db = create_current_adapter();
     ASSERT_NE(db, nullptr);
 
     auto n1 = new Node("Symbol", "AdapterThrowIfExistsLink1");
@@ -380,8 +416,8 @@ TEST_F(AdapterDBTest, AddLinkWithThrowIfExists) {
     delete link;
 }
 
-TEST_F(AdapterDBTest, AddSameNodeWithoutThrowIfExistsIsAccepted) {
-    auto db = create_adapter(mapping_file_path);
+TEST_P(AdapterDBTest, AddSameNodeWithoutThrowIfExistsIsAccepted) {
+    auto db = create_current_adapter();
     ASSERT_NE(db, nullptr);
 
     auto node = new Node("Symbol", "AdapterSameNode");
@@ -396,8 +432,8 @@ TEST_F(AdapterDBTest, AddSameNodeWithoutThrowIfExistsIsAccepted) {
     delete node;
 }
 
-TEST_F(AdapterDBTest, AddSameLinkWithoutThrowIfExistsIsAccepted) {
-    auto db = create_adapter(mapping_file_path);
+TEST_P(AdapterDBTest, AddSameLinkWithoutThrowIfExistsIsAccepted) {
+    auto db = create_current_adapter();
     ASSERT_NE(db, nullptr);
 
     auto n1 = new Node("Symbol", "AdapterSameLink1");
@@ -422,6 +458,60 @@ TEST_F(AdapterDBTest, AddSameLinkWithoutThrowIfExistsIsAccepted) {
     delete n2;
     delete n3;
     delete link;
+}
+
+class AdapterDBConstructorFailureTest : public AdapterDBTestBase {
+   protected:
+    string mapping_file_path;
+
+    void SetUp() override {
+        SetUpBackend();
+
+        mapping_file_path = "/tmp/adapterdb_failure_test_mapping.sql";
+
+        ofstream file(mapping_file_path);
+        file << "SELECT o.organism_id FROM public.organism AS o WHERE o.organism_id=1;\n";
+        file.close();
+    }
+
+    void TearDown() override { remove(mapping_file_path.c_str()); }
+
+    shared_ptr<AdapterDB> create_postgres_adapter(const string& backend_type = "morkdb",
+                                                  bool reuse_mongodb = true) {
+        nlohmann::json creds = {{"host", "localhost"},
+                                {"port", 5433},
+                                {"username", "postgres"},
+                                {"password", "test"},
+                                {"database", "postgres_wrapper_test"}};
+        return create_adapter(mapping_file_path, "postgres", creds, backend_type, reuse_mongodb);
+    }
+};
+
+TEST_F(AdapterDBConstructorFailureTest, ConstructorFailsWithInvalidAdapterType) {
+    nlohmann::json creds = {{"host", "localhost"},
+                            {"port", 5433},
+                            {"username", "postgres"},
+                            {"password", "test"},
+                            {"database", "postgres_wrapper_test"}};
+    EXPECT_THROW({ create_adapter(mapping_file_path, "mysql", creds); }, runtime_error);
+}
+
+TEST_F(AdapterDBConstructorFailureTest, ConstructorFailsWhenPersistenceReuseMongoIsFalse) {
+    EXPECT_THROW({ create_postgres_adapter("morkdb", false); }, runtime_error);
+}
+
+TEST_F(AdapterDBConstructorFailureTest, ConstructorFailsWithUnsupportedBackendForMongoPersistence) {
+    EXPECT_THROW({ create_postgres_adapter("remotedb", true); }, runtime_error);
+}
+
+TEST_F(AdapterDBConstructorFailureTest, ConstructorFailsWhenMappingFileDoesNotExist) {
+    nlohmann::json creds = {{"host", "localhost"},
+                            {"port", 5433},
+                            {"username", "postgres"},
+                            {"password", "test"},
+                            {"database", "postgres_wrapper_test"}};
+    EXPECT_THROW({ create_adapter("/tmp/does_not_exist_adapterdb_mapping.sql", "postgres", creds); },
+                 runtime_error);
 }
 
 int main(int argc, char** argv) {
