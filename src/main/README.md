@@ -67,12 +67,12 @@ make run-busnode OPTIONS="--service=atomdb-broker --endpoint=localhost:9004 --po
 Run the `bus_client` binary with the required parameters using make:
 
 ```bash
-make run-client OPTIONS="--client=<BUS_NODE_SERVICE> [--endpoint=...] --bus-endpoint=<THIS_CLIENT_HOST:PORT> --ports-range=<PORTS_RANGE> [--config=<config/client.json>]"
+make run-client OPTIONS="--client=<BUS_NODE_SERVICE> [--config=config/das.json] [--endpoint=...] [--bus-endpoint=...] [--ports-range=...]"
 ```
 
 **`--client`** is required and must be a valid bus node service.
 
-Pass **`--config=<client.json>`** (schema 1.0) so **`atomdb`** can be merged from **`params.das-config-file`** (path to **`das.json`**). Without it, **`bus_client`** cannot initialize AtomDB with the slim client schema. With config, **`--bus-endpoint`**, **`--ports-range`** and **`--endpoint`** may default from **`params`** field and **`das.json`**; optional **`--attention-broker-endpoint`** from merged **`brokers.attention.endpoint`**. Command-line arguments always win.
+**`bus_client`** loads **`config/das.json`** by default (same file as **`busnode`**). **`client.endpoint`** and **`client.ports_range`** default **`--endpoint`** and **`--ports-range`**; **`agents`** supply **`--bus-endpoint`** from **`--client`**; optional **`--attention-broker-endpoint`** from **`agents.attention.endpoint`**; scalar **`params.*`** merge into CLI args. Command-line arguments always win.
 
 ### Examples
 #### AtomDB:
@@ -81,11 +81,11 @@ make run-client OPTIONS="--client=atomdb-broker --endpoint=localhost:8887 --bus-
 ```
 #### Query Engine:
 ```
-make run-client OPTIONS="--config=config/client.json --client=query-engine --query=LINK_TEMPLATE Expression 2 NODE Symbol Predicate VARIABLE V1 --context=test"
+make run-client OPTIONS="--client=query-engine --query=LINK_TEMPLATE Expression 2 NODE Symbol Predicate VARIABLE V1 --context=test"
 ```
-(With **`config/client.json`**, **`--endpoint`**, **`--bus-endpoint`**, and **`--ports-range`** can be omitted when **`das.json`** and **`params`** supply them.)
+(With **`config/das.json`**, **`--endpoint`**, **`--bus-endpoint`**, and **`--ports-range`** can be omitted.)
 
-**If you see `Bus: no owner is defined for command <pattern_matching_query>`:** the resolved **`--endpoint`** (from **`agents.<client>.endpoint`** / **`brokers.<client>.endpoint`** in **`das.json`**) must match the **`--endpoint`** used when starting that agent’s **`busnode`** (same `host:port` string).
+**If you see `Bus: no owner is defined for command <pattern_matching_query>`:** the resolved **`--endpoint`** (from **`agents.<client>.endpoint`** in **`das.json`**) must match the **`--endpoint`** used when starting that agent’s **`busnode`** (same `host:port` string).
 
 #### LCA:
 ```

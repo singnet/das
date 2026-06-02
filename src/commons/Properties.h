@@ -246,4 +246,20 @@ class Properties : public unordered_map<string, PropertyValue> {
     }
 };
 
+/** @return Copy of @p lhs with keys from @p rhs merged in; @p rhs wins on duplicates. */
+inline Properties operator+(Properties lhs, const Properties& rhs) {
+    for (const auto& entry : rhs) {
+        lhs[entry.first] = entry.second;
+    }
+    return lhs;
+}
+
+/** Merges @p rhs into @p lhs in place; @p rhs wins on duplicate keys. */
+inline Properties& operator+=(Properties& lhs, const Properties& rhs) {
+    for (const auto& entry : rhs) {
+        lhs[entry.first] = entry.second;
+    }
+    return lhs;
+}
+
 }  // namespace commons
