@@ -21,6 +21,9 @@
 using namespace commons;
 using namespace std;
 
+mutex StackTrace::api_mutex;
+map<pid_t, stack<StackTrace::StackRecord>> StackTrace::stack_trace;
+
 // --------------------------------------------------------------------------------
 // Public methods
 
