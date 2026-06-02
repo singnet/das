@@ -28,7 +28,7 @@ vector<string> ContextLoader::load_sql_queries(const string& file_path) {
 
     while (getline(f, line)) {
         line = Utils::trim(line);
-        bool is_comment = Utils::starts_with(line, ";");
+        bool is_comment = Utils::starts_with(line, "--");
         if (!line.empty() && !is_comment) {
             query += line + " ";
         } else {
