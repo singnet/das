@@ -9,6 +9,7 @@
 #include "DedicatedThread.h"
 #include "MongoInitializer.h"
 #include "MorkDB.h"
+#include "MorkMappingStrategy.h"
 #include "PostgresMappingStrategy.h"
 #include "PostgresWrapper.h"
 #include "Processor.h"
@@ -222,12 +223,7 @@ size_t AdapterDB::atom_count() const {
 // ==============================
 
 void AdapterDB::initialize(bool skip_atomdb_backend_empty) {
-    string type = config.at_path("adapterdb.type").get_or<string>("");
-    this->adapter_type = parse_adapter_db_type(type);
-
-    if (adapter_type != AdapterDbType::Postgres) {
-        RAISE_ERROR("AdapterDB: Unsupported database type in config: " + type);
-    }
+    this->validate_adapterdb_type();
 
     this->persistence_setup();
 
@@ -252,6 +248,16 @@ void AdapterDB::initialize(bool skip_atomdb_backend_empty) {
     this->backend_ready.store(true);
 }
 
+void AdapterDB::validate_adapterdb_type() {
+    string type = this->config.at_path("adapterdb.type").get_or<string>("");
+
+    this->adapter_type = parse_adapter_db_type(type);
+
+    if (adapter_type != AdapterDbType::Postgres && adapter_type != AdapterDbType::Mork) {
+        RAISE_ERROR("AdapterDB: Unsupported database type in config: " + type);
+    }
+}
+
 void AdapterDB::persistence_setup() {
     bool reuse_mongodb = this->config.at_path("adapterdb.persistence.reuse_mongodb").get_or<bool>(true);
 
@@ -268,9 +274,9 @@ void AdapterDB::persistence_setup() {
             "MongoDB persistence is only supported for RedisMongoDB and MorkDB AtomDB backends.");
     }
 
-    string address = config.at_path("adapterdb.atomdb_backend.mongodb.endpoint").get<string>();
-    string user = config.at_path("adapterdb.atomdb_backend.mongodb.username").get<string>();
-    string password = config.at_path("adapterdb.atomdb_backend.mongodb.password").get<string>();
+    string address = this->config.at_path("adapterdb.atomdb_backend.mongodb.endpoint").get<string>();
+    string user = this->config.at_path("adapterdb.atomdb_backend.mongodb.username").get<string>();
+    string password = this->config.at_path("adapterdb.atomdb_backend.mongodb.password").get<string>();
 
     if (address.empty() || address == ":" || user.empty() || password.empty()) {
         RAISE_ERROR(
@@ -405,14 +411,19 @@ vector<string> AdapterDB::get_mapping_file_contents() const {
 shared_ptr<DatabaseMappingStrategy> AdapterDB::create_mapping_strategy(
     shared_ptr<BoundedSharedQueue> queue) const {
     if (this->adapter_type == AdapterDbType::Postgres) {
-        string host = config.at_path("adapterdb.database_credentials.host").get<string>();
-        uint port = config.at_path("adapterdb.database_credentials.port").get<uint>();
-        string username = config.at_path("adapterdb.database_credentials.username").get<string>();
-        string password = config.at_path("adapterdb.database_credentials.password").get<string>();
-        string database = config.at_path("adapterdb.database_credentials.database").get<string>();
+        string host = this->config.at_path("adapterdb.database_credentials.host").get<string>();
+        uint port = this->config.at_path("adapterdb.database_credentials.port").get<uint>();
+        string username = this->config.at_path("adapterdb.database_credentials.username").get<string>();
+        string password = this->config.at_path("adapterdb.database_credentials.password").get<string>();
+        string database = this->config.at_path("adapterdb.database_credentials.database").get<string>();
         auto conn =
             make_shared<PostgresConnection>("psql-conn", host, port, database, username, password);
         return make_shared<PostgresMappingStrategy>(this->config, conn, queue);
+    } else if (this->adapter_type == AdapterDbType::Mork) {
+        string host = this->config.at_path("adapterdb.database_credentials.host").get<string>();
+        uint port = this->config.at_path("adapterdb.database_credentials.port").get<uint>();
+        auto conn = make_shared<MorkConnection>("mork-conn", host, port);
+        return make_shared<MorkMappingStrategy>(this->config, conn, queue);
     } else {
         RAISE_ERROR("Unsupported adapter type");
     }

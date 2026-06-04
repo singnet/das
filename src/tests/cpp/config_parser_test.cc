@@ -12,7 +12,6 @@ using namespace commons;
 namespace {
 
 const char* kValidConfigV1 = R"({
-  "schema_version": "1.0",
   "atomdb": {
     "type": "redismongodb",
     "redis": {
@@ -35,36 +34,17 @@ const char* kValidConfigV1 = R"({
     "metta": { "image": "trueagi/das:metta-parser" }
   },
   "agents": {
-    "query": { "endpoint": "localhost:40002" }
+    "query": { "endpoint": "localhost:40002", "params": { "max-answers": 100 } }
   },
   "brokers": {
     "attention": { "endpoint": "localhost:40001" }
   }
 })";
 
-const char* kValidClientConfigV1 = R"({
-  "schema_version": "1.0",
-  "params": {
-    "endpoint": "localhost:9000",
-    "ports-range": "41000:41999",
-    "das-config-file": "config/das.json",
-    "query": { "max-answers": 100 }
-  }
-})";
-
 }  // namespace
-
-TEST(ConfigParserTest, LoadFromStringValidSchemaV1) {
-    JsonConfig config = JsonConfigParser::load_from_string(kValidConfigV1);
-    EXPECT_EQ(config.get_schema_version(), "1.0");
-}
 
 TEST(ConfigParserTest, GetNestedStructure) {
     JsonConfig config = JsonConfigParser::load_from_string(kValidConfigV1);
-
-    // Top-level scalar
-    string schema = config.at_path("schema_version").get_or<string>("");
-    EXPECT_EQ(schema, "1.0");
 
     // Nested sections
     auto atomdb = config.at_path("atomdb").get_or<JsonConfig>(JsonConfig());
@@ -102,9 +82,9 @@ TEST(ConfigParserTest, GetNestedAgentsAndParams) {
     EXPECT_EQ(query, "localhost:40002");
 }
 
-TEST(ConfigParserTest, GetParamsFromClientConfig) {
-    JsonConfig config = JsonConfigParser::load_client_config_from_string(kValidClientConfigV1);
-    long max_answers = config.at_path("params.query.max-answers").get_or<long>(0);
+TEST(ConfigParserTest, GetParamsFromDasConfig) {
+    JsonConfig config = JsonConfigParser::load_from_string(kValidConfigV1);
+    long max_answers = config.at_path("agents.query.params.max-answers").get_or<long>(0);
     EXPECT_EQ(max_answers, 100);
 }
 
@@ -112,52 +92,6 @@ TEST(ConfigParserTest, GetNestedMissingKeyReturnsEmptyString) {
     JsonConfig config = JsonConfigParser::load_from_string(kValidConfigV1);
     EXPECT_EQ(config.at_path("nonexistent").get_or<string>(""), "");
     EXPECT_EQ(config.at_path("atomdb.nonexistent").get_or<string>(""), "");
-}
-
-TEST(ConfigParserTest, MissingSchemaVersionThrows) {
-    const char* no_version = R"({ "atomdb": {}, "loaders": {}, "agents": {}, "brokers": {} })";
-    EXPECT_THROW(JsonConfigParser::load_from_string(no_version), runtime_error);
-}
-
-TEST(ConfigParserTest, UnsupportedSchemaVersionThrows) {
-    const char* bad_version = R"({
-      "schema_version": "99.0",
-      "atomdb": {}, "loaders": {}, "agents": {}, "brokers": {}
-    })";
-    EXPECT_THROW(JsonConfigParser::load_from_string(bad_version), runtime_error);
-}
-
-TEST(ConfigParserTest, MissingRequiredFieldThrows) {
-    const char* no_atomdb = R"({
-      "schema_version": "1.0",
-      "loaders": {}, "agents": {}, "brokers": {}
-    })";
-    EXPECT_THROW(JsonConfigParser::load_from_string(no_atomdb), runtime_error);
-}
-
-TEST(ConfigParserTest, NullRequiredFieldThrows) {
-    const char* null_atomdb = R"({
-      "schema_version": "1.0",
-      "atomdb": null,
-      "loaders": {}, "agents": {}, "brokers": {}
-    })";
-    EXPECT_THROW(JsonConfigParser::load_from_string(null_atomdb), runtime_error);
-}
-
-TEST(ConfigParserTest, ClientProfileMissingParamsThrows) {
-    const char* no_params = R"({
-      "schema_version": "1.0",
-      "atomdb": { "type": "redismongodb", "redis": {}, "mongodb": {}, "morkdb": {} }
-    })";
-    EXPECT_THROW(JsonConfigParser::load_client_config_from_string(no_params), runtime_error);
-}
-
-TEST(ConfigParserTest, ClientProfileMissingDasConfigFileThrows) {
-    const char* no_das = R"({
-      "schema_version": "1.0",
-      "params": { "query": {} }
-    })";
-    EXPECT_THROW(JsonConfigParser::load_client_config_from_string(no_das), runtime_error);
 }
 
 TEST(ConfigParserTest, InvalidJsonThrows) {
@@ -168,6 +102,5 @@ TEST(ConfigParserTest, GetJsonReturnsRoot) {
     JsonConfig config = JsonConfigParser::load_from_string(kValidConfigV1);
     const auto& j = config.get_json();
     EXPECT_TRUE(j.is_object());
-    EXPECT_EQ(j["schema_version"].get<string>(), "1.0");
     EXPECT_EQ(j["atomdb"]["redis"]["port"].get<long>(), 40020);
 }

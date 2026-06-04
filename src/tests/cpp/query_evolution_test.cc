@@ -8,8 +8,11 @@
 #include "ServiceBus.h"
 #include "ServiceBusSingleton.h"
 #include "TestAtomDBJsonConfig.h"
+#include "TestSystemParams.h"
 #include "Utils.h"
 #include "gtest/gtest.h"
+
+using das_test::init_test_system_parameters_singleton;
 
 using namespace atomdb;
 using namespace evolution;
@@ -32,6 +35,7 @@ class TestFitnessFunction : public FitnessFunction {
 
 TEST(QueryEvolution, protected_methods) {
     AtomDBSingleton::init(test_atomdb_json_config());
+    init_test_system_parameters_singleton();
 
     string peer1_id = "localhost:40043";
     string peer2_id = "localhost:40044";

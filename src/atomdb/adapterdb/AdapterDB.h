@@ -24,10 +24,11 @@ using namespace db_adapter;
 
 namespace atomdb {
 
-enum class AdapterDbType { Postgres };
+enum class AdapterDbType { Postgres, Mork };
 
 inline AdapterDbType parse_adapter_db_type(const string& value) {
     if (value == "postgres") return AdapterDbType::Postgres;
+    if (value == "mork") return AdapterDbType::Mork;
     RAISE_ERROR("Unsupported adapterdb.type: " + value);
 }
 
@@ -113,6 +114,8 @@ class AdapterDB : public AtomDB {
     mongocxx::pool* mongodb_pool;
 
     void initialize(bool skip_atomdb_backend_empty = false);
+
+    void validate_adapterdb_type();
 
     /**
      * @brief Use a persistence layer to track loaded contexts and store metadata about the source

@@ -35,7 +35,7 @@ class PostgresWrapper : public SQLWrapper {
      * @param output_queue Optional shared queue for outputting mapped data.
      * @param mapper_type The strategy for mapping results.
      */
-    PostgresWrapper(PostgresConnection& db_conn,
+    PostgresWrapper(shared_ptr<PostgresConnection> db_conn,
                     shared_ptr<BoundedSharedQueue> output_queue = nullptr,
                     MAPPER_TYPE mapper_type = MAPPER_TYPE::SQL2ATOMS);
 
@@ -56,11 +56,11 @@ class PostgresWrapper : public SQLWrapper {
 
     atomic<int> count = 0;
     mutex api_mutex;
-    PostgresConnection& db_conn;
     shared_ptr<BoundedSharedQueue> output_queue;
     optional<vector<Table>> tables_cache;
     unordered_map<string, int> tables_rows_count;
 
+    shared_ptr<PostgresConnection> get_connection();
     vector<string> build_columns_to_map(const Table& table, const vector<string>& skip_columns = {});
     vector<string> collect_fk_ids(const string& table_name,
                                   const string& column_name,
