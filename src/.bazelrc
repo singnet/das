@@ -23,7 +23,6 @@ build --spawn_strategy=local
 # Define versions
 build --define=DAS_VERSION=1.0.5
 
-
 # Enable debugging symbols for development
 build:debug --compilation_mode=dbg
 build:debug --strip=never
@@ -38,6 +37,12 @@ build --noincompatible_disable_objc_library_transition
 build --@rules_python//python/config_settings:bootstrap_impl=system
 build --@rules_python//python/config_settings:bootstrap_impl=system_python
 
+# Suppress warnings in external repositories
+build --features=external_include_paths
+build --per_file_copt=^external/@-w
+build --per_file_copt=^external/@-Wno-all
+build --host_cxxopt=-w
+build --host_cxxopt=-Wno-all
 
 #################################### TEST #####################################
 # Use half of all available CPU cores
