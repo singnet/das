@@ -15,7 +15,7 @@ enum class ProcessorType {
     EVOLUTION_AGENT,
     QUERY_ENGINE,
     ATOMDB_BROKER,
-    BUS_COMMAND_ROUTER,
+    COMMAND_ROUTER,
     UNKNOWN
 };
 
@@ -72,9 +72,9 @@ class Helper {
     static string USE_LINK_TEMPLATE_CACHE;
     static string POPULATE_METTA_MAPPING;
     static string QUERY;
-    /** bus-command-router client: router COMMAND token (e.g. query, get, set). */
+    /** command-router client: router COMMAND token (e.g. query, get, set). */
     static string CMD;
-    /** bus-command-router client: router ARG string (e.g. MeTTa expression). */
+    /** command-router client: router ARG string (e.g. MeTTa expression). */
     static string ARG;
 
     /** Maps CLI arg names to dotted JSON config paths (e.g. "query-engine" -> "agents.query"). */

@@ -57,7 +57,7 @@ string Helper::ARG = "arg";
 
 map<string, string> Helper::arg_to_json_config_key = {
     {"query-engine", "agents.query"},
-    {"bus-command-router", "agents.command_router"},
+    {"command-router", "agents.command_router"},
     {"evolution-agent", "agents.evolution"},
     {"link-creation-agent", "agents.link_creation"},
     {"inference-agent", "agents.inference"},
@@ -145,7 +145,7 @@ Required arguments:
 AtomDB Broker:
 This processor manages AtomDB broker requests from the service bus.
 )")},
-                                                       {ProcessorType::BUS_COMMAND_ROUTER, string(R"(
+                                                       {ProcessorType::COMMAND_ROUTER, string(R"(
 Bus Command Router:
 Gateway peer that accepts text commands as {COMMAND, ARG} over bus_command_router.
 Routes query and evolution to other bus agents; get/set manage local default parameters.
@@ -236,9 +236,9 @@ This client interacts with the AtomDB Broker via the service bus.
  Optional arguments:
     - use-mork: Whether to use MorkDB as the backend (true/false)
 )")},
-                                                         {ProcessorType::BUS_COMMAND_ROUTER, string(R"(
+                                                         {ProcessorType::COMMAND_ROUTER, string(R"(
 Bus Command Router Client:
-Sends {COMMAND, ARG} to the Bus Command Router peer via bus_command_router.
+Sends {COMMAND, ARG} to the Bus Command Router peer via command_router.
 
 Required arguments:
     - cmd: Router command (get, set, query, evolution)
@@ -291,7 +291,7 @@ static map<string, ProcessorType> string_to_processor_type = {
     {"evolution-agent", ProcessorType::EVOLUTION_AGENT},
     {"query-engine", ProcessorType::QUERY_ENGINE},
     {"atomdb-broker", ProcessorType::ATOMDB_BROKER},
-    {"bus-command-router", ProcessorType::BUS_COMMAND_ROUTER}};
+    {"command-router", ProcessorType::COMMAND_ROUTER}};
 
 string Helper::help(const ProcessorType& processor_type, ServiceCallerType caller_type) {
     string usage;
@@ -337,11 +337,11 @@ string Helper::help(const ProcessorType& processor_type, ServiceCallerType calle
             } else {
                 return usage + node_service_help[ProcessorType::ATOMDB_BROKER];
             }
-        case ProcessorType::BUS_COMMAND_ROUTER:
+        case ProcessorType::COMMAND_ROUTER:
             if (caller_type == ServiceCallerType::CLIENT) {
-                return usage + client_service_help[ProcessorType::BUS_COMMAND_ROUTER];
+                return usage + client_service_help[ProcessorType::COMMAND_ROUTER];
             } else {
-                return usage + node_service_help[ProcessorType::BUS_COMMAND_ROUTER];
+                return usage + node_service_help[ProcessorType::COMMAND_ROUTER];
             }
         default:
             vector<string> avaiable_services;
@@ -398,7 +398,7 @@ vector<string> Helper::get_required_arguments(const string& processor_type,
             } else {
                 return {};
             }
-        case ProcessorType::BUS_COMMAND_ROUTER:
+        case ProcessorType::COMMAND_ROUTER:
             if (caller_type == ServiceCallerType::CLIENT) {
                 return {CMD, ARG};
             } else {

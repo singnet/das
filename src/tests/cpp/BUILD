@@ -502,6 +502,7 @@ cc_test(
         "//commons:commons_lib",
         "//service_bus:service_bus_lib",
         "//tests/cpp/test_commons:test_atomdb_json_config",
+        "//tests/cpp/test_commons:test_system_params",
         "@com_github_google_googletest//:gtest_main",
     ],
 )

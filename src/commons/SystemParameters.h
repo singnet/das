@@ -24,6 +24,7 @@ class SystemParameters {
     Properties get_inference_agent_params() const;
     Properties get_evolution_agent_params() const;
     Properties get_context_agent_params() const;
+    Properties get_command_router_params() const;
 
    private:
     Properties get_agent_params(const string& agent) const;

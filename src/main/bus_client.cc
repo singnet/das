@@ -107,9 +107,9 @@ int main(int argc, char* argv[]) {
             FitnessFunctionRegistry::initialize_statics();
         }
 
-        const bool is_router_client = cmd_args[Helper::CLIENT] == "bus-command-router" ||
+        const bool is_router_client = cmd_args[Helper::CLIENT] == "command-router" ||
                                       Helper::processor_type_from_string(cmd_args[Helper::CLIENT]) ==
-                                          ProcessorType::BUS_COMMAND_ROUTER;
+                                          ProcessorType::COMMAND_ROUTER;
 
         shared_ptr<BaseProxy> proxy;
         if (is_router_client) {

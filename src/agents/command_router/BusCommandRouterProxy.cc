@@ -1,16 +1,13 @@
 #include "BusCommandRouterProxy.h"
 
 #include "BaseQueryProxy.h"
-#include "PatternMatchingQueryProxy.h"
-#include "QueryEvolutionProxy.h"
 #include "ServiceBus.h"
+#include "SystemParametersSingleton.h"
 
 #define LOG_LEVEL INFO_LEVEL
 #include "Logger.h"
 
 using namespace command_router;
-using namespace query_engine;
-using namespace evolution;
 
 string BusCommandRouterProxy::PARAMS_RESPONSE = "params_response";
 string BusCommandRouterProxy::SET_PARAM_ACK = "set_param_ack";
@@ -33,24 +30,7 @@ BusCommandRouterProxy::BusCommandRouterProxy(const string& router_command, const
 BusCommandRouterProxy::~BusCommandRouterProxy() {}
 
 void BusCommandRouterProxy::apply_default_parameters(Properties& parameters) {
-    parameters[BaseQueryProxy::UNIQUE_ASSIGNMENT_FLAG] = true;
-    parameters[BaseQueryProxy::ATTENTION_UPDATE] = (unsigned int) BaseQueryProxy::NONE;
-    parameters[BaseQueryProxy::ATTENTION_CORRELATION] = (unsigned int) BaseQueryProxy::NONE;
-    parameters[BaseQueryProxy::MAX_BUNDLE_SIZE] = (unsigned int) 1000;
-    parameters[BaseQueryProxy::MAX_ANSWERS] = (unsigned int) 100;
-    parameters[BaseQueryProxy::USE_LINK_TEMPLATE_CACHE] = false;
-    parameters[BaseQueryProxy::POPULATE_METTA_MAPPING] = true;
-    parameters[BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS] = true;
-    parameters[BaseQueryProxy::ALLOW_INCOMPLETE_CHAIN_PATH] = false;
-    parameters["context"] = string("context");
-    parameters[PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG] = false;
-    parameters[PatternMatchingQueryProxy::DISREGARD_IMPORTANCE_FLAG] = false;
-    parameters[PatternMatchingQueryProxy::UNIQUE_VALUE_FLAG] = false;
-    parameters[PatternMatchingQueryProxy::COUNT_FLAG] = false;
-    parameters[QueryEvolutionProxy::POPULATION_SIZE] = (unsigned int) 100;
-    parameters[QueryEvolutionProxy::MAX_GENERATIONS] = (unsigned int) 10;
-    parameters[QueryEvolutionProxy::ELITISM_RATE] = (double) 0.08;
-    parameters[QueryEvolutionProxy::SELECTION_RATE] = (double) 0.1;
+    parameters = SystemParametersSingleton::get_instance()->get_command_router_params();
 }
 
 void BusCommandRouterProxy::pack_command_line_args() {

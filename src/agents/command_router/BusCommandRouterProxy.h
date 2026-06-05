@@ -26,7 +26,7 @@ class BusCommandRouterProxy : public BaseQueryProxy {
     BusCommandRouterProxy(const string& router_command, const string& router_arg);
     virtual ~BusCommandRouterProxy();
 
-    /** Default router/query parameters; used by client proxies and the router processor store. */
+    /** Default router parameters; used by client proxies and the router processor store. */
     static void apply_default_parameters(Properties& parameters);
 
     virtual void pack_command_line_args() override;

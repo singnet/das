@@ -9,6 +9,7 @@
 #include "PatternMatchingQueryProxy.h"
 #include "QueryEvolutionProxy.h"
 #include "ServiceBusSingleton.h"
+#include "Utils.h"
 
 #define LOG_LEVEL INFO_LEVEL
 #include "Logger.h"
@@ -206,11 +207,16 @@ void BusCommandRouterProcessor::relay_query_answers_to_client(
 void BusCommandRouterProcessor::handle_query(shared_ptr<BusCommandRouterProxy> proxy,
                                              const string& arg) {
     string context = proxy->parameters.get<string>(CONTEXT_KEY);
-    vector<string> query_tokens = {normalize_metta_percent_variables(arg)};
+    string normalized_arg = normalize_metta_percent_variables(arg);
+    vector<string> query_tokens;
+    if (proxy->parameters.get<bool>(BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS)) {
+        query_tokens = {normalized_arg};
+    } else {
+        query_tokens = Utils::split(normalized_arg, ' ');
+    }
 
     auto pm_proxy = make_shared<PatternMatchingQueryProxy>(query_tokens, context);
     pm_proxy->parameters = proxy->parameters;
-    pm_proxy->parameters[BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS] = true;
 
     shared_ptr<ServiceBus> bus =
         this->service_bus ? this->service_bus : ServiceBusSingleton::get_instance();

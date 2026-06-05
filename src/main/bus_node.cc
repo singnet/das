@@ -58,13 +58,13 @@ int main(int argc, char* argv[]) {
         }
 
         // Peers join the query-engine bus mesh (agents.query.endpoint) unless overridden.
-        if (cmd_args.find(Helper::BUS_ENDPOINT) == cmd_args.end() && service_name != "query-engine" &&
-            it_config != cmd_args.end() && !it_config->second.empty()) {
-            auto bus_hub = json_config.at_path("agents.query.endpoint");
-            if (!bus_hub.is_null()) {
-                cmd_args[Helper::BUS_ENDPOINT] = bus_hub.get<string>();
-                LOG_INFO("Default bus-endpoint (query-engine): " + cmd_args[Helper::BUS_ENDPOINT]);
+        if (cmd_args.find(Helper::BUS_ENDPOINT) == cmd_args.end() && service_name != "query-engine") {
+            cmd_args[Helper::BUS_ENDPOINT] =
+                json_config.at_path("agents.query.endpoint").get_or<string>("");
+            if (cmd_args[Helper::BUS_ENDPOINT].empty()) {
+                RAISE_ERROR("Required argument missing: " + Helper::BUS_ENDPOINT);
             }
+            LOG_INFO("Default bus-endpoint (query-engine): " + cmd_args[Helper::BUS_ENDPOINT]);
         }
 
         auto required_args = Helper::get_required_arguments(cmd_args[Helper::SERVICE]);
@@ -99,7 +99,7 @@ int main(int argc, char* argv[]) {
             Helper::processor_type_from_string(cmd_args[Helper::SERVICE]) ==
                 mains::ProcessorType::EVOLUTION_AGENT ||
             Helper::processor_type_from_string(cmd_args[Helper::SERVICE]) ==
-                mains::ProcessorType::BUS_COMMAND_ROUTER) {
+                mains::ProcessorType::COMMAND_ROUTER) {
             // Router builds QueryEvolutionProxy locally before forwarding evolution commands.
             fitness_functions::FitnessFunctionRegistry::initialize_statics();
         }

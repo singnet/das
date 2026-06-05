@@ -49,7 +49,7 @@ class ProcessorFactory {
                 return make_shared<QueryEvolutionProcessor>();
             case ProcessorType::QUERY_ENGINE:
                 return make_shared<PatternMatchingQueryProcessor>();
-            case ProcessorType::BUS_COMMAND_ROUTER:
+            case ProcessorType::COMMAND_ROUTER:
                 return make_shared<BusCommandRouterProcessor>();
             default:
                 RAISE_ERROR("Unknown processor type: " + processor_type);

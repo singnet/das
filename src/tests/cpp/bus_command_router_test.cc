@@ -4,16 +4,21 @@
 #include "EvolutionMettaParser.h"
 #include "ServiceBus.h"
 #include "TestAtomDBJsonConfig.h"
+#include "TestSystemParams.h"
 #include "Utils.h"
 #include "gtest/gtest.h"
 
 using namespace command_router;
 using namespace service_bus;
 using namespace atomdb;
+using das_test::init_test_system_parameters_singleton;
 
 class BusCommandRouterTestEnvironment : public ::testing::Environment {
    public:
-    void SetUp() override { AtomDBSingleton::init(test_atomdb_json_config()); }
+    void SetUp() override {
+        AtomDBSingleton::init(test_atomdb_json_config());
+        init_test_system_parameters_singleton();
+    }
     void TearDown() override {}
 };
 
