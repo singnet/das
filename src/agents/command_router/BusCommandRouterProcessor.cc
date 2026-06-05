@@ -1,7 +1,6 @@
 #include "BusCommandRouterProcessor.h"
 
 #include <algorithm>
-#include <thread>
 #include <variant>
 
 #include "BaseQueryProxy.h"
@@ -180,28 +179,12 @@ void BusCommandRouterProcessor::handle_set(shared_ptr<BusCommandRouterProxy> pro
     proxy->to_remote_peer(BaseProxy::FINISHED, {});
 }
 
-void BusCommandRouterProcessor::relay_query_answers_to_client(
-    shared_ptr<BusCommandRouterProxy> client_proxy, shared_ptr<BaseQueryProxy> downstream) {
-    try {
-        shared_ptr<QueryAnswer> answer;
-        while (!downstream->finished()) {
-            while ((answer = downstream->pop()) != nullptr) {
-                client_proxy->push(answer);
-            }
-            Utils::sleep(100);
-        }
-        while ((answer = downstream->pop()) != nullptr) {
-            client_proxy->push(answer);
-        }
-        if (downstream->error_flag) {
-            client_proxy->raise_error_on_peer(downstream->error_message, downstream->error_code);
-            return;
-        }
-        client_proxy->query_processing_finished();
-    } catch (const std::exception& exception) {
-        LOG_ERROR("Relay to client failed: " << exception.what());
-        client_proxy->raise_error_on_peer(exception.what());
-    }
+void BusCommandRouterProcessor::forward_to_service(shared_ptr<BusCommandRouterProxy> router_proxy,
+                                                   shared_ptr<BaseQueryProxy> service_proxy) {
+    shared_ptr<ServiceBus> bus =
+        this->service_bus ? this->service_bus : ServiceBusSingleton::get_instance();
+    bus->forward_bus_command(service_proxy, router_proxy->get_requestor_id(), router_proxy->peer_id());
+    router_proxy->to_remote_peer(BusCommandRouterProxy::ROUTED, {});
 }
 
 void BusCommandRouterProcessor::handle_query(shared_ptr<BusCommandRouterProxy> proxy,
@@ -217,16 +200,7 @@ void BusCommandRouterProcessor::handle_query(shared_ptr<BusCommandRouterProxy> p
 
     auto pm_proxy = make_shared<PatternMatchingQueryProxy>(query_tokens, context);
     pm_proxy->parameters = proxy->parameters;
-
-    shared_ptr<ServiceBus> bus =
-        this->service_bus ? this->service_bus : ServiceBusSingleton::get_instance();
-    bus->issue_bus_command(pm_proxy);
-
-    proxy->to_remote_peer(BusCommandRouterProxy::ROUTED, {});
-
-    thread relay_thread(
-        [client_proxy = proxy, pm_proxy]() { relay_query_answers_to_client(client_proxy, pm_proxy); });
-    relay_thread.detach();
+    forward_to_service(proxy, pm_proxy);
 }
 
 void BusCommandRouterProcessor::handle_evolution(shared_ptr<BusCommandRouterProxy> proxy,
@@ -257,14 +231,5 @@ void BusCommandRouterProcessor::handle_evolution(shared_ptr<BusCommandRouterProx
                                                       context,
                                                       fitness_tag);
     evo_proxy->parameters = proxy->parameters;
-
-    shared_ptr<ServiceBus> bus =
-        this->service_bus ? this->service_bus : ServiceBusSingleton::get_instance();
-    bus->issue_bus_command(evo_proxy);
-
-    proxy->to_remote_peer(BusCommandRouterProxy::ROUTED, {});
-
-    thread relay_thread(
-        [client_proxy = proxy, evo_proxy]() { relay_query_answers_to_client(client_proxy, evo_proxy); });
-    relay_thread.detach();
+    forward_to_service(proxy, evo_proxy);
 }

@@ -126,6 +126,14 @@ class ServiceBus {
      */
     virtual void issue_bus_command(shared_ptr<BusCommandProxy> bus_command);
 
+    /**
+     * Forwards a command to another bus service on behalf of an existing caller. Does not open
+     * a local proxy listener; the downstream processor connects to @p requestor_proxy_node_id.
+     */
+    virtual void forward_bus_command(shared_ptr<BusCommandProxy> bus_command,
+                                     const string& requestor_id,
+                                     const string& requestor_proxy_node_id);
+
     // ---------------------------------------------------------------------------------------------
     // Used by ServiceBusSingleton
 

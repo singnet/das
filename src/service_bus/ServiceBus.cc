@@ -100,6 +100,33 @@ void ServiceBus::issue_bus_command(shared_ptr<BusCommandProxy> proxy) {
     }
 }
 
+void ServiceBus::forward_bus_command(shared_ptr<BusCommandProxy> proxy,
+                                     const string& requestor_id,
+                                     const string& requestor_proxy_node_id) {
+    lock_guard<mutex> semaphore(this->api_mutex);
+    LOG_DEBUG(bus_node->node_id() << " is forwarding BUS command <" << proxy->command
+                                  << "> for requestor " << requestor_id << " to "
+                                  << requestor_proxy_node_id);
+    if (proxy->issued) {
+        RAISE_ERROR("Attempt to issue the same proxy twice");
+    }
+    if (requestor_id.empty() || requestor_proxy_node_id.empty()) {
+        RAISE_ERROR("Forwarded bus command requires non-empty requestor_id and requestor_proxy_node_id");
+    }
+    proxy->issued = true;
+    proxy->requestor_id = requestor_id;
+    proxy->serial = this->next_request_serial++;
+    proxy->pack_command_line_args();
+    vector<string> args;
+    args.push_back(requestor_id);
+    args.push_back(to_string(proxy->serial));
+    args.push_back(requestor_proxy_node_id);
+    for (const auto& arg : proxy->args) {
+        args.push_back(arg);
+    }
+    this->bus_node->send_bus_command(proxy->command, args);
+}
+
 // -------------------------------------------------------------------------------------------------
 // Messages
 

@@ -14,7 +14,8 @@ namespace command_router {
  * Proxy for the BUS_COMMAND_ROUTER service.
  *
  * Wire format: proxy->args = {COMMAND, ARG} (two strings).
- * Extends BaseQueryProxy so forwarded query/evolution answers can be received on the client.
+ * Extends BaseQueryProxy so query/evolution answers from downstream services are received
+ * directly on the client's proxy (no router relay).
  */
 class BusCommandRouterProxy : public BaseQueryProxy {
    public:

@@ -37,8 +37,8 @@ class BusCommandRouterProcessor : public BusCommandProcessor {
     void handle_query(shared_ptr<BusCommandRouterProxy> proxy, const string& arg);
     void handle_evolution(shared_ptr<BusCommandRouterProxy> proxy, const string& arg);
 
-    static void relay_query_answers_to_client(shared_ptr<BusCommandRouterProxy> client_proxy,
-                                              shared_ptr<BaseQueryProxy> downstream);
+    void forward_to_service(shared_ptr<BusCommandRouterProxy> router_proxy,
+                            shared_ptr<BaseQueryProxy> service_proxy);
 
     void set_router_param(BusCommandRouterProxy* proxy, const string& key, const string& value);
 

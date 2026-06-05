@@ -353,10 +353,9 @@ TEST(BusCommandRouter, forward_query_preserves_caller_identity) {
     Utils::sleep(1500);
 
     EXPECT_TRUE(query_proxy->routed_flag);
-    // Router issues the downstream query (requestor is the router bus node).
-    EXPECT_EQ(query_processor->last_requestor_id, "localhost:40611");
-    // Answers return to the router's query proxy port, not the client's listen address.
-    EXPECT_NE(query_processor->last_proxy_node_id, query_proxy->my_id());
+    // Downstream command keeps the original client identity so answers go to the client proxy.
+    EXPECT_EQ(query_processor->last_requestor_id, "localhost:40612");
+    EXPECT_EQ(query_processor->last_proxy_node_id, query_proxy->my_id());
     bool found_query = false;
     for (const auto& arg : query_processor->last_packed_args) {
         if (arg.find("Similarity") != string::npos) {
