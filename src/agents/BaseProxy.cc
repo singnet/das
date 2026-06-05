@@ -33,12 +33,9 @@ bool BaseProxy::finished() {
 
 void BaseProxy::abort() {
     lock_guard<mutex> semaphore(this->api_mutex);
+    // RAISE_ERROR("Method not implemented");
     if (!this->command_finished_flag) {
-        if (peer_id() != "") {
-            to_remote_peer(ABORT, {});
-        } else {
-            LOG_DEBUG("Skipping remote ABORT; peer not connected yet");
-        }
+        to_remote_peer(ABORT, {});
     }
     this->abort_flag = true;
 }

@@ -152,9 +152,6 @@ void QueryEvolutionProcessor::sample_population(
     LOG_INFO("Individuals with non-zero importance: " + std::to_string(positive_importance_count));
     LOG_INFO("Renew rate: " + std::to_string(renew_rate));
     if (!pm_query->finished()) {
-        for (unsigned int i = 0; i < 50 && pm_query->peer_id().empty(); i++) {
-            Utils::sleep(20);
-        }
         pm_query->abort();
         unsigned int count = 0;
         while (!pm_query->finished()) {
