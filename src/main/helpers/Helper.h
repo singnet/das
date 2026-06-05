@@ -26,6 +26,8 @@ class Helper {
     Helper() = default;
     ~Helper() = default;
 
+    // Path to the DAS JSON configuration file.
+    static string CONFIG;
     // Args names (CLI keys). bus_client: required --client; SERVICE is derived (not a CLI flag).
     // bus_node vs bus_client use ENDPOINT / BUS_ENDPOINT differently; see merge_client_json_defaults.
     static string SERVICE;
@@ -77,9 +79,8 @@ class Helper {
 
     /** Maps CLI arg names to dotted JSON config paths (e.g. "query-engine" -> "agents.query"). */
     static map<string, string> arg_to_json_config_key;
-    /** Merges params from client json config to cmd_args. */
-    static void merge_params_from_client_json_config(map<string, string>& cmd_args,
-                                                     JsonConfig& json_config);
+    /** Merges scalar entries from params.* sections into cmd_args (CLI wins). */
+    static void merge_params_from_config(map<string, string>& cmd_args, JsonConfig& json_config);
 
     static bool is_running;
 

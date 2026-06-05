@@ -21,18 +21,20 @@ using namespace db_adapter;
 //  Construction / destruction
 // ==============================
 
-PostgresWrapper::PostgresWrapper(PostgresConnection& db_conn,
+PostgresWrapper::PostgresWrapper(shared_ptr<PostgresConnection> db_conn,
                                  shared_ptr<BoundedSharedQueue> output_queue,
                                  MAPPER_TYPE mapper_type)
-    : SQLWrapper(db_conn, MapperFactory::create(mapper_type)),
-      db_conn(db_conn),
-      output_queue(output_queue) {}
+    : SQLWrapper(db_conn, MapperFactory::create(mapper_type)), output_queue(output_queue) {}
 
 PostgresWrapper::~PostgresWrapper() {}
 
 // ==============================
 //  Public
 // ==============================
+
+shared_ptr<PostgresConnection> PostgresWrapper::get_connection() {
+    return dynamic_pointer_cast<PostgresConnection>(this->db_conn);
+}
 
 Table PostgresWrapper::get_table(const string& schema_name, const string& table_name) {
     string query = R"(
@@ -106,7 +108,7 @@ Table PostgresWrapper::get_table(const string& schema_name, const string& table_
         LEFT JOIN fk_info     fk ON fk.full_table_name = ti.full_table_name;
     )";
 
-    auto result = db_conn.execute_query(query);
+    auto result = this->get_connection()->execute_query(query);
 
     if (result.empty()) {
         RAISE_ERROR("Table '" + schema_name + "." + table_name + "' not found.");
@@ -202,7 +204,7 @@ vector<Table> PostgresWrapper::list_tables() {
     ORDER BY
         pg_total_relation_size(ti.table_name) ASC;
     )";
-    auto result = db_conn.execute_query(query);
+    auto result = this->get_connection()->execute_query(query);
     vector<Table> tables;
     tables.reserve(result.size());
 
@@ -378,7 +380,7 @@ vector<string> PostgresWrapper::collect_fk_ids(const string& table_name,
     while (true) {
         string query = "SELECT " + column_name + " FROM " + table_name + " WHERE " + where_clause +
                        " LIMIT " + std::to_string(limit) + " OFFSET " + std::to_string(offset) + ";";
-        pqxx::result rows = db_conn.execute_query(query);
+        pqxx::result rows = this->get_connection()->execute_query(query);
 
         if (rows.empty()) break;
 
@@ -439,16 +441,15 @@ void PostgresWrapper::fetch_rows_paginated(const Table& table,
 
     size_t limit = 100000;
     int rows_count = 0;
-    int atoms_count = 0;
 
     string table_name = table.name;
     Utils::replace_all(table_name, ".", "_");
     string cursor_name = "cursor_" + table_name;
 
-    this->db_conn.begin_cursor(cursor_name, query);
+    this->get_connection()->begin_cursor(cursor_name, query);
 
     while (true) {
-        pqxx::result rows = this->db_conn.fetch_cursor(cursor_name, limit);
+        pqxx::result rows = this->get_connection()->fetch_cursor(cursor_name, limit);
 
         LOG_DEBUG("Fetched " << rows.size() << " rows from table " << table.name);
 
@@ -471,32 +472,22 @@ void PostgresWrapper::fetch_rows_paginated(const Table& table,
             }
 #endif
 
-            vector<Atom*> atoms = this->mapper->map(DbInput{sql_row});
+            std::queue<shared_ptr<Atom>>* batch_queue = new std::queue<shared_ptr<Atom>>();
 
-            atoms_count += atoms.size();
-
-            std::queue<Atom*>* batch_queue = new std::queue<Atom*>();
-
-            for (const auto& atom : atoms) {
-                batch_queue->push(atom);
-            }
+            this->mapper->map(DbInput{sql_row}, *batch_queue);
 
             unique_lock<mutex> lock(this->api_mutex);
             this->output_queue->enqueue((void*) batch_queue);
-
-            LOG_DEBUG("Mapper HandleTrie size: " << this->mapper->handle_trie_size());
 
             rows_count++;
 
             this->log_progress(table.name, rows_count);
         }
-        LOG_INFO("Mapping table " << table.name << ". Total atoms generated: " << atoms_count);
     }
 
-    this->db_conn.close_cursor();
+    this->get_connection()->close_cursor();
 
-    LOG_INFO("[END] Mapping table " << table.name << ". Total atoms generated: " << atoms_count);
-    LOG_DEBUG("[END] Mapper HandleTrie size: " << this->mapper->handle_trie_size());
+    LOG_INFO("[END] Mapping table " << table.name);
 }
 
 SqlRow PostgresWrapper::build_sql_row(const pqxx::row& row, const Table& table, vector<string> columns) {

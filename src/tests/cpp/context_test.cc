@@ -10,6 +10,7 @@
 #include "ServiceBus.h"
 #include "ServiceBusSingleton.h"
 #include "TestAtomDBJsonConfig.h"
+#include "TestSystemParams.h"
 #include "UntypedVariable.h"
 #include "Utils.h"
 #include "gtest/gtest.h"
@@ -18,6 +19,8 @@
 #define LOG_LEVEL INFO_LEVEL
 #include "Logger.h"
 
+using das_test::init_test_system_parameters_singleton;
+
 using namespace atomdb;
 using namespace attention_broker;
 using namespace context_broker;
@@ -25,7 +28,10 @@ using namespace query_engine;
 
 class ContextTestEnvironment : public ::testing::Environment {
    public:
-    void SetUp() override { AtomDBSingleton::init(test_atomdb_json_config()); }
+    void SetUp() override {
+        AtomDBSingleton::init(test_atomdb_json_config());
+        init_test_system_parameters_singleton();
+    }
 
     void TearDown() override {}
 };

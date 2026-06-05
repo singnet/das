@@ -1,6 +1,7 @@
 #include "InferenceProxy.h"
 
 #include "ServiceBus.h"
+#include "SystemParametersSingleton.h"
 
 using namespace inference_agent;
 
@@ -21,12 +22,7 @@ InferenceProxy::~InferenceProxy() {}
 void InferenceProxy::pack_command_line_args() { tokenize(this->args); }
 
 void InferenceProxy::set_default_parameters() {
-    this->parameters[INFERENCE_REQUEST_TIMEOUT] =
-        (unsigned int) 24 * 60 * 60;  // Default timeout is 24 hours
-    this->parameters[ATTENTION_CORRELATION] = (unsigned int) BaseQueryProxy::NONE;
-    this->parameters[ATTENTION_UPDATE] = (unsigned int) BaseQueryProxy::NONE;
-    this->parameters[REPEAT_COUNT] = (unsigned int) 5;
-    this->parameters[MAX_ANSWERS] = (unsigned int) 150;
+    this->parameters = SystemParametersSingleton::get_instance()->get_inference_agent_params();
 }
 
 void InferenceProxy::set_parameter(const string& key, const PropertyValue& value) {

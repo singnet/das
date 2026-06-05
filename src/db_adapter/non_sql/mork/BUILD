@@ -47,6 +47,7 @@ cc_library(
     deps = [
         ":mork_wrapper",
         "//commons:commons_lib",
+        "//db_adapter:context_loader",
         "//db_adapter:database_mapping_strategy",
     ],
 )

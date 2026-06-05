@@ -1,12 +1,15 @@
 #pragma once
 
 #include <algorithm>
+#include <memory>
+#include <queue>
 #include <string>
 #include <tuple>
 #include <unordered_set>
 #include <variant>
 #include <vector>
 
+#include "Atom.h"
 #include "DatabaseTypes.h"
 #include "HandleTrie.h"
 #include "MettaMapping.h"
@@ -27,11 +30,11 @@ class DatabaseMapper {
     virtual ~DatabaseMapper() = default;
 
     /**
-     * @brief Transforms the input data into a list of Atom pointers.
-     * @param data The database row or document to map.
-     * @return vector<Atom*> A list of Atom pointers.
+     * @brief Maps the database input to a queue of Atom pointers.
+     * @param data The database row, document to map or other input.
+     * @param output The queue to store the resulting Atom pointers.
      */
-    virtual const vector<Atom*> map(const DbInput& data) = 0;
+    virtual void map(const DbInput& data, std::queue<shared_ptr<Atom>>& output) = 0;
 
     unsigned int handle_trie_size();
 

@@ -13,6 +13,7 @@ using namespace commons;
 
 bool Helper::is_running = true;
 // Args names
+string Helper::CONFIG = "config";
 string Helper::SERVICE = "service";
 string Helper::CLIENT = "client";
 string Helper::ENDPOINT = "endpoint";
@@ -60,11 +61,17 @@ map<string, string> Helper::arg_to_json_config_key = {
     {"evolution-agent", "agents.evolution"},
     {"link-creation-agent", "agents.link_creation"},
     {"inference-agent", "agents.inference"},
-    {"atomdb-broker", "brokers.atomdb"},
-    {"context-broker", "brokers.context"},
-    {"attention-broker", "brokers.attention"},
-    {Helper::ATTENTION_BROKER_ENDPOINT, "brokers.attention.endpoint"},
+    {"atomdb-broker", "agents.atomdb"},
+    {"context-broker", "agents.context"},
+    {"attention-broker", "agents.attention"},
+    {Helper::ATTENTION_BROKER_ENDPOINT, "agents.attention.endpoint"},
 };
+
+string param_key_to_cmd_arg(const string& key) {
+    string cmd_key = key;
+    replace(cmd_key.begin(), cmd_key.end(), '_', '-');
+    return cmd_key;
+}
 
 void merge_params(map<string, string>& cmd_args, JsonConfig& params) {
     for (const auto& entry : params.items()) {
@@ -72,22 +79,29 @@ void merge_params(map<string, string>& cmd_args, JsonConfig& params) {
         if (v.is_object() || v.is_array()) {
             continue;
         }
-        // If the param is not already set, set it
-        if (cmd_args.find(entry.key()) == cmd_args.end()) {
-            cmd_args[entry.key()] = v.dump();
+        string cmd_key = param_key_to_cmd_arg(entry.key());
+        if (cmd_args.find(cmd_key) == cmd_args.end()) {
+            if (v.is_string()) {
+                cmd_args[cmd_key] = v.get<string>();
+            } else if (v.is_boolean()) {
+                cmd_args[cmd_key] = v.get<bool>() ? "true" : "false";
+            } else {
+                cmd_args[cmd_key] = v.dump();
+            }
         }
     }
 }
 
-void Helper::merge_params_from_client_json_config(map<string, string>& cmd_args,
-                                                  JsonConfig& json_config) {
-    auto query_params = json_config.at_path("params.query").get<JsonConfig>();
+void Helper::merge_params_from_config(map<string, string>& cmd_args, JsonConfig& json_config) {
+    auto base_query_params = json_config.at_path("agents.base_query.params").get<JsonConfig>();
+    merge_params(cmd_args, base_query_params);
+    auto query_params = json_config.at_path("agents.query.params").get<JsonConfig>();
     merge_params(cmd_args, query_params);
-    auto link_creation_params = json_config.at_path("params.link_creation").get<JsonConfig>();
+    auto link_creation_params = json_config.at_path("agents.link_creation.params").get<JsonConfig>();
     merge_params(cmd_args, link_creation_params);
-    auto evolution_params = json_config.at_path("params.evolution").get<JsonConfig>();
+    auto evolution_params = json_config.at_path("agents.evolution.params").get<JsonConfig>();
     merge_params(cmd_args, evolution_params);
-    auto context_params = json_config.at_path("params.context").get<JsonConfig>();
+    auto context_params = json_config.at_path("agents.context.params").get<JsonConfig>();
     merge_params(cmd_args, context_params);
 }
 
@@ -266,8 +280,8 @@ Required arguments:
 )")},
                                                          {ProcessorType::UNKNOWN, string(R"(
 Usage:
-busclient --client=<name> --endpoint=<remote_agent_host:port> --bus-endpoint=<this_client_host:port> --ports-range=<start_port:end_port> [--config=<client.json>] [--use-mork=true|false]
-With --config=client.json (schema 1.0), params.das_config_file points at das.json (DAS bus node config); --endpoint may be omitted when --client is set (reads agents.<name>.endpoint or brokers.<name>.endpoint); optional attention-broker-endpoint from merged brokers.attention.endpoint; bus-endpoint and ports-range from params. Internal bus proxy is chosen from --client (query -> query-engine, etc.).
+busclient --client=<name> [--config=<das.json>] [--endpoint=<this_client_host:port>] [--bus-endpoint=<remote_agent_host:port>] [--ports-range=<start_port:end_port>] [--use-mork=true|false]
+Defaults load config/das.json (schema 1.0): client.endpoint and client.ports_range for this client; agents.<name>.endpoint for --bus-endpoint when --client is set; optional attention-broker-endpoint from agents.attention.endpoint; scalar params.* merged into CLI args. Command-line arguments always win.
         )")}};
 
 static map<string, ProcessorType> string_to_processor_type = {
