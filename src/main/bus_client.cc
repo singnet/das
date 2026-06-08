@@ -1,5 +1,7 @@
 #include <signal.h>
 
+#include "BaseQueryProxy.h"
+#include "BusCommandRouterProxy.h"
 #include "FitnessFunctionRegistry.h"
 #include "Helper.h"
 #include "JsonConfig.h"
@@ -15,6 +17,8 @@
 using namespace commons;
 using namespace mains;
 using namespace std;
+using namespace command_router;
+using namespace agents;
 
 int main(int argc, char* argv[]) {
     try {
@@ -28,7 +32,11 @@ int main(int argc, char* argv[]) {
         }
 
         if (cmd_args.find(Helper::CLIENT) == cmd_args.end()) {
-            RAISE_ERROR("Required argument missing: " + Helper::CLIENT);
+            if (cmd_args.find(Helper::SERVICE) != cmd_args.end()) {
+                cmd_args[Helper::CLIENT] = cmd_args[Helper::SERVICE];
+            } else {
+                RAISE_ERROR("Required argument missing: " + Helper::CLIENT + " (or --service=)");
+            }
         }
 
         if (cmd_args.find(Helper::CONFIG) == cmd_args.end()) {
@@ -99,7 +107,19 @@ int main(int argc, char* argv[]) {
             FitnessFunctionRegistry::initialize_statics();
         }
 
-        auto proxy = ProxyFactory::create_proxy(cmd_args[Helper::CLIENT], props);
+        const bool is_router_client = cmd_args[Helper::CLIENT] == "command-router" ||
+                                      Helper::processor_type_from_string(cmd_args[Helper::CLIENT]) ==
+                                          ProcessorType::COMMAND_ROUTER;
+
+        shared_ptr<BaseProxy> proxy;
+        if (is_router_client) {
+            string router_cmd = props.get<string>(Helper::CMD);
+            string router_arg = props.get<string>(Helper::ARG);
+            router_arg = ProxyFactory::parse_metta_expression(router_arg);
+            proxy = make_shared<BusCommandRouterProxy>(router_cmd, router_arg);
+        } else {
+            proxy = ProxyFactory::create_proxy(cmd_args[Helper::CLIENT], props);
+        }
         if (proxy == nullptr) {
             RAISE_ERROR("Could not create proxy for service or client is inactive: " +
                         cmd_args[Helper::CLIENT]);
@@ -114,6 +134,88 @@ int main(int argc, char* argv[]) {
 
         LOG_DEBUG("ServiceBus host_id (endpoint): " + props.get<string>(Helper::ENDPOINT) +
                   "; known_peer (bus-endpoint): " + props.get<string>(Helper::BUS_ENDPOINT));
+
+        if (is_router_client) {
+            auto router_proxy = dynamic_pointer_cast<BusCommandRouterProxy>(proxy);
+            string router_cmd = props.get<string>(Helper::CMD);
+            bool use_metta_as_query_tokens =
+                router_proxy->parameters.get_or<bool>(BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS, true);
+
+            auto router_finished_or_error = [&]() {
+                return router_proxy->finished() || router_proxy->error_flag;
+            };
+
+            if (router_cmd == "get") {
+                while (router_proxy->params_response.empty() && !router_finished_or_error() &&
+                       Helper::is_running) {
+                    Utils::sleep(100);
+                }
+                if (router_proxy->error_flag) {
+                    return 1;
+                }
+                cout << router_proxy->params_response << endl;
+            } else if (router_cmd == "set") {
+                while (router_proxy->set_param_ack.empty() && !router_finished_or_error() &&
+                       Helper::is_running) {
+                    Utils::sleep(100);
+                }
+                if (router_proxy->error_flag) {
+                    return 1;
+                }
+                cout << router_proxy->set_param_ack << endl;
+            } else if (router_cmd == "query") {
+                while (!router_proxy->routed_flag && !router_finished_or_error() && Helper::is_running) {
+                    Utils::sleep(100);
+                }
+                if (router_proxy->error_flag) {
+                    return 1;
+                }
+                LOG_INFO("Query routed; waiting for answers...");
+                while (!router_proxy->finished() && Helper::is_running) {
+                    shared_ptr<QueryAnswer> answer;
+                    while ((answer = router_proxy->pop()) != nullptr) {
+                        LOG_INFO("Received answer: " + answer->to_string(use_metta_as_query_tokens));
+                        for (string handle : answer->get_handles_vector()) {
+                            if (answer->metta_expression.find(handle) !=
+                                answer->metta_expression.end()) {
+                                LOG_INFO(answer->metta_expression[handle]);
+                            }
+                        }
+                    }
+                    Utils::sleep(100);
+                }
+                if (router_proxy->error_flag) {
+                    return 1;
+                }
+            } else if (router_cmd == "evolution") {
+                while (!router_proxy->routed_flag && !router_finished_or_error() && Helper::is_running) {
+                    Utils::sleep(100);
+                }
+                if (router_proxy->error_flag) {
+                    return 1;
+                }
+                LOG_INFO("Evolution routed; waiting for results...");
+                while (!router_proxy->finished() && Helper::is_running) {
+                    shared_ptr<QueryAnswer> answer;
+                    while ((answer = router_proxy->pop()) != nullptr) {
+                        LOG_INFO("Received answer: " + answer->to_string(use_metta_as_query_tokens));
+                        for (string handle : answer->get_handles_vector()) {
+                            if (answer->metta_expression.find(handle) !=
+                                answer->metta_expression.end()) {
+                                LOG_INFO(answer->metta_expression[handle]);
+                            }
+                        }
+                    }
+                    Utils::sleep(100);
+                }
+                if (router_proxy->error_flag) {
+                    return 1;
+                }
+            } else {
+                RAISE_ERROR("Unknown router cmd: " + router_cmd);
+            }
+            return 0;
+        }
 
         if (cmd_args[Helper::CLIENT] == "atomdb-broker") {
             auto action = props.get_or<string>("action", "");

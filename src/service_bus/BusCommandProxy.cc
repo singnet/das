@@ -104,6 +104,8 @@ const vector<string>& BusCommandProxy::get_args() { return this->args; }
 
 unsigned int BusCommandProxy::get_serial() { return this->serial; }
 
+const string& BusCommandProxy::get_requestor_id() { return this->requestor_id; }
+
 string BusCommandProxy::my_id() { return this->proxy_node->node_id(); }
 
 string BusCommandProxy::peer_id() { return this->proxy_node->peer_id; }
@@ -139,7 +141,11 @@ void ProxyNode::to_remote_peer(const string& command, const vector<string>& args
 
 void ProxyNode::node_joined_network(const string& node_id) {
     StarNode::node_joined_network(node_id);
-    this->peer_id = node_id;
+    // Requestor-side SERVER: learn the processor proxy that connected.
+    // Processor-side CLIENT: keep peer_id as the callback server (set in setup_proxy_node).
+    if (this->is_server()) {
+        this->peer_id = node_id;
+    }
 }
 
 bool ProxyNode::is_server() { return StarNode::is_server; }

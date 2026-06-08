@@ -52,9 +52,12 @@ string Helper::UNIQUE_ASSIGNMENT_FLAG = "unique-assignment-flag";
 string Helper::USE_LINK_TEMPLATE_CACHE = "use-link-template-cache";
 string Helper::POPULATE_METTA_MAPPING = "populate-metta-mapping";
 string Helper::QUERY = "query";
+string Helper::CMD = "cmd";
+string Helper::ARG = "arg";
 
 map<string, string> Helper::arg_to_json_config_key = {
     {"query-engine", "agents.query"},
+    {"command-router", "agents.command_router"},
     {"evolution-agent", "agents.evolution"},
     {"link-creation-agent", "agents.link_creation"},
     {"inference-agent", "agents.inference"},
@@ -142,9 +145,15 @@ Required arguments:
 AtomDB Broker:
 This processor manages AtomDB broker requests from the service bus.
 )")},
+                                                       {ProcessorType::COMMAND_ROUTER, string(R"(
+Bus Command Router:
+Gateway peer that accepts text commands as {COMMAND, ARG} over bus_command_router.
+Routes query and evolution to other bus agents; get/set manage local default parameters.
+)")},
                                                        {ProcessorType::UNKNOWN, string(R"(
 Usage:
-busnode --service=<service> --endpoint=<host:port> --ports-range=<start_port:end_port> [--bus-endpoint=<bus_host:bus_port>] [--use-mork=true|false]
+busnode --service=<service> --endpoint=<host:port> --ports-range=<start_port:end_port> [--config=<das.json>] [--bus-endpoint=<bus_host:bus_port>] [--use-mork=true|false]
+With --config=das.json, non-query-engine services default --bus-endpoint to agents.query.endpoint (query-engine mesh hub).
 )")}};
 
 static map<ProcessorType, string> client_service_help = {{ProcessorType::INFERENCE_AGENT, string(R"(
@@ -227,6 +236,48 @@ This client interacts with the AtomDB Broker via the service bus.
  Optional arguments:
     - use-mork: Whether to use MorkDB as the backend (true/false)
 )")},
+                                                         {ProcessorType::COMMAND_ROUTER, string(R"(
+Bus Command Router Client:
+Sends {COMMAND, ARG} to the Bus Command Router peer via command_router.
+
+Required arguments:
+    - cmd: Router command (get, set, query, evolution)
+    - arg: Router argument; format depends on cmd:
+
+        get  ARG: 'params'
+            Returns the per-peer router parameters as 'key: value' lines.
+
+        set  ARG: 'param <key> <value>'
+            Updates an existing router parameter; raises an error if the key
+            is unknown or the value does not match the current type.
+
+        query  ARG: a MeTTa query S-expression (use % for variables).
+            Example: '(Contains (Sentence "ede ebe ...") (Word %W))'
+
+        evolution  ARG: a labeled MeTTa list with these clauses:
+            (q | query)                  required: MeTTa query S-expression
+            (ff | fitness-function-tag)  required: fitness function tag
+            (cq | correlation-queries)   list of MeTTa query S-expressions
+            (cr | correlation-replacements) strict 3-level form
+            (cm | correlation-mappings)     strict 3-level form
+
+            cr/cm bodies must be (((X Y) ...) ...): a list of groups,
+            each group a list of (X Y) pairs (one pair per group needs
+            triple-wrapping, e.g. (cr (((p1 s1))))).
+
+            Example:
+            ((q (Contains %sentence1 (Word "bbb")))
+             (ff count_letter)
+             (cq ((Contains %placeholder1 %word1)))
+             (cr (((placeholder1 sentence1))))
+             (cm (((sentence1 word1)))))
+
+        Context for query/evolution is taken from router params
+        (set it once via: --cmd=set --arg='param context <name>').
+
+ Optional arguments:
+    - bus-endpoint: Overrides agents.router.endpoint from das.json (router listen address)
+)")},
                                                          {ProcessorType::UNKNOWN, string(R"(
 Usage:
 busclient --client=<name> [--config=<das.json>] [--endpoint=<this_client_host:port>] [--bus-endpoint=<remote_agent_host:port>] [--ports-range=<start_port:end_port>] [--use-mork=true|false]
@@ -239,7 +290,8 @@ static map<string, ProcessorType> string_to_processor_type = {
     {"context-broker", ProcessorType::CONTEXT_BROKER},
     {"evolution-agent", ProcessorType::EVOLUTION_AGENT},
     {"query-engine", ProcessorType::QUERY_ENGINE},
-    {"atomdb-broker", ProcessorType::ATOMDB_BROKER}};
+    {"atomdb-broker", ProcessorType::ATOMDB_BROKER},
+    {"command-router", ProcessorType::COMMAND_ROUTER}};
 
 string Helper::help(const ProcessorType& processor_type, ServiceCallerType caller_type) {
     string usage;
@@ -284,6 +336,12 @@ string Helper::help(const ProcessorType& processor_type, ServiceCallerType calle
                 return usage + client_service_help[ProcessorType::ATOMDB_BROKER];
             } else {
                 return usage + node_service_help[ProcessorType::ATOMDB_BROKER];
+            }
+        case ProcessorType::COMMAND_ROUTER:
+            if (caller_type == ServiceCallerType::CLIENT) {
+                return usage + client_service_help[ProcessorType::COMMAND_ROUTER];
+            } else {
+                return usage + node_service_help[ProcessorType::COMMAND_ROUTER];
             }
         default:
             vector<string> avaiable_services;
@@ -337,6 +395,12 @@ vector<string> Helper::get_required_arguments(const string& processor_type,
         case ProcessorType::ATOMDB_BROKER:
             if (caller_type == ServiceCallerType::CLIENT) {
                 return {ACTION, TOKENS};
+            } else {
+                return {};
+            }
+        case ProcessorType::COMMAND_ROUTER:
+            if (caller_type == ServiceCallerType::CLIENT) {
+                return {CMD, ARG};
             } else {
                 return {};
             }
