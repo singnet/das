@@ -37,12 +37,9 @@
 #define ATOM "ATOM"
 #define EXPRESSION "Expression"
 #define SYMBOL "Symbol"
-#define SENTENCE "Sentence"
-#define WORD "Word"
-#define CONTAINS "Contains"
 #define EVALUATION "Evaluation"
-#define PREDICATE "Predicate"
 #define CONCEPT "Concept"
+#define PREDICATE "Predicate"
 #define EQUIVALENCE "Equivalence"
 #define IMPLICATION "Implication"
 #define LOGICAL_AND "LogicalAnd"
@@ -59,7 +56,7 @@
 #define CONCEPT3 "Concept3"
 
 // Misc
-#define STRENGTH "strength"
+#define STRENGTH_TAG "strength"
 #define IS_LITERAL "is_literal"
 #define FITNESS_FUNCTION "inference_toy"
 
@@ -105,9 +102,9 @@ using namespace context_broker;
 enum ContextTaskType { UNDEFINED = 0, DETERMINER, CORRELATION, ACTIVATION };
 
 static shared_ptr<AtomDB> db;
+static HandleDecoder* DECODER;
 static shared_ptr<ServiceBus> bus;
 static vector<vector<string>> buffer_determiners;
-static map<string, unsigned int> buffer_activation;
 static map<string, vector<string>> weight_calculation_cache;
 static vector<pair<shared_ptr<QueryAnswer>, unsigned int>> recorded_answers;
 
@@ -141,19 +138,24 @@ static string hard_wired_metta_expression(const string& handle) {
     return answer;
 }
 
-static void save_link_metta(Link& link) {
+static double get_strength(const string& handle) {
+    auto atom = db->get_atom(handle);
+    return atom->custom_attributes.get_or<double>(STRENGTH_TAG, 1.0);
+}
+
+static void save_link_metta(shared_ptr<Link> link) {
     ofstream file;
     file.open(PRESET_LINKS_FILE, ios::app);
     if (file.is_open()) {
-        file << link.custom_attributes.get_or<double>("strength", 1.0) << ","
-             << link.metta_representation(*static_pointer_cast<HandleDecoder>(db).get()) << endl;
+        file << link->custom_attributes.get_or<double>("strength", 1.0) << ","
+             << link->metta_representation(*DECODER) << endl;
         file.close();
     } else {
         RAISE_ERROR("Couldn't open file for writing: " + PRESET_LINKS_FILE);
     }
 }
 
-static string answer_to_string_1(shared_ptr<QueryAnswer> answer) {
+static string answer_to_string_2(shared_ptr<QueryAnswer> answer) {
     vector<string> paths;
     for (unsigned int i = 0; i < 2; i++) {
         if (answer->get_paths_size() != 2) {
@@ -168,10 +170,9 @@ static string answer_to_string_1(shared_ptr<QueryAnswer> answer) {
             auto target2 = db->get_link(link->targets[2]);
             if (first) {
                 first = false;
-                path = target1->metta_representation(*static_pointer_cast<HandleDecoder>(db).get()) +
-                       path_link[i];
+                path = target1->metta_representation(*DECODER) + path_link[i];
             }
-            path += target2->metta_representation(*static_pointer_cast<HandleDecoder>(db).get());
+            path += target2->metta_representation(*DECODER);
             path += path_link[i];
         }
         if (answer->get_path_vector(i).size() > 0) {
@@ -185,7 +186,7 @@ static string answer_to_string_1(shared_ptr<QueryAnswer> answer) {
     return "[" + std::to_string(answer->strength) + "]: " + paths[0] + " | " + paths[1];
 }
 
-static string answer_to_string(shared_ptr<QueryAnswer> answer) {
+static string answer_to_string_1(shared_ptr<QueryAnswer> answer) {
     if (answer->get_paths_size() != 1) {
         RAISE_ERROR("Invalid answer: " + answer->to_string());
     }
@@ -198,10 +199,9 @@ static string answer_to_string(shared_ptr<QueryAnswer> answer) {
         auto target2 = db->get_link(link->targets[2]);
         if (first) {
             first = false;
-            path =
-                target1->metta_representation(*static_pointer_cast<HandleDecoder>(db).get()) + path_link;
+            path = target1->metta_representation(*DECODER) + path_link;
         }
-        path += target2->metta_representation(*static_pointer_cast<HandleDecoder>(db).get());
+        path += target2->metta_representation(*DECODER);
         path += path_link;
     }
     if (answer->get_path_vector(0).size() > 0) {
@@ -213,6 +213,17 @@ static string answer_to_string(shared_ptr<QueryAnswer> answer) {
     return "[" + std::to_string(answer->strength) + "]: " + path;
 }
 
+static string answer_to_string(shared_ptr<QueryAnswer> answer) {
+    if (answer->get_paths_size() == 1) {
+        return answer_to_string_1(answer);
+    } else if (answer->get_paths_size() == 2) {
+        return answer_to_string_2(answer);
+    } else {
+        RAISE_ERROR("Invalid answer: " + answer->to_string());
+        return "";
+    }
+}
+
 static shared_ptr<PatternMatchingQueryProxy> issue_link_building_query(
     const vector<string>& query_tokens, const string& context) {
     auto proxy = make_shared<PatternMatchingQueryProxy>(query_tokens, context);
@@ -221,18 +232,16 @@ static shared_ptr<PatternMatchingQueryProxy> issue_link_building_query(
     proxy->parameters[BaseQueryProxy::UNIQUE_ASSIGNMENT_FLAG] = true;
     proxy->parameters[BaseQueryProxy::USE_LINK_TEMPLATE_CACHE] = false;
     proxy->parameters[PatternMatchingQueryProxy::DISREGARD_IMPORTANCE_FLAG] = false;
-    proxy->parameters[PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG] = true;
+    proxy->parameters[PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG] = false;
     proxy->parameters[PatternMatchingQueryProxy::MAX_ANSWERS] = (unsigned int) 0;
     proxy->parameters[BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS] = (query_tokens.size() == 1);
     proxy->parameters[BaseQueryProxy::POPULATE_METTA_MAPPING] = USE_MORK;
-    proxy->parameters[PatternMatchingQueryProxy::UNIQUE_VALUE_FLAG] = false;
+    proxy->parameters[PatternMatchingQueryProxy::UNIQUE_VALUE_FLAG] = true;
 
     ServiceBusSingleton::get_instance()->issue_bus_command(proxy);
     return proxy;
 }
 
-// Fazer um cache que permita lembrar dos handles da resposta do QA e recalcular apenas os counts (que
-// dependem dos weight)
 static shared_ptr<PatternMatchingQueryProxy> issue_weight_count_query(const vector<string>& query_tokens,
                                                                       const string& context) {
     auto proxy = make_shared<PatternMatchingQueryProxy>(query_tokens, context);
@@ -312,11 +321,9 @@ static void compute_counts(const vector<vector<string>>& query_tokens,
             if ((query_answer = proxy[i]->pop()) == NULL) {
                 Utils::sleep();
             } else {
-                if (query_answer->get_handles_size() == 1) {
-                    d = 1.0;
-                } else {
-                    auto link = db->get_atom(query_answer->get(1));
-                    d = link->custom_attributes.get<double>(STRENGTH);
+                d = 1;
+                for (string& h : query_answer->get_handles_vector()) {
+                    d *= get_strength(h);
                 }
                 handle = query_answer->get(target_element);
                 insert_or_update(count_map[i], handle, d);
@@ -351,23 +358,27 @@ static void compute_counts(const vector<vector<string>>& query_tokens,
               to_string(count_intersection) + " " + to_string(count_union));
 }
 
-static Link add_or_update_link(const string& type_handle,
-                               const string& target1,
-                               const string& target2,
-                               double strength) {
+static shared_ptr<Link> add_or_update_link(const string& type_handle,
+                                           const string& target1,
+                                           const string& target2,
+                                           double strength,
+                                           const string& context,
+                                           bool& link_created_flag) {
     LOG_DEBUG("add_or_update_link(" + type_handle + ", " + target1 + ", " + target2 + ", " +
               to_string(strength) + ")");
-    Link new_link(EXPRESSION, {type_handle, target1, target2}, true, {{STRENGTH, strength}});
-    LOG_DEBUG("Add or update: " + new_link.to_string());
-    string handle = new_link.handle();
+    link_created_flag = false;
+    shared_ptr<Link> new_link(
+        new Link(EXPRESSION, {type_handle, target1, target2}, true, {{STRENGTH_TAG, strength}}));
+    LOG_DEBUG("Add or update: " + new_link->to_string());
+    string handle = new_link->handle();
     if (db->link_exists(handle)) {
         auto old_link = db->get_atom(handle);
         LOG_DEBUG("Link already exists: " + old_link->to_string());
-        if (strength > old_link->custom_attributes.get<double>(STRENGTH)) {
+        if (strength > old_link->custom_attributes.get_or<double>(STRENGTH_TAG, 1)) {
             if (WRITE_CREATED_LINKS_TO_DB) {
                 LOG_DEBUG("Updating Link in AtomDB");
                 db->delete_link(handle, false);
-                db->add_link(&new_link);
+                db->add_link(new_link.get());
             }
             if (WRITE_CREATED_LINKS_TO_FILE) {
                 LOG_DEBUG("Writing Link to file: " + PRESET_LINKS_FILE);
@@ -375,15 +386,16 @@ static Link add_or_update_link(const string& type_handle,
             }
         }
     } else {
+        link_created_flag = true;
         if (WRITE_CREATED_LINKS_TO_DB) {
             LOG_DEBUG("Creating Link in AtomDB");
             if (PRINT_CREATED_LINKS_METTA) {
-                LOG_INFO("ADD LINK: " +
-                         new_link.metta_representation(*static_pointer_cast<HandleDecoder>(db).get()));
+                LOG_INFO("ADD LINK: [" + std::to_string(strength) + "] " +
+                         new_link->metta_representation(*DECODER));
             }
-            db->add_link(&new_link);
+            db->add_link(new_link.get());
             buffer_determiners.push_back({handle, target1, target2});
-            // buffer_activation[handle] = 1;
+            AttentionBrokerClient::correlate(set<string>({target1, target2}), context);
         }
         if (WRITE_CREATED_LINKS_TO_FILE) {
             LOG_DEBUG("Writing Link to file: " + PRESET_LINKS_FILE);
@@ -410,7 +422,10 @@ static void extract_mentioned_predicates(set<string>& mentioned, const string& h
     }
 }
 
-static shared_ptr<Link> add_and_predicate(const string& handle1, const string& handle2) {
+static shared_ptr<Link> add_and_predicate(const string& handle1,
+                                          const string& handle2,
+                                          const string& context,
+                                          bool& link_created_flag) {
     if (handle1 == handle2) {
         return nullptr;
     }
@@ -418,11 +433,8 @@ static shared_ptr<Link> add_and_predicate(const string& handle1, const string& h
     extract_mentioned_predicates(mentioned_predicates1, handle1);
     extract_mentioned_predicates(mentioned_predicates2, handle2);
     if (Utils::intersects(mentioned_predicates1, mentioned_predicates2)) {
-        LOG_DEBUG(
-            "Disregarded AND predicate: " +
-            db->get_atom(handle1)->metta_representation(*static_pointer_cast<HandleDecoder>(db).get()) +
-            " AND " +
-            db->get_atom(handle2)->metta_representation(*static_pointer_cast<HandleDecoder>(db).get()));
+        LOG_DEBUG("Disregarded AND predicate: " + db->get_atom(handle1)->metta_representation(*DECODER) +
+                  " AND " + db->get_atom(handle2)->metta_representation(*DECODER));
         return nullptr;
     }
 
@@ -435,23 +447,10 @@ static shared_ptr<Link> add_and_predicate(const string& handle1, const string& h
         h2 = handle1;
     }
 
-    shared_ptr<Link> new_link =
-        make_shared<Link>(EXPRESSION, vector<string>({LOGICAL_AND_HANDLE, h1, h2}), false);
-    if (db->link_exists(new_link->handle())) {
-        return nullptr;
-    } else {
-        db->add_link(new_link.get(), false);
-        buffer_determiners.push_back({new_link->handle(), new_link->targets[1], new_link->targets[2]});
-        buffer_activation[new_link->handle()] = 1;
-        if (WRITE_CREATED_LINKS_TO_FILE) {
-            LOG_DEBUG("Writing Link to file: " + PRESET_LINKS_FILE);
-            save_link_metta(*new_link.get());
-        }
-        return new_link;
-    }
+    return add_or_update_link(LOGICAL_AND_HANDLE, h1, h2, 1.0, context, link_created_flag);
 }
 
-static void build_and_predicate_link(shared_ptr<QueryAnswer> query_answer,
+static bool build_and_predicate_link(shared_ptr<QueryAnswer> query_answer,
                                      const string& context,
                                      const string& custom_handle) {
     string predicate1 = query_answer->get(PREDICATE1);
@@ -460,20 +459,25 @@ static void build_and_predicate_link(shared_ptr<QueryAnswer> query_answer,
 
     if (predicate1 == predicate2) {
         LOG_DEBUG("Skipping link building because targets are the same: " + predicate1);
-        return;
+        return false;
     }
 
-    shared_ptr<Link> new_predicate = add_and_predicate(predicate1, predicate2);
-    if (new_predicate != nullptr) {
-        add_or_update_link(EVALUATION_HANDLE, new_predicate->handle(), concept1, 1.0);
-        set<string> ab_request = {new_predicate->handle(), concept1};
-        AttentionBrokerClient::correlate(ab_request, context);
+    bool link_created_flag;
+    shared_ptr<Link> new_predicate =
+        add_and_predicate(predicate1, predicate2, context, link_created_flag);
+    if ((link_created_flag) && (new_predicate != nullptr)) {
+        add_or_update_link(
+            EVALUATION_HANDLE, new_predicate->handle(), concept1, 1.0, context, link_created_flag);
+        return link_created_flag;
+    } else {
+        return false;
     }
 }
 
 static bool build_implication_link(shared_ptr<QueryAnswer> query_answer,
                                    const string& context,
-                                   const string& custom_handle) {
+                                   const string& custom_handle,
+                                   set<pair<string, string>>& visited) {
     string predicates[2];
     string metta_predicates[2];
     if (custom_handle == "") {
@@ -493,7 +497,15 @@ static bool build_implication_link(shared_ptr<QueryAnswer> query_answer,
         return false;
     }
 
+    if (visited.find({predicates[0], predicates[0]}) != visited.end()) {
+        LOG_DEBUG("Skipping link building because targets have already been visited this cycle: " +
+                  predicates[0] + " " + predicates[1]);
+        return false;
+    }
+    LOG_DEBUG("Visiting: " + predicates[0] + " " + predicates[1]);
+    visited.insert({predicates[0], predicates[0]});
     set<string> mentioned_predicates1, mentioned_predicates2;
+
     extract_mentioned_predicates(mentioned_predicates1, predicates[0]);
     extract_mentioned_predicates(mentioned_predicates2, predicates[1]);
     if (Utils::intersects(mentioned_predicates1, mentioned_predicates2)) {
@@ -563,29 +575,63 @@ static bool build_implication_link(shared_ptr<QueryAnswer> query_answer,
                    count_1,
                    count_intersection,
                    count_union);
-    bool link_created = false;
+    bool link_created_flag = false;
     if (count_intersection > 0) {
+        /*
         if (count_0 > 0) {
             double strength = count_intersection / count_0;
-            add_or_update_link(IMPLICATION_HANDLE, predicates[0], predicates[1], strength);
-            link_created = true;
+            add_or_update_link(IMPLICATION_HANDLE, predicates[0], predicates[1], strength, context,
+        link_created_flag); link_created_flag = true;
         }
         if (count_1 > 0) {
             double strength = count_intersection / count_1;
-            add_or_update_link(IMPLICATION_HANDLE, predicates[1], predicates[0], strength);
-            link_created = true;
+            add_or_update_link(IMPLICATION_HANDLE, predicates[1], predicates[0], strength, context,
+        link_created_flag); link_created_flag = true;
         }
-        if (link_created) {
-            set<string> ab_request = {predicates[0], predicates[1]};
-            AttentionBrokerClient::correlate(ab_request, context);
+        */
+        if (count_0 > 0) {
+            if (count_1 > 0) {
+                if (count_0 < count_1) {
+                    add_or_update_link(IMPLICATION_HANDLE,
+                                       predicates[0],
+                                       predicates[1],
+                                       count_intersection / count_0,
+                                       context,
+                                       link_created_flag);
+                } else {
+                    add_or_update_link(IMPLICATION_HANDLE,
+                                       predicates[1],
+                                       predicates[0],
+                                       count_intersection / count_1,
+                                       context,
+                                       link_created_flag);
+                }
+            } else {
+                add_or_update_link(IMPLICATION_HANDLE,
+                                   predicates[0],
+                                   predicates[1],
+                                   count_intersection / count_0,
+                                   context,
+                                   link_created_flag);
+            }
+        } else {
+            if (count_1 > 0) {
+                add_or_update_link(IMPLICATION_HANDLE,
+                                   predicates[1],
+                                   predicates[0],
+                                   count_intersection / count_1,
+                                   context,
+                                   link_created_flag);
+            }
         }
     }
-    return link_created;
+    return link_created_flag;
 }
 
 static bool build_equivalence_link(shared_ptr<QueryAnswer> query_answer,
                                    const string& context,
-                                   const string& custom_handle) {
+                                   const string& custom_handle,
+                                   set<pair<string, string>>& visited) {
     string concepts[2];
     string metta_concepts[2];
     if (custom_handle == "") {
@@ -604,6 +650,13 @@ static bool build_equivalence_link(shared_ptr<QueryAnswer> query_answer,
         LOG_DEBUG("Skipping link building because targets are the same: " + concepts[0]);
         return false;
     }
+    if (visited.find({concepts[0], concepts[0]}) != visited.end()) {
+        LOG_DEBUG("Skipping link building because targets have already been visited this cycle: " +
+                  concepts[0] + " " + concepts[1]);
+        return false;
+    }
+    LOG_DEBUG("Visiting: " + concepts[0] + " " + concepts[1]);
+    visited.insert({concepts[0], concepts[0]});
 
     vector<vector<string>> query;
     for (unsigned int i = 0; i < 2; i++) {
@@ -659,16 +712,37 @@ static bool build_equivalence_link(shared_ptr<QueryAnswer> query_answer,
                    count_1,
                    count_intersection,
                    count_union);
+    bool link_created_flag;
     if ((count_intersection > 0) && (count_union > 0)) {
         double strength = count_intersection / count_union;
-        add_or_update_link(EQUIVALENCE_HANDLE, concepts[0], concepts[1], strength);
-        add_or_update_link(EQUIVALENCE_HANDLE, concepts[1], concepts[0], strength);
-        set<string> ab_request = {concepts[0], concepts[1]};
-        AttentionBrokerClient::correlate(ab_request, context);
-        return true;
-    } else {
+        add_or_update_link(
+            EQUIVALENCE_HANDLE, concepts[0], concepts[1], strength, context, link_created_flag);
+        add_or_update_link(
+            EQUIVALENCE_HANDLE, concepts[1], concepts[0], strength, context, link_created_flag);
+    }
+    return link_created_flag;
+}
+
+static bool build_evaluation_link(shared_ptr<QueryAnswer> query_answer,
+                                  const string& context,
+                                  const string& custom_handle,
+                                  set<pair<string, string>>& visited) {
+    string predicate = query_answer->get(PREDICATE);
+    string concept_ = query_answer->get(CONCEPT);
+    if (visited.find({predicate, concept_}) != visited.end()) {
+        LOG_DEBUG("Skipping link building because targets have already been visited this cycle: " +
+                  predicate + " " + concept_);
         return false;
     }
+    LOG_DEBUG("Visiting: " + predicate + " " + concept_);
+    visited.insert({predicate, concept_});
+    double strength = 1;
+    for (string& h : query_answer->get_handles_vector()) {
+        strength *= get_strength(h);
+    }
+    bool link_created_flag;
+    add_or_update_link(EVALUATION_HANDLE, predicate, concept_, strength, context, link_created_flag);
+    return link_created_flag;
 }
 
 static void build_links(const vector<string>& query,
@@ -677,19 +751,40 @@ static void build_links(const vector<string>& query,
                         const string& custom_handle,
                         bool (*build_link)(shared_ptr<QueryAnswer> query_answer,
                                            const string& context,
-                                           const string& custom_handle)) {
+                                           const string& custom_handle,
+                                           set<pair<string, string>>& visited)) {
     auto proxy = issue_link_building_query(query, context);
     unsigned int count = 0;
     shared_ptr<QueryAnswer> query_answer;
+    set<pair<string, string>> visited;
+    /*
     while (!proxy->finished() && (count < num_links)) {
         if ((query_answer = proxy->pop()) == nullptr) {
             Utils::sleep();
         } else {
             if (query_answer->get_handles_size() == 2) {
                 LOG_DEBUG("Processing query answer " + to_string(count) + ": " +
+    query_answer->to_string(USE_MORK)); if (build_link(query_answer, context, custom_handle)) { count++;
+                }
+            }
+        }
+    }
+    */
+    while (true) {
+        if ((query_answer = proxy->pop()) == nullptr) {
+            if (proxy->finished()) {
+                break;
+            }
+            Utils::sleep();
+        } else {
+            if (query_answer->get_handles_size() == 2) {
+                LOG_DEBUG("Processing query answer " + to_string(count) + ": " +
                           query_answer->to_string(USE_MORK));
-                if (build_link(query_answer, context, custom_handle)) {
+                if (build_link(query_answer, context, custom_handle, visited)) {
                     count++;
+                    if (count == num_links) {
+                        break;
+                    }
                 }
             }
         }
@@ -709,8 +804,11 @@ static void query_evolution(
 
     QueryAnswerElement qa_predicate(PREDICATE);
     QueryAnswerElement qa_concept(CONCEPT);
+    QueryAnswerElement qa_path(QueryAnswerElement::ALL_PATH_HANDLES);
+    QueryAnswerElement qa_nothing;
+    QueryAnswerElement qa_everything(QueryAnswerElement::EVERYTHING);
 
-    vector<map<string, QueryAnswerElement>> correlation_query_constants_1 = {
+    vector<map<string, QueryAnswerElement>> correlation_query_constants = {
         {{V1, qa_predicate}},
         {{V2, qa_concept}}
     };
@@ -718,12 +816,9 @@ static void query_evolution(
         {{qa_concept, qa_concept}},
         {{qa_predicate, qa_predicate}}
     };
-
-    vector<map<string, QueryAnswerElement>> correlation_query_constants = {
-        {{V1, qa_predicate}},
-    };
     vector<vector<pair<QueryAnswerElement, QueryAnswerElement>>> correlation_mapping = {
-        {{qa_concept, qa_concept}},
+        {{qa_concept, qa_concept}, {qa_path, qa_nothing}},
+        {{qa_predicate, qa_predicate}, {qa_path, qa_nothing}}
     };
 
     QueryEvolutionProxy* proxy_ptr = new QueryEvolutionProxy(
@@ -742,7 +837,7 @@ static void query_evolution(
     proxy->parameters[BaseQueryProxy::ALLOW_INCOMPLETE_CHAIN_PATH] = true;
     proxy->parameters[BaseQueryProxy::MAX_BUNDLE_SIZE] = (unsigned int) 1000;
     proxy->parameters[PatternMatchingQueryProxy::DISREGARD_IMPORTANCE_FLAG] = false;
-    proxy->parameters[PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG] = true;
+    proxy->parameters[PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG] = false;
     proxy->parameters[PatternMatchingQueryProxy::UNIQUE_VALUE_FLAG] = false;
     proxy->parameters[PatternMatchingQueryProxy::COUNT_FLAG] = false;
     proxy->parameters[QueryEvolutionProxy::POPULATION_SIZE] = (unsigned int) POPULATION_SIZE;
@@ -862,6 +957,8 @@ static void add_preset_links(const vector<string>& implication_to_target_predica
                              const vector<string>& equivalence_to_target_concept_query,
                              const vector<string>& implication_query,
                              const vector<string>& equivalence_query,
+                             const vector<string>& evaluation_fixed_predicate_query,
+                             const vector<string>& evaluation_fixed_concept_query,
                              const string& context) {
     ifstream file(PRESET_LINKS_FILE);
     if (file.is_open()) {
@@ -880,7 +977,6 @@ static void add_preset_links(const vector<string>& implication_to_target_predica
             count++;
             line.clear();
             buffer_determiners.push_back({link->handle(), link->targets[1], link->targets[2]});
-            buffer_activation[link->handle()] = 1;
             AttentionBrokerClient::correlate({link->targets[1], link->targets[2]}, context);
         }
         LOG_INFO(std::to_string(count) + " preset links read.");
@@ -900,17 +996,19 @@ static void add_preset_links(const vector<string>& implication_to_target_predica
             LINK_BUILDING_QUERY_SIZE,
             TARGET_CONCEPT_HANDLE,
             build_equivalence_link);
-        LOG_INFO("Building Implication links");
-        build_links(implication_query, context, LINK_BUILDING_QUERY_SIZE, "", build_implication_link);
-        LOG_INFO("Building Equivalence links");
-        build_links(equivalence_query, context, LINK_BUILDING_QUERY_SIZE, "", build_equivalence_link);
+        // LOG_INFO("Building Implication links");
+        // build_links(implication_query, context, LINK_BUILDING_QUERY_SIZE, "", build_implication_link);
+        // LOG_INFO("Building Equivalence links");
+        // build_links(equivalence_query, context, LINK_BUILDING_QUERY_SIZE, "", build_equivalence_link);
+        // LOG_INFO("Building Evaluation links");
+        // build_links(evaluation_fixed_predicate_query, context, LINK_BUILDING_QUERY_SIZE, "",
+        // build_evaluation_link); build_links(evaluation_fixed_concept_query, context,
+        // LINK_BUILDING_QUERY_SIZE, "", build_evaluation_link);
     }
     file.close();
     LOG_INFO("Updating determiners in AttentionBroker");
     AttentionBrokerClient::set_determiners(buffer_determiners, context);
-    AttentionBrokerClient::stimulate(buffer_activation, context);
     buffer_determiners.clear();
-    buffer_activation.clear();
 }
 
 static void run(const string& context_tag) {
@@ -981,6 +1079,38 @@ static void run(const string& context_tag) {
             metta_expr3(EVALUATION, metta_var(PREDICATE), TARGET_CONCEPT))
     };
 
+    vector<string> evaluation_fixed_predicate_query = {
+        ANDNOT_OPERATOR, "3",
+            LINK_TEMPLATE, EXPRESSION, "3",
+                NODE, SYMBOL, EVALUATION,
+                VARIABLE, PREDICATE,
+                VARIABLE, CONCEPT1,
+            LINK_TEMPLATE, EXPRESSION, "3",
+                NODE, SYMBOL, EQUIVALENCE,
+                VARIABLE, CONCEPT1,
+                VARIABLE, CONCEPT,
+            LINK_TEMPLATE, EXPRESSION, "3",
+                NODE, SYMBOL, EVALUATION,
+                VARIABLE, PREDICATE,
+                VARIABLE, CONCEPT,
+    };
+
+    vector<string> evaluation_fixed_concept_query = {
+        ANDNOT_OPERATOR, "3",
+            LINK_TEMPLATE, EXPRESSION, "3",
+                NODE, SYMBOL, EVALUATION,
+                VARIABLE, PREDICATE1,
+                VARIABLE, CONCEPT,
+            LINK_TEMPLATE, EXPRESSION, "3",
+                NODE, SYMBOL, IMPLICATION,
+                VARIABLE, PREDICATE1,
+                VARIABLE, PREDICATE,
+            LINK_TEMPLATE, EXPRESSION, "3",
+                NODE, SYMBOL, EVALUATION,
+                VARIABLE, PREDICATE,
+                VARIABLE, CONCEPT,
+    };
+
     vector<string> query_to_evolve_1 = {
         AND_OPERATOR, "3",
             LINK_TEMPLATE, EXPRESSION, "3",
@@ -1010,26 +1140,62 @@ static void run(const string& context_tag) {
             metta_chain(metta_var(PREDICATE), TARGET_PREDICATE, metta_expr3(IMPLICATION, metta_var(PREDICATE1) , metta_var(PREDICATE2))))
     };
     vector<string> query_to_evolve = {
-        AND_OPERATOR, "2",
-            LINK_TEMPLATE, EXPRESSION, "3",
-                NODE, SYMBOL, EVALUATION,
-                VARIABLE, PREDICATE,
-                ATOM, TARGET_CONCEPT_HANDLE,
-            CHAIN_OPERATOR, "0", "1", "2",
-                VARIABLE, PREDICATE,
-                ATOM, TARGET_PREDICATE_HANDLE,
+        OR_OPERATOR, "3",
+            AND_OPERATOR, "2",
                 LINK_TEMPLATE, EXPRESSION, "3",
-                    NODE, SYMBOL, IMPLICATION,
-                    VARIABLE, PREDICATE1,
-                    VARIABLE, PREDICATE2,
+                    NODE, SYMBOL, EVALUATION,
+                    VARIABLE, PREDICATE,
+                    ATOM, TARGET_CONCEPT_HANDLE,
+                CHAIN_OPERATOR, "0", "1", "2",
+                    VARIABLE, PREDICATE,
+                    ATOM, TARGET_PREDICATE_HANDLE,
+                    LINK_TEMPLATE, EXPRESSION, "3",
+                        NODE, SYMBOL, IMPLICATION,
+                        VARIABLE, PREDICATE1,
+                        VARIABLE, PREDICATE2,
+            AND_OPERATOR, "2",
+                LINK_TEMPLATE, EXPRESSION, "3",
+                    NODE, SYMBOL, EVALUATION,
+                    ATOM, TARGET_PREDICATE_HANDLE,
+                    VARIABLE, CONCEPT,
+                CHAIN_OPERATOR, "0", "1", "2",
+                    VARIABLE, CONCEPT,
+                    ATOM, TARGET_CONCEPT_HANDLE,
+                    LINK_TEMPLATE, EXPRESSION, "3",
+                        NODE, SYMBOL, EQUIVALENCE,
+                        VARIABLE, CONCEPT1,
+                        VARIABLE, CONCEPT2,
+            AND_OPERATOR, "3",
+                LINK_TEMPLATE, EXPRESSION, "3",
+                    NODE, SYMBOL, EVALUATION,
+                    VARIABLE, PREDICATE,
+                    VARIABLE, CONCEPT,
+                CHAIN_OPERATOR, "0", "1", "2",
+                    VARIABLE, PREDICATE,
+                    ATOM, TARGET_PREDICATE_HANDLE,
+                    LINK_TEMPLATE, EXPRESSION, "3",
+                        NODE, SYMBOL, IMPLICATION,
+                        VARIABLE, PREDICATE1,
+                        VARIABLE, PREDICATE2,
+                CHAIN_OPERATOR, "0", "1", "2",
+                    VARIABLE, CONCEPT,
+                    ATOM, TARGET_CONCEPT_HANDLE,
+                    LINK_TEMPLATE, EXPRESSION, "3",
+                        NODE, SYMBOL, EQUIVALENCE,
+                        VARIABLE, CONCEPT1,
+                        VARIABLE, CONCEPT2,
     };
     vector<string> metta_query_to_evolve = {
-        metta_and(
-            metta_expr3(EVALUATION, metta_var(PREDICATE), TARGET_CONCEPT),
-            metta_chain(metta_var(PREDICATE), TARGET_PREDICATE, metta_expr3(IMPLICATION, metta_var(PREDICATE1) , metta_var(PREDICATE2))))
+        metta_or(
+            metta_and(
+                metta_expr3(EVALUATION, metta_var(PREDICATE), TARGET_CONCEPT),
+                metta_chain(metta_var(PREDICATE), TARGET_PREDICATE, metta_expr3(IMPLICATION, metta_var(PREDICATE1) , metta_var(PREDICATE2)))),
+            metta_and(
+                metta_expr3(EVALUATION, TARGET_PREDICATE, metta_var(CONCEPT)),
+                metta_chain(metta_var(CONCEPT), TARGET_CONCEPT, metta_expr3(EQUIVALENCE, metta_var(CONCEPT1) , metta_var(CONCEPT2)))))
     };
 
-    vector<vector<string>> correlation_query_template_1 = {
+    vector<vector<string>> correlation_query_template = {
         {LINK_TEMPLATE, EXPRESSION, "3",
             NODE, SYMBOL, EVALUATION,
             VARIABLE, V1,
@@ -1039,19 +1205,9 @@ static void run(const string& context_tag) {
             VARIABLE, PREDICATE,
             VARIABLE, V2}
     };
-    vector<vector<string>> correlation_metta_query_template_1 = {
-        {metta_expr3(EVALUATION, metta_var(V1), metta_var(CONCEPT))},
-        {metta_expr3(EVALUATION, metta_var(PREDICATE), metta_var(V2))}
-    };
-
-    vector<vector<string>> correlation_query_template = {
-        {LINK_TEMPLATE, EXPRESSION, "3",
-            NODE, SYMBOL, EVALUATION,
-            VARIABLE, V1,
-            VARIABLE, CONCEPT},
-    };
     vector<vector<string>> correlation_metta_query_template = {
         {metta_expr3(EVALUATION, metta_var(V1), metta_var(CONCEPT))},
+        {metta_expr3(EVALUATION, metta_var(PREDICATE), metta_var(V2))}
     };
 
     vector<string> context_determiner_query = {
@@ -1143,8 +1299,6 @@ static void run(const string& context_tag) {
         LOG_INFO("Context file already exists. Reusing it...");
     }
     LOG_INFO("Updating AttentionBroker");
-    AttentionBrokerClient::stimulate({{TARGET_PREDICATE_HANDLE, 1}, {TARGET_CONCEPT_HANDLE, 1}},
-                                     context);
     AttentionBrokerClient::drop_and_load_context(context, string(context_file_name));
     LOG_INFO("Context " + context + " is ready");
 
@@ -1154,6 +1308,8 @@ static void run(const string& context_tag) {
                      equivalence_to_target_concept_query,
                      implication_query,
                      equivalence_query,
+                     evaluation_fixed_predicate_query,
+                     evaluation_fixed_concept_query,
                      context);
 
     if (SETUP_ONLY) {
@@ -1165,25 +1321,30 @@ static void run(const string& context_tag) {
         LOG_INFO("--------------------------------------------------------------------------------");
         LOG_INFO("Iteration " + to_string(iteration));
         LOG_INFO("--------------------------------------------------------------------------------");
+        LOG_INFO("----- Building links");
+        LOG_INFO("Building Implication links");
+        build_links(implication_query, context, LINK_BUILDING_QUERY_SIZE, "", build_implication_link);
+        LOG_INFO("Building Equivalence links");
+        build_links(equivalence_query, context, LINK_BUILDING_QUERY_SIZE, "", build_equivalence_link);
+        LOG_INFO("Building Evaluation links");
+        build_links(evaluation_fixed_predicate_query,
+                    context,
+                    LINK_BUILDING_QUERY_SIZE,
+                    "",
+                    build_evaluation_link);
+        build_links(evaluation_fixed_concept_query,
+                    context,
+                    LINK_BUILDING_QUERY_SIZE,
+                    "",
+                    build_evaluation_link);
+        LOG_INFO("----- Updating AttentionBroker");
+        AttentionBrokerClient::set_determiners(buffer_determiners, context);
+        buffer_determiners.clear();
         LOG_INFO("----- Evolving query");
         query_evolution((USE_MORK ? metta_query_to_evolve : query_to_evolve),
                         (USE_MORK ? correlation_metta_query_template : correlation_query_template),
                         iteration,
                         context);
-        if (iteration != NUM_ITERATIONS) {
-            LOG_INFO("----- Building links");
-            LOG_INFO("Building Implication links");
-            build_links(
-                implication_query, context, LINK_BUILDING_QUERY_SIZE, "", build_implication_link);
-            LOG_INFO("Building Equivalence links");
-            build_links(
-                equivalence_query, context, LINK_BUILDING_QUERY_SIZE, "", build_equivalence_link);
-            LOG_INFO("----- Updating AttentionBroker");
-            AttentionBrokerClient::set_determiners(buffer_determiners, context);
-            // AttentionBrokerClient::stimulate(buffer_activation, context);
-            buffer_determiners.clear();
-            // buffer_activation.clear();
-        }
     }
 
     LOG_INFO("--------------------------------------------------------------------------------");
@@ -1261,6 +1422,7 @@ int main(int argc, char* argv[]) {
     AtomDBSingleton::init(atomdb_config);
 
     db = AtomDBSingleton::get_instance();
+    DECODER = static_pointer_cast<HandleDecoder>(db).get();
     ServiceBusSingleton::init(client_endpoint, server_endpoint, ports_range.first, ports_range.second);
     FitnessFunctionRegistry::initialize_statics();
     bus = ServiceBusSingleton::get_instance();
