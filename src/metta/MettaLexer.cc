@@ -183,8 +183,10 @@ unique_ptr<Token> MettaLexer::next() {
                         break;
                     }
                     default: {
-                        _error(state, "Invalid number character", c);
-                        return nullptr;
+                        current_token = make_unique<Token>(MettaTokens::SYMBOL, number_string);
+                        number_string = "";
+                        current_token->text.push_back(c);
+                        state = READING_SYMBOL_OR_VARIABLE;
                     }
                 }
                 break;

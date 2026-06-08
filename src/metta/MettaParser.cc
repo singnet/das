@@ -56,7 +56,13 @@ bool MettaParser::parse(bool throw_on_parse_error) {
             this->actions->symbol(token->text);
             token_stack.push(move(token));
         } else if (token->type == MettaTokens::VARIABLE) {
-            this->actions->variable(token->text);
+            if (token->text == "") {
+                token->type = MettaTokens::SYMBOL;
+                token->text = "$";
+                this->actions->symbol(token->text);
+            } else {
+                this->actions->variable(token->text);
+            }
             token_stack.push(move(token));
         } else if (token->type == MettaTokens::STRING_LITERAL) {
             this->actions->literal(token->text);

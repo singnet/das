@@ -1,3 +1,5 @@
+#include "PostgresWrapper.h"
+
 #include <gtest/gtest.h>
 
 #include <algorithm>
@@ -19,7 +21,6 @@
 #include "DedicatedThread.h"
 #include "Logger.h"
 #include "Node.h"
-#include "PostgresWrapper.h"
 #include "Processor.h"
 #include "TestAtomDBJsonConfig.h"
 
@@ -166,31 +167,33 @@ class PostgresWrapperTest : public ::testing::Test {
         }
     }
 
-    unordered_set<string> read_atoms_from_queue(shared_ptr<BoundedSharedQueue> q) {
+    vector<shared_ptr<Atom>> read_atoms_from_queue(shared_ptr<BoundedSharedQueue> q) {
+        vector<shared_ptr<Atom>> atoms;
         unordered_set<string> atom_handles;
 
         while (true) {
             if (q->empty()) break;
             void* raw_ptr = q->dequeue();
-            std::queue<Atom*>* batch_queue = static_cast<std::queue<Atom*>*>(raw_ptr);
+            std::queue<shared_ptr<Atom>>* batch_queue =
+                static_cast<std::queue<shared_ptr<Atom>>*>(raw_ptr);
 
             if (batch_queue != nullptr) {
                 while (!batch_queue->empty()) {
-                    Atom* atom = batch_queue->front();
+                    shared_ptr<Atom> atom = batch_queue->front();
                     batch_queue->pop();
                     if (atom != nullptr) {
                         if (atom_handles.find(atom->handle()) == atom_handles.end()) {
                             atom_handles.insert(atom->handle());
+                            atoms.push_back(atom);
                         }
                     }
-                    delete atom;
                 }
                 delete batch_queue;
             }
         }
 
-        return atom_handles;
-    }
+        return atoms;
+    };
 
     unordered_set<string> read_metta_expressions_from_queue(shared_ptr<BoundedSharedQueue> q) {
         unordered_set<string> metta_expressions;

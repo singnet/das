@@ -52,10 +52,10 @@ class AtomPersister {
     atomic<int> batches_completed{0};
     atomic<int> batches_failed{0};
 
-    vector<Atom*> accumulator;
+    vector<shared_ptr<Atom>> accumulator;
     void drain_into_accumulator();
     void flush_batch();
-    void send_batch(vector<Atom*> atoms, int batch_id, shared_ptr<MettaFileWriter> writer);
+    void send_batch(vector<shared_ptr<Atom>> atoms, int batch_id, shared_ptr<MettaFileWriter> writer);
     bool is_save_metta() const { return this->save_metta_expression; }
 };
 }  // namespace db_adapter

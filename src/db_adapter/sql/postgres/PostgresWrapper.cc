@@ -471,11 +471,11 @@ void PostgresWrapper::fetch_rows_paginated(const Table& table,
             }
 #endif
 
-            vector<Atom*> atoms = this->mapper->map(DbInput{sql_row});
+            vector<shared_ptr<Atom>> atoms = this->mapper->map(DbInput{sql_row});
 
             atoms_count += atoms.size();
 
-            std::queue<Atom*>* batch_queue = new std::queue<Atom*>();
+            std::queue<shared_ptr<Atom>>* batch_queue = new std::queue<shared_ptr<Atom>>();
 
             for (const auto& atom : atoms) {
                 batch_queue->push(atom);

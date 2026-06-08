@@ -33,7 +33,7 @@ SQL2AtomsMapper::~SQL2AtomsMapper() {}
 //  Public
 // ==============================
 
-const vector<Atom*> SQL2AtomsMapper::map(const DbInput& data) {
+vector<shared_ptr<Atom>> SQL2AtomsMapper::map(const DbInput& data) {
     vector<tuple<string, string, string>> all_foreign_keys;
     SqlRow sql_row = get<SqlRow>(data);
     string table_name = sql_row.table_name;
@@ -119,14 +119,14 @@ string SQL2AtomsMapper::add_atom_if_new(SQL2AtomsMapper::ATOM_TYPE atom_type,
                                         variant<string, vector<string>> value,
                                         const string& metta_expression,
                                         bool is_toplevel) {
-    Atom* atom;
+    shared_ptr<Atom> atom;
 
     if (atom_type == NODE) {
         string name = get<string>(value);
-        atom = new Node(SQL2AtomsMapper::SYMBOL, name);
+        atom = make_shared<Node>(SQL2AtomsMapper::SYMBOL, name);
     } else if (atom_type == LINK) {
         vector<string> targets = get<vector<string>>(value);
-        atom = new Link(SQL2AtomsMapper::EXPRESSION, targets, is_toplevel);
+        atom = make_shared<Link>(SQL2AtomsMapper::EXPRESSION, targets, is_toplevel);
     } else {
         RAISE_ERROR("Either name or targets must be provided to create an Atom.");
     }

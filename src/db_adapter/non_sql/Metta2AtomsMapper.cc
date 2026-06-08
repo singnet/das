@@ -11,9 +11,7 @@ using namespace atoms;
 //  Construction / destruction
 // ==============================
 
-Metta2AtomsMapper::Metta2AtomsMapper() {
-    RAISE_ERROR("Metta2AtomsMapper constructor not implemented yet");
-}
+Metta2AtomsMapper::Metta2AtomsMapper() {}
 
 Metta2AtomsMapper::~Metta2AtomsMapper() {}
 
@@ -21,7 +19,6 @@ Metta2AtomsMapper::~Metta2AtomsMapper() {}
 //  Public
 // ==============================
 
-const vector<Atom*> Metta2AtomsMapper::map(const DbInput& data) {
-    RAISE_ERROR("Metta2AtomsMapper::map() not implemented yet");
-    return vector<Atom*>{};
+vector<shared_ptr<Atom>> Metta2AtomsMapper::map(const DbInput& data) {
+    return vector<shared_ptr<Atom>>{};
 }

@@ -11,9 +11,7 @@ using namespace db_adapter;
 // ==============================
 
 MorkConnection::MorkConnection(const string& id, const string& host, int port)
-    : DatabaseConnection(id, host, port) {
-    RAISE_ERROR("MorkConnection constructor not implemented yet");
-}
+    : DatabaseConnection(id, host, port) {}
 
 MorkConnection::~MorkConnection() {}
 
@@ -22,16 +20,20 @@ MorkConnection::~MorkConnection() {}
 // ==============================
 
 void MorkConnection::connect() {
-    RAISE_ERROR("MorkConnection::connect() not implemented yet");
-    return;
+    string address = this->host + ":" + std::to_string(this->port);
+    try {
+        this->conn = make_shared<MorkClient>(address);
+        LOG_DEBUG("Connected to MORK at " << address);
+    } catch (const exception& e) {
+        RAISE_ERROR("Could not connect to MORK at " + address + ": " + string(e.what()));
+    }
 }
 
 void MorkConnection::disconnect() {
-    RAISE_ERROR("MorkConnection::disconnect() not implemented yet");
+    LOG_DEBUG("MORK connection does not require disconnection");
     return;
 }
 
 vector<string> MorkConnection::query(const string& metta_query) {
-    RAISE_ERROR("MorkConnection::query() not implemented yet");
-    return {};
+    return this->conn->get(metta_query, metta_query);
 }

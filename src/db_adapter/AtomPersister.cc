@@ -68,7 +68,7 @@ void AtomPersister::dispatch() {
         LOG_DEBUG("Dispatching FINAL batch #" << batch_id << " | size: " << this->accumulator.size()
                                               << " | (remainder < batch_size)");
 
-        vector<Atom*> final_batch = move(this->accumulator);
+        vector<shared_ptr<Atom>> final_batch = move(this->accumulator);
         this->accumulator.clear();
 
         shared_ptr<MettaFileWriter> writer = this->metta_writer;
@@ -109,11 +109,11 @@ void AtomPersister::drain_into_accumulator() {
         if (this->input_queue->empty()) break;
 
         void* raw_ptr = this->input_queue->dequeue();
-        queue<Atom*>* batch_queue = static_cast<queue<Atom*>*>(raw_ptr);
+        queue<shared_ptr<Atom>>* batch_queue = static_cast<queue<shared_ptr<Atom>>*>(raw_ptr);
 
         if (batch_queue != nullptr) {
             while (!batch_queue->empty()) {
-                Atom* atom = batch_queue->front();
+                shared_ptr<Atom> atom = batch_queue->front();
                 batch_queue->pop();
                 if (atom != nullptr) {
                     this->accumulator.push_back(atom);
@@ -134,7 +134,8 @@ void AtomPersister::flush_batch() {
             return;
         }
 
-        vector<Atom*> batch(this->accumulator.begin(), this->accumulator.begin() + this->batch_size);
+        vector<shared_ptr<Atom>> batch(this->accumulator.begin(),
+                                       this->accumulator.begin() + this->batch_size);
         this->accumulator.erase(this->accumulator.begin(), this->accumulator.begin() + this->batch_size);
 
         int batch_id = this->batches_dispatched.fetch_add(1) + 1;
@@ -152,7 +153,9 @@ void AtomPersister::flush_batch() {
     }
 }
 
-void AtomPersister::send_batch(vector<Atom*> atoms, int batch_id, shared_ptr<MettaFileWriter> writer) {
+void AtomPersister::send_batch(vector<shared_ptr<Atom>> atoms,
+                               int batch_id,
+                               shared_ptr<MettaFileWriter> writer) {
     StopWatch timer_success;
     StopWatch timer_failure;
     timer_success.start();
@@ -162,12 +165,16 @@ void AtomPersister::send_batch(vector<Atom*> atoms, int batch_id, shared_ptr<Met
                         << " | thread: " << this_thread::get_id());
 
     try {
-        this->atomdb->add_atoms(atoms, false, true);
+        vector<Atom*> atom_ptrs;
+        for (const auto& atom : atoms) {
+            atom_ptrs.push_back(atom.get());
+        }
+        this->atomdb->add_atoms(atom_ptrs, false, true);
 
         if (this->is_save_metta()) {
             for (auto& atom : atoms) {
                 if (atom->arity() > 0) {
-                    Link* link = dynamic_cast<Link*>(atom);
+                    shared_ptr<Link> link = dynamic_pointer_cast<Link>(atom);
                     const string metta_expression =
                         link->custom_attributes.get_or<string>("metta_expression", "");
 
@@ -203,9 +210,5 @@ void AtomPersister::send_batch(vector<Atom*> atoms, int batch_id, shared_ptr<Met
                             << this->batches_failed.load() << " | thread: " << this_thread::get_id());
 
         RAISE_ERROR("Error in batch #" + to_string(batch_id) + ": " + string(e.what()));
-    }
-
-    for (auto& atom : atoms) {
-        delete atom;
     }
 }
