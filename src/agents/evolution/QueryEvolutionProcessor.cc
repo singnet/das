@@ -271,13 +271,16 @@ void QueryEvolutionProcessor::select_best_individuals(
 
 void QueryEvolutionProcessor::correlate_similar(shared_ptr<QueryEvolutionProxy> proxy,
                                                 shared_ptr<QueryAnswer> selected_answer) {
-
     vector<string> query_tokens;
     vector<vector<string>> correlation_queries = proxy->get_correlation_queries();
-    vector<map<string, QueryAnswerElement>> correlation_replacements = proxy->get_correlation_replacements();
-    vector<vector<pair<QueryAnswerElement, QueryAnswerElement>>> correlation_mappings = proxy->get_correlation_mappings();
+    vector<map<string, QueryAnswerElement>> correlation_replacements =
+        proxy->get_correlation_replacements();
+    vector<vector<pair<QueryAnswerElement, QueryAnswerElement>>> correlation_mappings =
+        proxy->get_correlation_mappings();
 
-    if ((correlation_queries.size() == 0) || (correlation_queries.size() != correlation_replacements.size()) || (correlation_queries.size() != correlation_mappings.size())) {
+    if ((correlation_queries.size() == 0) ||
+        (correlation_queries.size() != correlation_replacements.size()) ||
+        (correlation_queries.size() != correlation_mappings.size())) {
         RAISE_ERROR("Invalid correlation queries/replacements/mappings. Proxy: " + proxy->to_string());
     }
 
@@ -294,9 +297,8 @@ void QueryEvolutionProcessor::correlate_similar(shared_ptr<QueryEvolutionProxy> 
             for (auto& pair : correlation_replacements[i]) {
                 string atom_handle = selected_answer->get(pair.second, true);
                 if (atom_handle != "") {
-                    Utils::replace_all(expression,
-                                       "$" + pair.first,
-                                       selected_answer->metta_expression[atom_handle]);
+                    Utils::replace_all(
+                        expression, "$" + pair.first, selected_answer->metta_expression[atom_handle]);
                 } else {
                     correlation_aborted = true;
                 }
@@ -333,7 +335,7 @@ void QueryEvolutionProcessor::correlate_similar(shared_ptr<QueryEvolutionProxy> 
             }
         }
 
-        if (! correlation_aborted) {
+        if (!correlation_aborted) {
             // Update AttentionBroker
             set<string> handle_set;
             LOG_DEBUG("Correlation query: " +
@@ -375,7 +377,7 @@ void QueryEvolutionProcessor::correlate_similar(shared_ptr<QueryEvolutionProxy> 
                                 }
                             }
                         }
-                        if (! skip_correlation) {
+                        if (!skip_correlation) {
                             AttentionBrokerClient::correlate(handle_set, proxy->get_context());
                         }
                     }
@@ -507,10 +509,11 @@ void QueryEvolutionProcessor::evolve_query(shared_ptr<StoppableThread> monitor,
     LOG_INFO("--------------------");
     LOG_INFO("Total number of visited individuals: " + std::to_string(this->visited_individuals.size()));
     LOG_INFO("Average renew rate per generation: " +
-             std::to_string(std::lround(100 * (
-                 (double) this->visited_individuals.size() /
-                 ((double) proxy->parameters.get<unsigned int>(QueryEvolutionProxy::POPULATION_SIZE) *
-                  (this->generation_count - 1))))) + "%");
+             std::to_string(std::lround(100 * ((double) this->visited_individuals.size() /
+                                               ((double) proxy->parameters.get<unsigned int>(
+                                                    QueryEvolutionProxy::POPULATION_SIZE) *
+                                                (this->generation_count - 1))))) +
+             "%");
     STOP_WATCH_FINISH(evolution, "QueryEvolution");
     RAM_FOOTPRINT_FINISH(evolution, "");
     Utils::sleep(1000);

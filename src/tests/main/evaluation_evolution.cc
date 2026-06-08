@@ -199,8 +199,7 @@ static string answer_to_string_1(shared_ptr<QueryAnswer> answer) {
         auto target2 = db->get_link(link->targets[2]);
         if (first) {
             first = false;
-            path =
-                target1->metta_representation(*DECODER) + path_link;
+            path = target1->metta_representation(*DECODER) + path_link;
         }
         path += target2->metta_representation(*DECODER);
         path += path_link;
@@ -368,7 +367,8 @@ static shared_ptr<Link> add_or_update_link(const string& type_handle,
     LOG_DEBUG("add_or_update_link(" + type_handle + ", " + target1 + ", " + target2 + ", " +
               to_string(strength) + ")");
     link_created_flag = false;
-    shared_ptr<Link> new_link(new Link(EXPRESSION, {type_handle, target1, target2}, true, {{STRENGTH_TAG, strength}}));
+    shared_ptr<Link> new_link(
+        new Link(EXPRESSION, {type_handle, target1, target2}, true, {{STRENGTH_TAG, strength}}));
     LOG_DEBUG("Add or update: " + new_link->to_string());
     string handle = new_link->handle();
     if (db->link_exists(handle)) {
@@ -390,7 +390,8 @@ static shared_ptr<Link> add_or_update_link(const string& type_handle,
         if (WRITE_CREATED_LINKS_TO_DB) {
             LOG_DEBUG("Creating Link in AtomDB");
             if (PRINT_CREATED_LINKS_METTA) {
-                LOG_INFO("ADD LINK: [" + std::to_string(strength) + "] " + new_link->metta_representation(*DECODER));
+                LOG_INFO("ADD LINK: [" + std::to_string(strength) + "] " +
+                         new_link->metta_representation(*DECODER));
             }
             db->add_link(new_link.get());
             buffer_determiners.push_back({handle, target1, target2});
@@ -421,7 +422,10 @@ static void extract_mentioned_predicates(set<string>& mentioned, const string& h
     }
 }
 
-static shared_ptr<Link> add_and_predicate(const string& handle1, const string& handle2, const string& context, bool& link_created_flag) {
+static shared_ptr<Link> add_and_predicate(const string& handle1,
+                                          const string& handle2,
+                                          const string& context,
+                                          bool& link_created_flag) {
     if (handle1 == handle2) {
         return nullptr;
     }
@@ -429,10 +433,8 @@ static shared_ptr<Link> add_and_predicate(const string& handle1, const string& h
     extract_mentioned_predicates(mentioned_predicates1, handle1);
     extract_mentioned_predicates(mentioned_predicates2, handle2);
     if (Utils::intersects(mentioned_predicates1, mentioned_predicates2)) {
-        LOG_DEBUG(
-            "Disregarded AND predicate: " +
-            db->get_atom(handle1)->metta_representation(*DECODER) + " AND " +
-            db->get_atom(handle2)->metta_representation(*DECODER));
+        LOG_DEBUG("Disregarded AND predicate: " + db->get_atom(handle1)->metta_representation(*DECODER) +
+                  " AND " + db->get_atom(handle2)->metta_representation(*DECODER));
         return nullptr;
     }
 
@@ -461,9 +463,11 @@ static bool build_and_predicate_link(shared_ptr<QueryAnswer> query_answer,
     }
 
     bool link_created_flag;
-    shared_ptr<Link> new_predicate = add_and_predicate(predicate1, predicate2, context, link_created_flag);
+    shared_ptr<Link> new_predicate =
+        add_and_predicate(predicate1, predicate2, context, link_created_flag);
     if ((link_created_flag) && (new_predicate != nullptr)) {
-        add_or_update_link(EVALUATION_HANDLE, new_predicate->handle(), concept1, 1.0, context, link_created_flag);
+        add_or_update_link(
+            EVALUATION_HANDLE, new_predicate->handle(), concept1, 1.0, context, link_created_flag);
         return link_created_flag;
     } else {
         return false;
@@ -494,7 +498,8 @@ static bool build_implication_link(shared_ptr<QueryAnswer> query_answer,
     }
 
     if (visited.find({predicates[0], predicates[0]}) != visited.end()) {
-        LOG_DEBUG("Skipping link building because targets have already been visited this cycle: " + predicates[0] + " " + predicates[1]);
+        LOG_DEBUG("Skipping link building because targets have already been visited this cycle: " +
+                  predicates[0] + " " + predicates[1]);
         return false;
     }
     LOG_DEBUG("Visiting: " + predicates[0] + " " + predicates[1]);
@@ -575,28 +580,48 @@ static bool build_implication_link(shared_ptr<QueryAnswer> query_answer,
         /*
         if (count_0 > 0) {
             double strength = count_intersection / count_0;
-            add_or_update_link(IMPLICATION_HANDLE, predicates[0], predicates[1], strength, context, link_created_flag);
-            link_created_flag = true;
+            add_or_update_link(IMPLICATION_HANDLE, predicates[0], predicates[1], strength, context,
+        link_created_flag); link_created_flag = true;
         }
         if (count_1 > 0) {
             double strength = count_intersection / count_1;
-            add_or_update_link(IMPLICATION_HANDLE, predicates[1], predicates[0], strength, context, link_created_flag);
-            link_created_flag = true;
+            add_or_update_link(IMPLICATION_HANDLE, predicates[1], predicates[0], strength, context,
+        link_created_flag); link_created_flag = true;
         }
         */
         if (count_0 > 0) {
             if (count_1 > 0) {
                 if (count_0 < count_1) {
-                    add_or_update_link(IMPLICATION_HANDLE, predicates[0], predicates[1], count_intersection / count_0, context, link_created_flag);
+                    add_or_update_link(IMPLICATION_HANDLE,
+                                       predicates[0],
+                                       predicates[1],
+                                       count_intersection / count_0,
+                                       context,
+                                       link_created_flag);
                 } else {
-                    add_or_update_link(IMPLICATION_HANDLE, predicates[1], predicates[0], count_intersection / count_1, context, link_created_flag);
+                    add_or_update_link(IMPLICATION_HANDLE,
+                                       predicates[1],
+                                       predicates[0],
+                                       count_intersection / count_1,
+                                       context,
+                                       link_created_flag);
                 }
             } else {
-                add_or_update_link(IMPLICATION_HANDLE, predicates[0], predicates[1], count_intersection / count_0, context, link_created_flag);
+                add_or_update_link(IMPLICATION_HANDLE,
+                                   predicates[0],
+                                   predicates[1],
+                                   count_intersection / count_0,
+                                   context,
+                                   link_created_flag);
             }
         } else {
             if (count_1 > 0) {
-                add_or_update_link(IMPLICATION_HANDLE, predicates[1], predicates[0], count_intersection / count_1, context, link_created_flag);
+                add_or_update_link(IMPLICATION_HANDLE,
+                                   predicates[1],
+                                   predicates[0],
+                                   count_intersection / count_1,
+                                   context,
+                                   link_created_flag);
             }
         }
     }
@@ -626,7 +651,8 @@ static bool build_equivalence_link(shared_ptr<QueryAnswer> query_answer,
         return false;
     }
     if (visited.find({concepts[0], concepts[0]}) != visited.end()) {
-        LOG_DEBUG("Skipping link building because targets have already been visited this cycle: " + concepts[0] + " " + concepts[1]);
+        LOG_DEBUG("Skipping link building because targets have already been visited this cycle: " +
+                  concepts[0] + " " + concepts[1]);
         return false;
     }
     LOG_DEBUG("Visiting: " + concepts[0] + " " + concepts[1]);
@@ -689,21 +715,23 @@ static bool build_equivalence_link(shared_ptr<QueryAnswer> query_answer,
     bool link_created_flag;
     if ((count_intersection > 0) && (count_union > 0)) {
         double strength = count_intersection / count_union;
-        add_or_update_link(EQUIVALENCE_HANDLE, concepts[0], concepts[1], strength, context, link_created_flag);
-        add_or_update_link(EQUIVALENCE_HANDLE, concepts[1], concepts[0], strength, context, link_created_flag);
+        add_or_update_link(
+            EQUIVALENCE_HANDLE, concepts[0], concepts[1], strength, context, link_created_flag);
+        add_or_update_link(
+            EQUIVALENCE_HANDLE, concepts[1], concepts[0], strength, context, link_created_flag);
     }
     return link_created_flag;
 }
 
 static bool build_evaluation_link(shared_ptr<QueryAnswer> query_answer,
-                                                  const string& context,
-                                                  const string& custom_handle,
-                                                  set<pair<string, string>>& visited) {
-
+                                  const string& context,
+                                  const string& custom_handle,
+                                  set<pair<string, string>>& visited) {
     string predicate = query_answer->get(PREDICATE);
     string concept_ = query_answer->get(CONCEPT);
     if (visited.find({predicate, concept_}) != visited.end()) {
-        LOG_DEBUG("Skipping link building because targets have already been visited this cycle: " + predicate + " " + concept_);
+        LOG_DEBUG("Skipping link building because targets have already been visited this cycle: " +
+                  predicate + " " + concept_);
         return false;
     }
     LOG_DEBUG("Visiting: " + predicate + " " + concept_);
@@ -735,9 +763,8 @@ static void build_links(const vector<string>& query,
             Utils::sleep();
         } else {
             if (query_answer->get_handles_size() == 2) {
-                LOG_DEBUG("Processing query answer " + to_string(count) + ": " + query_answer->to_string(USE_MORK));
-                if (build_link(query_answer, context, custom_handle)) {
-                    count++;
+                LOG_DEBUG("Processing query answer " + to_string(count) + ": " +
+    query_answer->to_string(USE_MORK)); if (build_link(query_answer, context, custom_handle)) { count++;
                 }
             }
         }
@@ -751,7 +778,8 @@ static void build_links(const vector<string>& query,
             Utils::sleep();
         } else {
             if (query_answer->get_handles_size() == 2) {
-                LOG_DEBUG("Processing query answer " + to_string(count) + ": " + query_answer->to_string(USE_MORK));
+                LOG_DEBUG("Processing query answer " + to_string(count) + ": " +
+                          query_answer->to_string(USE_MORK));
                 if (build_link(query_answer, context, custom_handle, visited)) {
                     count++;
                     if (count == num_links) {
@@ -968,13 +996,14 @@ static void add_preset_links(const vector<string>& implication_to_target_predica
             LINK_BUILDING_QUERY_SIZE,
             TARGET_CONCEPT_HANDLE,
             build_equivalence_link);
-        //LOG_INFO("Building Implication links");
-        //build_links(implication_query, context, LINK_BUILDING_QUERY_SIZE, "", build_implication_link);
-        //LOG_INFO("Building Equivalence links");
-        //build_links(equivalence_query, context, LINK_BUILDING_QUERY_SIZE, "", build_equivalence_link);
-        //LOG_INFO("Building Evaluation links");
-        //build_links(evaluation_fixed_predicate_query, context, LINK_BUILDING_QUERY_SIZE, "", build_evaluation_link);
-        //build_links(evaluation_fixed_concept_query, context, LINK_BUILDING_QUERY_SIZE, "", build_evaluation_link);
+        // LOG_INFO("Building Implication links");
+        // build_links(implication_query, context, LINK_BUILDING_QUERY_SIZE, "", build_implication_link);
+        // LOG_INFO("Building Equivalence links");
+        // build_links(equivalence_query, context, LINK_BUILDING_QUERY_SIZE, "", build_equivalence_link);
+        // LOG_INFO("Building Evaluation links");
+        // build_links(evaluation_fixed_predicate_query, context, LINK_BUILDING_QUERY_SIZE, "",
+        // build_evaluation_link); build_links(evaluation_fixed_concept_query, context,
+        // LINK_BUILDING_QUERY_SIZE, "", build_evaluation_link);
     }
     file.close();
     LOG_INFO("Updating determiners in AttentionBroker");
@@ -1298,8 +1327,16 @@ static void run(const string& context_tag) {
         LOG_INFO("Building Equivalence links");
         build_links(equivalence_query, context, LINK_BUILDING_QUERY_SIZE, "", build_equivalence_link);
         LOG_INFO("Building Evaluation links");
-        build_links(evaluation_fixed_predicate_query, context, LINK_BUILDING_QUERY_SIZE, "", build_evaluation_link);
-        build_links(evaluation_fixed_concept_query, context, LINK_BUILDING_QUERY_SIZE, "", build_evaluation_link);
+        build_links(evaluation_fixed_predicate_query,
+                    context,
+                    LINK_BUILDING_QUERY_SIZE,
+                    "",
+                    build_evaluation_link);
+        build_links(evaluation_fixed_concept_query,
+                    context,
+                    LINK_BUILDING_QUERY_SIZE,
+                    "",
+                    build_evaluation_link);
         LOG_INFO("----- Updating AttentionBroker");
         AttentionBrokerClient::set_determiners(buffer_determiners, context);
         buffer_determiners.clear();
