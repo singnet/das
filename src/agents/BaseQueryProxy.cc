@@ -2,6 +2,7 @@
 
 #include "Logger.h"
 #include "ServiceBus.h"
+#include "SystemParametersSingleton.h"
 
 using namespace agents;
 
@@ -39,15 +40,7 @@ BaseQueryProxy::BaseQueryProxy(const vector<string>& tokens, const string& conte
 void BaseQueryProxy::init() {
     this->atomdb = AtomDBSingleton::get_instance();
     this->answer_count = 0;
-    this->parameters[UNIQUE_ASSIGNMENT_FLAG] = false;
-    this->parameters[ATTENTION_UPDATE] = (unsigned int) NONE;
-    this->parameters[ATTENTION_CORRELATION] = (unsigned int) NONE;
-    this->parameters[MAX_BUNDLE_SIZE] = (unsigned int) 1000;
-    this->parameters[MAX_ANSWERS] = (unsigned int) 0;  // No limit
-    this->parameters[USE_LINK_TEMPLATE_CACHE] = false;
-    this->parameters[POPULATE_METTA_MAPPING] = false;
-    this->parameters[USE_METTA_AS_QUERY_TOKENS] = false;
-    this->parameters[ALLOW_INCOMPLETE_CHAIN_PATH] = false;
+    this->parameters = SystemParametersSingleton::get_instance()->get_base_query_params();
 }
 
 BaseQueryProxy::~BaseQueryProxy() {}

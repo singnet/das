@@ -188,11 +188,14 @@ void AtomPersister::send_batch(vector<shared_ptr<Atom>> atoms,
         }
 
         timer_success.stop();
-#if LOG_LEVEL >= DEBUG_LEVEL
-        int new_total =
-            this->total_count.fetch_add(static_cast<int>(atoms.size())) + static_cast<int>(atoms.size());
-#endif
+
+        this->total_count.fetch_add(static_cast<int>(atoms.size())) + static_cast<int>(atoms.size());
+
         this->batches_completed.fetch_add(1);
+
+#if LOG_LEVEL >= DEBUG_LEVEL
+        int new_total = this->total_count.load();
+#endif
 
         LOG_DEBUG("Batch #" << batch_id << " completed | size: " << atoms.size()
                             << " | time: " << timer_success.milliseconds() << "ms"

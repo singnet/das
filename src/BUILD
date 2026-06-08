@@ -60,9 +60,6 @@ cc_binary(
     deps = [
         "//commons:commons_lib",
         "//main:attention_broker_main_lib",
-        "@com_github_singnet_das_proto//:attention_broker_cc_grpc",
-        "@grpc//:grpc++",
-        "@grpc//:grpc++_reflection",
         "@mbedtls",
     ],
 )
@@ -82,9 +79,6 @@ cc_binary(
     deps = [
         "//commons:commons_lib",
         "//main:attention_broker_client_main_lib",
-        "@com_github_singnet_das_proto//:attention_broker_cc_grpc",
-        "@grpc//:grpc++",
-        "@grpc//:grpc++_reflection",
         "@mbedtls",
     ],
 )

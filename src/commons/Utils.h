@@ -1,9 +1,14 @@
 #ifndef _COMMONS_UTILS_H
 #define _COMMONS_UTILS_H
 
+#include <sys/types.h>
+#include <unistd.h>
+
 #include <chrono>
 #include <functional>
 #include <map>
+#include <mutex>
+#include <stack>
 #include <string>
 #include <vector>
 
@@ -47,6 +52,63 @@ class MemoryFootprint {
     vector<pair<long, string>> delta_ram;
 };
 
+class StackTrace {
+   private:
+    class StackRecord {
+       public:
+        string file;
+        string function;
+        int line;
+        string to_string() { return file + "#L" + std::to_string(line) + " " + function; }
+    };
+    static void push(StackRecord& record) {
+        lock_guard<mutex> semaphore(api_mutex);
+        pid_t tid = gettid();
+        if (stack_trace.find(tid) == stack_trace.end()) {
+            stack_trace[tid] = stack<StackRecord>();
+        }
+        stack_trace[tid].push(record);
+    }
+    static void pop() {
+        lock_guard<mutex> semaphore(api_mutex);
+        pid_t tid = gettid();
+        if (stack_trace.find(tid) == stack_trace.end()) {
+            LOG_ERROR("Invalid attempt to unstack a record from a non-existent stack trace");
+            return;
+        }
+        stack_trace[tid].pop();
+    }
+    static mutex api_mutex;
+    static map<pid_t, stack<StackRecord>> stack_trace;
+
+   public:
+    StackTrace(const string& file, const string& function, int line) {
+        StackRecord record;
+        record.file = file;
+        record.function = function;
+        record.line = line;
+        StackTrace::push(record);
+    }
+    ~StackTrace() { StackTrace::pop(); }
+    static string to_string() {
+        lock_guard<mutex> semaphore(api_mutex);
+        string answer = "";
+        if (stack_trace.size() > 0) {
+            answer += "\n-------------------- Stack trace --------------------\n";
+            for (auto pair : stack_trace) {
+                answer += "Thread tid: " + std::to_string((unsigned int) pair.first) + "\n";
+                stack<StackRecord> stack_copy = pair.second;
+                while (!stack_copy.empty()) {
+                    answer += "  " + stack_copy.top().to_string() + "\n";
+                    stack_copy.pop();
+                }
+            }
+            answer += "-----------------------------------------------------\n";
+        }
+        return answer;
+    }
+};
+
 class Utils {
    public:
     Utils() {}
@@ -82,6 +144,7 @@ class Utils {
                                unsigned int wait_millis,
                                const string& function_name = "");
     static bool read_and_split(vector<string>& output, ifstream& file, char delimiter = ' ');
+    static bool starts_with(const string& s, const string& prefix);
 
     template <class C>
     static bool intersects(const C& set1, const C& set2) {
@@ -102,10 +165,18 @@ class Utils {
 
 }  // namespace commons
 
-#define RAISE_ERROR(msg)         \
-    {                            \
-        LOG_ERROR(msg);          \
-        Utils::error(msg, true); \
+#define RAISE_ERROR(msg)                                  \
+    {                                                     \
+        LOG_ERROR(string(msg) + StackTrace::to_string()); \
+        Utils::error(msg, true, false);                   \
     }
+
+#ifdef LOG_LEVEL
+#if LOG_LEVEL >= DEBUG_LEVEL
+#define STACK_TRACE() StackTrace scope_variable(__FILE__, __FUNCTION__, __LINE__);
+#else
+#define STACK_TRACE()
+#endif
+#endif
 
 #endif  // _COMMONS_UTILS_H

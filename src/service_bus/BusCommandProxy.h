@@ -133,6 +133,11 @@ class BusCommandProxy {
     virtual unsigned int get_serial();
 
     /**
+     * Returns the bus node id of the command requestor.
+     */
+    const string& get_requestor_id();
+
+    /**
      * Returns the node id of this proxy.
      *
      * @return The node id of this proxy.

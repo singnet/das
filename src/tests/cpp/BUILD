@@ -481,6 +481,33 @@ cc_test(
 )
 
 cc_test(
+    name = "bus_command_router_test",
+    size = "medium",
+    srcs = ["bus_command_router_test.cc"],
+    copts = [
+        "-Iexternal/gtest/googletest/include",
+        "-Iexternal/gtest/googletest",
+    ],
+    linkopts = [
+        "-L/usr/local/lib",
+        "-lhiredis_cluster",
+        "-lhiredis",
+        "-lmongocxx",
+        "-lbsoncxx",
+    ],
+    linkstatic = 1,
+    deps = [
+        "//agents/command_router:command_router_lib",
+        "//atomdb:atomdb_singleton",
+        "//commons:commons_lib",
+        "//service_bus:service_bus_lib",
+        "//tests/cpp/test_commons:test_atomdb_json_config",
+        "//tests/cpp/test_commons:test_system_params",
+        "@com_github_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
     name = "pattern_matching_query_test",
     size = "medium",
     srcs = ["pattern_matching_query_test.cc"],
@@ -494,6 +521,7 @@ cc_test(
         "//atomdb:atomdb_singleton",
         "//service_bus:service_bus_lib",
         "//tests/cpp/test_commons:test_atomdb_json_config",
+        "//tests/cpp/test_commons:test_system_params",
         "@com_github_google_googletest//:gtest_main",
     ],
 )
@@ -524,6 +552,7 @@ cc_test(
         "//atomdb",
         "//attention_broker:attention_broker_lib",
         "//tests/cpp/test_commons:test_atomdb_json_config",
+        "//tests/cpp/test_commons:test_system_params",
         "@com_github_google_googletest//:gtest_main",
     ],
 )
@@ -577,6 +606,7 @@ cc_test(
         "//agents/evolution:evolution_lib",
         "//agents/query_engine:pattern_matching_query_processor",
         "//tests/cpp/test_commons:test_atomdb_json_config",
+        "//tests/cpp/test_commons:test_system_params",
         "@com_github_google_googletest//:gtest_main",
     ],
 )
@@ -594,6 +624,7 @@ cc_test(
         "//agents/link_creation_agent:link_creation_agent_lib",
         "//commons:commons_lib",
         "//service_bus:service_bus_lib",
+        "//tests/cpp/test_commons:test_system_params",
         "//tests/cpp/test_commons/mocks:mock_atom_db_lib",
         "//tests/cpp/test_commons/mocks:mock_service_bus_lib",
         "@com_github_google_googletest//:gtest_main",
@@ -682,6 +713,22 @@ cc_test(
     linkstatic = 1,
     deps = [
         "//commons:commons_lib",
+        "@com_github_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "system_parameters_test",
+    size = "small",
+    srcs = ["system_parameters_test.cc"],
+    copts = [
+        "-Iexternal/gtest/googletest/include",
+        "-Iexternal/gtest/googletest",
+    ],
+    linkstatic = 1,
+    deps = [
+        "//commons:commons_lib",
+        "//tests/cpp/test_commons:test_system_params",
         "@com_github_google_googletest//:gtest_main",
     ],
 )
@@ -945,6 +992,7 @@ cc_test(
     deps = [
         "//atomdb:atomdb_singleton",
         "//db_adapter:db_adapter_lib",
+        "//metta:metta_lib",
         "//tests/cpp/test_commons:test_atomdb_json_config",
         "@com_github_google_googletest//:gtest_main",
         "@mbedtls",

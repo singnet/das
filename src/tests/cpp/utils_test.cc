@@ -1,3 +1,4 @@
+#define LOG_LEVEL DEBUG_LEVEL
 #include "Utils.h"
 
 #include <gtest/gtest.h>
@@ -10,6 +11,24 @@
 
 using namespace std;
 using namespace commons;
+
+void f1() {
+    STACK_TRACE();
+    RAISE_ERROR("Error in f1()");
+    return;
+}
+
+void f2() {
+    STACK_TRACE();
+    f1();
+    return;
+}
+
+void f3() {
+    STACK_TRACE();
+    f2();
+    return;
+}
 
 TEST(UtilsTest, read_and_split) {
     string fname = "UtilsTest_read_and_aplit.txt";
@@ -52,4 +71,13 @@ TEST(UtilsTest, read_and_split) {
     line.push_back("blah");
     EXPECT_FALSE(Utils::read_and_split(line, file));
     EXPECT_EQ(line, vector<string>({"blah"}));
+}
+
+TEST(UtilsTest, stack_trace) {
+    STACK_TRACE();
+    EXPECT_THROW(RAISE_ERROR("Error on toplevel"), runtime_error);
+    EXPECT_THROW(f3(), runtime_error);
+    EXPECT_THROW(f2(), runtime_error);
+    EXPECT_THROW(f1(), runtime_error);
+    // FAIL();
 }

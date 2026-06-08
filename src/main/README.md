@@ -35,7 +35,7 @@ Run the `bus_node` binary with the required parameters:
 make run-busnode OPTIONS="--service=<SERVICE_NAME> --endpoint=<ENDPOINT> --ports-range=<PORTS_RANGE> [--config=<config/das.json>]
 ```
 
-Optional: pass `--config=<JSON_FILE_PATH>` to load defaults from a JSON config file (schema version 1.0), for example `config/das.json`. Values from the config are used as defaults for the selected service; **command-line arguments always override** config (e.g. `--endpoint=localhost:9002` wins over `agents.query.endpoint` in the file). Node configs include `atomdb`, `loaders`, `agents`, and `brokers`; they do not include `params` (those apply to `bus_client` only).
+Optional: pass `--config=<JSON_FILE_PATH>` to load defaults from a JSON config file (schema version 1.0), for example `config/das.json`. Values from the config are used as defaults for the selected service; **command-line arguments always override** config (e.g. `--endpoint=localhost:9002` wins over `agents.query.endpoint` in the file). Node configs include `atomdb`, `loaders`, `agents`, and `brokers`; they do not include `params` (those apply to `bus_client` only). For every service except **query-engine**, **`--bus-endpoint` defaults to `agents.query.endpoint`** (the query mesh hub, e.g. `localhost:40002`); query-engine omits it and becomes the bus master.
 
 ### Examples
 
@@ -45,8 +45,9 @@ make run-busnode OPTIONS="--service=query-engine --endpoint=localhost:9000 --por
 ```
 #### Evolution Agent
 ```
-make run-busnode OPTIONS="--service=evolution-agent --endpoint=localhost:9001 --ports-range=4000:4100 --attention-broker-endpoint=localhost:37007 --bus-endpoint=localhost:9000"
+make run-busnode OPTIONS="--service=evolution-agent --config=config/das.json"
 ```
+(`--bus-endpoint` defaults to `agents.query.endpoint` from `das.json` when omitted.)
 #### LCA
 ```
 make run-busnode OPTIONS="--service=link-creation-agent --endpoint=localhost:9002 --ports-range=4000:4100 --attention-broker-endpoint=localhost:37007 --bus-endpoint=localhost:9000"
@@ -67,25 +68,39 @@ make run-busnode OPTIONS="--service=atomdb-broker --endpoint=localhost:9004 --po
 Run the `bus_client` binary with the required parameters using make:
 
 ```bash
-make run-client OPTIONS="--client=<BUS_NODE_SERVICE> [--endpoint=...] --bus-endpoint=<THIS_CLIENT_HOST:PORT> --ports-range=<PORTS_RANGE> [--config=<config/client.json>]"
+make run-client OPTIONS="--client=<BUS_NODE_SERVICE> [--config=config/das.json] [--endpoint=...] [--bus-endpoint=...] [--ports-range=...]"
 ```
 
 **`--client`** is required and must be a valid bus node service.
 
-Pass **`--config=<client.json>`** (schema 1.0) so **`atomdb`** can be merged from **`params.das-config-file`** (path to **`das.json`**). Without it, **`bus_client`** cannot initialize AtomDB with the slim client schema. With config, **`--bus-endpoint`**, **`--ports-range`** and **`--endpoint`** may default from **`params`** field and **`das.json`**; optional **`--attention-broker-endpoint`** from merged **`brokers.attention.endpoint`**. Command-line arguments always win.
+**`bus_client`** loads **`config/das.json`** by default (same file as **`busnode`**). **`client.endpoint`** and **`client.ports_range`** default **`--endpoint`** and **`--ports-range`**; **`agents`** supply **`--bus-endpoint`** from **`--client`**; optional **`--attention-broker-endpoint`** from **`agents.attention.endpoint`**; scalar **`params.*`** merge into CLI args. Command-line arguments always win.
 
 ### Examples
 #### AtomDB:
 ```
 make run-client OPTIONS="--client=atomdb-broker --endpoint=localhost:8887 --bus-endpoint=localhost:9000 --ports-range=27000:28000 --action=add_atoms --tokens=LINK Expression 2 NODE Symbol A NODE Symbol B"
 ```
+#### Bus Command Router:
+```
+make run-client OPTIONS="--config=config/client.json --client=command-router --cmd=query --arg=(Similarity \"human\" %S)"
+```
+(`--service=command-router` is an alias for `--client`. Use `%` for MeTTa variables; they are converted to `$`. Override the router listen address with `--bus-endpoint=localhost:40008` if needed. For `get` / `set`, the client prints `params_response` / `set_param_ack`; for `query`, it waits for routing then streams answers like the query-engine client.)
+
+Evolution with a labeled MeTTa `ARG` (set `context` via `set param context Aaa` first):
+
+```
+make run-client OPTIONS="--config=config/client.json --client=command-router --cmd=evolution --arg='((query (Contains %sentence1 (Word \"bbb\"))) (ff count_letter) (cq ((Contains %placeholder1 %word1))) (cr (((placeholder1 sentence1)))) (cm (((sentence1 word1)))))'"
+```
+
+`cq` is a list of MeTTa query S-expressions. `cr` and `cm` require the strict 3-level form `(((X Y) ...) ...)`: a list of groups, where each group is a list of `(X Y)` pairs (e.g. `(cr (((placeholder1 sentence1))))` for one group with one pair).
+
 #### Query Engine:
 ```
-make run-client OPTIONS="--config=config/client.json --client=query-engine --query=LINK_TEMPLATE Expression 2 NODE Symbol Predicate VARIABLE V1 --context=test"
+make run-client OPTIONS="--client=query-engine --query=LINK_TEMPLATE Expression 2 NODE Symbol Predicate VARIABLE V1 --context=test"
 ```
-(With **`config/client.json`**, **`--endpoint`**, **`--bus-endpoint`**, and **`--ports-range`** can be omitted when **`das.json`** and **`params`** supply them.)
+(With **`config/das.json`**, **`--endpoint`**, **`--bus-endpoint`**, and **`--ports-range`** can be omitted.)
 
-**If you see `Bus: no owner is defined for command <pattern_matching_query>`:** the resolved **`--endpoint`** (from **`agents.<client>.endpoint`** / **`brokers.<client>.endpoint`** in **`das.json`**) must match the **`--endpoint`** used when starting that agent’s **`busnode`** (same `host:port` string).
+**If you see `Bus: no owner is defined for command <pattern_matching_query>`:** the resolved **`--endpoint`** (from **`agents.<client>.endpoint`** in **`das.json`**) must match the **`--endpoint`** used when starting that agent’s **`busnode`** (same `host:port` string).
 
 #### LCA:
 ```

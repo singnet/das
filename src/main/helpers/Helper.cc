@@ -13,6 +13,7 @@ using namespace commons;
 
 bool Helper::is_running = true;
 // Args names
+string Helper::CONFIG = "config";
 string Helper::SERVICE = "service";
 string Helper::CLIENT = "client";
 string Helper::ENDPOINT = "endpoint";
@@ -51,17 +52,26 @@ string Helper::UNIQUE_ASSIGNMENT_FLAG = "unique-assignment-flag";
 string Helper::USE_LINK_TEMPLATE_CACHE = "use-link-template-cache";
 string Helper::POPULATE_METTA_MAPPING = "populate-metta-mapping";
 string Helper::QUERY = "query";
+string Helper::CMD = "cmd";
+string Helper::ARG = "arg";
 
 map<string, string> Helper::arg_to_json_config_key = {
     {"query-engine", "agents.query"},
+    {"command-router", "agents.command_router"},
     {"evolution-agent", "agents.evolution"},
     {"link-creation-agent", "agents.link_creation"},
     {"inference-agent", "agents.inference"},
-    {"atomdb-broker", "brokers.atomdb"},
-    {"context-broker", "brokers.context"},
-    {"attention-broker", "brokers.attention"},
-    {Helper::ATTENTION_BROKER_ENDPOINT, "brokers.attention.endpoint"},
+    {"atomdb-broker", "agents.atomdb"},
+    {"context-broker", "agents.context"},
+    {"attention-broker", "agents.attention"},
+    {Helper::ATTENTION_BROKER_ENDPOINT, "agents.attention.endpoint"},
 };
+
+string param_key_to_cmd_arg(const string& key) {
+    string cmd_key = key;
+    replace(cmd_key.begin(), cmd_key.end(), '_', '-');
+    return cmd_key;
+}
 
 void merge_params(map<string, string>& cmd_args, JsonConfig& params) {
     for (const auto& entry : params.items()) {
@@ -69,22 +79,29 @@ void merge_params(map<string, string>& cmd_args, JsonConfig& params) {
         if (v.is_object() || v.is_array()) {
             continue;
         }
-        // If the param is not already set, set it
-        if (cmd_args.find(entry.key()) == cmd_args.end()) {
-            cmd_args[entry.key()] = v.dump();
+        string cmd_key = param_key_to_cmd_arg(entry.key());
+        if (cmd_args.find(cmd_key) == cmd_args.end()) {
+            if (v.is_string()) {
+                cmd_args[cmd_key] = v.get<string>();
+            } else if (v.is_boolean()) {
+                cmd_args[cmd_key] = v.get<bool>() ? "true" : "false";
+            } else {
+                cmd_args[cmd_key] = v.dump();
+            }
         }
     }
 }
 
-void Helper::merge_params_from_client_json_config(map<string, string>& cmd_args,
-                                                  JsonConfig& json_config) {
-    auto query_params = json_config.at_path("params.query").get<JsonConfig>();
+void Helper::merge_params_from_config(map<string, string>& cmd_args, JsonConfig& json_config) {
+    auto base_query_params = json_config.at_path("agents.base_query.params").get<JsonConfig>();
+    merge_params(cmd_args, base_query_params);
+    auto query_params = json_config.at_path("agents.query.params").get<JsonConfig>();
     merge_params(cmd_args, query_params);
-    auto link_creation_params = json_config.at_path("params.link_creation").get<JsonConfig>();
+    auto link_creation_params = json_config.at_path("agents.link_creation.params").get<JsonConfig>();
     merge_params(cmd_args, link_creation_params);
-    auto evolution_params = json_config.at_path("params.evolution").get<JsonConfig>();
+    auto evolution_params = json_config.at_path("agents.evolution.params").get<JsonConfig>();
     merge_params(cmd_args, evolution_params);
-    auto context_params = json_config.at_path("params.context").get<JsonConfig>();
+    auto context_params = json_config.at_path("agents.context.params").get<JsonConfig>();
     merge_params(cmd_args, context_params);
 }
 
@@ -128,9 +145,15 @@ Required arguments:
 AtomDB Broker:
 This processor manages AtomDB broker requests from the service bus.
 )")},
+                                                       {ProcessorType::COMMAND_ROUTER, string(R"(
+Bus Command Router:
+Gateway peer that accepts text commands as {COMMAND, ARG} over bus_command_router.
+Routes query and evolution to other bus agents; get/set manage local default parameters.
+)")},
                                                        {ProcessorType::UNKNOWN, string(R"(
 Usage:
-busnode --service=<service> --endpoint=<host:port> --ports-range=<start_port:end_port> [--bus-endpoint=<bus_host:bus_port>] [--use-mork=true|false]
+busnode --service=<service> --endpoint=<host:port> --ports-range=<start_port:end_port> [--config=<das.json>] [--bus-endpoint=<bus_host:bus_port>] [--use-mork=true|false]
+With --config=das.json, non-query-engine services default --bus-endpoint to agents.query.endpoint (query-engine mesh hub).
 )")}};
 
 static map<ProcessorType, string> client_service_help = {{ProcessorType::INFERENCE_AGENT, string(R"(
@@ -213,10 +236,52 @@ This client interacts with the AtomDB Broker via the service bus.
  Optional arguments:
     - use-mork: Whether to use MorkDB as the backend (true/false)
 )")},
+                                                         {ProcessorType::COMMAND_ROUTER, string(R"(
+Bus Command Router Client:
+Sends {COMMAND, ARG} to the Bus Command Router peer via command_router.
+
+Required arguments:
+    - cmd: Router command (get, set, query, evolution)
+    - arg: Router argument; format depends on cmd:
+
+        get  ARG: 'params'
+            Returns the per-peer router parameters as 'key: value' lines.
+
+        set  ARG: 'param <key> <value>'
+            Updates an existing router parameter; raises an error if the key
+            is unknown or the value does not match the current type.
+
+        query  ARG: a MeTTa query S-expression (use % for variables).
+            Example: '(Contains (Sentence "ede ebe ...") (Word %W))'
+
+        evolution  ARG: a labeled MeTTa list with these clauses:
+            (q | query)                  required: MeTTa query S-expression
+            (ff | fitness-function-tag)  required: fitness function tag
+            (cq | correlation-queries)   list of MeTTa query S-expressions
+            (cr | correlation-replacements) strict 3-level form
+            (cm | correlation-mappings)     strict 3-level form
+
+            cr/cm bodies must be (((X Y) ...) ...): a list of groups,
+            each group a list of (X Y) pairs (one pair per group needs
+            triple-wrapping, e.g. (cr (((p1 s1))))).
+
+            Example:
+            ((q (Contains %sentence1 (Word "bbb")))
+             (ff count_letter)
+             (cq ((Contains %placeholder1 %word1)))
+             (cr (((placeholder1 sentence1))))
+             (cm (((sentence1 word1)))))
+
+        Context for query/evolution is taken from router params
+        (set it once via: --cmd=set --arg='param context <name>').
+
+ Optional arguments:
+    - bus-endpoint: Overrides agents.router.endpoint from das.json (router listen address)
+)")},
                                                          {ProcessorType::UNKNOWN, string(R"(
 Usage:
-busclient --client=<name> --endpoint=<remote_agent_host:port> --bus-endpoint=<this_client_host:port> --ports-range=<start_port:end_port> [--config=<client.json>] [--use-mork=true|false]
-With --config=client.json (schema 1.0), params.das_config_file points at das.json (DAS bus node config); --endpoint may be omitted when --client is set (reads agents.<name>.endpoint or brokers.<name>.endpoint); optional attention-broker-endpoint from merged brokers.attention.endpoint; bus-endpoint and ports-range from params. Internal bus proxy is chosen from --client (query -> query-engine, etc.).
+busclient --client=<name> [--config=<das.json>] [--endpoint=<this_client_host:port>] [--bus-endpoint=<remote_agent_host:port>] [--ports-range=<start_port:end_port>] [--use-mork=true|false]
+Defaults load config/das.json (schema 1.0): client.endpoint and client.ports_range for this client; agents.<name>.endpoint for --bus-endpoint when --client is set; optional attention-broker-endpoint from agents.attention.endpoint; scalar params.* merged into CLI args. Command-line arguments always win.
         )")}};
 
 static map<string, ProcessorType> string_to_processor_type = {
@@ -225,7 +290,8 @@ static map<string, ProcessorType> string_to_processor_type = {
     {"context-broker", ProcessorType::CONTEXT_BROKER},
     {"evolution-agent", ProcessorType::EVOLUTION_AGENT},
     {"query-engine", ProcessorType::QUERY_ENGINE},
-    {"atomdb-broker", ProcessorType::ATOMDB_BROKER}};
+    {"atomdb-broker", ProcessorType::ATOMDB_BROKER},
+    {"command-router", ProcessorType::COMMAND_ROUTER}};
 
 string Helper::help(const ProcessorType& processor_type, ServiceCallerType caller_type) {
     string usage;
@@ -270,6 +336,12 @@ string Helper::help(const ProcessorType& processor_type, ServiceCallerType calle
                 return usage + client_service_help[ProcessorType::ATOMDB_BROKER];
             } else {
                 return usage + node_service_help[ProcessorType::ATOMDB_BROKER];
+            }
+        case ProcessorType::COMMAND_ROUTER:
+            if (caller_type == ServiceCallerType::CLIENT) {
+                return usage + client_service_help[ProcessorType::COMMAND_ROUTER];
+            } else {
+                return usage + node_service_help[ProcessorType::COMMAND_ROUTER];
             }
         default:
             vector<string> avaiable_services;
@@ -323,6 +395,12 @@ vector<string> Helper::get_required_arguments(const string& processor_type,
         case ProcessorType::ATOMDB_BROKER:
             if (caller_type == ServiceCallerType::CLIENT) {
                 return {ACTION, TOKENS};
+            } else {
+                return {};
+            }
+        case ProcessorType::COMMAND_ROUTER:
+            if (caller_type == ServiceCallerType::CLIENT) {
+                return {CMD, ARG};
             } else {
                 return {};
             }

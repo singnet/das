@@ -41,9 +41,12 @@ cc_library(
     name = "bus_client_lib",
     srcs = ["bus_client.cc"],
     deps = [
+        "//agents/command_router:bus_command_router_proxy",
+        "//agents/query_engine:query_answer",
         "//atomdb:atomdb_singleton",
         "//atomdb/remotedb:remotedb_lib",
         "//commons:commons_lib",
         "//main/helpers:main_helper_proxy_factory_lib",
+        "//service_bus:service_bus_singleton",
     ],
 )

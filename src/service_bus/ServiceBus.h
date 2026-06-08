@@ -106,6 +106,7 @@ class ServiceBus {
     static string INFERENCE;
     static string CONTEXT;
     static string ATOMDB;
+    static string BUS_COMMAND_ROUTER;
     /**
      * Registers a processor making it take the ownership of one or more bus commands.
      *
@@ -124,6 +125,14 @@ class ServiceBus {
      * @param bus_command A BusCommandProxy with the command and its arguments.
      */
     virtual void issue_bus_command(shared_ptr<BusCommandProxy> bus_command);
+
+    /**
+     * Forwards a command to another bus service on behalf of an existing caller. Does not open
+     * a local proxy listener; the downstream processor connects to @p requestor_proxy_node_id.
+     */
+    virtual void forward_bus_command(shared_ptr<BusCommandProxy> bus_command,
+                                     const string& requestor_id,
+                                     const string& requestor_proxy_node_id);
 
     // ---------------------------------------------------------------------------------------------
     // Used by ServiceBusSingleton
