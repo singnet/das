@@ -35,7 +35,7 @@ if [ "$BUILD_BINARIES" = true ]; then
     # Other binaries
     BUILD_TARGETS+=" //:word_query"
     BUILD_TARGETS+=" //:word_query_evolution"
-    BUILD_TARGETS+=" //:tests_db_loader"
+    BUILD_TARGETS+=" //:db_loader"
     BUILD_TARGETS+=" //:database_adapter"
 fi
 

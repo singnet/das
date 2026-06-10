@@ -5,17 +5,6 @@ load("@rules_proto_grpc_cpp//:defs.bzl", "cc_grpc_library", "cc_proto_library", 
 package(default_visibility = ["//visibility:public"])
 
 cc_library(
-    name = "tests_db_loader_main_lib",
-    srcs = ["tests_db_loader.cc"],
-    deps = [
-        "//atomdb:atomdb_api_types",
-        "//atomdb:atomdb_singleton",
-        "//tests/cpp/test_commons:mock_animals_data_lib",
-        "//tests/cpp/test_commons:test_atomdb_json_config",
-    ],
-)
-
-cc_library(
     name = "link_creation_engine_main_lib",
     srcs = ["link_creation_engine_main.cc"],
     deps = [

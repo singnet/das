@@ -58,8 +58,8 @@ agents:
 setup-inference-toy-problem:
 	@bash ./src/scripts/setup_inference_toy_problem.sh $(filter-out $@, $(MAKECMDGOALS))
 
-run-tests-db-loader:
-	@bash -x src/scripts/run.sh tests_db_loader $(OPTIONS)
+run-db-loader:
+	@bash -x src/scripts/run.sh db_loader $(OPTIONS)
 
 run-adapter:
 	@bash -x src/scripts/run.sh database_adapter $(OPTIONS)
@@ -92,7 +92,7 @@ clean:
 setup-test-all:
 	@$(MAKE) build-image
 	bash src/scripts/test_all_setup.sh
-	@$(MAKE) run-tests-db-loader
+	@$(MAKE) run-db-loader OPTIONS="--config=config/das.json --file=src/tests/assets/animals_extended.metta"
 
 test-clear:
 	@docker rm -f db-redis-test-container db-mongo-test-container das-attention-broker-service pg-test mork-test-server || true
