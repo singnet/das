@@ -20,7 +20,7 @@ for RENT in "${RENT_LIST[@]}"; do
         for selection_pair in "${SELECTION_LIST[@]}"; do
             ELITISM="${selection_pair%%:*}"
             SELECTION="${selection_pair#*:}"
-            command_line=(./run_toy.sh $KB $CONTEXT_TAG "$TARGET_PREDICATE" "$TARGET_CONCEPT" $RENT $SPREAD $SPREAD $ELITISM $SELECTION)
+            command_line=(./src/tests/scripts/run_toy.sh $KB $CONTEXT_TAG "$TARGET_PREDICATE" "$TARGET_CONCEPT" $RENT $SPREAD $SPREAD $ELITISM $SELECTION)
             for LOG_FILE in "${log_files[@]}"; do
                 echo "----------------------------------------------------------------------------------------------------" >> $LOG_FILE
                 echo "${command_line[@]}" >> $LOG_FILE
