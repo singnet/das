@@ -1,5 +1,4 @@
-#ifndef _COMMONS_UTILS_H
-#define _COMMONS_UTILS_H
+#pragma once
 
 #include <sys/types.h>
 #include <unistd.h>
@@ -178,5 +177,3 @@ class Utils {
 #define STACK_TRACE()
 #endif
 #endif
-
-#endif  // _COMMONS_UTILS_H
