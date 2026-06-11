@@ -33,6 +33,15 @@ struct AdapterTestParams {
     string test_name;
 };
 
+class AdapterDBTestEnvironment : public ::testing::Environment {
+   public:
+    void SetUp() override {
+        auto mork_client = make_shared<MorkClient>("localhost:40022");
+        mork_client->post("(Similarity \"ent\" \"human\")");
+        mork_client->post("(Inheritance \"human\" \"mammal\")");
+    }
+};
+
 class AdapterDBTestBase : public ::testing::Test {
    protected:
     shared_ptr<RedisMongoDB> backend;
@@ -516,5 +525,6 @@ TEST_F(AdapterDBConstructorFailureTest, ConstructorFailsWhenMappingFileDoesNotEx
 
 int main(int argc, char** argv) {
     ::testing::InitGoogleTest(&argc, argv);
+    ::testing::AddGlobalTestEnvironment(new AdapterDBTestEnvironment());
     return RUN_ALL_TESTS();
 }

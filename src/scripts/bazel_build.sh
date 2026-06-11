@@ -41,7 +41,7 @@ if [ "$BUILD_BINARIES" = true ]; then
     BUILD_TARGETS+=" //:word_query"
     BUILD_TARGETS+=" //:word_query_evolution"
     BUILD_TARGETS+=" //:evaluation_evolution"
-    BUILD_TARGETS+=" //:tests_db_loader"
+    BUILD_TARGETS+=" //:db_loader"
     BUILD_TARGETS+=" //:database_adapter"
     BUILD_TARGETS+=" //:inference_toy_kb_generator"
 
@@ -56,7 +56,7 @@ if [ "$BUILD_BINARIES" = true ]; then
     MOVE_BIN_TARGETS+=" bazel-bin/word_query"
     MOVE_BIN_TARGETS+=" bazel-bin/word_query_evolution"
     MOVE_BIN_TARGETS+=" bazel-bin/evaluation_evolution"
-    MOVE_BIN_TARGETS+=" bazel-bin/tests_db_loader"
+    MOVE_BIN_TARGETS+=" bazel-bin/db_loader"
     MOVE_BIN_TARGETS+=" bazel-bin/database_adapter"
     MOVE_BIN_TARGETS+=" bazel-bin/inference_toy_kb_generator"
 

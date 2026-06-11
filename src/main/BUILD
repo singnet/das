@@ -50,3 +50,18 @@ cc_library(
         "//service_bus:service_bus_singleton",
     ],
 )
+
+cc_library(
+    name = "db_loader_main_lib",
+    srcs = ["db_loader.cc"],
+    deps = [
+        "//atomdb:atomdb_api_types",
+        "//atomdb:atomdb_singleton",
+        "//atomdb/adapterdb:adapterdb_lib",
+        "//atomdb/morkdb:morkdb_lib",
+        "//atomdb/redis_mongodb:redis_mongodb_lib",
+        "//atomdb/remotedb:remotedb_lib",
+        "//commons:commons_lib",
+        "//metta:metta_lib",
+    ],
+)
