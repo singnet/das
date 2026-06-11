@@ -84,7 +84,7 @@ cc_binary(
 )
 
 cc_binary(
-    name = "tests_db_loader",
+    name = "db_loader",
     srcs = [],
     defines = ["BAZEL_BUILD"],
     linkopts = [
@@ -98,7 +98,7 @@ cc_binary(
     deps = [
         "//atomdb:atomdb_lib",
         "//commons:commons_lib",
-        "//tests/main:tests_db_loader_main_lib",
+        "//main:db_loader_main_lib",
     ],
 )
 

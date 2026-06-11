@@ -1,8 +1,28 @@
 Highlights:
-(#1035) Implement the Database Adapter
-(#1044) Add RemoteAtomDB and RemoteAtomDBPeer
-(#1058) [Config] Add --config=FILE argument
 
-Minor changes:
-(#1059) Setup script for tests-all (cache/no-cache)
+* Implement an evolutionary algorithm to prove hidden relationship between a given predicate and a given concept (#1055, #1072, #1078, #1079, #1085, #1086, #1097, #1117, #1118)
+* Implemented nested CHAIN operator for MeTTa queries (#1080)
+* Database Adapter multiple threads (#1070)
+* Refactor Database Adapter (#1105, #1106, #1113)
+* Implement atom_count() and empty() in AtomDB (#1095)
+* New QueryAnswer, AB flags and chain logic (#1096)
+* Transforming the Database Adapter into an AtomDB (#1091)
+* Add optional parameter to make AND operator consider last clause as a NOT (#1103)
+* Implement ANDNOT operator in Pattern Matching query engine (#1104)
+* Implementation of MorkDB Adapter (#1110, #1119, #1124, #1128)
+* Method to recursively get all terminals reachable from a given handle (#1108)
 
+Minor Changes:
+* Remove unused AtomDBCache (#1068)
+* [AtomDB] Remove ENV VARS (#1071)
+* Add regression test for AdapterDB (#1116)
+
+Bug fixes:
+* [#FIX] Fix multiple race conditions in Chain operator's code (#1069)
+* [#FIX] Remove fully concrete match + test_db_loader better split (#1065)
+* [#FIX] Populates MeTTa expressions in CHAIN QueryAnswers (#1090)
+* [#FIX] Utils::error() don't log actual file/line where error occured (#1100)
+* [#FIX] segmentation fault in RedisMongoDB::get_node() and RedisMongoDB::get_link() (#1101)
+* [#FIX] Fix AdapterDB test isolation and query file parsing (#1112)
+* [#FIX] Correct add_link() call in AddLinkWithThrowIfExists test (#1109)
+* [#FIX] Prevent RAISE_ERROR from double printing error message (#1130)
