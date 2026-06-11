@@ -491,7 +491,8 @@ static bool build_and_predicate_link(shared_ptr<QueryAnswer> query_answer,
         for (string& h : query_answer->get_handles_vector()) {
             strength *= get_strength(h);
         }
-        add_or_update_link(EVALUATION_HANDLE, new_predicate->handle(), concept1, strength, context, link_created_flag);
+        add_or_update_link(
+            EVALUATION_HANDLE, new_predicate->handle(), concept1, strength, context, link_created_flag);
         return link_created_flag;
     } else {
         return false;
@@ -535,8 +536,7 @@ static bool build_implication_link(shared_ptr<QueryAnswer> query_answer,
     extract_mentioned_predicates(mentioned_predicates2, predicates[1]);
     if (Utils::intersects(mentioned_predicates1, mentioned_predicates2)) {
         LOG_DEBUG("Disregarded IMPLICATION predicates: " +
-                  db->get_atom(predicates[0])->metta_representation(*DECODER) +
-                  " <=> " +
+                  db->get_atom(predicates[0])->metta_representation(*DECODER) + " <=> " +
                   db->get_atom(predicates[1])->metta_representation(*DECODER));
         return false;
     }
@@ -781,7 +781,8 @@ static void build_links(const vector<string>& query,
             }
             Utils::sleep();
         } else {
-            LOG_DEBUG("Processing query answer " + to_string(count_created) + ": " + query_answer->to_string(USE_MORK));
+            LOG_DEBUG("Processing query answer " + to_string(count_created) + ": " +
+                      query_answer->to_string(USE_MORK));
             bool none_visited = true;
             if (build_link(query_answer, context, custom_handle, visited, none_visited)) {
                 count_created++;
@@ -789,7 +790,7 @@ static void build_links(const vector<string>& query,
                 if (count_created == LINK_CREATION_COUNT) {
                     break;
                 }
-            } else if (! none_visited) {
+            } else if (!none_visited) {
                 count_attempts++;
                 if (count_attempts == LINK_CREATION_MAX_VISIT_ATTEMPTS) {
                     break;
@@ -1433,13 +1434,13 @@ int main(int argc, char* argv[]) {
     SystemParametersSingleton::init(json_config);
     AtomDBSingleton::init(atomdb_config);
 
-
     db = AtomDBSingleton::get_instance();
     DECODER = static_pointer_cast<HandleDecoder>(db).get();
     ServiceBusSingleton::init(client_endpoint, server_endpoint, ports_range.first, ports_range.second);
     FitnessFunctionRegistry::initialize_statics();
     bus = ServiceBusSingleton::get_instance();
-    AttentionBrokerClient::set_parameters(RENT_RATE, SPREADING_RATE_LOWERBOUND, SPREADING_RATE_UPPERBOUND);
+    AttentionBrokerClient::set_parameters(
+        RENT_RATE, SPREADING_RATE_LOWERBOUND, SPREADING_RATE_UPPERBOUND);
 
     insert_type_symbols();
 
@@ -1473,8 +1474,14 @@ int main(int argc, char* argv[]) {
         best_strength = recorded_answers.back().first->strength;
         iteration = recorded_answers.back().second;
     }
-    vector<string> test_label = {context_tag, to_string(RENT_RATE), to_string(SPREADING_RATE_LOWERBOUND), to_string(SPREADING_RATE_UPPERBOUND), to_string(ELITISM_RATE), to_string(SELECTION_RATE)};
-    LOG_INFO("FINAL_RESULT " + to_string(best_strength) + " " + to_string(iteration) + " " + Utils::join(test_label, '_') + " " + answer_to_string(recorded_answers.back().first));
+    vector<string> test_label = {context_tag,
+                                 to_string(RENT_RATE),
+                                 to_string(SPREADING_RATE_LOWERBOUND),
+                                 to_string(SPREADING_RATE_UPPERBOUND),
+                                 to_string(ELITISM_RATE),
+                                 to_string(SELECTION_RATE)};
+    LOG_INFO("FINAL_RESULT " + to_string(best_strength) + " " + to_string(iteration) + " " +
+             Utils::join(test_label, '_') + " " + answer_to_string(recorded_answers.back().first));
 
     return 0;
 }
