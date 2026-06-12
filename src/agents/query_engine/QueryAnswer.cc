@@ -228,7 +228,8 @@ static inline string read_metta_expression(const char* token_string, unsigned in
     do {
         cursor++;
         if (token_string[cursor] == '\0') {
-            RAISE_ERROR("Invalid metta expression string");
+            RAISE_ERROR("Invalid metta expression string: <" + string(token_string) +
+                        "> Cursor :" + to_string(cursor));
         } else if ((token_string[cursor] == close_char) && (token_string[cursor - 1] != '\\')) {
             unmatched--;
         } else if ((token_string[cursor] == open_char) && (token_string[cursor - 1] != '\\')) {
