@@ -27,7 +27,7 @@ echo "--------------------------------------------------"
 echo "Loading knowledge base"
 echo
 das-cli db start
-make run-tests-db-loader OPTIONS="test_1m_ redismongodb 4 file $KB 5000"
+make run-db-loader OPTIONS="--config=/opt/das/config/das.json --file=$KB --threads=4 --chunk=5000"
 
 echo
 echo "--------------------------------------------------"
