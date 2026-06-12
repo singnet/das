@@ -1,5 +1,4 @@
-#ifndef _COMMONS_SHAREDQUEUE_H
-#define _COMMONS_SHAREDQUEUE_H
+#pragma once
 
 #include <mutex>
 
@@ -66,5 +65,3 @@ class SharedQueue {
 };
 
 }  // namespace commons
-
-#endif  // _COMMONS_SHAREDQUEUE_H
