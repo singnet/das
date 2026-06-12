@@ -84,6 +84,7 @@ static bool SETUP_ONLY = false;
 static double LINK_CREATION_STRENGTH_THRESHOLD = (SETUP_ONLY ? 0.0 : 0.5);
 static unsigned int LINK_CREATION_COUNT = 10;
 static unsigned int LINK_CREATION_MAX_VISIT_ATTEMPTS = LINK_CREATION_COUNT;
+static unsigned int LINK_CREATION_MAX_ATTEMPTS = 500;
 
 static string PRESET_LINKS_FILE_PREFIX = "/opt/das/_PRESET_LINKS_";
 static string PRESET_LINKS_FILE = PRESET_LINKS_FILE_PREFIX;
@@ -503,9 +504,9 @@ static bool build_implication_link(shared_ptr<QueryAnswer> query_answer,
                                    const string& context,
                                    const string& custom_handle,
                                    set<pair<string, string>>& visited,
-                                   bool& none_visited) {
+                                   bool& visited_at_least_one) {
     STACK_TRACE();
-    none_visited = true;
+    visited_at_least_one = false;
     string predicates[2];
     string metta_predicates[2];
     if (custom_handle == "") {
@@ -542,7 +543,7 @@ static bool build_implication_link(shared_ptr<QueryAnswer> query_answer,
     }
 
     LOG_DEBUG("Visiting: " + predicates[0] + " " + predicates[1]);
-    none_visited = false;
+    visited_at_least_one = true;
     visited.insert({predicates[0], predicates[1]});
 
     // build Evaluation of the AND of both predicates
@@ -639,9 +640,9 @@ static bool build_equivalence_link(shared_ptr<QueryAnswer> query_answer,
                                    const string& context,
                                    const string& custom_handle,
                                    set<pair<string, string>>& visited,
-                                   bool& none_visited) {
+                                   bool& visited_at_least_one) {
     STACK_TRACE();
-    none_visited = true;
+    visited_at_least_one = false;
     string concepts[2];
     string metta_concepts[2];
     if (custom_handle == "") {
@@ -673,7 +674,7 @@ static bool build_equivalence_link(shared_ptr<QueryAnswer> query_answer,
     }
 
     LOG_DEBUG("Visiting: " + concepts[0] + " " + concepts[1]);
-    none_visited = false;
+    visited_at_least_one = true;
     visited.insert(p);
 
     vector<vector<string>> query;
@@ -738,9 +739,9 @@ static bool build_evaluation_link(shared_ptr<QueryAnswer> query_answer,
                                   const string& context,
                                   const string& custom_handle,
                                   set<pair<string, string>>& visited,
-                                  bool& none_visited) {
+                                  bool& visited_at_least_one) {
     STACK_TRACE();
-    none_visited = true;
+    visited_at_least_one = false;
     string predicate = query_answer->get(PREDICATE);
     string concept_ = query_answer->get(CONCEPT);
     if (visited.find({predicate, concept_}) != visited.end()) {
@@ -749,7 +750,7 @@ static bool build_evaluation_link(shared_ptr<QueryAnswer> query_answer,
         return false;
     }
     LOG_DEBUG("Visiting: " + predicate + " " + concept_);
-    none_visited = false;
+    visited_at_least_one = true;
     visited.insert({predicate, concept_});
     double strength = 1;
     for (string& h : query_answer->get_handles_vector()) {
@@ -767,11 +768,12 @@ static void build_links(const vector<string>& query,
                                            const string& context,
                                            const string& custom_handle,
                                            set<pair<string, string>>& visited,
-                                           bool& none_visited)) {
+                                           bool& visited_at_least_one)) {
     STACK_TRACE();
     auto proxy = issue_link_building_query(query, context);
     unsigned int count_created = 0;
-    unsigned int count_attempts = 0;
+    unsigned int count_visit_attemps = 0;
+    unsigned int count_attemps = 0;
     shared_ptr<QueryAnswer> query_answer;
     set<pair<string, string>> visited;
     while (true) {
@@ -783,16 +785,23 @@ static void build_links(const vector<string>& query,
         } else {
             LOG_DEBUG("Processing query answer " + to_string(count_created) + ": " +
                       query_answer->to_string(USE_MORK));
-            bool none_visited = true;
-            if (build_link(query_answer, context, custom_handle, visited, none_visited)) {
+            bool visited_at_least_one = false;
+            if (build_link(query_answer, context, custom_handle, visited, visited_at_least_one)) {
                 count_created++;
-                count_attempts = 0;
-                if (count_created == LINK_CREATION_COUNT) {
+                count_visit_attemps = 0;
+                count_attemps = 0;
+                if (count_created >= LINK_CREATION_COUNT) {
                     break;
                 }
-            } else if (!none_visited) {
-                count_attempts++;
-                if (count_attempts == LINK_CREATION_MAX_VISIT_ATTEMPTS) {
+            } else if (visited_at_least_one) {
+                count_visit_attemps++;
+                count_attemps = 0;
+                if (count_visit_attemps >= LINK_CREATION_MAX_VISIT_ATTEMPTS) {
+                    break;
+                }
+            } else {
+                count_attemps++;
+                if (count_attemps >= LINK_CREATION_MAX_ATTEMPTS) {
                     break;
                 }
             }
