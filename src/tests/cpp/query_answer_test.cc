@@ -348,6 +348,42 @@ void query_answers_equal(QueryAnswer* qa1, QueryAnswer* qa2) {
     EXPECT_EQ(qa1->to_string(), qa2->to_string());
 }
 
+TEST(QueryAnswer, metta_expression_tokenization_with_quoted_parens) {
+    QueryAnswer input(0.0);
+    string eval_handle = random_handle();
+    string pred_handle = random_handle();
+    string concept_handle = random_handle();
+    string value_handle = random_handle();
+    string inner_handle = random_handle();
+
+    input.add_handle(eval_handle);
+    input.assignment.assign("P", pred_handle);
+    input.assignment.assign("C", concept_handle);
+
+    string value_expr =
+        "\"[VERTEBRAL HYPERSEGMENTATION AND OROFACIAL ANOMALIES; VHO](https://omim.org/entry/20781)\"";
+    string inner_expr = "(public.humanhealthprop " + value_expr + ")";
+    string pred_expr =
+        "(Predicate (public.humanhealthprop public.humanhealthprop.value " + value_expr + "))";
+    string concept_expr = "(Concept (public.humanhealthprop \"20781\"))";
+    string eval_expr = "(Evaluation " + pred_expr + " " + concept_expr + ")";
+
+    input.metta_expression[eval_handle] = eval_expr;
+    input.metta_expression[pred_handle] = pred_expr;
+    input.metta_expression[concept_handle] = concept_expr;
+    input.metta_expression[value_handle] = value_expr;
+    input.metta_expression[inner_handle] = inner_expr;
+
+    string token_string = input.tokenize();
+    QueryAnswer output(0.0);
+    output.untokenize(token_string);
+
+    EXPECT_EQ(output.metta_expression.size(), input.metta_expression.size());
+    for (const auto& pair : input.metta_expression) {
+        EXPECT_EQ(output.metta_expression[pair.first], pair.second);
+    }
+}
+
 TEST(QueryAnswer, tokenization) {
     unsigned int NUM_TESTS = 100000;
     unsigned int MAX_PATHS = 5;
