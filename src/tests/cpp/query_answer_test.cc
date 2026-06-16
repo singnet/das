@@ -360,7 +360,8 @@ TEST(QueryAnswer, metta_expression_tokenization_with_quoted_parens) {
     input.assignment.assign("P", pred_handle);
     input.assignment.assign("C", concept_handle);
 
-    static const char* value_content = "Symbol (open1 (open2 test close2) no_close1";
+    static const char* value_content =
+        R"VAL(Dmel\@Pink1@ (These experiments @Pink1[Scer\UAS.cYa]@ and UAS-RNAi allele @Pink1[dsRNA.Scer\UAS]@.)VAL";
 
     string value_expr = string("\"") + value_content + "\"";
     string inner_expr = "(public.humanhealthprop public.humanhealthprop.value " + value_expr + ")";
