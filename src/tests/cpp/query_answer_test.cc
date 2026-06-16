@@ -360,12 +360,12 @@ TEST(QueryAnswer, metta_expression_tokenization_with_quoted_parens) {
     input.assignment.assign("P", pred_handle);
     input.assignment.assign("C", concept_handle);
 
-    string value_expr =
-        "\"[VERTEBRAL HYPERSEGMENTATION AND OROFACIAL ANOMALIES; VHO](https://omim.org/entry/20781)\"";
-    string inner_expr = "(public.humanhealthprop " + value_expr + ")";
-    string pred_expr =
-        "(Predicate (public.humanhealthprop public.humanhealthprop.value " + value_expr + "))";
-    string concept_expr = "(Concept (public.humanhealthprop \"20781\"))";
+    static const char* value_content = "Symbol (open1 (open2 test close2) no_close1";
+
+    string value_expr = string("\"") + value_content + "\"";
+    string inner_expr = "(public.humanhealthprop public.humanhealthprop.value " + value_expr + ")";
+    string pred_expr = "(Predicate " + inner_expr + ")";
+    string concept_expr = "(Concept (public.humanhealthprop \"1287\"))";
     string eval_expr = "(Evaluation " + pred_expr + " " + concept_expr + ")";
 
     input.metta_expression[eval_handle] = eval_expr;
