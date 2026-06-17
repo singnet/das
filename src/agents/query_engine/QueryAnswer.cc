@@ -214,40 +214,42 @@ static inline void read_token(const char* token_string,
     cursor++;
 }
 
-static inline string read_metta_expression(const char* token_string, unsigned int& cursor) {
+static inline string read_paren_metta_expression(const char* token_string, unsigned int& cursor) {
     unsigned int start = cursor;
-    if (token_string[start] == '(') {
-        unsigned int unmatched = 1;
-        bool in_string = false;
-        bool escape = false;
-        while (unmatched > 0) {
-            cursor++;
-            if (token_string[cursor] == '\0') {
-                RAISE_ERROR("Invalid metta expression string: <" + string(token_string) +
-                            "> at cursor: " + std::to_string(cursor));
-            }
-            char c = token_string[cursor];
-            if (in_string) {
-                if (escape) {
-                    escape = false;
-                } else if (c == '\\') {
-                    escape = true;
-                } else if (c == '"') {
-                    in_string = false;
-                }
-            } else if (c == '"') {
-                in_string = true;
-            } else if (c == '(') {
-                unmatched++;
-            } else if (c == ')') {
-                unmatched--;
-            }
-        }
+    unsigned int unmatched = 1;
+    bool in_string = false;
+    bool escape = false;
+    while (unmatched > 0) {
         cursor++;
-        unsigned int end = cursor++;
-        return string(token_string + start, token_string + end);
+        if (token_string[cursor] == '\0') {
+            RAISE_ERROR("Invalid metta expression string: <" + string(token_string) +
+                        "> at cursor: " + std::to_string(cursor));
+        }
+        char c = token_string[cursor];
+        if (in_string) {
+            if (escape) {
+                escape = false;
+            } else if (c == '\\') {
+                escape = true;
+            } else if (c == '"') {
+                in_string = false;
+            }
+        } else if (c == '"') {
+            in_string = true;
+        } else if (c == '(') {
+            unmatched++;
+        } else if (c == ')') {
+            unmatched--;
+        }
     }
+    cursor++;
+    unsigned int end = cursor++;
+    return string(token_string + start, token_string + end);
+}
 
+static inline string read_quoted_or_atom_metta_expression(const char* token_string,
+                                                          unsigned int& cursor) {
+    unsigned int start = cursor;
     unsigned int unmatched = 1;
     char open_char;
     char close_char;
@@ -274,6 +276,13 @@ static inline string read_metta_expression(const char* token_string, unsigned in
     }
     unsigned int end = cursor++;
     return string(token_string + start, token_string + end);
+}
+
+static inline string read_metta_expression(const char* token_string, unsigned int& cursor) {
+    if (token_string[cursor] == '(') {
+        return read_paren_metta_expression(token_string, cursor);
+    }
+    return read_quoted_or_atom_metta_expression(token_string, cursor);
 }
 
 void QueryAnswer::untokenize(const string& tokens) {
