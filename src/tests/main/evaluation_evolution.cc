@@ -81,7 +81,7 @@ static string TARGET_PREDICATE_HANDLE = "undefined";
 
 static bool USE_MORK = false;
 static bool SETUP_ONLY = false;
-static double LINK_CREATION_STRENGTH_THRESHOLD = (SETUP_ONLY ? 0.0 : 0.5);
+static double LINK_CREATION_STRENGTH_THRESHOLD = (SETUP_ONLY ? 0.0 : 0.1);
 static unsigned int LINK_CREATION_COUNT = 10;
 static unsigned int LINK_CREATION_MAX_VISIT_ATTEMPTS = LINK_CREATION_COUNT;
 static unsigned int LINK_CREATION_MAX_ATTEMPTS = 500;
@@ -823,7 +823,8 @@ static void query_evolution(
     STACK_TRACE();
     QueryAnswerElement qa_predicate(PREDICATE);
     QueryAnswerElement qa_concept(CONCEPT);
-    QueryAnswerElement qa_path(QueryAnswerElement::ALL_PATH_HANDLES);
+    QueryAnswerElement qa_path1(0, 1, 2, false, false, true);
+    QueryAnswerElement qa_path2(1, 1, 2, false, false, true);
     QueryAnswerElement qa_nothing;
     QueryAnswerElement qa_everything(QueryAnswerElement::EVERYTHING);
 
@@ -831,13 +832,9 @@ static void query_evolution(
         {{V1, qa_predicate}},
         {{V2, qa_concept}}
     };
-    vector<vector<pair<QueryAnswerElement, QueryAnswerElement>>> correlation_mapping_1 = {
-        {{qa_concept, qa_concept}},
-        {{qa_predicate, qa_predicate}}
-    };
     vector<vector<pair<QueryAnswerElement, QueryAnswerElement>>> correlation_mapping = {
-        {{qa_concept, qa_concept}, {qa_path, qa_nothing}},
-        {{qa_predicate, qa_predicate}, {qa_path, qa_nothing}}
+        {{qa_concept, qa_concept}, {qa_path1, qa_nothing}, {qa_path2, qa_nothing}},
+        {{qa_predicate, qa_predicate}, {qa_path1, qa_nothing}, {qa_path2, qa_nothing}}
     };
 
     QueryEvolutionProxy* proxy_ptr = new QueryEvolutionProxy(
