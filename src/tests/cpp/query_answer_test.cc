@@ -432,6 +432,18 @@ TEST(QueryAnswer, get_query_answer_element) {
     QueryAnswerElement element18(1, 0, 1, false);
     QueryAnswerElement element19(0, 0, 1, true);
     QueryAnswerElement element20(1, 0, 1, true);
+    QueryAnswerElement element21(0, 0, 1, false, true, false);
+    QueryAnswerElement element22(1, 0, 1, false, true, false);
+    QueryAnswerElement element23(0, 0, 1, true, true, false);
+    QueryAnswerElement element24(1, 0, 1, true, true, false);
+    QueryAnswerElement element25(0, 0, 1, false, false, true);
+    QueryAnswerElement element26(1, 0, 1, false, false, true);
+    QueryAnswerElement element27(0, 0, 1, true, false, true);
+    QueryAnswerElement element28(1, 0, 1, true, false, true);
+    QueryAnswerElement element29(0, 0, 1, false, true, true);
+    QueryAnswerElement element30(1, 0, 1, false, true, true);
+    QueryAnswerElement element31(0, 0, 1, true, true, true);
+    QueryAnswerElement element32(1, 0, 1, true, true, true);
 
     EXPECT_EQ(answer.get(element1), "h1");
     EXPECT_EQ(answer.get(element2), "h2");
@@ -475,6 +487,33 @@ TEST(QueryAnswer, get_query_answer_element) {
     EXPECT_EQ(v, vector<string>({"5b", "5a", "6a"}));
     v = answer.get_all(element20, &decoder);
     EXPECT_EQ(v, vector<string>({"7b", "7a"}));
+
+    v = answer.get_all(element21, &decoder);
+    EXPECT_EQ(v, vector<string>({"5b", "6b"}));
+    v = answer.get_all(element22, &decoder);
+    EXPECT_EQ(v, vector<string>({"7b"}));
+    v = answer.get_all(element23, &decoder);
+    EXPECT_EQ(v, vector<string>({"5a", "6a"}));
+    v = answer.get_all(element24, &decoder);
+    EXPECT_EQ(v, vector<string>({"7a"}));
+
+    v = answer.get_all(element25, &decoder);
+    EXPECT_EQ(v, vector<string>({"5a", "5b"}));
+    v = answer.get_all(element26, &decoder);
+    EXPECT_EQ(v, vector<string>({"7a"}));
+    v = answer.get_all(element27, &decoder);
+    EXPECT_EQ(v, vector<string>({"5b", "5a"}));
+    v = answer.get_all(element28, &decoder);
+    EXPECT_EQ(v, vector<string>({"7b"}));
+
+    v = answer.get_all(element29, &decoder);
+    EXPECT_EQ(v, vector<string>({"5b"}));
+    v = answer.get_all(element30, &decoder);
+    EXPECT_EQ(v, vector<string>({}));
+    v = answer.get_all(element31, &decoder);
+    EXPECT_EQ(v, vector<string>({"5a"}));
+    v = answer.get_all(element32, &decoder);
+    EXPECT_EQ(v, vector<string>({}));
 }
 
 TEST(QueryAnswer, rewrite_query) {

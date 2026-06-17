@@ -97,10 +97,18 @@ TEST(QueryEvolution, proxy_object) {
     QueryAnswerElement e9(0, 1, 2, false);
     QueryAnswerElement e10(1, 0, 1, true);
     QueryAnswerElement e11(2, 0, 2, true);
+    QueryAnswerElement e12(0, 0, 1, false, false, false);
+    QueryAnswerElement e13(0, 0, 1, false, false, true);
+    QueryAnswerElement e14(0, 0, 1, false, true, false);
+    QueryAnswerElement e15(0, 0, 1, false, true, true);
+    QueryAnswerElement e16(0, 0, 1, true, false, false);
+    QueryAnswerElement e17(0, 0, 1, true, false, true);
+    QueryAnswerElement e18(0, 0, 1, true, true, false);
+    QueryAnswerElement e19(0, 0, 1, true, true, true);
     QueryEvolutionProxy proxy({"t0", "t1"},
                               {{"tc00"}, {}, {"tc10", "tc11"}},
                               {{{"h1", e1}}, {}, {{"h2", e2}, {"h3", e3}}},
-                              {{{e2, e1}, {e1, e2}, {e1, e3}, {e4, e5}, {e6, e7}, {e7, e8}, {e9, e10}, {e9, e11}}},
+                              {{{e2, e1}, {e1, e2}, {e1, e3}, {e4, e5}, {e6, e7}, {e7, e8}, {e9, e10}, {e9, e11}, {e12, e13}, {e14, e15}, {e16, e17}, {e18, e19}}},
                               "query_evolution_test",
                               "unit_test");
 
@@ -114,7 +122,7 @@ TEST(QueryEvolution, proxy_object) {
         "0.100000, unique_assignment_flag: false, use_link_template_cache: "
         "false, use_metta_as_query_tokens: false}}}, fitness_function: unit_test, correlation_queries: "
         "[[tc00], [], [tc10, tc11]], correlation_replacements: [{{h1, _0}}, {}, {{h2, _1}, {h3, $s1}}], "
-        "correlation_mappings: [[(_1, _0), (_0, _1), (_0, $s1), (^0_1, _*), ($*, ^*), (^*, *), (>0_1_2, <1_0_1), (>0_1_2, <2_0_2)]]}");
+        "correlation_mappings: [[(_1, _0), (_0, _1), (_0, $s1), (^0_1, _*), ($*, ^*), (^*, *), (>0_1_2, <1_0_1), (>0_1_2, <2_0_2), (>0_0_1, >$0_0_1), (>^0_0_1, >^$0_0_1), (<0_0_1, <$0_0_1), (<^0_0_1, <^$0_0_1)]]}");
     vector<string> tokens1, tokens2, tokens3;
     proxy.tokenize(tokens1);
     tokens2 = tokens1;
