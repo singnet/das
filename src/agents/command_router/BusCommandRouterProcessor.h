@@ -8,6 +8,7 @@
 #include "BaseProxy.h"
 #include "BusCommandProcessor.h"
 #include "BusCommandRouterProxy.h"
+#include "CommandRouterHttpAPI.h"
 #include "Properties.h"
 #include "QueryAnswer.h"
 #include "ServiceBus.h"
@@ -16,6 +17,7 @@ using namespace std;
 using namespace service_bus;
 using namespace agents;
 using namespace query_engine;
+using namespace processor;
 
 namespace command_router {
 
@@ -48,6 +50,9 @@ class BusCommandRouterProcessor : public BusCommandProcessor {
     unordered_map<string, Properties> router_parameters_by_peer;
     mutex router_parameters_mutex;
     shared_ptr<ServiceBus> service_bus;
+
+    bool http_api_enabled = false;
+    shared_ptr<CommandRouterHttpAPI> http_api;
 };
 
 }  // namespace command_router

@@ -200,7 +200,9 @@
         },
         "command_router": {
             "endpoint": "localhost:40008",
-            "ports_range": "48000:48999"
+            "ports_range": "48000:48999",
+            "http_api_host": "localhost",
+            "http_api_port": 40009
         }
     }
 }

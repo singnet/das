@@ -177,7 +177,7 @@ class AtomDBProxy : public BaseProxy {
     shared_ptr<SharedQueue> processing_queue = nullptr;
     size_t pending_atoms_count = 0;
     thread processing_thread;
-    shared_ptr<ThreadPool> thread_pool;
+    shared_ptr<::ThreadPool> thread_pool;
     bool stop_processing = false;
 };
 

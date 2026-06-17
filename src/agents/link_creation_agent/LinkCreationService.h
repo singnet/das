@@ -63,7 +63,7 @@ class LinkCreationService
     ~LinkCreationService();
 
    private:
-    ThreadPool thread_pool;
+    ::ThreadPool thread_pool;
     // this can be changed to a better data structure
     set<string> processed_link_handles;
     string metta_file_path;

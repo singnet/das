@@ -1,0 +1,40 @@
+#include "CommandRouterHttpAPISingleton.h"
+
+using namespace command_router;
+
+bool CommandRouterHttpAPISingleton::INITIALIZED = false;
+shared_ptr<CommandRouterHttpAPI> CommandRouterHttpAPISingleton::HTTP_API =
+    shared_ptr<CommandRouterHttpAPI>(nullptr);
+mutex CommandRouterHttpAPISingleton::API_MUTEX;
+
+void CommandRouterHttpAPISingleton::init(const JsonConfig& command_router_config) {
+    lock_guard<mutex> semaphore(API_MUTEX);
+    if (INITIALIZED) {
+        RAISE_ERROR(
+            "CommandRouterHttpAPISingleton already initialized. "
+            "CommandRouterHttpAPISingleton::init() should be called only once.");
+    } else {
+        auto host = command_router_config.at_path("http_api_host").get<string>();
+        auto port = command_router_config.at_path("http_api_port").get<int>();
+
+        unsigned int execution_workers = 4;
+        auto thread_pool_executor =
+            make_shared<ThreadPool>("http_api_thread_pool_executor", execution_workers);
+
+        HTTP_API = make_shared<CommandRouterHttpAPI>(host, port, thread_pool_executor);
+
+        auto http_api_thread = make_shared<DedicatedThread>("http_api_thread", HTTP_API.get());
+
+        CommandRouterHttpAPI::initialize(HTTP_API, {thread_pool_executor, http_api_thread});
+        INITIALIZED = true;
+    }
+}
+
+shared_ptr<CommandRouterHttpAPI> CommandRouterHttpAPISingleton::get_instance() {
+    lock_guard<mutex> semaphore(API_MUTEX);
+    if (!INITIALIZED || HTTP_API == nullptr) {
+        RAISE_ERROR("CommandRouterHttpAPISingleton not initialized");
+        return shared_ptr<CommandRouterHttpAPI>{};
+    }
+    return HTTP_API;
+}

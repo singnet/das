@@ -1,6 +1,7 @@
 #include <signal.h>
 
 #include "AttentionBrokerClient.h"
+#include "CommandRouterHttpAPISingleton.h"
 #include "FitnessFunctionRegistry.h"
 #include "Helper.h"
 #include "JsonConfigParser.h"
@@ -109,6 +110,14 @@ int main(int argc, char* argv[]) {
                                   props.get_or<string>(Helper::BUS_ENDPOINT, ""),
                                   ports_range.first,
                                   ports_range.second);
+
+        if (Helper::processor_type_from_string(cmd_args[Helper::SERVICE]) ==
+            mains::ProcessorType::COMMAND_ROUTER) {
+            auto command_router_config =
+                json_config.at_path("agents.command_router").get_or<JsonConfig>(JsonConfig());
+            CommandRouterHttpAPISingleton::init(command_router_config);
+        }
+
         ///////// Registering processor
         auto service = ProcessorFactory::create_processor(cmd_args[Helper::SERVICE], props);
         if (service == nullptr) {

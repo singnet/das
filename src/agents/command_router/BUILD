@@ -46,6 +46,7 @@ cc_library(
     hdrs = ["BusCommandRouterProcessor.h"],
     includes = ["."],
     deps = [
+        ":bus_command_router_http_api_singleton",
         ":bus_command_router_proxy",
         ":evolution_metta_parser",
         "//agents/evolution:query_evolution_proxy",
@@ -54,5 +55,28 @@ cc_library(
         "//service_bus:bus_command_processor",
         "//service_bus:service_bus_lib",
         "//service_bus:service_bus_singleton",
+    ],
+)
+
+cc_library(
+    name = "command_router_http_api",
+    srcs = ["CommandRouterHttpAPI.cc"],
+    hdrs = ["CommandRouterHttpAPI.h"],
+    includes = ["."],
+    deps = [
+        "//commons:commons_lib",
+        "//commons/processor:processor_lib",
+    ],
+)
+
+cc_library(
+    name = "command_router_http_api_singleton",
+    srcs = ["CommandRouterHttpAPISingleton.cc"],
+    hdrs = ["CommandRouterHttpAPISingleton.h"],
+    includes = ["."],
+    deps = [
+        ":command_router_http_api",
+        "//commons:commons_lib",
+        "//commons/processor:processor_lib",
     ],
 )
