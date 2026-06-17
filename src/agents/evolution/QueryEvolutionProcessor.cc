@@ -19,6 +19,7 @@ using namespace attention_broker;
 
 QueryEvolutionProcessor::QueryEvolutionProcessor() : BusCommandProcessor({ServiceBus::QUERY_EVOLUTION}) {
     AttentionBrokerClient::health_check(true);
+    DECODER = static_pointer_cast<HandleDecoder>(AtomDBSingleton::get_instance()).get();
 }
 
 QueryEvolutionProcessor::~QueryEvolutionProcessor() {}
@@ -122,6 +123,7 @@ void QueryEvolutionProcessor::sample_population(
 
     unsigned int positive_importance_count = 0;
     unsigned int visited_count = this->visited_individuals.size();
+    double sum = 0;
     while ((!pm_query->finished()) && (!monitor->stopped()) && (population.size() < population_size)) {
         shared_ptr<QueryAnswer> answer = pm_query->pop();
         if (answer != NULL) {
@@ -136,6 +138,7 @@ void QueryEvolutionProcessor::sample_population(
                 answer_bundle_vector.push_back(answer->tokenize());
             } else {
                 fitness = (remote_fitness ? 0 : proxy->compute_fitness(answer));
+                sum += fitness;
             }
             answer->strength = fitness;
             if (answer->importance > 0) {
@@ -185,10 +188,12 @@ void QueryEvolutionProcessor::sample_population(
         }
         for (unsigned int i = 0; i < population_size; i++) {
             float fitness = fitness_bundle[i];
+            sum += fitness;
             population[i].first->strength = fitness;
             population[i].second = fitness;
         }
     }
+    LOG_INFO("Average fitness in population: " + (population.size() > 0 ? std::to_string(sum / population.size()) : string("NO POPULATION SAMPLING")));
     // Sort decreasing by fitness value
     std::sort(population.begin(),
               population.end(),
@@ -237,8 +242,8 @@ void QueryEvolutionProcessor::select_best_individuals(
     vector<std::pair<shared_ptr<QueryAnswer>, float>>& population,
     vector<std::pair<shared_ptr<QueryAnswer>, float>>& selected) {
     double selection_rate = proxy->parameters.get<double>(QueryEvolutionProxy::SELECTION_RATE);
-    unsigned int count = (unsigned int) std::lround(selection_rate * population.size());
     unsigned int population_size = population.size();
+    unsigned int count = (unsigned int) std::lround(selection_rate * population_size);
 
     if (count > 0) {
         if (count > population_size) {
@@ -350,7 +355,7 @@ void QueryEvolutionProcessor::correlate_similar(shared_ptr<QueryEvolutionProxy> 
                         handle_set.clear();
                         skip_correlation = false;
                         if (pair.first.is_wildcard()) {
-                            for (string handle : selected_answer->get_all(pair.first)) {
+                            for (string handle : selected_answer->get_all(pair.first, DECODER)) {
                                 handle_set.insert(handle);
                             }
                         } else {
@@ -364,7 +369,7 @@ void QueryEvolutionProcessor::correlate_similar(shared_ptr<QueryEvolutionProxy> 
                             }
                         }
                         if (pair.second.is_wildcard()) {
-                            for (string handle : correlated_answer->get_all(pair.second)) {
+                            for (string handle : correlated_answer->get_all(pair.second, DECODER)) {
                                 handle_set.insert(handle);
                             }
                         } else {
@@ -423,7 +428,7 @@ void QueryEvolutionProcessor::stimulate(shared_ptr<QueryEvolutionProxy> proxy,
         for (auto& correlation : correlation_mappings) {
             for (auto& correlation_pair : correlation) {
                 if (correlation_pair.first.is_wildcard()) {
-                    for (string handle : pair.first->get_all(correlation_pair.first)) {
+                    for (string handle : pair.first->get_all(correlation_pair.first, DECODER)) {
                         handle_set.insert(handle);
                     }
                 } else {
@@ -462,6 +467,74 @@ void QueryEvolutionProcessor::update_attention_allocation(
     stimulate(proxy, selected);
 }
 
+string QueryEvolutionProcessor::answer_to_string_2(shared_ptr<QueryAnswer> answer, shared_ptr<AtomDB> db) {
+    vector<string> paths;
+    for (unsigned int i = 0; i < 2; i++) {
+        if (answer->get_paths_size() != 2) {
+            RAISE_ERROR("Invalid answer: " + answer->to_string());
+        }
+        string path = "";
+        vector<string> path_link = {" -> ", " -> "};
+        bool first = true;
+        for (string& handle : answer->get_path_vector(i)) {
+            auto link = db->get_link(handle);
+            auto target1 = db->get_link(link->targets[1]);
+            auto target2 = db->get_link(link->targets[2]);
+            if (first) {
+                first = false;
+                path = target1->metta_representation(*DECODER) + path_link[i];
+            }
+            path += target2->metta_representation(*DECODER);
+            path += path_link[i];
+        }
+        if (answer->get_path_vector(i).size() > 0) {
+            path.pop_back();
+            path.pop_back();
+            path.pop_back();
+            path.pop_back();
+        }
+        paths.push_back(path);
+    }
+    return "[" + std::to_string(answer->strength) + "]: " + paths[0] + " | " + paths[1];
+}
+
+string QueryEvolutionProcessor::answer_to_string_1(shared_ptr<QueryAnswer> answer, shared_ptr<AtomDB> db) {
+    if (answer->get_paths_size() != 1) {
+        RAISE_ERROR("Invalid answer: " + answer->to_string());
+    }
+    string path = "";
+    string path_link = " -> ";
+    bool first = true;
+    for (string& handle : answer->get_path_vector(0)) {
+        auto link = db->get_link(handle);
+        auto target1 = db->get_link(link->targets[1]);
+        auto target2 = db->get_link(link->targets[2]);
+        if (first) {
+            first = false;
+            path = target1->metta_representation(*DECODER) + path_link;
+        }
+        path += target2->metta_representation(*DECODER);
+        path += path_link;
+    }
+    if (answer->get_path_vector(0).size() > 0) {
+        path.pop_back();
+        path.pop_back();
+        path.pop_back();
+        path.pop_back();
+    }
+    return "[" + std::to_string(answer->strength) + "]: " + path;
+}
+
+string QueryEvolutionProcessor::answer_to_string(shared_ptr<QueryAnswer> answer) {
+    if (answer->get_paths_size() == 1) {
+        return answer_to_string_1(answer, AtomDBSingleton::get_instance());
+    } else if (answer->get_paths_size() == 2) {
+        return answer_to_string_2(answer, AtomDBSingleton::get_instance());
+    } else {
+        return answer->to_string();
+    }
+}
+
 void QueryEvolutionProcessor::evolve_query(shared_ptr<StoppableThread> monitor,
                                            shared_ptr<QueryEvolutionProxy> proxy) {
     bool metta_flag = (proxy->get_query_tokens().size() == 1);
@@ -485,6 +558,9 @@ void QueryEvolutionProcessor::evolve_query(shared_ptr<StoppableThread> monitor,
         sample_population(monitor, proxy, population);
         STOP_WATCH_FINISH(sample_population, "EvolutionPopulationSampling");
         LOG_INFO("Sampled " + std::to_string(population.size()) + " individuals.");
+        for (auto& pair : population) {
+            LOG_INFO(std::to_string(pair.second) + " " + answer_to_string(pair.first));
+        }
         proxy->new_population_sampled(population);
         if (population.size() > 0) {
             proxy->flush_answer_bundle();
@@ -493,6 +569,9 @@ void QueryEvolutionProcessor::evolve_query(shared_ptr<StoppableThread> monitor,
             STOP_WATCH_FINISH(selection, "EvolutionIndividualSelection");
             LOG_INFO("Selected " + std::to_string(selected.size()) +
                      " individuals to update attention allocation.");
+            for (auto& pair : selected) {
+                LOG_INFO(std::to_string(pair.second) + " " + answer_to_string(pair.first));
+            }
             if (selected.size() > 0) {
                 STOP_WATCH_START(attention_broker);
                 update_attention_allocation(proxy, selected);
