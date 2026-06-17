@@ -370,7 +370,7 @@ TEST(QueryAnswer, metta_expression_tokenization_with_quoted_parens) {
     string pred_expr = "(Predicate " + inner_expr + ")";
     string concept_expr = "(Concept (public.humanhealthprop \"1287\"))";
     string eval_expr = "(Evaluation " + pred_expr + " " + concept_expr + ")";
-    string s1_expr = "(Concept xxx\(xxx)";
+    string s1_expr = "(Concept \"xxx\(xxx)\"";
 
     input.metta_expression[eval_handle] = eval_expr;
     input.metta_expression[pred_handle] = pred_expr;
