@@ -50,6 +50,11 @@ class SQLWrapper : public DatabaseWrapper {
      */
     virtual void map_sql_query(const string& virtual_name, const string& raw_query) = 0;
 
+    /**
+     * @brief Validates and normalizes a SQL field value.
+     * @param value The value to sanitize.
+     * @return True if the value is valid and sanitized, false otherwise.
+     */
     bool sanitize_value(string& value);
 };
 
