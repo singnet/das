@@ -157,6 +157,10 @@ const string& QueryAnswer::tokenize() {
         char_count += 4;  // (up to 3 digits) to represent this->handles[i].size() + space
         char_count += vector.size() * (HANDLE_HASH_SIZE + 1);  // handles[i] + spaces
     }
+    for (auto pair : this->metta_expression) {
+        char_count += HANDLE_HASH_SIZE + 1;    // handle + space
+        char_count += pair.second.size() + 1;  // MeTTa expression + space
+    }
 
     this->token_representation.clear();
     this->token_representation.reserve(char_count);
@@ -210,15 +214,46 @@ static inline void read_token(const char* token_string,
     cursor++;
 }
 
-static inline string read_metta_expression(const char* token_string, unsigned int& cursor) {
+static inline string read_paren_metta_expression(const char* token_string, unsigned int& cursor) {
+    unsigned int start = cursor;
+    unsigned int unmatched = 1;
+    bool in_string = false;
+    bool escape = false;
+    while (unmatched > 0) {
+        cursor++;
+        if (token_string[cursor] == '\0') {
+            RAISE_ERROR("Invalid metta expression string: <" + string(token_string) +
+                        "> at cursor: " + std::to_string(cursor));
+        }
+        char c = token_string[cursor];
+        if (in_string) {
+            if (escape) {
+                escape = false;
+            } else if (c == '\\') {
+                escape = true;
+            } else if (c == '"') {
+                in_string = false;
+            }
+        } else if (c == '"') {
+            in_string = true;
+        } else if (c == '(') {
+            unmatched++;
+        } else if (c == ')') {
+            unmatched--;
+        }
+    }
+    cursor++;
+    unsigned int end = cursor++;
+    return string(token_string + start, token_string + end);
+}
+
+static inline string read_quoted_or_atom_metta_expression(const char* token_string,
+                                                          unsigned int& cursor) {
     unsigned int start = cursor;
     unsigned int unmatched = 1;
     char open_char;
     char close_char;
-    if (token_string[start] == '(') {
-        open_char = '(';
-        close_char = ')';
-    } else if (token_string[start] == '\"') {
+    if (token_string[start] == '\"') {
         open_char = '\"';
         close_char = '\"';
     } else {
@@ -228,7 +263,8 @@ static inline string read_metta_expression(const char* token_string, unsigned in
     do {
         cursor++;
         if (token_string[cursor] == '\0') {
-            RAISE_ERROR("Invalid metta expression string");
+            RAISE_ERROR("Invalid metta expression string: <" + string(token_string) +
+                        "> at cursor:" + to_string(cursor));
         } else if ((token_string[cursor] == close_char) && (token_string[cursor - 1] != '\\')) {
             unmatched--;
         } else if ((token_string[cursor] == open_char) && (token_string[cursor - 1] != '\\')) {
@@ -239,8 +275,14 @@ static inline string read_metta_expression(const char* token_string, unsigned in
         cursor++;
     }
     unsigned int end = cursor++;
-    string answer(token_string + start, token_string + end);
-    return answer;
+    return string(token_string + start, token_string + end);
+}
+
+static inline string read_metta_expression(const char* token_string, unsigned int& cursor) {
+    if (token_string[cursor] == '(') {
+        return read_paren_metta_expression(token_string, cursor);
+    }
+    return read_quoted_or_atom_metta_expression(token_string, cursor);
 }
 
 void QueryAnswer::untokenize(const string& tokens) {

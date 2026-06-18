@@ -294,7 +294,7 @@ vector<vector<pair<QueryAnswerElement, QueryAnswerElement>>> command_router::met
 bool command_router::try_parse_evolution_metta_arg(const string& arg, EvolutionMettaArgs& out) {
     out = EvolutionMettaArgs{};
     string trimmed = arg;
-    Utils::trim(trimmed);
+    trimmed = Utils::trim(trimmed);
     if (trimmed.empty() || trimmed[0] != '(') {
         return false;
     }
