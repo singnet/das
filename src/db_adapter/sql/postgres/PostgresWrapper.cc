@@ -504,13 +504,9 @@ SqlRow PostgresWrapper::build_sql_row(const pqxx::row& row, const Table& table, 
 
         string value = field.c_str();
 
-        if (value.empty() || value.size() > MAX_VALUE_SIZE) {
-            continue;
-        }
-
-        Utils::replace_all(value, "\n", " ");
-        Utils::replace_all(value, "\t", " ");
         value = Utils::trim(value);
+
+        if (!this->sanitize_value(value)) continue;
 
         string column_name = columns[i];
         for (const auto& fk : table.foreign_keys) {

@@ -17,6 +17,8 @@ namespace db_adapter {
  */
 class SQLWrapper : public DatabaseWrapper {
    public:
+    static size_t MAX_VALUE_SIZE;
+
     SQLWrapper(shared_ptr<DatabaseConnection> db_conn, shared_ptr<DatabaseMapper> mapper);
     virtual ~SQLWrapper() = default;
 
@@ -47,6 +49,8 @@ class SQLWrapper : public DatabaseWrapper {
      * @brief Executes a raw SQL query and maps the result.
      */
     virtual void map_sql_query(const string& virtual_name, const string& raw_query) = 0;
+
+    bool sanitize_value(string& value);
 };
 
 }  // namespace db_adapter
