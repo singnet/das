@@ -1,6 +1,6 @@
 {
     "atomdb": {
-        "type": "redismongodb",
+        "type": "remotedb",
         "redis": {
             "image": "redis:7.2.3-alpine",
             "endpoint": "localhost:40020",
@@ -15,7 +15,7 @@
         },
         "mongodb": {
             "image": "mongodb/mongodb-community-server:8.2-ubuntu2204",
-            "endpoint": "localhost:40021",
+            "endpoint": "localhost:40031",
             "username": "admin",
             "password": "admin",
             "cluster": false,
@@ -72,13 +72,13 @@
         },
         "morkdb": {
             "image": "trueagi/das:mork-server-1.0.4",
-            "endpoint": "localhost:40022"
+            "endpoint": "localhost:40032"
         },
         "remote_peers": [
             {
                 "uid": "peer1",
                 "type": "redismongodb",
-                "context": "remotedb_test_peer1_",
+                "context": "",
                 "mongodb": {
                     "endpoint": "localhost:40021",
                     "username": "admin",
@@ -89,25 +89,25 @@
                     "cluster": false
                 },
                 "local_persistence": {
-                    "type": "morkdb",
-                    "context": "remotedb_test_peer1_local_",
-                    "mongodb": {
-                        "endpoint": "localhost:40021",
-                        "username": "admin",
-                        "password": "admin"
-                    },
-                    "morkdb": {
-                        "endpoint": "localhost:40022"
-                    }
+                    "type": "inmemorydb",
+                    "context": "peer1_local_"
                 }
             },
             {
                 "uid": "peer2",
-                "type": "inmemorydb",
-                "context": "remotedb_test_peer2_",
+                "type": "morkdb",
+                "context": "",
                 "local_persistence": {
                     "type": "inmemorydb",
-                    "context": "remotedb_test_peer2_local_"
+                    "context": "peer2_local_"
+                },
+                "mongodb": {
+                    "endpoint": "localhost:40031",
+                    "username": "admin",
+                    "password": "admin"
+                },
+                "morkdb": {
+                    "endpoint": "localhost:40032"
                 }
             }
         ]
@@ -133,8 +133,8 @@
                 "max_bundle_size": 1000,
                 "max_answers": 0,
                 "use_link_template_cache": false,
-                "populate_metta_mapping": false,
-                "use_metta_as_query_tokens": false,
+                "populate_metta_mapping": true,
+                "use_metta_as_query_tokens": true,
                 "allow_incomplete_chain_path": false
             }
         },

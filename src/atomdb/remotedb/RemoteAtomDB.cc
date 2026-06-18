@@ -1,3 +1,6 @@
+#define LOG_LEVEL DEBUG_LEVEL
+#include "Logger.h"
+
 #include "RemoteAtomDB.h"
 
 #include <fstream>
@@ -10,9 +13,6 @@
 #include "MorkDB.h"
 #include "RedisMongoDB.h"
 #include "Utils.h"
-
-#define LOG_LEVEL INFO_LEVEL
-#include "Logger.h"
 
 using namespace atomdb;
 using namespace atoms;
@@ -53,8 +53,12 @@ RemoteAtomDB::RemoteAtomDB(const JsonConfig& peers_config) {
         auto peer_config = JsonConfig(entry);
         string uid = peer_config.at_path("uid").get_or<string>("");
         if (uid.empty()) continue;
+        auto local_persistence_config = peer_config.at_path("local_persistence").get_or<JsonConfig>(JsonConfig());
+        if (local_persistence_config.empty()) {
+            RAISE_ERROR("Missing local persistence configuration for peer " + uid);
+        }
         remote_db_[uid] =
-            make_shared<RemoteAtomDBPeer>(create_atomdb_from_config(peer_config), nullptr, uid);
+            make_shared<RemoteAtomDBPeer>( create_atomdb_from_config(peer_config), create_atomdb_from_config(local_persistence_config), uid);
     }
 
     LOG_INFO("RemoteAtomDB initialized with " << remote_db_.size() << " remote peers");

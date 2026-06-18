@@ -26,7 +26,8 @@ void AtomDBSingleton::init(const JsonConfig& atomdb_config) {
         } else if (atomdb_type == "redismongodb") {
             AtomDBSingleton::atom_db = shared_ptr<AtomDB>(new RedisMongoDB("", false, atomdb_config));
         } else if (atomdb_type == "remotedb") {
-            AtomDBSingleton::atom_db = shared_ptr<AtomDB>(new RemoteAtomDB(atomdb_config));
+            auto remote_peers_config = atomdb_config.at_path("remote_peers").get_or<JsonConfig>(JsonConfig());
+            AtomDBSingleton::atom_db = shared_ptr<AtomDB>(new RemoteAtomDB(remote_peers_config));
         } else if (atomdb_type == "adapterdb") {
             AtomDBSingleton::atom_db = shared_ptr<AtomDB>(new AdapterDB(atomdb_config));
         } else {

@@ -46,7 +46,6 @@ class HandleSetInMemoryIterator : public HandleSetIterator {
    private:
     HandleSetInMemory* handle_set;
     set<string>::iterator it;
-    vector<char*> allocated_strings;
 };
 
 class HandleListInMemory : public HandleList {

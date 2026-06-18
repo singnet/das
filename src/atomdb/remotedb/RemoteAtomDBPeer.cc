@@ -1,3 +1,6 @@
+#define LOG_LEVEL DEBUG_LEVEL
+#include "Logger.h"
+
 #include "RemoteAtomDBPeer.h"
 
 #include <algorithm>
@@ -10,9 +13,6 @@
 #include "Node.h"
 #include "Utils.h"
 #include "expression_hasher.h"
-
-#define LOG_LEVEL INFO_LEVEL
-#include "Logger.h"
 
 using namespace atomdb;
 using namespace atomdb_api_types;
@@ -141,6 +141,7 @@ bool RemoteAtomDBPeer::schema_already_fetched(const LinkSchema& link_schema) {
 }
 
 void RemoteAtomDBPeer::feed_cache_from_handle_set(shared_ptr<HandleSet> handle_set) {
+    LOG_DEBUG("[uid: " << uid_ << "] feed_cache_from_handle_set(" << (handle_set ? handle_set->size() : 0) << ")");
     if (!handle_set) return;
 
     auto it = handle_set->get_iterator();
@@ -151,7 +152,9 @@ void RemoteAtomDBPeer::feed_cache_from_handle_set(shared_ptr<HandleSet> handle_s
         if (!handle_cstr) break;
 
         string handle(handle_cstr);
+        LOG_DEBUG("[uid: " << uid_ << "] feed_cache_from_handle_set(" << handle << ")");
         auto atom = get_atom(handle);
+        LOG_DEBUG("[uid: " << uid_ << "] feed_cache_from_handle_set(" << handle << ") -> " << (atom ? atom->to_string() : "null"));
         if (atom) {
             cache_.add_atom(atom.get());
         }
@@ -177,13 +180,24 @@ shared_ptr<HandleSet> RemoteAtomDBPeer::query_for_pattern(const LinkSchema& link
     set<string> seen;
 
     if (schema_already_fetched(link_schema)) {
+        LOG_DEBUG("[uid: " << uid_ << "] query_for_pattern(" << link_schema.handle() << ") from cache");
         merge_handle_set(cache_.query_for_pattern(link_schema), result, seen);
         if (local_persistence_) {
+            LOG_DEBUG("[uid: " << uid_ << "] query_for_pattern(" << link_schema.handle() << ") from local_persistence");
             merge_handle_set(local_persistence_->query_for_pattern(link_schema), result, seen);
         }
     } else {
+        LOG_DEBUG("[uid: " << uid_ << "] query_for_pattern(" << link_schema.handle() << ") not cached, fetching from atomdb");
         if (atomdb_) {
-            merge_handle_set(atomdb_->query_for_pattern(link_schema), result, seen);
+            auto handle_set = atomdb_->query_for_pattern(link_schema);
+            if (handle_set) {
+                LOG_DEBUG("[uid: " << uid_ << "] query_for_pattern(" << link_schema.handle()
+                                     << ") -> " << handle_set->size() << " handles from atomdb");
+                merge_handle_set(handle_set, result, seen);
+            } else {
+                LOG_DEBUG("[uid: " << uid_ << "] query_for_pattern(" << link_schema.handle()
+                                     << ") -> no handles from atomdb");
+            }
         }
         feed_cache_from_handle_set(result);
         fetched_link_templates_.insert(link_schema.handle(), empty_trie_value_);
