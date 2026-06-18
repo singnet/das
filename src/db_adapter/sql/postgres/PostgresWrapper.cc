@@ -504,8 +504,6 @@ SqlRow PostgresWrapper::build_sql_row(const pqxx::row& row, const Table& table, 
 
         string value = field.c_str();
 
-        value = Utils::trim(value);
-
         if (!this->sanitize_value(value)) continue;
 
         string column_name = columns[i];
