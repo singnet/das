@@ -29,6 +29,11 @@ class HandleSetInMemory : public HandleSet {
     Assignment get_assignments_by_handle(const string& handle) override;
 
     void add_handle(const string& handle);
+    // Metadata-preserving overload used when federating nested-indexing backends (e.g. MorkDB),
+    // so per-handle assignments / metta expressions survive the merge into the aggregated result.
+    void add_handle(const string& handle,
+                    const map<string, string>& metta_expressions,
+                    const Assignment& assignment);
 
    private:
     set<string> handles;

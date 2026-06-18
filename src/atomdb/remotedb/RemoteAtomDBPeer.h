@@ -94,7 +94,8 @@ class RemoteAtomDBPeer : public AtomDB, public processor::ThreadMethod {
     void feed_cache_from_handle_set(shared_ptr<atomdb_api_types::HandleSet> handle_set);
     void merge_handle_set(shared_ptr<atomdb_api_types::HandleSet> source,
                           shared_ptr<atomdb_api_types::HandleSetInMemory> dest,
-                          set<string>& seen);
+                          set<string>& seen,
+                          bool copy_metadata = false);
     bool schema_already_fetched(const LinkSchema& link_schema);
 
     string uid_;

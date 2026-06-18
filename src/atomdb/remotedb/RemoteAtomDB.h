@@ -75,6 +75,9 @@ class RemoteAtomDB : public AtomDB {
 
    private:
     map<string, shared_ptr<RemoteAtomDBPeer>> remote_db_;
+    // Aggregated nested-indexing capability, derived from peers at construction. True only when
+    // every peer supports nested indexing; mixed configurations are normalized to false.
+    bool nested_indexing_ = false;
 };
 
 }  // namespace atomdb

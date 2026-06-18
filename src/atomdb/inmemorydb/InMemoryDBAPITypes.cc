@@ -55,6 +55,16 @@ Assignment HandleSetInMemory::get_assignments_by_handle(const string& handle) {
 
 void HandleSetInMemory::add_handle(const string& handle) { handles.insert(handle); }
 
+void HandleSetInMemory::add_handle(const string& handle,
+                                   const map<string, string>& metta_expressions,
+                                   const Assignment& assignment) {
+    handles.insert(handle);
+    if (!metta_expressions.empty()) {
+        metta_expressions_by_handle[handle] = metta_expressions;
+    }
+    assignments_by_handle[handle] = assignment;
+}
+
 // HandleSetInMemoryIterator
 HandleSetInMemoryIterator::HandleSetInMemoryIterator(HandleSetInMemory* handle_set)
     : handle_set(handle_set), it(handle_set->handles.begin()) {}

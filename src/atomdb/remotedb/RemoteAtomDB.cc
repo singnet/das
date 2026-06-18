@@ -1,6 +1,4 @@
 #define LOG_LEVEL DEBUG_LEVEL
-#include "Logger.h"
-
 #include "RemoteAtomDB.h"
 
 #include <fstream>
@@ -10,6 +8,7 @@
 
 #include "InMemoryDB.h"
 #include "InMemoryDBAPITypes.h"
+#include "Logger.h"
 #include "MorkDB.h"
 #include "RedisMongoDB.h"
 #include "Utils.h"
@@ -53,20 +52,44 @@ RemoteAtomDB::RemoteAtomDB(const JsonConfig& peers_config) {
         auto peer_config = JsonConfig(entry);
         string uid = peer_config.at_path("uid").get_or<string>("");
         if (uid.empty()) continue;
-        auto local_persistence_config = peer_config.at_path("local_persistence").get_or<JsonConfig>(JsonConfig());
+        auto local_persistence_config =
+            peer_config.at_path("local_persistence").get_or<JsonConfig>(JsonConfig());
         if (local_persistence_config.empty()) {
             RAISE_ERROR("Missing local persistence configuration for peer " + uid);
         }
         remote_db_[uid] =
-            make_shared<RemoteAtomDBPeer>( create_atomdb_from_config(peer_config), create_atomdb_from_config(local_persistence_config), uid);
+            make_shared<RemoteAtomDBPeer>(create_atomdb_from_config(peer_config),
+                                          create_atomdb_from_config(local_persistence_config),
+                                          uid);
     }
 
     LOG_INFO("RemoteAtomDB initialized with " << remote_db_.size() << " remote peers");
+
+    // Derive the aggregated nested-indexing capability from the peers. A single global boolean
+    // cannot describe a heterogeneous result set, so mixed configurations are normalized to the
+    // lowest common denominator (false: the query engine re-matches every handle locally).
+    unsigned int nested_peers = 0;
+    for (auto& [uid, peer] : remote_db_) {
+        if (peer->allow_nested_indexing()) nested_peers++;
+    }
+    if (!remote_db_.empty() && nested_peers == remote_db_.size()) {
+        nested_indexing_ = true;
+    } else {
+        nested_indexing_ = false;
+        if (nested_peers > 0) {
+            LOG_INFO(
+                "WARNING: RemoteAtomDB has a mix of nested-indexing and non-nested-indexing "
+                "peers ("
+                << nested_peers << "/" << remote_db_.size()
+                << " nested); downgrading allow_nested_indexing() to false. Nested peers will "
+                   "be re-matched locally by the query engine.");
+        }
+    }
 }
 
 RemoteAtomDB::~RemoteAtomDB() = default;
 
-bool RemoteAtomDB::allow_nested_indexing() { return false; }
+bool RemoteAtomDB::allow_nested_indexing() { return nested_indexing_; }
 
 shared_ptr<Atom> RemoteAtomDB::get_atom(const string& handle) {
     for (auto& [uid, peer] : remote_db_) {
@@ -117,6 +140,10 @@ shared_ptr<atomdb_api_types::HandleSet> RemoteAtomDB::query_for_pattern(const Li
         auto handle_set = peer->query_for_pattern(link_schema);
         if (!handle_set) continue;
 
+        // Preserve per-handle assignments / metta expressions for nested-indexing peers so the
+        // aggregated result stays faithful instead of silently dropping the backend's match data.
+        bool copy_metadata = peer->allow_nested_indexing();
+
         auto it = handle_set->get_iterator();
         if (!it) continue;
 
@@ -125,7 +152,13 @@ shared_ptr<atomdb_api_types::HandleSet> RemoteAtomDB::query_for_pattern(const Li
             if (!h) break;
             string handle(h);
             if (seen.insert(handle).second) {
-                result->add_handle(handle);
+                if (copy_metadata) {
+                    result->add_handle(handle,
+                                       handle_set->get_metta_expressions_by_handle(handle),
+                                       handle_set->get_assignments_by_handle(handle));
+                } else {
+                    result->add_handle(handle);
+                }
             }
         }
     }
