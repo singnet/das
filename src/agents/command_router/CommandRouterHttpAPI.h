@@ -169,6 +169,8 @@ class CommandRouterHttpAPI : public Processor, public ThreadMethod {
                                       int total_items);
     static JsonConfig error_event(const string& execution_id, const string& message);
     static JsonConfig aborted_event(const string& execution_id);
+
+    void set_json_response(httplib::Response& res, int status_code, const JsonConfig& payload);
 };
 
 }  // namespace command_router

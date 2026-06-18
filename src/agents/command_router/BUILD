@@ -46,7 +46,7 @@ cc_library(
     hdrs = ["BusCommandRouterProcessor.h"],
     includes = ["."],
     deps = [
-        ":bus_command_router_http_api_singleton",
+        ":command_router_http_api_singleton",
         ":bus_command_router_proxy",
         ":evolution_metta_parser",
         "//agents/evolution:query_evolution_proxy",

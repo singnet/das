@@ -38,3 +38,9 @@ shared_ptr<CommandRouterHttpAPI> CommandRouterHttpAPISingleton::get_instance() {
     }
     return HTTP_API;
 }
+
+void CommandRouterHttpAPISingleton::provide(shared_ptr<CommandRouterHttpAPI> http_api) {
+    lock_guard<mutex> semaphore(API_MUTEX);
+    HTTP_API = http_api;
+    INITIALIZED = true;
+}
