@@ -1,0 +1,145 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+language: en-US
+focus: balanced
+
+tone_instructions: >-
+  Prioritize code quality, memory efficiency, and test coverage. Flag correctness
+  bugs, unnecessary allocations/copies, and missing tests for behavior changes.
+  Skip style nits already enforced by CI.
+
+reviews:
+  profile: assertive
+  request_changes_workflow: false
+  high_level_summary: true
+  high_level_summary_in_walkthrough: true
+  high_level_summary_instructions: |
+    Summarize the PR in 3–5 bullets. Call out: (1) code-quality risks (correctness,
+    thread safety, error handling), (2) memory/allocation impact on hot paths, and
+    (3) whether behavior changes have matching tests in src/tests/ or client test suites.
+  poem: false
+  review_status: true
+  collapse_walkthrough: false
+  tools:
+    clang:
+      enabled: true
+    cppcheck:
+      enabled: true
+    clippy:
+      enabled: true
+    flake8:
+      enabled: true
+    ruff:
+      enabled: true
+    shellcheck:
+      enabled: true
+    github-checks:
+      enabled: true
+      # Self-hosted Bazel CI (format + unit tests) often exceeds the 90s default.
+      timeout_ms: 900000
+  pre_merge_checks:
+    docstrings:
+      mode: off
+    custom_checks:
+      - name: Tests for behavior changes
+        mode: warning
+        instructions: |
+          PASS when any of the following is true:
+          - The PR only touches docs, CI, config, or formatting (no production logic).
+          - Production code under src/ (outside src/tests/) or 3rd_party_slots/ changes
+            behavior and the PR adds or updates tests (C++ *_test.cc under src/tests/cpp/,
+            Python tests under 3rd_party_slots/python_client/, Rust tests in the Rust crate).
+          - The PR description explains why tests are intentionally omitted.
+          FAIL when production logic changes (bug fixes, new APIs, query/agent behavior)
+          without corresponding test updates and without justification in the description.
+  finishing_touches:
+    unit_tests:
+      enabled: true
+  auto_review:
+    enabled: true
+    drafts: false
+    base_branches:
+      - master
+  path_filters:
+    - "!**/bazel-*/**"
+    - "!**/__pycache__/**"
+    - "!**/node_modules/**"
+    - "!**/.pytest_cache/**"
+    - "!**/htmlcov/**"
+    - "!**/*.lock"
+    - "!src/deps/requirements_python_client_lock.txt"
+  path_instructions:
+    - path: "src/**/*.{cc,h}"
+      instructions: |
+        DAS core C++ (Bazel, clang-format). Follow existing files in the same directory.
+        Formatting: 4 spaces, no tabs, 105-column limit (.clang-format). Attach braces.
+        Headers use #pragma once. Close namespaces with `}  // namespace name`.
+        File-level `using namespace std` and domain namespaces (commons, agents, service_bus, etc.) are intentional — do not suggest removing them or adding std:: prefixes.
+        Use `this->` for member access. Mutex pattern: `lock_guard<mutex> semaphore(this->api_mutex)`.
+        Fatal errors: RAISE_ERROR(msg) from Utils.h (logs + throws). Logging: define LOG_LEVEL before #include "Logger.h", then LOG_DEBUG/LOG_INFO/LOG_ERROR.
+        .cc files use section banners like `// ---...` between API groups. Public API in headers uses brief Doxygen /** */ blocks.
+        Architecture: Service Bus with BusCommandProxy (client) and BusCommandProcessor (server). Match existing proxy/processor patterns.
+        Prefer minimal, focused diffs. Do not flag pre-existing style in untouched code. Do not suggest C++20-only features unless already used nearby.
+        Tests live in src/tests/cpp/ as *_test.cc. CI enforces formatting via `bazel run //:format.check` — do not nitpick style CI already checks.
+
+        MEMORY & PERFORMANCE (high priority): Flag unnecessary copies of large objects
+        (Properties, vector, string, maps) — prefer const ref, std::move, reserve().
+        Avoid heap allocations in hot paths and while holding api_mutex. Minimize lock scope.
+        Watch for shared_ptr cycles, use-after-free via raw pointers, and missing reserve()
+        before repeated push_back/emplace_back. Prefer returning by value with NRVO/move over
+        out-parameters when consistent with neighboring code.
+        CODE QUALITY: Thread safety across proxy/processor boundaries, RAISE_ERROR invariants,
+        and error propagation via raise_error_on_peer. Correctness over micro-optimizations.
+        TEST COVERAGE: Behavior changes here should have matching *_test.cc updates; suggest
+        concrete test cases (edge cases, error paths, concurrency) not trivial assertions.
+    - path: "3rd_party_slots/python_client/**/*.py"
+      instructions: |
+        Python DAS client (hyperon_das). Black line-length 100, target py310 (.lint/.black.cfg).
+        isort profile: line_length 100, trailing commas (.lint/.isort.cfg). flake8 max-line-length 100; E203/E501 ignored.
+        Mirror existing module layout and naming (snake_case, BusCommandProxy hierarchy, grpc service clients).
+        Use the project logger (`hyperon_das.logger`), not ad-hoc print/logging. Type hints where sibling files use them.
+        Do not suggest style changes that conflict with Black/isort. Keep changes scoped to the task.
+    - path: "3rd_party_slots/rust_metta_bus_client/**/*.rs"
+      instructions: |
+        Rust MeTTa bus client. Follow rustfmt.toml: hard tabs, max_width 100, use_small_heuristics Max.
+        Match existing error handling and module structure. Do not suggest switching to spaces or different line width.
+    - path: ".github/**"
+      instructions: |
+        GitHub Actions and CI scripts. This repo uses reusable workflows, self-hosted runners (self-hosted-withcache), and Bazel.
+        Preserve existing workflow_call patterns and script conventions under .github/scripts/.
+    - path: "config/**"
+      instructions: |
+        Runtime configuration (das.json). Preserve existing key names and JSON structure; flag breaking config changes clearly.
+    - path: "src/tests/**/*.{cc,h}"
+      instructions: |
+        C++ unit tests (Bazel, GoogleTest-style). CI runs `make run-tests-only` and coverage
+        gate at 70% line coverage (src/scripts/bazel_coverage_check.sh).
+        Prioritize tests for real behavior: error paths, boundary conditions, thread/proxy
+        interactions, and regressions — not trivial getters or coverage padding.
+        Mirror fixtures/patterns from sibling *_test.cc files and assets under src/tests/assets/.
+        Flag tests that mock too much or miss assertions on changed production APIs.
+    - path: "3rd_party_slots/python_client/**/test*.py"
+      instructions: |
+        Python client tests. Match Black/isort settings. Focus on gRPC/proxy contract tests
+        and error handling; suggest cases when client API surface changes without test updates.
+    - path: "**/*"
+      instructions: |
+        OpenCog Hyperon Distributed Atomspace (DAS) — singnet/das. Primary language is C++ under src/, built with Bazel.
+        PRs target master. CI runs format check then unit tests on pull requests.
+        Review focus (in order): code quality and correctness, memory/allocation efficiency, test coverage for behavior changes.
+        Favor correctness, thread safety, and consistency with neighboring code over generic "best practice" refactors.
+        Avoid drive-by refactors, unnecessary abstractions, and comments that restate obvious code.
+        See .github/copilot-instructions.md for full team coding standards.
+
+knowledge_base:
+  code_guidelines:
+    enabled: true
+    filePatterns:
+      - .github/copilot-instructions.md
+      - docs/conceptual_documentation.md
+  learnings:
+    scope: local
+  issues:
+    scope: local
+
+chat:
+  auto_reply: true
