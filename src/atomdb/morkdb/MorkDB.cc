@@ -1,3 +1,4 @@
+#define LOG_LEVEL INFO_LEVEL
 #include "MorkDB.h"
 
 #include <algorithm>
@@ -9,13 +10,11 @@
 
 #include "HandleDecoder.h"
 #include "Hasher.h"
+#include "Logger.h"
 #include "MettaMapping.h"
 #include "MettaParser.h"
 #include "MettaParserActions.h"
 #include "Utils.h"
-
-#define LOG_LEVEL INFO_LEVEL
-#include "Logger.h"
 
 using namespace atomdb;
 using namespace atoms;

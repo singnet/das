@@ -160,8 +160,8 @@ void BusCommandRouterProcessor::handle_set(shared_ptr<BusCommandRouterProxy> pro
     }
     string key = remainder.substr(0, key_end);
     string value = remainder.substr(key_end + 1);
-    Utils::trim(key);
-    Utils::trim(value);
+    key = Utils::trim(key);
+    value = Utils::trim(value);
     if (key.empty() || value.empty()) {
         RAISE_ERROR("Invalid set ARG (empty key or value): " + arg);
     }

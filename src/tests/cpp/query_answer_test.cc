@@ -362,6 +362,47 @@ void query_answers_equal(QueryAnswer* qa1, QueryAnswer* qa2) {
     EXPECT_EQ(qa1->to_string(), qa2->to_string());
 }
 
+TEST(QueryAnswer, metta_expression_tokenization_with_quoted_parens) {
+    QueryAnswer input(0.0);
+    string eval_handle = random_handle();
+    string pred_handle = random_handle();
+    string concept_handle = random_handle();
+    string value_handle = random_handle();
+    string inner_handle = random_handle();
+    string s1_handle = random_handle();
+
+    input.add_handle(eval_handle);
+    input.assignment.assign("P", pred_handle);
+    input.assignment.assign("C", concept_handle);
+    input.assignment.assign("S1", s1_handle);
+
+    static const char* value_content =
+        R"VAL(Dmel\@Pink1@ (These experiments @Pink1[Scer\UAS.cYa]@ and UAS-RNAi allele @Pink1[dsRNA.Scer\UAS]@.)VAL";
+
+    string value_expr = string("\"") + value_content + "\"";
+    string inner_expr = "(public.humanhealthprop public.humanhealthprop.value " + value_expr + ")";
+    string pred_expr = "(Predicate " + inner_expr + ")";
+    string concept_expr = "(Concept (public.humanhealthprop \"1287\"))";
+    string eval_expr = "(Evaluation " + pred_expr + " " + concept_expr + ")";
+    string s1_expr = "(Concept \"xxx\(xxx\")";
+
+    input.metta_expression[eval_handle] = eval_expr;
+    input.metta_expression[pred_handle] = pred_expr;
+    input.metta_expression[concept_handle] = concept_expr;
+    input.metta_expression[value_handle] = value_expr;
+    input.metta_expression[inner_handle] = inner_expr;
+    input.metta_expression[s1_handle] = s1_expr;
+
+    string token_string = input.tokenize();
+    QueryAnswer output(0.0);
+    output.untokenize(token_string);
+
+    EXPECT_EQ(output.metta_expression.size(), input.metta_expression.size());
+    for (const auto& pair : input.metta_expression) {
+        EXPECT_EQ(output.metta_expression[pair.first], pair.second);
+    }
+}
+
 TEST(QueryAnswer, tokenization) {
     unsigned int NUM_TESTS = 100000;
     unsigned int MAX_PATHS = 5;

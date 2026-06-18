@@ -40,15 +40,6 @@ static string flag_from_argv_or(int argc,
     return default_value;
 }
 
-static bool has_flag(int argc, char* argv[], const string& flag) {
-    for (int i = 1; i < argc; i++) {
-        if (string(argv[i]).rfind(flag, 0) == 0) {
-            return true;
-        }
-    }
-    return false;
-}
-
 void ctrl_c_handler(int) {
     cout << "Stopping db_loader..." << endl;
     cout << "Done." << endl;
@@ -120,8 +111,12 @@ int main(int argc, char* argv[]) {
             return 0;
         }
 
-        size_t lines_per_thread = lines.size() / num_threads;
-        size_t remainder = lines.size() % num_threads;
+        if (static_cast<size_t>(num_threads) > lines.size()) {
+            num_threads = static_cast<int>(lines.size());
+        }
+
+        size_t lines_per_thread = lines.size() / static_cast<size_t>(num_threads);
+        size_t remainder = lines.size() % static_cast<size_t>(num_threads);
 
         LOG_INFO("Processing " + to_string(lines.size()) + " lines with " + to_string(num_threads) +
                  " threads (chunk size: " + to_string(chunk_size) + " | lines per thread: " +
@@ -168,7 +163,11 @@ int main(int argc, char* argv[]) {
 
                             auto atom = pair.second.get();
                             if (atom->arity() > 0) {
-                                atom->custom_attributes["metta_expression"] = metta_expr;
+                                auto metta_it =
+                                    parser_actions->handle_to_metta_expression.find(pair.first);
+                                if (metta_it != parser_actions->handle_to_metta_expression.end()) {
+                                    atom->custom_attributes["metta_expression"] = metta_it->second;
+                                }
                             }
                             batch_atoms.push_back(atom);
                             thread_atoms_count++;
@@ -193,8 +192,13 @@ int main(int argc, char* argv[]) {
                 }
 
                 total_atoms_processed += thread_atoms_count;
-                LOG_INFO("Thread " + to_string(i) + " processed " + to_string(thread_atoms_count) +
-                         " atoms (lines " + to_string(start_line) + "-" + to_string(end_line - 1) + ")");
+                if (start_line >= end_line) {
+                    LOG_INFO("Thread " + to_string(i) + " processed 0 atoms (no lines assigned)");
+                } else {
+                    LOG_INFO("Thread " + to_string(i) + " processed " + to_string(thread_atoms_count) +
+                             " atoms (lines " + to_string(start_line) + "-" + to_string(end_line - 1) +
+                             ")");
+                }
             });
         }
 
