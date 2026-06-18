@@ -1326,7 +1326,8 @@ static void run(const string& context_tag) {
     }
     LOG_INFO("Updating AttentionBroker");
     AttentionBrokerClient::drop_and_load_context(context, string(context_file_name));
-    AttentionBrokerClient::stimulate({{TARGET_PREDICATE_HANDLE, 1}, {TARGET_CONCEPT_HANDLE, 1}}, context);
+    AttentionBrokerClient::stimulate({{TARGET_PREDICATE_HANDLE, 1}, {TARGET_CONCEPT_HANDLE, 1}},
+                                     context);
     LOG_INFO("Context " + context + " is ready");
 
     add_preset_links(implication_to_target_predicate_metta_query,
@@ -1345,7 +1346,8 @@ static void run(const string& context_tag) {
         LOG_INFO("Iteration " + to_string(iteration));
         LOG_INFO("--------------------------------------------------------------------------------");
         LOG_INFO("----- Building links");
-        AttentionBrokerClient::stimulate({{TARGET_PREDICATE_HANDLE, 1}, {TARGET_CONCEPT_HANDLE, 1}}, context);
+        AttentionBrokerClient::stimulate({{TARGET_PREDICATE_HANDLE, 1}, {TARGET_CONCEPT_HANDLE, 1}},
+                                         context);
         LOG_INFO("Building Implication links");
         build_links(implication_query, context, "", build_implication_link);
         // LOG_INFO("Building Implication links to paths");
@@ -1360,7 +1362,8 @@ static void run(const string& context_tag) {
         LOG_INFO("----- Updating AttentionBroker");
         AttentionBrokerClient::set_determiners(buffer_determiners, context);
         buffer_determiners.clear();
-        AttentionBrokerClient::stimulate({{TARGET_PREDICATE_HANDLE, 1}, {TARGET_CONCEPT_HANDLE, 1}}, context);
+        AttentionBrokerClient::stimulate({{TARGET_PREDICATE_HANDLE, 1}, {TARGET_CONCEPT_HANDLE, 1}},
+                                         context);
         LOG_INFO("----- Evolving query");
         query_evolution((USE_MORK ? metta_query_to_evolve : query_to_evolve),
                         (USE_MORK ? correlation_metta_query_template : correlation_query_template),

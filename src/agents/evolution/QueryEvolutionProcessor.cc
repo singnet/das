@@ -193,7 +193,9 @@ void QueryEvolutionProcessor::sample_population(
             population[i].second = fitness;
         }
     }
-    LOG_INFO("Average fitness in population: " + (population.size() > 0 ? std::to_string(sum / population.size()) : string("NO POPULATION SAMPLING")));
+    LOG_INFO("Average fitness in population: " + (population.size() > 0
+                                                      ? std::to_string(sum / population.size())
+                                                      : string("NO POPULATION SAMPLING")));
     // Sort decreasing by fitness value
     std::sort(population.begin(),
               population.end(),
@@ -467,7 +469,8 @@ void QueryEvolutionProcessor::update_attention_allocation(
     stimulate(proxy, selected);
 }
 
-string QueryEvolutionProcessor::answer_to_string_2(shared_ptr<QueryAnswer> answer, shared_ptr<AtomDB> db) {
+string QueryEvolutionProcessor::answer_to_string_2(shared_ptr<QueryAnswer> answer,
+                                                   shared_ptr<AtomDB> db) {
     vector<string> paths;
     for (unsigned int i = 0; i < 2; i++) {
         if (answer->get_paths_size() != 2) {
@@ -498,7 +501,8 @@ string QueryEvolutionProcessor::answer_to_string_2(shared_ptr<QueryAnswer> answe
     return "[" + std::to_string(answer->strength) + "]: " + paths[0] + " | " + paths[1];
 }
 
-string QueryEvolutionProcessor::answer_to_string_1(shared_ptr<QueryAnswer> answer, shared_ptr<AtomDB> db) {
+string QueryEvolutionProcessor::answer_to_string_1(shared_ptr<QueryAnswer> answer,
+                                                   shared_ptr<AtomDB> db) {
     if (answer->get_paths_size() != 1) {
         RAISE_ERROR("Invalid answer: " + answer->to_string());
     }

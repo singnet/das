@@ -76,7 +76,6 @@ class QueryEvolutionProcessor : public BusCommandProcessor {
     string answer_to_string_2(shared_ptr<QueryAnswer> answer, shared_ptr<AtomDB> db);
     string answer_to_string(shared_ptr<QueryAnswer> answer);
 
-
     map<string, shared_ptr<StoppableThread>> query_threads;
     mutex query_threads_mutex;
     shared_ptr<QueryEvolutionProxy> proxy;

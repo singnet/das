@@ -3,16 +3,15 @@
 #include <set>
 #include <unordered_set>
 
+#include "Link.h"
 #include "QueryAnswer.h"
 #include "Utils.h"
-#include "Link.h"
 #include "gtest/gtest.h"
 #include "test_utils.h"
 
 using namespace query_engine;
 using namespace commons;
 using namespace atoms;
-
 
 class TestDecoder : public HandleDecoder {
    public:
@@ -23,7 +22,6 @@ class TestDecoder : public HandleDecoder {
         this->atoms[handle] = static_pointer_cast<Atom>(link);
     }
 };
-
 
 TEST(QueryAnswer, assignments_basics) {
     Assignment mapping0;

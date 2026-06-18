@@ -41,7 +41,8 @@ class QueryAnswerElement {
     bool reverse_path;
     bool pop_first;
     bool pop_last;
-    QueryAnswerElement() : type(NOTHING), path_index(0), element_index(0), name(""), reverse_path(false) {}
+    QueryAnswerElement()
+        : type(NOTHING), path_index(0), element_index(0), name(""), reverse_path(false) {}
     QueryAnswerElement(ElementType type) : type(type) {
         if ((type <= VARIABLE) || (type == PATH_HOPS)) {
             RAISE_ERROR("Invalid attempt to setup a wildcard selector with type: " +
@@ -52,9 +53,38 @@ class QueryAnswerElement {
     QueryAnswerElement(unsigned int key_path, unsigned int key_element)
         : type(PATH), path_index(key_path), element_index(key_element) {}
     QueryAnswerElement(const string& key) : type(VARIABLE), name(key) {}
-    QueryAnswerElement(unsigned int key_path, unsigned int hop_peek_start, unsigned int hop_peek_end) : type(PATH_HOPS), path_index(key_path), hop_peek_start(hop_peek_start), hop_peek_end(hop_peek_end), reverse_path(false), pop_first(false), pop_last(false) {}
-    QueryAnswerElement(unsigned int key_path, unsigned int hop_peek_start, unsigned int hop_peek_end, bool reverse) : type(PATH_HOPS), path_index(key_path), hop_peek_start(hop_peek_start), hop_peek_end(hop_peek_end), reverse_path(reverse), pop_first(false), pop_last(false) {}
-    QueryAnswerElement(unsigned int key_path, unsigned int hop_peek_start, unsigned int hop_peek_end, bool reverse, bool pop_first, bool pop_last) : type(PATH_HOPS), path_index(key_path), hop_peek_start(hop_peek_start), hop_peek_end(hop_peek_end), reverse_path(reverse), pop_first(pop_first), pop_last(pop_last) {}
+    QueryAnswerElement(unsigned int key_path, unsigned int hop_peek_start, unsigned int hop_peek_end)
+        : type(PATH_HOPS),
+          path_index(key_path),
+          hop_peek_start(hop_peek_start),
+          hop_peek_end(hop_peek_end),
+          reverse_path(false),
+          pop_first(false),
+          pop_last(false) {}
+    QueryAnswerElement(unsigned int key_path,
+                       unsigned int hop_peek_start,
+                       unsigned int hop_peek_end,
+                       bool reverse)
+        : type(PATH_HOPS),
+          path_index(key_path),
+          hop_peek_start(hop_peek_start),
+          hop_peek_end(hop_peek_end),
+          reverse_path(reverse),
+          pop_first(false),
+          pop_last(false) {}
+    QueryAnswerElement(unsigned int key_path,
+                       unsigned int hop_peek_start,
+                       unsigned int hop_peek_end,
+                       bool reverse,
+                       bool pop_first,
+                       bool pop_last)
+        : type(PATH_HOPS),
+          path_index(key_path),
+          hop_peek_start(hop_peek_start),
+          hop_peek_end(hop_peek_end),
+          reverse_path(reverse),
+          pop_first(pop_first),
+          pop_last(pop_last) {}
     QueryAnswerElement(const QueryAnswerElement& other)
         : type(other.type),
           path_index(other.path_index),
@@ -141,7 +171,8 @@ class QueryAnswerElement {
             if (this->pop_last) {
                 answer += "$";
             }
-            answer += std::to_string(this->path_index) + "_" + std::to_string(this->hop_peek_start) + "_" + std::to_string(this->hop_peek_end);
+            answer += std::to_string(this->path_index) + "_" + std::to_string(this->hop_peek_start) +
+                      "_" + std::to_string(this->hop_peek_end);
             return answer;
         } else if (this->type == EVERYTHING) {
             return "*";
@@ -199,13 +230,12 @@ class QueryAnswerElement {
                 if (args.size() != 3) {
                     RAISE_ERROR("Invalid PATH_HOPS element string: " + s);
                 }
-                return QueryAnswerElement(
-                    Utils::string_to_uint(args[0]), 
-                    Utils::string_to_uint(args[1]), 
-                    Utils::string_to_uint(args[2]), 
-                    (s[0] == '<'),
-                    pop_first,
-                    pop_last);
+                return QueryAnswerElement(Utils::string_to_uint(args[0]),
+                                          Utils::string_to_uint(args[1]),
+                                          Utils::string_to_uint(args[2]),
+                                          (s[0] == '<'),
+                                          pop_first,
+                                          pop_last);
             } else if (s[0] == '*') {
                 return QueryAnswerElement(QueryAnswerElement::EVERYTHING);
             }
@@ -398,7 +428,7 @@ class QueryAnswer {
      * @param decoder A decoder capable of mapping handle -> atom (tipically, this is an AtomDB)
      * $return The element indicated by the passed QueryAnswerElement key.
      */
-    vector<string> get_all(const QueryAnswerElement& element_key, HandleDecoder *decoder = NULL);
+    vector<string> get_all(const QueryAnswerElement& element_key, HandleDecoder* decoder = NULL);
 
     /**
      * Rewrites the passed query (tokens only, no MeTTa expression allowed) replacing variables
