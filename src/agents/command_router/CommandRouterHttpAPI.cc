@@ -23,11 +23,15 @@ CommandRouterHttpAPI::~CommandRouterHttpAPI() { this->stop(); }
 
 void CommandRouterHttpAPI::initialize(shared_ptr<CommandRouterHttpAPI> instance,
                                       vector<shared_ptr<Processor>> additional_subprocessors) {
+    // LOG_INFO("[[ 1 ]]");
     for (const auto& subprocessor : additional_subprocessors) {
         Processor::bind_subprocessor(instance, subprocessor);
     }
+    // LOG_INFO("[[ 2 ]]");
     instance->setup();
+    // LOG_INFO("[[ 3 ]]");
     instance->start();
+    // LOG_INFO("[[ 4 ]]");
 }
 
 bool CommandRouterHttpAPI::thread_one_step() {
@@ -57,76 +61,76 @@ void CommandRouterHttpAPI::setup_routes() {
     });
 
     // POST /command-router/executions
-    this->server.Post(
-        "/command-router/executions",
-        [this](const httplib::Request& request, httplib::Response& response) {
-            JsonConfig body;
+    // this->server.Post(
+    //     "/command-router/executions",
+    //     [this](const httplib::Request& request, httplib::Response& response) {
+    //         JsonConfig body;
             
-            try {
-                body = JsonConfig(json::parse(request.body));
-            } catch (const exception& e) {
-                json error_body = {{"error", string("Invalid JSON: ") + e.what()}};
-                set_json_response(response, 400, JsonConfig(error_body));
-                return;
-            }
+    //         try {
+    //             body = JsonConfig(json::parse(request.body));
+    //         } catch (const exception& e) {
+    //             json error_body = {{"error", string("Invalid JSON: ") + e.what()}};
+    //             set_json_response(response, 400, JsonConfig(error_body));
+    //             return;
+    //         }
 
-            string command_type = body.at_path("command_type").get_or<string>("");
-            string command_text = body.at_path("command_text").get_or<string>("");
+    //         string command_type = body.at_path("command_type").get_or<string>("");
+    //         string command_text = body.at_path("command_text").get_or<string>("");
 
-            if (command_type.empty() || command_text.empty()) {
-                json error_body = {{"error", "Missing fields: command_type, command_text"}};
-                set_json_response(response, 400, JsonConfig(error_body));
-                return;
-            }
+    //         if (command_type.empty() || command_text.empty()) {
+    //             json error_body = {{"error", "Missing fields: command_type, command_text"}};
+    //             set_json_response(response, 400, JsonConfig(error_body));
+    //             return;
+    //         }
 
-            auto exec = make_shared<Execution>();
-            exec->execution_id = generate_execution_id();
-            exec->command_type = command_type;
-            exec->command_text = command_text;
+    //         auto exec = make_shared<Execution>();
+    //         exec->execution_id = generate_execution_id();
+    //         exec->command_type = command_type;
+    //         exec->command_text = command_text;
 
-            {
-                lock_guard<mutex> semaphore(this->executions_mutex);
-                this->executions[exec->execution_id] = exec;
-            }
+    //         {
+    //             lock_guard<mutex> semaphore(this->executions_mutex);
+    //             this->executions[exec->execution_id] = exec;
+    //         }
 
-            thread_pool->enqueue([this, exec]() { this->run_execution(exec); });
+    //         thread_pool->enqueue([this, exec]() { this->run_execution(exec); });
 
-            json success_body = {{"execution_id", exec->execution_id}, {"status", "pending"}};
+    //         json success_body = {{"execution_id", exec->execution_id}, {"status", "pending"}};
 
-            set_json_response(response, 202, JsonConfig(success_body));
-        }
-    );
+    //         set_json_response(response, 202, JsonConfig(success_body));
+    //     }
+    // );
 
-    // GET /command-router/executions/:id
-    this->server.Get(
-        R"(/command-router/executions/([^/]+))",
-        [this](const httplib::Request& request, httplib::Response& response) {
-            const string execution_id = request.matches[1];
-            auto exec = find_execution(execution_id);
+    // // GET /command-router/executions/:id
+    // this->server.Get(
+    //     R"(/command-router/executions/([^/]+))",
+    //     [this](const httplib::Request& request, httplib::Response& response) {
+    //         const string execution_id = request.matches[1];
+    //         auto exec = find_execution(execution_id);
 
-            if (!exec) {
-                json error_body = {{"error", "Execution not found: " + execution_id}};
-                set_json_response(response, 404, JsonConfig(error_body));
-                return;
-            }
+    //         if (!exec) {
+    //             json error_body = {{"error", "Execution not found: " + execution_id}};
+    //             set_json_response(response, 404, JsonConfig(error_body));
+    //             return;
+    //         }
 
-            lock_guard<mutex> lk(exec->mtx);
+    //         lock_guard<mutex> lk(exec->mtx);
             
-            json success_body = {
-                {"execution_id", exec->execution_id},
-                {"status", exec->status},
-                {"received_count", exec->received_count},
-                {"total_items", exec->total_items},
-                {"duration_ms", exec->duration_ms},
-            };
+    //         json success_body = {
+    //             {"execution_id", exec->execution_id},
+    //             {"status", exec->status},
+    //             {"received_count", exec->received_count},
+    //             {"total_items", exec->total_items},
+    //             {"duration_ms", exec->duration_ms},
+    //         };
 
-            if (!exec->error_message.empty()) {
-                success_body["error_message"] = exec->error_message;
-            }
+    //         if (!exec->error_message.empty()) {
+    //             success_body["error_message"] = exec->error_message;
+    //         }
 
-            set_json_response(response, 200, JsonConfig(success_body));
-        }
-    );
+    //         set_json_response(response, 200, JsonConfig(success_body));
+    //     }
+    // );
 
     // // POST /command-router/executions/:id/cancel
     // this->server.Post(

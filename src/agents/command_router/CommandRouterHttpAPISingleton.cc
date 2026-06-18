@@ -18,8 +18,7 @@ void CommandRouterHttpAPISingleton::init(const JsonConfig& command_router_config
         auto port = command_router_config.at_path("http_api_port").get<int>();
 
         unsigned int execution_workers = 4;
-        auto thread_pool_executor =
-            make_shared<ThreadPool>("http_api_thread_pool_executor", execution_workers);
+        auto thread_pool_executor = make_shared<ThreadPool>("http_api_thread_pool_executor", execution_workers);
 
         HTTP_API = make_shared<CommandRouterHttpAPI>(host, port, thread_pool_executor);
 
