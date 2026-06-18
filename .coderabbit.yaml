@@ -9,7 +9,7 @@ tone_instructions: >-
 
 reviews:
   profile: assertive
-  request_changes_workflow: false
+  request_changes_workflow: true
   high_level_summary: true
   high_level_summary_in_walkthrough: true
   high_level_summary_instructions: |
@@ -41,7 +41,7 @@ reviews:
       mode: off
     custom_checks:
       - name: Tests for behavior changes
-        mode: warning
+        mode: error
         instructions: |
           PASS when any of the following is true:
           - The PR only touches docs, CI, config, or formatting (no production logic).
