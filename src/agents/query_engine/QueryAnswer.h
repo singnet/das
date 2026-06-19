@@ -59,8 +59,8 @@ class QueryAnswerElement {
     }
     QueryAnswerElement(unsigned int key)
         : type(HANDLE),
-          element_index(key),
           path_index(0),
+          element_index(key),
           name(""),
           hop_peek_start(0),
           hop_peek_end(0),
@@ -79,9 +79,9 @@ class QueryAnswerElement {
           pop_last(false) {}
     QueryAnswerElement(const string& key)
         : type(VARIABLE),
-          name(key),
           path_index(0),
           element_index(0),
+          name(key),
           hop_peek_start(0),
           hop_peek_end(0),
           reverse_path(false),
@@ -90,10 +90,10 @@ class QueryAnswerElement {
     QueryAnswerElement(unsigned int key_path, unsigned int hop_peek_start, unsigned int hop_peek_end)
         : type(PATH_HOPS),
           path_index(key_path),
-          hop_peek_start(hop_peek_start),
-          hop_peek_end(hop_peek_end),
           element_index(0),
           name(""),
+          hop_peek_start(hop_peek_start),
+          hop_peek_end(hop_peek_end),
           reverse_path(false),
           pop_first(false),
           pop_last(false) {}
