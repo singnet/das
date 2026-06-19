@@ -10,9 +10,9 @@ SQLWrapper::SQLWrapper(shared_ptr<DatabaseConnection> db_conn, shared_ptr<Databa
     : DatabaseWrapper(db_conn, mapper) {}
 
 bool SQLWrapper::sanitize_value(string& value) {
-    value = Utils::trim(value);
-
     if (value.empty() || value.size() > MAX_VALUE_SIZE || !utf8::is_valid(value)) return false;
+
+    value = Utils::trim(value);
 
     Utils::replace_all(value, "\n", " ");
 
