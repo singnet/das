@@ -20,8 +20,10 @@ namespace atomdb {
 class RemoteAtomDB : public AtomDB {
    public:
     explicit RemoteAtomDB(const JsonConfig& peers_config);
-    // Dependency-injection constructor: takes pre-built peers directly. Primarily used by tests to
-    // federate controllable backends (e.g. nested-indexing fakes) without a live config/connection.
+    /**
+     * Dependency-injection constructor for pre-built peers.
+     * Primarily used by tests to federate controllable backends without live config/connection.
+     */
     explicit RemoteAtomDB(map<string, shared_ptr<RemoteAtomDBPeer>> peers);
     ~RemoteAtomDB();
 
