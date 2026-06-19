@@ -371,7 +371,8 @@ void QueryEvolutionProcessor::correlate_similar(shared_ptr<QueryEvolutionProxy> 
                             }
                         }
                         if (pair.second.is_wildcard()) {
-                            for (string handle : correlated_answer->get_all(pair.second, this->decoder)) {
+                            for (string handle :
+                                 correlated_answer->get_all(pair.second, this->decoder)) {
                                 handle_set.insert(handle);
                             }
                         } else {
