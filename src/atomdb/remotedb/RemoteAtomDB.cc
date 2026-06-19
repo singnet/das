@@ -92,26 +92,52 @@ RemoteAtomDB::~RemoteAtomDB() = default;
 bool RemoteAtomDB::allow_nested_indexing() { return nested_indexing_; }
 
 shared_ptr<Atom> RemoteAtomDB::get_atom(const string& handle) {
+    // Phase 1: probe every peer's in-memory cache first (no network). Silent: this is the hot path.
     for (auto& [uid, peer] : remote_db_) {
-        auto atom = peer->get_atom(handle);
+        auto atom = peer->get_cached_atom(handle);
         if (atom) return atom;
     }
+    // Phase 2: escalate to peers (local_persistence + remote backend) only when no cache has it.
+    for (auto& [uid, peer] : remote_db_) {
+        auto atom = peer->get_atom(handle);
+        if (atom) {
+            LOG_DEBUG("get_atom(" << handle << ") fetched from [" << uid << "]");
+            return atom;
+        }
+    }
+    LOG_DEBUG("get_atom(" << handle << ") not found in any peer");
     return nullptr;
 }
 
 shared_ptr<Node> RemoteAtomDB::get_node(const string& handle) {
     for (auto& [uid, peer] : remote_db_) {
-        auto node = peer->get_node(handle);
+        auto node = peer->get_cached_node(handle);
         if (node) return node;
     }
+    for (auto& [uid, peer] : remote_db_) {
+        auto node = peer->get_node(handle);
+        if (node) {
+            LOG_DEBUG("get_node(" << handle << ") fetched from [" << uid << "]");
+            return node;
+        }
+    }
+    LOG_DEBUG("get_node(" << handle << ") not found in any peer");
     return nullptr;
 }
 
 shared_ptr<Link> RemoteAtomDB::get_link(const string& handle) {
     for (auto& [uid, peer] : remote_db_) {
-        auto link = peer->get_link(handle);
+        auto link = peer->get_cached_link(handle);
         if (link) return link;
     }
+    for (auto& [uid, peer] : remote_db_) {
+        auto link = peer->get_link(handle);
+        if (link) {
+            LOG_DEBUG("get_link(" << handle << ") fetched from [" << uid << "]");
+            return link;
+        }
+    }
+    LOG_DEBUG("get_link(" << handle << ") not found in any peer");
     return nullptr;
 }
 
@@ -136,6 +162,8 @@ shared_ptr<atomdb_api_types::HandleSet> RemoteAtomDB::query_for_pattern(const Li
     auto result = make_shared<atomdb_api_types::HandleSetInMemory>();
     set<string> seen;
 
+    LOG_DEBUG("query_for_pattern(" << link_schema.handle() << ") fan-out to " << remote_db_.size()
+                                   << " peers");
     for (auto& [uid, peer] : remote_db_) {
         auto handle_set = peer->query_for_pattern(link_schema);
         if (!handle_set) continue;
@@ -143,6 +171,8 @@ shared_ptr<atomdb_api_types::HandleSet> RemoteAtomDB::query_for_pattern(const Li
         // Preserve per-handle assignments / metta expressions for nested-indexing peers so the
         // aggregated result stays faithful instead of silently dropping the backend's match data.
         bool copy_metadata = peer->allow_nested_indexing();
+        LOG_DEBUG("  [" << uid << "] returned " << handle_set->size() << " handles"
+                        << (copy_metadata ? " (with metadata)" : ""));
 
         auto it = handle_set->get_iterator();
         if (!it) continue;
@@ -162,14 +192,20 @@ shared_ptr<atomdb_api_types::HandleSet> RemoteAtomDB::query_for_pattern(const Li
             }
         }
     }
+    LOG_DEBUG("query_for_pattern(" << link_schema.handle() << ") aggregated " << result->size()
+                                   << " unique handles");
     return result;
 }
 
 shared_ptr<atomdb_api_types::HandleList> RemoteAtomDB::query_for_targets(const string& handle) {
     for (auto& [uid, peer] : remote_db_) {
         auto list = peer->query_for_targets(handle);
-        if (list) return list;
+        if (list) {
+            LOG_DEBUG("query_for_targets(" << handle << ") served by peer [" << uid << "]");
+            return list;
+        }
     }
+    LOG_DEBUG("query_for_targets(" << handle << ") not found in any peer");
     return nullptr;
 }
 
@@ -177,6 +213,7 @@ shared_ptr<atomdb_api_types::HandleSet> RemoteAtomDB::query_for_incoming_set(con
     auto result = make_shared<atomdb_api_types::HandleSetInMemory>();
     set<string> seen;
 
+    LOG_DEBUG("query_for_incoming_set(" << handle << ") fan-out to " << remote_db_.size() << " peers");
     for (auto& [uid, peer] : remote_db_) {
         auto handle_set = peer->query_for_incoming_set(handle);
         if (!handle_set) continue;
@@ -187,12 +224,14 @@ shared_ptr<atomdb_api_types::HandleSet> RemoteAtomDB::query_for_incoming_set(con
         while (true) {
             char* h = it->next();
             if (!h) break;
-            string handle(h);
-            if (seen.insert(handle).second) {
-                result->add_handle(handle);
+            string member(h);
+            if (seen.insert(member).second) {
+                result->add_handle(member);
             }
         }
     }
+    LOG_DEBUG("query_for_incoming_set(" << handle << ") aggregated " << result->size()
+                                        << " unique handles");
     return result;
 }
 

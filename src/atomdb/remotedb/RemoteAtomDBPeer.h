@@ -34,6 +34,12 @@ class RemoteAtomDBPeer : public AtomDB, public processor::ThreadMethod {
     shared_ptr<Node> get_node(const string& handle) override;
     shared_ptr<Link> get_link(const string& handle) override;
 
+    // Cache-only lookups (in-memory, no local_persistence / remote escalation). Used by the
+    // RemoteAtomDB facade to probe every peer's cache before escalating any peer to its backend.
+    shared_ptr<Atom> get_cached_atom(const string& handle);
+    shared_ptr<Node> get_cached_node(const string& handle);
+    shared_ptr<Link> get_cached_link(const string& handle);
+
     vector<shared_ptr<Atom>> get_matching_atoms(bool is_toplevel, Atom& key) override;
     vector<shared_ptr<Atom>> get_matching_atoms(bool is_toplevel, Atom& key, bool local_only);
 
