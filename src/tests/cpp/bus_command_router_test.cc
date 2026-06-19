@@ -1,6 +1,7 @@
 #include "AtomDBSingleton.h"
 #include "BusCommandRouterProcessor.h"
 #include "BusCommandRouterProxy.h"
+#include "CommandRouterHttpAPISingleton.h"
 #include "EvolutionMettaParser.h"
 #include "ServiceBus.h"
 #include "TestAtomDBJsonConfig.h"
@@ -17,6 +18,12 @@ class BusCommandRouterTestEnvironment : public ::testing::Environment {
    public:
     void SetUp() override {
         AtomDBSingleton::init(test_atomdb_json_config());
+
+        auto json = nlohmann::json();
+        json["http_api_host"] = "localhost";
+        json["http_api_port"] = 19002;
+        CommandRouterHttpAPISingleton::init(commons::JsonConfig(json));
+
         init_test_system_parameters_singleton();
     }
     void TearDown() override {}

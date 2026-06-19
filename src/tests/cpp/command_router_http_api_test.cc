@@ -67,6 +67,26 @@ TEST_F(CommandRouterHttpAPITest, ping_is_stable_across_repeated_requests) {
     }
 }
 
+TEST_F(CommandRouterHttpAPITest, ping_concurrent_requests) {
+    auto client_fn = [this]() {
+        auto client = make_client();
+        for (int i = 0; i < 100; ++i) {
+            auto res = client.Get("/ping");
+            EXPECT_TRUE(res);
+            EXPECT_EQ(res->status, 200);
+            EXPECT_EQ(res->body, "PONG!");
+        }
+    };
+
+    vector<thread> threads;
+    for (int t = 0; t < 4; ++t) {
+        threads.emplace_back(client_fn);
+    }
+    for (auto& th : threads) {
+        th.join();
+    }
+}
+
 TEST_F(CommandRouterHttpAPITest, unregistered_route_returns_404) {
     auto client = make_client();
     auto res = client.Get("/blah");

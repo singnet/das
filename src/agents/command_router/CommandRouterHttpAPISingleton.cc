@@ -17,7 +17,7 @@ void CommandRouterHttpAPISingleton::init(const JsonConfig& command_router_config
         auto host = command_router_config.at_path("http_api_host").get<string>();
         auto port = command_router_config.at_path("http_api_port").get<int>();
 
-        // TODO: make the number of execution threads configurable
+        // TODO: Change to get the number of threads on the machine.
         unsigned int num_threads = 4;
 
         auto thread_pool_executor =
