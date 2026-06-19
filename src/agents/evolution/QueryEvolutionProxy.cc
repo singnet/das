@@ -53,6 +53,7 @@ void QueryEvolutionProxy::init() {
     this->fitness_function_object = shared_ptr<FitnessFunction>(nullptr);
     this->ongoing_remote_fitness_evaluation = false;
     this->no_selection_flag = false;
+    this->last_generation_with_answer_report = 0;
 }
 
 void QueryEvolutionProxy::set_default_query_parameters() {
@@ -222,6 +223,7 @@ bool QueryEvolutionProxy::stop_criteria_met() {
 }
 
 void QueryEvolutionProxy::new_population_sampled(
+    lock_guard<mutex> semaphore(this->api_mutex);
     vector<std::pair<shared_ptr<QueryAnswer>, float>>& population) {
     if (population.size() > 0) {
         this->num_generations++;
