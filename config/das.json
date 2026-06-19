@@ -77,20 +77,19 @@
         "remote_peers": [
             {
                 "uid": "peer1",
-                "type": "redismongodb",
+                "type": "morkdb",
                 "context": "",
+                "local_persistence": {
+                    "type": "inmemorydb",
+                    "context": "peer1_local_"
+                },
                 "mongodb": {
                     "endpoint": "localhost:40021",
                     "username": "admin",
                     "password": "admin"
                 },
-                "redis": {
-                    "endpoint": "localhost:40020",
-                    "cluster": false
-                },
-                "local_persistence": {
-                    "type": "inmemorydb",
-                    "context": "peer1_local_"
+                "morkdb": {
+                    "endpoint": "localhost:40022"
                 }
             },
             {
