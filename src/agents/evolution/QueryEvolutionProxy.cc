@@ -222,9 +222,9 @@ bool QueryEvolutionProxy::stop_criteria_met() {
             (this->num_generations >= this->parameters.get<unsigned int>(MAX_GENERATIONS)));
 }
 
-void QueryEvolutionProxy::new_population_sampled(lock_guard<mutex> semaphore(this->api_mutex);
-                                                 vector<std::pair<shared_ptr<QueryAnswer>, float>> &
-                                                 population) {
+void QueryEvolutionProxy::new_population_sampled(
+    vector<std::pair<shared_ptr<QueryAnswer>, float>>& population) {
+    lock_guard<mutex> semaphore(this->api_mutex);
     if (population.size() > 0) {
         this->num_generations++;
         if (population[0].second > this->best_reported_fitness) {
