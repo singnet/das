@@ -27,9 +27,19 @@ void CommandRouterHttpAPISingleton::init(const JsonConfig& command_router_config
 
         auto http_api_thread = make_shared<DedicatedThread>("http_api_thread", HTTP_API.get());
 
-        CommandRouterHttpAPI::initialize(HTTP_API, {thread_pool_executor, http_api_thread});
-
-        INITIALIZED = true;
+        try {
+            CommandRouterHttpAPI::initialize(HTTP_API, {thread_pool_executor, http_api_thread});
+            Utils::sleep(200);  // time to bind the port
+            INITIALIZED = true;
+        } catch (const std::exception& e) {
+            if (HTTP_API && HTTP_API->is_running()) {
+                HTTP_API->stop();
+            }
+            HTTP_API = shared_ptr<CommandRouterHttpAPI>(nullptr);
+            RAISE_ERROR(
+                "CommandRouterHttpAPISingleton::init(): CommandRouterHttpAPI::initialize() failed: " +
+                string(e.what()));
+        }
     }
 }
 
@@ -43,6 +53,9 @@ shared_ptr<CommandRouterHttpAPI> CommandRouterHttpAPISingleton::get_instance() {
 }
 
 void CommandRouterHttpAPISingleton::provide(shared_ptr<CommandRouterHttpAPI> http_api) {
+    if (http_api == nullptr) {
+        RAISE_ERROR("CommandRouterHttpAPISingleton::provide(): http_api cannot be nullptr");
+    }
     lock_guard<mutex> semaphore(API_MUTEX);
     HTTP_API = http_api;
     INITIALIZED = true;
