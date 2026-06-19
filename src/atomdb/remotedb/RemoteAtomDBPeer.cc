@@ -211,9 +211,13 @@ shared_ptr<HandleSet> RemoteAtomDBPeer::query_for_pattern(const LinkSchema& link
     if (schema_already_fetched(link_schema)) {
         LOG_DEBUG("[" << uid_ << "] query_for_pattern(" << link_schema.handle() << ") cache-hit"
                       << (local_persistence_ ? ", merging cache + local_persistence" : "."));
-        merge_handle_set(cache_.query_for_pattern(link_schema), result, seen);
+        merge_handle_set(
+            cache_.query_for_pattern(link_schema), result, seen, cache_.allow_nested_indexing());
         if (local_persistence_) {
-            merge_handle_set(local_persistence_->query_for_pattern(link_schema), result, seen);
+            merge_handle_set(local_persistence_->query_for_pattern(link_schema),
+                             result,
+                             seen,
+                             local_persistence_->allow_nested_indexing());
         }
     } else {
         LOG_DEBUG("[" << uid_ << "] query_for_pattern(" << link_schema.handle()

@@ -3,10 +3,14 @@
 #include <algorithm>
 #include <cstdlib>
 #include <fstream>
+#include <map>
 #include <memory>
+#include <string>
 #include <vector>
 
+#include "Assignment.h"
 #include "InMemoryDB.h"
+#include "InMemoryDBAPITypes.h"
 #include "JsonConfig.h"
 #include "Link.h"
 #include "LinkSchema.h"
@@ -15,6 +19,7 @@
 #include "RemoteAtomDBPeer.h"
 
 using namespace atomdb;
+using namespace atomdb::atomdb_api_types;
 using namespace atoms;
 using namespace commons;
 using namespace std;
@@ -490,6 +495,166 @@ TEST_F(RemoteAtomDBConfigTest, SingleConfigWorks) {
     auto human = new Node("Symbol", "\"human\"");
     string human_handle = db_->add_node(human, false);
     EXPECT_TRUE(db_->node_exists(human_handle));
+}
+
+// =============================================================================
+// RemoteAtomDB federation tests (cache-first probing + metadata aggregation)
+//
+// These exercise the facade with controllable, in-process peers (no live config
+// or external connection). A NestedInMemoryDB models a nested-indexing backend
+// (e.g. MorkDB) that returns per-handle metadata from query_for_pattern.
+// =============================================================================
+
+// In-memory backend that advertises nested indexing and attaches per-handle
+// metta expressions / assignments to its pattern query results.
+class NestedInMemoryDB : public InMemoryDB {
+   public:
+    explicit NestedInMemoryDB(const string& context) : InMemoryDB(context) {}
+
+    bool allow_nested_indexing() override { return true; }
+
+    shared_ptr<HandleSet> query_for_pattern(const LinkSchema& link_schema) override {
+        auto base = InMemoryDB::query_for_pattern(link_schema);
+        auto result = make_shared<HandleSetInMemory>();
+        if (base) {
+            auto it = base->get_iterator();
+            char* h;
+            while ((h = it->next()) != nullptr) {
+                string handle(h);
+                map<string, string> metta = {{"$x", "(nested " + handle.substr(0, 6) + ")"}};
+                Assignment assignment;
+                assignment.assign("$x", handle);
+                result->add_handle(handle, metta, assignment);
+            }
+        }
+        return result;
+    }
+};
+
+// Builds an Inheritance(x, "mammal") pattern that matches two links in the
+// helper-populated backends below.
+static LinkSchema inheritance_mammal_schema() {
+    return LinkSchema({"LINK_TEMPLATE",
+                       "Expression",
+                       "3",
+                       "NODE",
+                       "Symbol",
+                       "Inheritance",
+                       "VARIABLE",
+                       "x",
+                       "NODE",
+                       "Symbol",
+                       "\"mammal\""});
+}
+
+// Populates a backend with two Inheritance(*, "mammal") links and returns their handles.
+static vector<string> populate_inheritance_links(shared_ptr<InMemoryDB> backend) {
+    auto human = new Node("Symbol", "\"human\"");
+    auto monkey = new Node("Symbol", "\"monkey\"");
+    auto mammal = new Node("Symbol", "\"mammal\"");
+    auto inheritance = new Node("Symbol", "Inheritance");
+
+    string human_handle = backend->add_node(human, false);
+    string monkey_handle = backend->add_node(monkey, false);
+    string mammal_handle = backend->add_node(mammal, false);
+    string inheritance_handle = backend->add_node(inheritance, false);
+
+    auto link1 = new Link("Expression", {inheritance_handle, human_handle, mammal_handle});
+    auto link2 = new Link("Expression", {inheritance_handle, monkey_handle, mammal_handle});
+    string link1_handle = backend->add_link(link1, false);
+    string link2_handle = backend->add_link(link2, false);
+    backend->re_index_patterns(true);
+    return {link1_handle, link2_handle};
+}
+
+TEST(RemoteAtomDBFederationTest, MetadataAggregationFromNestedPeer) {
+    auto backend = make_shared<NestedInMemoryDB>("fed_nested_backend_");
+    auto handles = populate_inheritance_links(backend);
+
+    map<string, shared_ptr<RemoteAtomDBPeer>> peers;
+    peers["nested"] = make_shared<RemoteAtomDBPeer>(backend, nullptr, "nested");
+    auto db = make_shared<RemoteAtomDB>(peers);
+
+    // All peers are nested-indexing -> facade advertises nested indexing.
+    EXPECT_TRUE(db->allow_nested_indexing());
+
+    auto result = db->query_for_pattern(inheritance_mammal_schema());
+    ASSERT_NE(result, nullptr);
+    EXPECT_EQ(result->size(), 2u);
+
+    // Metadata must survive aggregation for every matched handle.
+    auto it = result->get_iterator();
+    char* h;
+    int checked = 0;
+    while ((h = it->next()) != nullptr) {
+        string handle(h);
+        auto metta = result->get_metta_expressions_by_handle(handle);
+        EXPECT_FALSE(metta.empty()) << "metta lost for " << handle;
+        EXPECT_EQ(metta["$x"], "(nested " + handle.substr(0, 6) + ")");
+
+        auto assignment = result->get_assignments_by_handle(handle);
+        EXPECT_EQ(assignment.get("$x"), handle);
+        checked++;
+    }
+    EXPECT_EQ(checked, 2);
+}
+
+TEST(RemoteAtomDBFederationTest, MixedPeersDowngradeAndDeduplicate) {
+    // peer1: nested-indexing backend; peer2: plain in-memory backend.
+    // Both contain the SAME two links so the facade must dedup by handle.
+    auto nested_backend = make_shared<NestedInMemoryDB>("fed_mixed_nested_");
+    auto plain_backend = make_shared<InMemoryDB>("fed_mixed_plain_");
+    auto nested_handles = populate_inheritance_links(nested_backend);
+    auto plain_handles = populate_inheritance_links(plain_backend);
+    ASSERT_EQ(nested_handles, plain_handles);  // identical content -> identical handles
+
+    map<string, shared_ptr<RemoteAtomDBPeer>> peers;
+    peers["nested"] = make_shared<RemoteAtomDBPeer>(nested_backend, nullptr, "nested");
+    peers["plain"] = make_shared<RemoteAtomDBPeer>(plain_backend, nullptr, "plain");
+    auto db = make_shared<RemoteAtomDB>(peers);
+
+    // Mixed nested/non-nested peers -> facade downgrades to false.
+    EXPECT_FALSE(db->allow_nested_indexing());
+
+    auto result = db->query_for_pattern(inheritance_mammal_schema());
+    ASSERT_NE(result, nullptr);
+    // Same two handles from both peers, deduplicated to a unique count of 2.
+    EXPECT_EQ(result->size(), 2u);
+}
+
+TEST(RemoteAtomDBFederationTest, CacheFirstProbingAcrossPeers) {
+    // An atom that exists only in peer2's backend must still resolve via the facade,
+    // and the resolving peer must cache it so subsequent probes are served from cache.
+    auto backend1 = make_shared<InMemoryDB>("fed_cache_peer1_");
+    auto backend2 = make_shared<InMemoryDB>("fed_cache_peer2_");
+
+    auto only_in_peer2 = new Node("Symbol", "\"only_in_peer2\"");
+    string handle = backend2->add_node(only_in_peer2, false);
+
+    map<string, shared_ptr<RemoteAtomDBPeer>> peers;
+    peers["peer1"] = make_shared<RemoteAtomDBPeer>(backend1, nullptr, "peer1");
+    peers["peer2"] = make_shared<RemoteAtomDBPeer>(backend2, nullptr, "peer2");
+    auto db = make_shared<RemoteAtomDB>(peers);
+
+    auto* peer2 = db->get_peer("peer2");
+    ASSERT_NE(peer2, nullptr);
+    // Before any read, nothing is cached.
+    EXPECT_EQ(peer2->get_cached_atom(handle), nullptr);
+
+    // Phase 1 (cache) misses everywhere; Phase 2 escalation resolves from peer2's backend.
+    auto first = db->get_atom(handle);
+    ASSERT_NE(first, nullptr);
+    EXPECT_EQ(first->handle(), handle);
+
+    // peer2 must have warmed its cache, so a subsequent Phase 1 probe hits.
+    EXPECT_NE(peer2->get_cached_atom(handle), nullptr);
+
+    auto second = db->get_atom(handle);
+    ASSERT_NE(second, nullptr);
+    EXPECT_EQ(second->handle(), handle);
+
+    // A handle present in no peer resolves to nullptr.
+    EXPECT_EQ(db->get_atom("ffffffffffffffffffffffffffffffff"), nullptr);
 }
 
 int main(int argc, char** argv) {
