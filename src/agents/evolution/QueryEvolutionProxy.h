@@ -146,6 +146,15 @@ class QueryEvolutionProxy : public BaseQueryProxy {
      */
     bool remote_fitness_evaluation_finished();
 
+    /**
+     * Returns the number of the last generation in which there has been a new (i.e. a better)
+     * answer reported to the caller.
+     *
+     * @return the number of the last generation in which there has been a new (i.e. a better)
+     * answer reported to the caller.
+     */
+    unsigned int last_improving_generation();
+
     const vector<vector<string>>& get_correlation_queries();
     const vector<map<string, QueryAnswerElement>>& get_correlation_replacements();
     const vector<vector<pair<QueryAnswerElement, QueryAnswerElement>>>& get_correlation_mappings();
@@ -196,6 +205,7 @@ class QueryEvolutionProxy : public BaseQueryProxy {
     bool ongoing_remote_fitness_evaluation;
     vector<float> remote_fitness_evaluation_result;
     bool no_selection_flag;
+    unsigned int last_generation_with_answer_report;
 };
 
 }  // namespace evolution

@@ -590,6 +590,8 @@ void QueryEvolutionProcessor::evolve_query(shared_ptr<StoppableThread> monitor,
     }
     proxy->flush_answer_bundle();
     LOG_INFO("--------------------");
+    LOG_INFO("Last generation with answer improvement: " +
+             std::to_string(proxy->last_improving_generation()));
     LOG_INFO("Total number of visited individuals: " + std::to_string(this->visited_individuals.size()));
     LOG_INFO("Average renew rate per generation: " +
              std::to_string(std::lround(100 * ((double) this->visited_individuals.size() /
