@@ -23,15 +23,11 @@ CommandRouterHttpAPI::~CommandRouterHttpAPI() { this->stop(); }
 
 void CommandRouterHttpAPI::initialize(shared_ptr<CommandRouterHttpAPI> instance,
                                       vector<shared_ptr<Processor>> additional_subprocessors) {
-    // LOG_INFO("[[ 1 ]]");
     for (const auto& subprocessor : additional_subprocessors) {
         Processor::bind_subprocessor(instance, subprocessor);
     }
-    // LOG_INFO("[[ 2 ]]");
     instance->setup();
-    // LOG_INFO("[[ 3 ]]");
     instance->start();
-    // LOG_INFO("[[ 4 ]]");
 }
 
 bool CommandRouterHttpAPI::thread_one_step() {
@@ -52,7 +48,6 @@ void CommandRouterHttpAPI::stop() {
 // =============================================================================
 
 void CommandRouterHttpAPI::setup_routes() {
-
     // GET /ping for health checks
     this->server.Get("/ping", [](const httplib::Request& request, httplib::Response& response) {
         LOG_INFO("bus_command_router HTTP server received health check request");
@@ -61,45 +56,47 @@ void CommandRouterHttpAPI::setup_routes() {
     });
 
     // POST /command-router/executions
-    // this->server.Post(
-    //     "/command-router/executions",
-    //     [this](const httplib::Request& request, httplib::Response& response) {
-    //         JsonConfig body;
-            
-    //         try {
-    //             body = JsonConfig(json::parse(request.body));
-    //         } catch (const exception& e) {
-    //             json error_body = {{"error", string("Invalid JSON: ") + e.what()}};
-    //             set_json_response(response, 400, JsonConfig(error_body));
-    //             return;
-    //         }
+    this->server.Post(
+        "/command-router/executions",
+        [this](const httplib::Request& request, httplib::Response& response) {
 
-    //         string command_type = body.at_path("command_type").get_or<string>("");
-    //         string command_text = body.at_path("command_text").get_or<string>("");
+            LOG_INFO("bus_command_router HTTP server received new execution request: " << request.body);
 
-    //         if (command_type.empty() || command_text.empty()) {
-    //             json error_body = {{"error", "Missing fields: command_type, command_text"}};
-    //             set_json_response(response, 400, JsonConfig(error_body));
-    //             return;
-    //         }
+            JsonConfig body;
 
-    //         auto exec = make_shared<Execution>();
-    //         exec->execution_id = generate_execution_id();
-    //         exec->command_type = command_type;
-    //         exec->command_text = command_text;
+            try {
+                body = JsonConfig(json::parse(request.body));
+            } catch (const exception& e) {
+                json error_body = {{"error", string("Invalid JSON: ") + e.what()}};
+                set_json_response(response, 400, JsonConfig(error_body));
+                return;
+            }
 
-    //         {
-    //             lock_guard<mutex> semaphore(this->executions_mutex);
-    //             this->executions[exec->execution_id] = exec;
-    //         }
+            string command_type = body.at_path("command_type").get_or<string>("");
+            string command_text = body.at_path("command_text").get_or<string>("");
 
-    //         thread_pool->enqueue([this, exec]() { this->run_execution(exec); });
+            if (command_type.empty() || command_text.empty()) {
+                json error_body = {{"error", "Missing fields: command_type, command_text"}};
+                set_json_response(response, 400, JsonConfig(error_body));
+                return;
+            }
 
-    //         json success_body = {{"execution_id", exec->execution_id}, {"status", "pending"}};
+            auto exec = make_shared<Execution>();
+            exec->execution_id = generate_execution_id();
+            exec->command_type = command_type;
+            exec->command_text = command_text;
 
-    //         set_json_response(response, 202, JsonConfig(success_body));
-    //     }
-    // );
+            {
+                lock_guard<mutex> semaphore(this->executions_mutex);
+                this->executions[exec->execution_id] = exec;
+            }
+
+            thread_pool->enqueue([this, exec]() { this->run_execution(exec); });
+
+            json success_body = {{"execution_id", exec->execution_id}, {"status", "pending"}};
+
+            set_json_response(response, 202, JsonConfig(success_body));
+        });
 
     // // GET /command-router/executions/:id
     // this->server.Get(
@@ -114,8 +111,8 @@ void CommandRouterHttpAPI::setup_routes() {
     //             return;
     //         }
 
-    //         lock_guard<mutex> lk(exec->mtx);
-            
+    //         lock_guard<mutex> exec_semaphore(exec->mtx);
+
     //         json success_body = {
     //             {"execution_id", exec->execution_id},
     //             {"status", exec->status},
@@ -145,68 +142,71 @@ void CommandRouterHttpAPI::setup_routes() {
     //         }
 
     //         {
-    //             lock_guard<mutex> lk(exec->mtx);
+    //             lock_guard<mutex> exec_semaphore(exec->mtx);
     //             exec->cancel_requested = true;
     //         }
     //         exec->cv.notify_all();
 
     //         set_json_response(
-    //             response, 200, JsonConfig({{"execution_id", execution_id}, {"status", "cancel_requested"}}));
+    //             response, 200, JsonConfig({{"execution_id", execution_id}, {"status",
+    //             "cancel_requested"}}));
     //     }
     // );
 
-    // WebSocket  WS /command-router/ws/:id    
-    // this->server.WebSocket(
-    //     R"(/command-router/ws/([^/]+))",
-    //     [this](const httplib::Request& request, httplib::ws::WebSocket& ws) {
-    //         const string execution_id = request.matches[1];
-    //         auto exec = find_execution(execution_id);
-            
-    //         if (!exec) {
-    //             ws.close(httplib::ws::CloseStatus::PolicyViolation, "Execution not found: " + execution_id);
-    //             return;
-    //         }
+    // WebSocket  WS /command-router/ws/:id
+    this->server.WebSocket(
+        R"(/command-router/ws/([^/]+))",
+        [this](const httplib::Request& request, httplib::ws::WebSocket& ws) {
 
-    //         LOG_INFO("CommandRouterHttpAPI: WebSocket connected for execution " << execution_id);
+            LOG_INFO("bus_command_router HTTP server received new WebSocket connection: " << request.path);
 
-    //         size_t next_index = 0;
-    //         bool terminal = false;
+            const string execution_id = request.matches[1];
+            auto exec = find_execution(execution_id);
 
-    //         while (!terminal && ws.is_open()) {
-    //             string payload;
-    //             {
-    //                 // Wait up to 1 s for a new event to arrive.
-    //                 unique_lock<mutex> lk(exec->mtx);
-    //                 exec->cv.wait_for(lk, chrono::seconds(1), [&] {
-    //                     return next_index < exec->events.size();
-    //                 });
+            if (!exec) {
+                ws.close(httplib::ws::CloseStatus::PolicyViolation,
+                         "Execution not found: " + execution_id);
+                return;
+            }
 
-    //                 if (next_index >= exec->events.size()) {
-    //                     continue;  // timeout, loop again
-    //                 }
-    //                 payload = exec->events[next_index++];
-    //             }
+            LOG_INFO("CommandRouterHttpAPI: WebSocket connected for execution " << execution_id);
 
-    //             if (!ws.send(payload)) {
-    //                 LOG_INFO("CommandRouterHttpAPI: WebSocket send failed for " << execution_id);
-    //                 return;
-    //             }
+            size_t next_index = 0;
+            bool terminal = false;
 
-    //             // Detect end-of-stream events.
-    //             try {
-    //                 auto j = json::parse(payload);
-    //                 string type = j.value("type", "");
-    //                 if (type == "completed" || type == "error" || type == "aborted") {
-    //                     terminal = true;
-    //                 }
-    //             } catch (...) {
-    //             }
-    //         }
+            while (!terminal && ws.is_open()) {
+                string payload;
+                {
+                    // Wait up to 1 s for a new event to arrive.
+                    unique_lock<mutex> lk(exec->mtx);
+                    exec->cv.wait_for(
+                        lk, chrono::seconds(1), [&] { return next_index < exec->events.size(); });
 
-    //         ws.close(httplib::ws::CloseStatus::Normal, "stream complete");
-    //         LOG_INFO("CommandRouterHttpAPI: WebSocket closed for execution " << execution_id);
-    //     }
-    // );
+                    if (next_index >= exec->events.size()) {
+                        continue;  // timeout, loop again
+                    }
+                    payload = exec->events[next_index++];
+                }
+
+                if (!ws.send(payload)) {
+                    LOG_INFO("CommandRouterHttpAPI: WebSocket send failed for " << execution_id);
+                    return;
+                }
+
+                // Detect end-of-stream events.
+                try {
+                    auto j = json::parse(payload);
+                    string type = j.value("type", "");
+                    if (type == "completed" || type == "error" || type == "aborted") {
+                        terminal = true;
+                    }
+                } catch (...) {
+                }
+            }
+
+            ws.close(httplib::ws::CloseStatus::Normal, "stream complete");
+            LOG_INFO("CommandRouterHttpAPI: WebSocket closed for execution " << execution_id);
+        });
 }
 
 // =============================================================================
@@ -215,30 +215,26 @@ void CommandRouterHttpAPI::setup_routes() {
 
 void CommandRouterHttpAPI::run_execution(const shared_ptr<Execution>& exec) {
     {
-        lock_guard<mutex> lk(exec->mtx);
+        lock_guard<mutex> exec_semaphore(exec->mtx);
         exec->status = "running";
         append_event_locked(exec, started_event(exec->execution_id));
     }
 
-    // TODO: Replace the simulation below with the real DAS command adapter.
-    //       The adapter should:
-    //         1. Translate command_type + command_text into a DAS command.
-    //         2. Read output incrementally (via callback or stdout).
-    //         3. Call append_event_locked() for each chunk.
-    //         4. Check exec->cancel_requested to abort early.
+    // TODO: The code bellow is just a placeholder to simulate a long-running command that produces
+    // multiple events over time.
 
-    const int TOTAL = 100;
+    const int TOTAL = 1000;
     const int CHUNK_SIZE = 10;
     auto started_at = chrono::steady_clock::now();
     int seq = 0;
 
     for (int i = 0; i < TOTAL; i += CHUNK_SIZE) {
         {
-            lock_guard<mutex> lk(exec->mtx);
+            lock_guard<mutex> exec_semaphore(exec->mtx);
             if (exec->cancel_requested) {
                 exec->status = "aborted";
                 this->append_event_locked(exec, this->aborted_event(exec->execution_id));
-                this->cleanup_finished_executions();
+                // this->cleanup_finished_executions();
                 return;
             }
         }
@@ -250,38 +246,37 @@ void CommandRouterHttpAPI::run_execution(const shared_ptr<Execution>& exec) {
             chunk_data.push_back("result-" + std::to_string(k));
         }
 
-        lock_guard<mutex> lk(exec->mtx);
+        lock_guard<mutex> exec_semaphore(exec->mtx);
         exec->received_count += static_cast<int>(chunk_data.size());
-        this->append_event_locked(exec,
-                            this->chunk_event(exec->execution_id, ++seq, chunk_data, exec->received_count));
+        this->append_event_locked(
+            exec, this->chunk_event(exec->execution_id, ++seq, chunk_data, exec->received_count));
     }
 
-    lock_guard<mutex> lk(exec->mtx);
-    exec->duration_ms = chrono::duration_cast<chrono::milliseconds>(chrono::steady_clock::now() - started_at).count();
+    lock_guard<mutex> exec_semaphore(exec->mtx);
+    exec->duration_ms =
+        chrono::duration_cast<chrono::milliseconds>(chrono::steady_clock::now() - started_at).count();
     exec->total_items = exec->received_count;
     exec->status = "completed";
-    this->append_event_locked(exec, this->completed_event(exec->execution_id, exec->duration_ms, exec->total_items));
+    this->append_event_locked(
+        exec, this->completed_event(exec->execution_id, exec->duration_ms, exec->total_items));
+
+    LOG_INFO("CommandRouterHttpAPI: execution " << exec->execution_id << " completed in "
+                                              << exec->duration_ms << " ms with "
+                                              << exec->total_items << " items");
 }
 
-// =============================================================================
-// Event buffering
-// =============================================================================
-
-void CommandRouterHttpAPI::append_event_locked(const shared_ptr<Execution>& exec, const JsonConfig& payload) {
+void CommandRouterHttpAPI::append_event_locked(const shared_ptr<Execution>& exec,
+                                               const JsonConfig& payload) {
     exec->events.push_back(static_cast<const json&>(payload).dump());
     exec->cv.notify_all();
 }
 
-// =============================================================================
-// Cleanup
-// =============================================================================
-
 void CommandRouterHttpAPI::cleanup_finished_executions() {
-    lock_guard<mutex> lk(executions_mutex);
+    lock_guard<mutex> semaphore(this->executions_mutex);
 
     auto it = executions.begin();
     while (it != executions.end()) {
-        lock_guard<mutex> exec_lk(it->second->mtx);
+        lock_guard<mutex> exec_semaphore(it->second->mtx);
         const string& status = it->second->status;
         if (status == "completed" || status == "error" || status == "aborted") {
             LOG_INFO("CommandRouterHttpAPI: removing finished execution " << it->first);
@@ -292,12 +287,9 @@ void CommandRouterHttpAPI::cleanup_finished_executions() {
     }
 }
 
-// =============================================================================
-// Utilities
-// =============================================================================
-
-shared_ptr<CommandRouterHttpAPI::Execution> CommandRouterHttpAPI::find_execution(const string& execution_id) {
-    lock_guard<mutex> lk(executions_mutex);
+shared_ptr<CommandRouterHttpAPI::Execution> CommandRouterHttpAPI::find_execution(
+    const string& execution_id) {
+    lock_guard<mutex> semaphore(this->executions_mutex);
     auto it = executions.find(execution_id);
     return (it != executions.end()) ? it->second : nullptr;
 }
@@ -309,49 +301,46 @@ string CommandRouterHttpAPI::generate_execution_id() {
     return oss.str();
 }
 
-// =============================================================================
-// Event factories
-// =============================================================================
-
 JsonConfig CommandRouterHttpAPI::started_event(const string& execution_id) {
-    return JsonConfig({{"type", "started"}, {"execution_id", execution_id}});
+    json event_body = {{"type", "started"}, {"execution_id", execution_id}};
+    return JsonConfig(event_body);
 }
 
 JsonConfig CommandRouterHttpAPI::chunk_event(const string& execution_id,
-                                int seq,
-                                const vector<string>& data,
-                                int received_count) {
-    return JsonConfig({{"type", "chunk"},
-                      {"execution_id", execution_id},
-                      {"seq", seq},
-                      {"data", data},
-                      {"received_count", received_count}});
+                                             int seq,
+                                             const vector<string>& data,
+                                             int received_count) {
+    json event_body = {{"type", "chunk"},
+                       {"execution_id", execution_id},
+                       {"seq", seq},
+                       {"data", data},
+                       {"received_count", received_count}};
+    return JsonConfig(event_body);
 }
 
-JsonConfig CommandRouterHttpAPI::completed_event(const string& execution_id, long long duration_ms, int total_items) {
-    return JsonConfig({{"type", "completed"},
-                      {"execution_id", execution_id},
-                      {"duration_ms", duration_ms},
-                      {"total_items", total_items}});
+JsonConfig CommandRouterHttpAPI::completed_event(const string& execution_id,
+                                                 long long duration_ms,
+                                                 int total_items) {
+    json event_body = {{"type", "completed"},
+                       {"execution_id", execution_id},
+                       {"duration_ms", duration_ms},
+                       {"total_items", total_items}};
+    return JsonConfig(event_body);
 }
 
 JsonConfig CommandRouterHttpAPI::error_event(const string& execution_id, const string& message) {
-    return JsonConfig({{"type", "error"}, {"execution_id", execution_id}, {"message", message}});
+    json event_body = {{"type", "error"}, {"execution_id", execution_id}, {"message", message}};
+    return JsonConfig(event_body);
 }
 
 JsonConfig CommandRouterHttpAPI::aborted_event(const string& execution_id) {
-    return JsonConfig({{"type", "aborted"}, {"execution_id", execution_id}});
+    json event_body = {{"type", "aborted"}, {"execution_id", execution_id}};
+    return JsonConfig(event_body);
 }
 
-// =============================================================================
-// HTTP response helpers
-// =============================================================================
-
-// JsonConfig CommandRouterHttpAPI::make_json(const nlohmann::json& value) { return JsonConfig(value); }
-
-void CommandRouterHttpAPI::set_json_response(httplib::Response& response, int status, const JsonConfig& body) {
+void CommandRouterHttpAPI::set_json_response(httplib::Response& response,
+                                             int status,
+                                             const JsonConfig& body) {
     response.status = status;
     response.set_content(static_cast<const json&>(body).dump(), "application/json");
 }
-
-// JsonConfig CommandRouterHttpAPI::parse_request_json(const string& body) { return JsonConfig(json::parse(body)); }

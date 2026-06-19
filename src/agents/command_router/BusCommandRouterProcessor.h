@@ -51,7 +51,6 @@ class BusCommandRouterProcessor : public BusCommandProcessor {
     mutex router_parameters_mutex;
     shared_ptr<ServiceBus> service_bus;
 
-    bool http_api_enabled = false;
     shared_ptr<CommandRouterHttpAPI> http_api;
 };
 

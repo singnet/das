@@ -17,16 +17,18 @@ void CommandRouterHttpAPISingleton::init(const JsonConfig& command_router_config
         auto host = command_router_config.at_path("http_api_host").get<string>();
         auto port = command_router_config.at_path("http_api_port").get<int>();
 
-        // For simplicity we hardcode the number of worker threads here, but this could be made configurable if needed.
-        unsigned int execution_workers = 4;
-        
-        auto thread_pool_executor = make_shared<ThreadPool>("http_api_thread_pool_executor", execution_workers);
+        // TODO: make the number of execution threads configurable
+        unsigned int num_threads = 4;
+
+        auto thread_pool_executor =
+            make_shared<ThreadPool>("http_api_thread_pool_executor", num_threads);
 
         HTTP_API = make_shared<CommandRouterHttpAPI>(host, port, thread_pool_executor);
 
         auto http_api_thread = make_shared<DedicatedThread>("http_api_thread", HTTP_API.get());
 
         CommandRouterHttpAPI::initialize(HTTP_API, {thread_pool_executor, http_api_thread});
+
         INITIALIZED = true;
     }
 }
@@ -35,7 +37,7 @@ shared_ptr<CommandRouterHttpAPI> CommandRouterHttpAPISingleton::get_instance() {
     lock_guard<mutex> semaphore(API_MUTEX);
     if (!INITIALIZED || HTTP_API == nullptr) {
         RAISE_ERROR("CommandRouterHttpAPISingleton not initialized");
-        return shared_ptr<CommandRouterHttpAPI>{};
+        return shared_ptr<CommandRouterHttpAPI>{nullptr};
     }
     return HTTP_API;
 }
