@@ -502,7 +502,7 @@ SqlRow PostgresWrapper::build_sql_row(const pqxx::row& row, const Table& table, 
 
         if (is_time_type(field.type())) continue;
 
-        string value = field.c_str();
+        string value = field.as<string>();
 
         if (!this->sanitize_value(value)) continue;
 
