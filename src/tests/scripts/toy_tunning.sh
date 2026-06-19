@@ -5,7 +5,7 @@ CONTEXT_TAG=$2
 TARGET_PREDICATE=$3
 TARGET_CONCEPT=$4
 
-log_files=("/tmp/ab.log" "/tmp/qa.log" "/tmp/ev.log" "/tmp/run_toy.log")
+log_files=("/tmp/ab.log" "/tmp/qa.log" "/tmp/ev.log")
 
 for LOG_FILE in "${log_files[@]}"; do
     rm -f $LOG_FILE

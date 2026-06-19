@@ -19,7 +19,7 @@ using namespace attention_broker;
 
 QueryEvolutionProcessor::QueryEvolutionProcessor() : BusCommandProcessor({ServiceBus::QUERY_EVOLUTION}) {
     AttentionBrokerClient::health_check(true);
-    DECODER = static_pointer_cast<HandleDecoder>(AtomDBSingleton::get_instance()).get();
+    this->decoder = static_pointer_cast<HandleDecoder>(AtomDBSingleton::get_instance()).get();
 }
 
 QueryEvolutionProcessor::~QueryEvolutionProcessor() {}
@@ -357,7 +357,7 @@ void QueryEvolutionProcessor::correlate_similar(shared_ptr<QueryEvolutionProxy> 
                         handle_set.clear();
                         skip_correlation = false;
                         if (pair.first.is_wildcard()) {
-                            for (string handle : selected_answer->get_all(pair.first, DECODER)) {
+                            for (string handle : selected_answer->get_all(pair.first, this->decoder)) {
                                 handle_set.insert(handle);
                             }
                         } else {
@@ -371,7 +371,7 @@ void QueryEvolutionProcessor::correlate_similar(shared_ptr<QueryEvolutionProxy> 
                             }
                         }
                         if (pair.second.is_wildcard()) {
-                            for (string handle : correlated_answer->get_all(pair.second, DECODER)) {
+                            for (string handle : correlated_answer->get_all(pair.second, this->decoder)) {
                                 handle_set.insert(handle);
                             }
                         } else {
@@ -430,7 +430,7 @@ void QueryEvolutionProcessor::stimulate(shared_ptr<QueryEvolutionProxy> proxy,
         for (auto& correlation : correlation_mappings) {
             for (auto& correlation_pair : correlation) {
                 if (correlation_pair.first.is_wildcard()) {
-                    for (string handle : pair.first->get_all(correlation_pair.first, DECODER)) {
+                    for (string handle : pair.first->get_all(correlation_pair.first, this->decoder)) {
                         handle_set.insert(handle);
                     }
                 } else {
@@ -481,13 +481,19 @@ string QueryEvolutionProcessor::answer_to_string_2(shared_ptr<QueryAnswer> answe
         bool first = true;
         for (string& handle : answer->get_path_vector(i)) {
             auto link = db->get_link(handle);
+            if ((link == nullptr) || (link->arity() != 3)) {
+                return "Invalid link: " + handle;
+            }
             auto target1 = db->get_link(link->targets[1]);
             auto target2 = db->get_link(link->targets[2]);
+            if ((target1 == nullptr) || (target2 == nullptr)) {
+                return "Invalid link: " + link->to_string();
+            }
             if (first) {
                 first = false;
-                path = target1->metta_representation(*DECODER) + path_link[i];
+                path = target1->metta_representation(*(this->decoder)) + path_link[i];
             }
-            path += target2->metta_representation(*DECODER);
+            path += target2->metta_representation(*(this->decoder));
             path += path_link[i];
         }
         if (answer->get_path_vector(i).size() > 0) {
@@ -515,9 +521,9 @@ string QueryEvolutionProcessor::answer_to_string_1(shared_ptr<QueryAnswer> answe
         auto target2 = db->get_link(link->targets[2]);
         if (first) {
             first = false;
-            path = target1->metta_representation(*DECODER) + path_link;
+            path = target1->metta_representation(*(this->decoder)) + path_link;
         }
-        path += target2->metta_representation(*DECODER);
+        path += target2->metta_representation(*(this->decoder));
         path += path_link;
     }
     if (answer->get_path_vector(0).size() > 0) {
@@ -562,9 +568,11 @@ void QueryEvolutionProcessor::evolve_query(shared_ptr<StoppableThread> monitor,
         sample_population(monitor, proxy, population);
         STOP_WATCH_FINISH(sample_population, "EvolutionPopulationSampling");
         LOG_INFO("Sampled " + std::to_string(population.size()) + " individuals.");
+#if LOG_LEVEL >= DEBUG_LEVEL
         for (auto& pair : population) {
-            LOG_INFO(std::to_string(pair.second) + " " + answer_to_string(pair.first));
+            LOG_DEBUG(std::to_string(pair.second) + " " + answer_to_string(pair.first));
         }
+#endif
         proxy->new_population_sampled(population);
         if (population.size() > 0) {
             proxy->flush_answer_bundle();

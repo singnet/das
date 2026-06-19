@@ -483,6 +483,8 @@ TEST(QueryAnswer, get_query_answer_element) {
     QueryAnswerElement element30(1, 0, 1, false, true, true);
     QueryAnswerElement element31(0, 0, 1, true, true, true);
     QueryAnswerElement element32(1, 0, 1, true, true, true);
+    QueryAnswerElement element33(1, 0, 2, true, true, true);
+    QueryAnswerElement element34(1, 2, 1, true, true, true);
 
     EXPECT_EQ(answer.get(element1), "h1");
     EXPECT_EQ(answer.get(element2), "h2");
@@ -499,6 +501,8 @@ TEST(QueryAnswer, get_query_answer_element) {
     EXPECT_EQ(answer.get(element6, true), "");
     EXPECT_EQ(answer.get(element10, true), "");
     EXPECT_EQ(answer.get(element11, true), "");
+    EXPECT_THROW(answer.get(element33), runtime_error);
+    EXPECT_THROW(answer.get(element34), runtime_error);
 
     EXPECT_EQ(answer.get_all(element13), vector<string>({"h1", "h2", "h3"}));
     EXPECT_EQ(answer.get_all(element14), vector<string>({"h5", "h6", "h7"}));

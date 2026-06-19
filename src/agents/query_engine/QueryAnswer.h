@@ -42,22 +42,24 @@ class QueryAnswerElement {
     bool pop_first;
     bool pop_last;
     QueryAnswerElement()
-        : type(NOTHING), path_index(0), element_index(0), name(""), reverse_path(false) {}
+        : type(NOTHING), path_index(0), element_index(0), name(""), hop_peek_start(0), hop_peek_end(0), reverse_path(false), pop_first(false), pop_last(false) {}
     QueryAnswerElement(ElementType type) : type(type) {
         if ((type <= VARIABLE) || (type == PATH_HOPS)) {
             RAISE_ERROR("Invalid attempt to setup a wildcard selector with type: " +
                         std::to_string(type));
         }
     }
-    QueryAnswerElement(unsigned int key) : type(HANDLE), element_index(key) {}
+    QueryAnswerElement(unsigned int key) : type(HANDLE), element_index(key), path_index(0), name(""), hop_peek_start(0), hop_peek_end(0), reverse_path(false), pop_first(false), pop_last(false) {}
     QueryAnswerElement(unsigned int key_path, unsigned int key_element)
-        : type(PATH), path_index(key_path), element_index(key_element) {}
-    QueryAnswerElement(const string& key) : type(VARIABLE), name(key) {}
+        : type(PATH), path_index(key_path), element_index(key_element), name(""), hop_peek_start(0), hop_peek_end(0), reverse_path(false), pop_first(false), pop_last(false) {}
+    QueryAnswerElement(const string& key) : type(VARIABLE), name(key), path_index(0), element_index(0), hop_peek_start(0), hop_peek_end(0), reverse_path(false), pop_first(false), pop_last(false) {}
     QueryAnswerElement(unsigned int key_path, unsigned int hop_peek_start, unsigned int hop_peek_end)
         : type(PATH_HOPS),
           path_index(key_path),
           hop_peek_start(hop_peek_start),
           hop_peek_end(hop_peek_end),
+          element_index(0),
+          name(""),
           reverse_path(false),
           pop_first(false),
           pop_last(false) {}
@@ -67,6 +69,8 @@ class QueryAnswerElement {
                        bool reverse)
         : type(PATH_HOPS),
           path_index(key_path),
+          element_index(0),
+          name(""),
           hop_peek_start(hop_peek_start),
           hop_peek_end(hop_peek_end),
           reverse_path(reverse),
@@ -80,6 +84,8 @@ class QueryAnswerElement {
                        bool pop_last)
         : type(PATH_HOPS),
           path_index(key_path),
+          element_index(0),
+          name(""),
           hop_peek_start(hop_peek_start),
           hop_peek_end(hop_peek_end),
           reverse_path(reverse),
@@ -143,7 +149,7 @@ class QueryAnswerElement {
             RAISE_ERROR("Invalid attempt to reset a QueryAnswerElement");
         }
     }
-    string to_string() {
+    string to_string() const {
         if (this->type == NOTHING) {
             return "-";
         } else if (this->type == HANDLE) {
@@ -208,6 +214,9 @@ class QueryAnswerElement {
                     }
                 }
             } else if ((s[0] == '>') || (s[0] == '<')) {
+                if (s.size() < 6) {
+                    RAISE_ERROR("Invalid PATH_HOPS element string: " + s);
+                }
                 bool pop_first = false;
                 bool pop_last = false;
                 unsigned int offset = 1;

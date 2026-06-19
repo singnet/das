@@ -437,23 +437,24 @@ vector<string> QueryAnswer::get_all(const QueryAnswerElement& key, HandleDecoder
         case QueryAnswerElement::PATH_HOPS: {
             if (decoder == NULL) {
                 RAISE_ERROR("decoder can't be NULL when getting PATH_HOPS elements");
-                break;
             }
             if (key.path_index >= get_paths_size()) {
                 break;
             }
-            auto path = get_path_vector(key.path_index);
+            auto& path = get_path_vector(key.path_index);
             bool first_handle = true;
             for (string& handle : path) {
                 auto atom = decoder->get_atom(handle);
                 if (atom == nullptr) {
                     RAISE_ERROR("Atom doesn't exist: " + handle);
-                    break;
                 }
                 shared_ptr<Link> link = dynamic_pointer_cast<Link>(atom);
                 if (link == nullptr) {
                     RAISE_ERROR("Non-link atom in QueryAnswer path: " + atom->to_string());
-                    break;
+                }
+                if ((key.hop_peek_start >= link->arity()) || (key.hop_peek_end >= link->arity())) {
+                    RAISE_ERROR("Invalid PATH_HOPS element: " + key.to_string() +
+                                " link: " + link->to_string());
                 }
                 if (first_handle) {
                     first_handle = false;

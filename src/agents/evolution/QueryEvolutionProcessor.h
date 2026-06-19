@@ -81,7 +81,7 @@ class QueryEvolutionProcessor : public BusCommandProcessor {
     shared_ptr<QueryEvolutionProxy> proxy;
     set<string> visited_individuals;
     unsigned int generation_count;
-    HandleDecoder* DECODER;
+    HandleDecoder* decoder;
 };
 
 }  // namespace evolution

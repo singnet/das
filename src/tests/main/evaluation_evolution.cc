@@ -773,7 +773,7 @@ static void build_links(const vector<string>& query,
     auto proxy = issue_link_building_query(query, context);
     unsigned int count_created = 0;
     unsigned int count_visit_attemps = 0;
-    unsigned int count_attemps = 0;
+    unsigned int count_attempts = 0;
     shared_ptr<QueryAnswer> query_answer;
     set<pair<string, string>> visited;
     while (true) {
@@ -789,19 +789,19 @@ static void build_links(const vector<string>& query,
             if (build_link(query_answer, context, custom_handle, visited, visited_at_least_one)) {
                 count_created++;
                 count_visit_attemps = 0;
-                count_attemps = 0;
+                count_attempts = 0;
                 if (count_created >= LINK_CREATION_COUNT) {
                     break;
                 }
             } else if (visited_at_least_one) {
                 count_visit_attemps++;
-                count_attemps = 0;
+                count_attempts = 0;
                 if (count_visit_attemps >= LINK_CREATION_MAX_VISIT_ATTEMPTS) {
                     break;
                 }
             } else {
-                count_attemps++;
-                if (count_attemps >= LINK_CREATION_MAX_ATTEMPTS) {
+                count_attempts++;
+                if (count_attempts >= LINK_CREATION_MAX_ATTEMPTS) {
                     break;
                 }
             }
