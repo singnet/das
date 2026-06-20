@@ -367,7 +367,6 @@ TEST(AndOperator, not_operator_3) {
     auto and_operator = make_shared<And<3>>(
         array<shared_ptr<QueryElement>, 3>({source[0], source[1], source[2]}), dummy, true);
     TestSink sink(and_operator);
-    QueryAnswer* query_answer;
 
     source[0]->add("S0_1", 0.9, {"v1"}, {"1"});
     source[0]->add("S0_2", 0.8, {"v1"}, {"2"});
@@ -377,7 +376,6 @@ TEST(AndOperator, not_operator_3) {
     source[1]->add("S1_3", 0.1, {"v2"}, {"3"});
 
     source[2]->add("S2_1", 1.0, {"v3"}, {"0"});
-    unsigned int expected_count = 0;
 
     Utils::sleep(SLEEP_DURATION);
     source[0]->query_answers_finished();

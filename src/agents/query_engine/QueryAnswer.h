@@ -5,10 +5,12 @@
 #include <vector>
 
 #include "Assignment.h"
+#include "HandleDecoder.h"
 #include "Utils.h"
 #include "expression_hasher.h"
 
 using namespace std;
+using namespace atoms;
 using namespace commons;
 
 // If this constant is set to numbers greater than 999, we need
@@ -27,33 +29,122 @@ class QueryAnswerElement {
         ALL_HANDLES,
         ALL_PATH_HANDLES,
         ALL_VARIABLE_VALUES,
+        PATH_HOPS,
         EVERYTHING
     };
     ElementType type;
     unsigned int path_index;
     unsigned int element_index;
     string name;
-    QueryAnswerElement() : type(NOTHING) {}
+    unsigned int hop_peek_start;
+    unsigned int hop_peek_end;
+    bool reverse_path;
+    bool pop_first;
+    bool pop_last;
+    QueryAnswerElement()
+        : type(NOTHING),
+          path_index(0),
+          element_index(0),
+          name(""),
+          hop_peek_start(0),
+          hop_peek_end(0),
+          reverse_path(false),
+          pop_first(false),
+          pop_last(false) {}
     QueryAnswerElement(ElementType type) : type(type) {
-        if (type <= VARIABLE) {
+        if ((type <= VARIABLE) || (type == PATH_HOPS)) {
             RAISE_ERROR("Invalid attempt to setup a wildcard selector with type: " +
                         std::to_string(type));
         }
     }
-    QueryAnswerElement(unsigned int key) : type(HANDLE), element_index(key) {}
+    QueryAnswerElement(unsigned int key)
+        : type(HANDLE),
+          path_index(0),
+          element_index(key),
+          name(""),
+          hop_peek_start(0),
+          hop_peek_end(0),
+          reverse_path(false),
+          pop_first(false),
+          pop_last(false) {}
     QueryAnswerElement(unsigned int key_path, unsigned int key_element)
-        : type(PATH), path_index(key_path), element_index(key_element) {}
-    QueryAnswerElement(const string& key) : type(VARIABLE), name(key) {}
+        : type(PATH),
+          path_index(key_path),
+          element_index(key_element),
+          name(""),
+          hop_peek_start(0),
+          hop_peek_end(0),
+          reverse_path(false),
+          pop_first(false),
+          pop_last(false) {}
+    QueryAnswerElement(const string& key)
+        : type(VARIABLE),
+          path_index(0),
+          element_index(0),
+          name(key),
+          hop_peek_start(0),
+          hop_peek_end(0),
+          reverse_path(false),
+          pop_first(false),
+          pop_last(false) {}
+    QueryAnswerElement(unsigned int key_path, unsigned int hop_peek_start, unsigned int hop_peek_end)
+        : type(PATH_HOPS),
+          path_index(key_path),
+          element_index(0),
+          name(""),
+          hop_peek_start(hop_peek_start),
+          hop_peek_end(hop_peek_end),
+          reverse_path(false),
+          pop_first(false),
+          pop_last(false) {}
+    QueryAnswerElement(unsigned int key_path,
+                       unsigned int hop_peek_start,
+                       unsigned int hop_peek_end,
+                       bool reverse)
+        : type(PATH_HOPS),
+          path_index(key_path),
+          element_index(0),
+          name(""),
+          hop_peek_start(hop_peek_start),
+          hop_peek_end(hop_peek_end),
+          reverse_path(reverse),
+          pop_first(false),
+          pop_last(false) {}
+    QueryAnswerElement(unsigned int key_path,
+                       unsigned int hop_peek_start,
+                       unsigned int hop_peek_end,
+                       bool reverse,
+                       bool pop_first,
+                       bool pop_last)
+        : type(PATH_HOPS),
+          path_index(key_path),
+          element_index(0),
+          name(""),
+          hop_peek_start(hop_peek_start),
+          hop_peek_end(hop_peek_end),
+          reverse_path(reverse),
+          pop_first(pop_first),
+          pop_last(pop_last) {}
     QueryAnswerElement(const QueryAnswerElement& other)
         : type(other.type),
           path_index(other.path_index),
           element_index(other.element_index),
-          name(other.name) {}
+          name(other.name),
+          hop_peek_start(other.hop_peek_start),
+          hop_peek_end(other.hop_peek_end),
+          reverse_path(other.reverse_path),
+          pop_first(other.pop_first),
+          pop_last(other.pop_last) {}
     QueryAnswerElement& operator=(const QueryAnswerElement& other) {
         this->type = other.type;
         this->path_index = other.path_index;
         this->element_index = other.element_index;
         this->name = other.name;
+        this->hop_peek_start = other.hop_peek_start;
+        this->hop_peek_end = other.hop_peek_end;
+        this->reverse_path = other.reverse_path;
+        this->pop_first = other.pop_first;
+        this->pop_last = other.pop_last;
         return *this;
     }
     void set(const string& key) {
@@ -81,7 +172,18 @@ class QueryAnswerElement {
             RAISE_ERROR("Invalid attempt to reset a QueryAnswerElement");
         }
     }
-    string to_string() {
+    void set(unsigned int key_path, bool reverse, bool pop_first, bool pop_last) {
+        if (this->type == NOTHING) {
+            this->type = PATH_HOPS;
+            this->path_index = key_path;
+            this->reverse_path = reverse;
+            this->pop_first = pop_first;
+            this->pop_last = pop_last;
+        } else {
+            RAISE_ERROR("Invalid attempt to reset a QueryAnswerElement");
+        }
+    }
+    string to_string() const {
         if (this->type == NOTHING) {
             return "-";
         } else if (this->type == HANDLE) {
@@ -89,13 +191,29 @@ class QueryAnswerElement {
         } else if (this->type == VARIABLE) {
             return "$" + this->name;
         } else if (this->type == PATH) {
-            return ">" + std::to_string(this->path_index) + "_" + std::to_string(this->element_index);
+            return "^" + std::to_string(this->path_index) + "_" + std::to_string(this->element_index);
         } else if (this->type == ALL_HANDLES) {
             return "_*";
         } else if (this->type == ALL_VARIABLE_VALUES) {
             return "$*";
         } else if (this->type == ALL_PATH_HANDLES) {
-            return ">*";
+            return "^*";
+        } else if (this->type == PATH_HOPS) {
+            string answer;
+            if (this->reverse_path) {
+                answer += "<";
+            } else {
+                answer += ">";
+            }
+            if (this->pop_first) {
+                answer += "^";
+            }
+            if (this->pop_last) {
+                answer += "$";
+            }
+            answer += std::to_string(this->path_index) + "_" + std::to_string(this->hop_peek_start) +
+                      "_" + std::to_string(this->hop_peek_end);
+            return answer;
         } else if (this->type == EVERYTHING) {
             return "*";
         } else {
@@ -119,7 +237,7 @@ class QueryAnswerElement {
                 } else {
                     return QueryAnswerElement(s.substr(1, s.size() - 1));
                 }
-            } else if (s[0] == '>') {
+            } else if (s[0] == '^') {
                 if (s[1] == '*') {
                     return QueryAnswerElement(QueryAnswerElement::ALL_PATH_HANDLES);
                 } else {
@@ -129,6 +247,38 @@ class QueryAnswerElement {
                                                   Utils::string_to_uint(keys[1]));
                     }
                 }
+            } else if ((s[0] == '>') || (s[0] == '<')) {
+                if (s.size() < 6) {
+                    RAISE_ERROR("Invalid PATH_HOPS element string: " + s);
+                }
+                bool pop_first = false;
+                bool pop_last = false;
+                unsigned int offset = 1;
+                if (s[1] == '^') {
+                    pop_first = true;
+                    offset++;
+                    if (s[2] == '$') {
+                        pop_last = true;
+                        offset++;
+                    }
+                } else if (s[1] == '$') {
+                    pop_last = true;
+                    offset++;
+                    if (s[2] == '^') {
+                        pop_first = true;
+                        offset++;
+                    }
+                }
+                vector<string> args = Utils::split(s.substr(offset, s.size() - offset), '_');
+                if (args.size() != 3) {
+                    RAISE_ERROR("Invalid PATH_HOPS element string: " + s);
+                }
+                return QueryAnswerElement(Utils::string_to_uint(args[0]),
+                                          Utils::string_to_uint(args[1]),
+                                          Utils::string_to_uint(args[2]),
+                                          (s[0] == '<'),
+                                          pop_first,
+                                          pop_last);
             } else if (s[0] == '*') {
                 return QueryAnswerElement(QueryAnswerElement::EVERYTHING);
             }
@@ -318,9 +468,10 @@ class QueryAnswer {
      * "assignment" or all the handles in the path vectors.
      *
      * @param element_key A key indicating which element is to be returned.
+     * @param decoder A decoder capable of mapping handle -> atom (tipically, this is an AtomDB)
      * $return The element indicated by the passed QueryAnswerElement key.
      */
-    vector<string> get_all(const QueryAnswerElement& element_key);
+    vector<string> get_all(const QueryAnswerElement& element_key, HandleDecoder* decoder = NULL);
 
     /**
      * Rewrites the passed query (tokens only, no MeTTa expression allowed) replacing variables
