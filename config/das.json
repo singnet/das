@@ -121,7 +121,7 @@
         }
     },
     "agents": {
-        "schema_version": "1.0",
+        "schema_version": "1.0.1",
         "attention": {
             "endpoint": "localhost:40001"
         },
@@ -145,7 +145,8 @@
                 "positive_importance_flag": false,
                 "disregard_importance_flag": false,
                 "unique_value_flag": false,
-                "count_flag": false
+                "count_flag": false,
+                "attention_focus_strictness": 0.0
             }
         },
         "link_creation": {

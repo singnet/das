@@ -52,6 +52,17 @@ class PatternMatchingQueryProxy : public BaseQueryProxy {
                                // actually provide the query answers (i.e. no QueryAnswer is sent
                                // from the command executor and the caller of the query).
 
+    static string ATTENTION_FOCUS_STRICTNESS; // A [0..1] parameter which indicates how strict the
+                                              // attention focus should be considered when fetching
+                                              // QueryAnswers from LinkTemplates. Larger values in
+                                              // this parameter means that the attention focus is
+                                              // smaller (i.e. less comprehensive) so that fewer
+                                              // answers will be returned in LinkTemplate fetch.
+                                              // This parameter can be tunned to control the amount
+                                              // of QueryAnswers flowing through a Query tree and
+                                              // therefore the amount of RAM and processing time
+                                              // spent to process query.
+
     /**
      * Empty constructor typically used on server side.
      */
