@@ -502,15 +502,9 @@ SqlRow PostgresWrapper::build_sql_row(const pqxx::row& row, const Table& table, 
 
         if (is_time_type(field.type())) continue;
 
-        string value = field.c_str();
+        string value = field.as<string>();
 
-        if (value.empty() || value.size() > MAX_VALUE_SIZE) {
-            continue;
-        }
-
-        Utils::replace_all(value, "\n", " ");
-        Utils::replace_all(value, "\t", " ");
-        value = Utils::trim(value);
+        if (!this->sanitize_value(value)) continue;
 
         string column_name = columns[i];
         for (const auto& fk : table.foreign_keys) {

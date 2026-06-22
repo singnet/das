@@ -115,6 +115,20 @@ unzip -q cpp-httplib-0.47.0.zip
 sudo cp cpp-httplib-0.47.0/httplib.h /usr/local/include/
 rm -rf "${TMP_DIR}/cpp-httplib-0.47.0"*
 
+echo "[INFO] Installing utfcpp..."
+
+if [[ ! -f "${ASSETS_DIR}/utfcpp-4.1.1.zip" ]]; then
+  echo "[ERROR] ${ASSETS_DIR}/utfcpp-4.1.1.zip not found."
+  exit 1
+fi
+
+cp "${ASSETS_DIR}/utfcpp-4.1.1.zip" "${TMP_DIR}/"
+cd "${TMP_DIR}"
+unzip -q utfcpp-4.1.1.zip
+sudo cp -r utfcpp-4.1.1/source/utf8 /usr/local/include/
+sudo cp utfcpp-4.1.1/source/utf8.h /usr/local/include/
+rm -rf "${TMP_DIR}/utfcpp-4.1.1"*
+
 echo "[INFO] Creating user 'builder' (if not exists)..."
 
 if ! id "builder" &>/dev/null; then
