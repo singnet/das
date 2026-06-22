@@ -1038,15 +1038,6 @@ cc_test(
         "-Iexternal/gtest/googletest/include",
         "-Iexternal/gtest/googletest",
     ],
-    linkopts = [
-        "-L/usr/local/lib",
-        "-lpqxx",
-        "-lpq",
-        "-lhiredis_cluster",
-        "-lhiredis",
-        "-lmongocxx",
-        "-lbsoncxx",
-    ],
     linkstatic = 1,
     deps = [
         "//agents/command_router:command_router_lib",

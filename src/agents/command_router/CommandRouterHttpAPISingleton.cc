@@ -53,10 +53,8 @@ shared_ptr<CommandRouterHttpAPI> CommandRouterHttpAPISingleton::get_instance() {
 }
 
 void CommandRouterHttpAPISingleton::provide(shared_ptr<CommandRouterHttpAPI> http_api) {
-    if (http_api == nullptr) {
-        RAISE_ERROR("CommandRouterHttpAPISingleton::provide(): http_api cannot be nullptr");
-    }
     lock_guard<mutex> semaphore(API_MUTEX);
+    if (http_api == nullptr) INITIALIZED = false;
     HTTP_API = http_api;
     INITIALIZED = true;
 }

@@ -45,6 +45,10 @@ shared_ptr<ThreadPool> CommandRouterHttpAPITest::thread_pool;
 shared_ptr<CommandRouterHttpAPI> CommandRouterHttpAPITest::api;
 shared_ptr<DedicatedThread> CommandRouterHttpAPITest::api_thread;
 
+class CommandRouterHttpAPISingletonTest : public ::testing::Test {
+    void TearDown() override { CommandRouterHttpAPISingleton::provide(nullptr); }
+};
+
 // -----------------------------------------------------------------------------
 // CommandRouterHttpAPI tests
 
@@ -97,7 +101,7 @@ TEST_F(CommandRouterHttpAPITest, unregistered_route_returns_404) {
 // -----------------------------------------------------------------------------
 // CommandRouterHttpAPISingleton tests
 
-TEST(CommandRouterHttpAPISingleton, provide_then_get_instance_returns_same_ptr) {
+TEST_F(CommandRouterHttpAPISingletonTest, provide_then_get_instance_returns_same_ptr) {
     auto pool = make_shared<ThreadPool>("test_pool", 1);
     auto api = make_shared<CommandRouterHttpAPI>("localhost", 19002, pool);
 
@@ -106,11 +110,11 @@ TEST(CommandRouterHttpAPISingleton, provide_then_get_instance_returns_same_ptr) 
     EXPECT_EQ(CommandRouterHttpAPISingleton::get_instance().get(), api.get());
 }
 
-TEST(CommandRouterHttpAPISingleton, provide_nullptr_throws) {
+TEST_F(CommandRouterHttpAPISingletonTest, provide_nullptr_throws) {
     EXPECT_THROW(CommandRouterHttpAPISingleton::provide(nullptr), runtime_error);
 }
 
-TEST(CommandRouterHttpAPISingleton, provide_replaces_previous_instance) {
+TEST_F(CommandRouterHttpAPISingletonTest, provide_replaces_previous_instance) {
     auto pool1 = make_shared<ThreadPool>("pool1", 1);
     auto api1 = make_shared<CommandRouterHttpAPI>("localhost", 19003, pool1);
     CommandRouterHttpAPISingleton::provide(api1);
@@ -124,7 +128,7 @@ TEST(CommandRouterHttpAPISingleton, provide_replaces_previous_instance) {
     EXPECT_NE(CommandRouterHttpAPISingleton::get_instance().get(), api1.get());
 }
 
-TEST(CommandRouterHttpAPISingleton, calling_init_after_provide_throws_already_initialized) {
+TEST_F(CommandRouterHttpAPISingletonTest, calling_init_after_provide_throws_already_initialized) {
     auto pool = make_shared<ThreadPool>("double_init_pool", 1);
     auto api = make_shared<CommandRouterHttpAPI>("localhost", 19005, pool);
     CommandRouterHttpAPISingleton::provide(api);
