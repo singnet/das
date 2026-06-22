@@ -145,7 +145,9 @@ void LinkTemplate::processor_method(shared_ptr<StoppableThread> monitor) {
     } else {
         LOG_INFO("Fetching " + link_schema_handle + " from AtomDB");
         handles = db->query_for_pattern(this->link_schema);
-        LinkTemplate::fetched_links_cache().set(link_schema_handle, handles);
+        if (this->use_cache) {
+            LinkTemplate::fetched_links_cache().set(link_schema_handle, handles);
+        }
     }
     LOG_DEBUG("Positive importance flag: " + string(this->positive_importance_flag ? "true" : "false"));
     LOG_DEBUG("Disregard importance flag: " +
