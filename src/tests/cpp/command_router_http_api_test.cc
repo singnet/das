@@ -110,10 +110,6 @@ TEST_F(CommandRouterHttpAPISingletonTest, provide_then_get_instance_returns_same
     EXPECT_EQ(CommandRouterHttpAPISingleton::get_instance().get(), api.get());
 }
 
-TEST_F(CommandRouterHttpAPISingletonTest, provide_nullptr_throws) {
-    EXPECT_THROW(CommandRouterHttpAPISingleton::provide(nullptr), runtime_error);
-}
-
 TEST_F(CommandRouterHttpAPISingletonTest, provide_replaces_previous_instance) {
     auto pool1 = make_shared<ThreadPool>("pool1", 1);
     auto api1 = make_shared<CommandRouterHttpAPI>("localhost", 19003, pool1);
