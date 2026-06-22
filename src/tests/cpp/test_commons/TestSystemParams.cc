@@ -9,7 +9,7 @@ namespace das_test {
 
 const char kAgentsJson[] = R"({
   "agents": {
-    "schema_version": "1.0",
+    "schema_version": "1.0.1",
     "base_query": {
       "params": {
         "unique_assignment_flag": false,
@@ -30,7 +30,8 @@ const char kAgentsJson[] = R"({
         "positive_importance_flag": false,
         "disregard_importance_flag": false,
         "unique_value_flag": false,
-        "count_flag": false
+        "count_flag": false,
+        "attention_focus_strictness": 0.0
       }
     },
     "link_creation": {
