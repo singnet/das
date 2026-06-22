@@ -416,7 +416,7 @@ string QueryAnswer::get(unsigned int key_path,
     return answer;
 }
 
-vector<string> QueryAnswer::get_all(const QueryAnswerElement& key) {
+vector<string> QueryAnswer::get_all(const QueryAnswerElement& key, HandleDecoder* decoder) {
     vector<string> answer;
     switch (key.type) {
         case QueryAnswerElement::ALL_HANDLES:
@@ -434,6 +434,49 @@ vector<string> QueryAnswer::get_all(const QueryAnswerElement& key) {
                 }
             }
             break;
+        case QueryAnswerElement::PATH_HOPS: {
+            if (decoder == NULL) {
+                RAISE_ERROR("decoder can't be NULL when getting PATH_HOPS elements");
+            }
+            if (key.path_index >= get_paths_size()) {
+                break;
+            }
+            auto& path = get_path_vector(key.path_index);
+            bool first_handle = true;
+            for (string& handle : path) {
+                auto atom = decoder->get_atom(handle);
+                if (atom == nullptr) {
+                    RAISE_ERROR("Atom doesn't exist: " + handle);
+                }
+                shared_ptr<Link> link = dynamic_pointer_cast<Link>(atom);
+                if (link == nullptr) {
+                    RAISE_ERROR("Non-link atom in QueryAnswer path: " + atom->to_string());
+                }
+                if ((key.hop_peek_start >= link->arity()) || (key.hop_peek_end >= link->arity())) {
+                    RAISE_ERROR("Invalid PATH_HOPS element: " + key.to_string() +
+                                " link: " + link->to_string());
+                }
+                if (first_handle) {
+                    first_handle = false;
+                    if (!key.pop_first) {
+                        if (key.reverse_path) {
+                            answer.push_back(link->targets[key.hop_peek_end]);
+                        } else {
+                            answer.push_back(link->targets[key.hop_peek_start]);
+                        }
+                    }
+                }
+                if (key.reverse_path) {
+                    answer.push_back(link->targets[key.hop_peek_start]);
+                } else {
+                    answer.push_back(link->targets[key.hop_peek_end]);
+                }
+            }
+            if (key.pop_last && (answer.size() > 0)) {
+                answer.pop_back();
+            }
+            break;
+        }
         case QueryAnswerElement::EVERYTHING: {
             set<string> handle_set;
             for (string handle : get_all(QueryAnswerElement::ALL_HANDLES)) {

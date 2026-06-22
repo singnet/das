@@ -3,6 +3,7 @@
 #include <set>
 #include <unordered_set>
 
+#include "Link.h"
 #include "QueryAnswer.h"
 #include "Utils.h"
 #include "gtest/gtest.h"
@@ -10,6 +11,17 @@
 
 using namespace query_engine;
 using namespace commons;
+using namespace atoms;
+
+class TestDecoder : public HandleDecoder {
+   public:
+    map<string, shared_ptr<Atom>> atoms;
+    shared_ptr<Atom> get_atom(const string& handle) { return this->atoms[handle]; }
+    void add_atom(const string& handle, const string& target1, const string& target2) {
+        shared_ptr<Link> link = make_shared<Link>("blah", vector<string>({target1, target2}));
+        this->atoms[handle] = static_pointer_cast<Atom>(link);
+    }
+};
 
 TEST(QueryAnswer, assignments_basics) {
     Assignment mapping0;
@@ -455,6 +467,24 @@ TEST(QueryAnswer, get_query_answer_element) {
     QueryAnswerElement element14(QueryAnswerElement::ALL_PATH_HANDLES);
     QueryAnswerElement element15(QueryAnswerElement::ALL_VARIABLE_VALUES);
     QueryAnswerElement element16(QueryAnswerElement::EVERYTHING);
+    QueryAnswerElement element17(0, 0, 1, false);
+    QueryAnswerElement element18(1, 0, 1, false);
+    QueryAnswerElement element19(0, 0, 1, true);
+    QueryAnswerElement element20(1, 0, 1, true);
+    QueryAnswerElement element21(0, 0, 1, false, true, false);
+    QueryAnswerElement element22(1, 0, 1, false, true, false);
+    QueryAnswerElement element23(0, 0, 1, true, true, false);
+    QueryAnswerElement element24(1, 0, 1, true, true, false);
+    QueryAnswerElement element25(0, 0, 1, false, false, true);
+    QueryAnswerElement element26(1, 0, 1, false, false, true);
+    QueryAnswerElement element27(0, 0, 1, true, false, true);
+    QueryAnswerElement element28(1, 0, 1, true, false, true);
+    QueryAnswerElement element29(0, 0, 1, false, true, true);
+    QueryAnswerElement element30(1, 0, 1, false, true, true);
+    QueryAnswerElement element31(0, 0, 1, true, true, true);
+    QueryAnswerElement element32(1, 0, 1, true, true, true);
+    QueryAnswerElement element33(1, 0, 2, true, true, true);
+    QueryAnswerElement element34(1, 2, 1, true, true, true);
 
     EXPECT_EQ(answer.get(element1), "h1");
     EXPECT_EQ(answer.get(element2), "h2");
@@ -471,6 +501,8 @@ TEST(QueryAnswer, get_query_answer_element) {
     EXPECT_EQ(answer.get(element6, true), "");
     EXPECT_EQ(answer.get(element10, true), "");
     EXPECT_EQ(answer.get(element11, true), "");
+    EXPECT_THROW(answer.get(element33), runtime_error);
+    EXPECT_THROW(answer.get(element34), runtime_error);
 
     EXPECT_EQ(answer.get_all(element13), vector<string>({"h1", "h2", "h3"}));
     EXPECT_EQ(answer.get_all(element14), vector<string>({"h5", "h6", "h7"}));
@@ -479,14 +511,52 @@ TEST(QueryAnswer, get_query_answer_element) {
     set<string> s2({"h3", "h4"});
     EXPECT_EQ(v.size(), 2);
     EXPECT_EQ(s1, s2);
-    v.clear();
-    s1.clear();
-    s2.clear();
     v = answer.get_all(element16);
     s1 = set<string>(v.begin(), v.end());
     s2 = set<string>({"h1", "h2", "h3", "h4", "h5", "h6", "h7"});
     EXPECT_EQ(v.size(), 7);
     EXPECT_EQ(s1, s2);
+
+    TestDecoder decoder;
+    decoder.add_atom("h5", "5a", "5b");
+    decoder.add_atom("h6", "6a", "6b");
+    decoder.add_atom("h7", "7a", "7b");
+    EXPECT_THROW(answer.get_all(element17), runtime_error);
+    v = answer.get_all(element17, &decoder);
+    EXPECT_EQ(v, vector<string>({"5a", "5b", "6b"}));
+    v = answer.get_all(element18, &decoder);
+    EXPECT_EQ(v, vector<string>({"7a", "7b"}));
+    v = answer.get_all(element19, &decoder);
+    EXPECT_EQ(v, vector<string>({"5b", "5a", "6a"}));
+    v = answer.get_all(element20, &decoder);
+    EXPECT_EQ(v, vector<string>({"7b", "7a"}));
+
+    v = answer.get_all(element21, &decoder);
+    EXPECT_EQ(v, vector<string>({"5b", "6b"}));
+    v = answer.get_all(element22, &decoder);
+    EXPECT_EQ(v, vector<string>({"7b"}));
+    v = answer.get_all(element23, &decoder);
+    EXPECT_EQ(v, vector<string>({"5a", "6a"}));
+    v = answer.get_all(element24, &decoder);
+    EXPECT_EQ(v, vector<string>({"7a"}));
+
+    v = answer.get_all(element25, &decoder);
+    EXPECT_EQ(v, vector<string>({"5a", "5b"}));
+    v = answer.get_all(element26, &decoder);
+    EXPECT_EQ(v, vector<string>({"7a"}));
+    v = answer.get_all(element27, &decoder);
+    EXPECT_EQ(v, vector<string>({"5b", "5a"}));
+    v = answer.get_all(element28, &decoder);
+    EXPECT_EQ(v, vector<string>({"7b"}));
+
+    v = answer.get_all(element29, &decoder);
+    EXPECT_EQ(v, vector<string>({"5b"}));
+    v = answer.get_all(element30, &decoder);
+    EXPECT_EQ(v, vector<string>({}));
+    v = answer.get_all(element31, &decoder);
+    EXPECT_EQ(v, vector<string>({"5a"}));
+    v = answer.get_all(element32, &decoder);
+    EXPECT_EQ(v, vector<string>({}));
 }
 
 TEST(QueryAnswer, rewrite_query) {

@@ -53,6 +53,7 @@ void QueryEvolutionProxy::init() {
     this->fitness_function_object = shared_ptr<FitnessFunction>(nullptr);
     this->ongoing_remote_fitness_evaluation = false;
     this->no_selection_flag = false;
+    this->last_generation_with_answer_report = 0;
 }
 
 void QueryEvolutionProxy::set_default_query_parameters() {
@@ -223,17 +224,19 @@ bool QueryEvolutionProxy::stop_criteria_met() {
 
 void QueryEvolutionProxy::new_population_sampled(
     vector<std::pair<shared_ptr<QueryAnswer>, float>>& population) {
+    lock_guard<mutex> semaphore(this->api_mutex);
     if (population.size() > 0) {
+        this->num_generations++;
         if (population[0].second > this->best_reported_fitness) {
             for (int i = population.size() - 1; i >= 0; i--) {
                 if (population[i].second >= this->best_reported_fitness) {
                     push(population[i].first);
                     this->best_reported_fitness = population[i].second;
+                    this->last_generation_with_answer_report = this->num_generations;
                 }
             }
         }
     }
-    this->num_generations++;
 }
 
 void QueryEvolutionProxy::set_fitness_function_tag(const string& tag) {
@@ -299,6 +302,11 @@ bool QueryEvolutionProxy::get_no_selection_flag() {
 void QueryEvolutionProxy::set_no_selection_flag(bool value) {
     lock_guard<mutex> semaphore(this->api_mutex);
     this->no_selection_flag = value;
+}
+
+unsigned int QueryEvolutionProxy::last_improving_generation() {
+    lock_guard<mutex> semaphore(this->api_mutex);
+    return last_generation_with_answer_report;
 }
 
 // ---------------------------------------------------------------------------------------------

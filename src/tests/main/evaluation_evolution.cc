@@ -81,9 +81,10 @@ static string TARGET_PREDICATE_HANDLE = "undefined";
 
 static bool USE_MORK = false;
 static bool SETUP_ONLY = false;
-static double LINK_CREATION_STRENGTH_THRESHOLD = (SETUP_ONLY ? 0.0 : 0.5);
+static double LINK_CREATION_STRENGTH_THRESHOLD = (SETUP_ONLY ? 0.0 : 0.1);
 static unsigned int LINK_CREATION_COUNT = 10;
 static unsigned int LINK_CREATION_MAX_VISIT_ATTEMPTS = LINK_CREATION_COUNT;
+static unsigned int LINK_CREATION_MAX_ATTEMPTS = 500;
 
 static string PRESET_LINKS_FILE_PREFIX = "/opt/das/_PRESET_LINKS_";
 static string PRESET_LINKS_FILE = PRESET_LINKS_FILE_PREFIX;
@@ -242,7 +243,7 @@ static shared_ptr<PatternMatchingQueryProxy> issue_link_building_query(
     proxy->parameters[BaseQueryProxy::USE_LINK_TEMPLATE_CACHE] = false;
     proxy->parameters[BaseQueryProxy::ALLOW_INCOMPLETE_CHAIN_PATH] = false;
     proxy->parameters[PatternMatchingQueryProxy::DISREGARD_IMPORTANCE_FLAG] = false;
-    proxy->parameters[PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG] = false;
+    proxy->parameters[PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG] = true;
     proxy->parameters[PatternMatchingQueryProxy::MAX_ANSWERS] = (unsigned int) 0;
     proxy->parameters[BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS] = (query_tokens.size() == 1);
     proxy->parameters[BaseQueryProxy::POPULATE_METTA_MAPPING] = USE_MORK;
@@ -503,9 +504,9 @@ static bool build_implication_link(shared_ptr<QueryAnswer> query_answer,
                                    const string& context,
                                    const string& custom_handle,
                                    set<pair<string, string>>& visited,
-                                   bool& none_visited) {
+                                   bool& visited_at_least_one) {
     STACK_TRACE();
-    none_visited = true;
+    visited_at_least_one = false;
     string predicates[2];
     string metta_predicates[2];
     if (custom_handle == "") {
@@ -542,7 +543,7 @@ static bool build_implication_link(shared_ptr<QueryAnswer> query_answer,
     }
 
     LOG_DEBUG("Visiting: " + predicates[0] + " " + predicates[1]);
-    none_visited = false;
+    visited_at_least_one = true;
     visited.insert({predicates[0], predicates[1]});
 
     // build Evaluation of the AND of both predicates
@@ -639,9 +640,9 @@ static bool build_equivalence_link(shared_ptr<QueryAnswer> query_answer,
                                    const string& context,
                                    const string& custom_handle,
                                    set<pair<string, string>>& visited,
-                                   bool& none_visited) {
+                                   bool& visited_at_least_one) {
     STACK_TRACE();
-    none_visited = true;
+    visited_at_least_one = false;
     string concepts[2];
     string metta_concepts[2];
     if (custom_handle == "") {
@@ -673,7 +674,7 @@ static bool build_equivalence_link(shared_ptr<QueryAnswer> query_answer,
     }
 
     LOG_DEBUG("Visiting: " + concepts[0] + " " + concepts[1]);
-    none_visited = false;
+    visited_at_least_one = true;
     visited.insert(p);
 
     vector<vector<string>> query;
@@ -738,9 +739,9 @@ static bool build_evaluation_link(shared_ptr<QueryAnswer> query_answer,
                                   const string& context,
                                   const string& custom_handle,
                                   set<pair<string, string>>& visited,
-                                  bool& none_visited) {
+                                  bool& visited_at_least_one) {
     STACK_TRACE();
-    none_visited = true;
+    visited_at_least_one = false;
     string predicate = query_answer->get(PREDICATE);
     string concept_ = query_answer->get(CONCEPT);
     if (visited.find({predicate, concept_}) != visited.end()) {
@@ -749,7 +750,7 @@ static bool build_evaluation_link(shared_ptr<QueryAnswer> query_answer,
         return false;
     }
     LOG_DEBUG("Visiting: " + predicate + " " + concept_);
-    none_visited = false;
+    visited_at_least_one = true;
     visited.insert({predicate, concept_});
     double strength = 1;
     for (string& h : query_answer->get_handles_vector()) {
@@ -767,10 +768,11 @@ static void build_links(const vector<string>& query,
                                            const string& context,
                                            const string& custom_handle,
                                            set<pair<string, string>>& visited,
-                                           bool& none_visited)) {
+                                           bool& visited_at_least_one)) {
     STACK_TRACE();
     auto proxy = issue_link_building_query(query, context);
     unsigned int count_created = 0;
+    unsigned int count_visit_attemps = 0;
     unsigned int count_attempts = 0;
     shared_ptr<QueryAnswer> query_answer;
     set<pair<string, string>> visited;
@@ -783,16 +785,23 @@ static void build_links(const vector<string>& query,
         } else {
             LOG_DEBUG("Processing query answer " + to_string(count_created) + ": " +
                       query_answer->to_string(USE_MORK));
-            bool none_visited = true;
-            if (build_link(query_answer, context, custom_handle, visited, none_visited)) {
+            bool visited_at_least_one = false;
+            if (build_link(query_answer, context, custom_handle, visited, visited_at_least_one)) {
                 count_created++;
+                count_visit_attemps = 0;
                 count_attempts = 0;
-                if (count_created == LINK_CREATION_COUNT) {
+                if (count_created >= LINK_CREATION_COUNT) {
                     break;
                 }
-            } else if (!none_visited) {
+            } else if (visited_at_least_one) {
+                count_visit_attemps++;
+                count_attempts = 0;
+                if (count_visit_attemps >= LINK_CREATION_MAX_VISIT_ATTEMPTS) {
+                    break;
+                }
+            } else {
                 count_attempts++;
-                if (count_attempts == LINK_CREATION_MAX_VISIT_ATTEMPTS) {
+                if (count_attempts >= LINK_CREATION_MAX_ATTEMPTS) {
                     break;
                 }
             }
@@ -814,7 +823,8 @@ static void query_evolution(
     STACK_TRACE();
     QueryAnswerElement qa_predicate(PREDICATE);
     QueryAnswerElement qa_concept(CONCEPT);
-    QueryAnswerElement qa_path(QueryAnswerElement::ALL_PATH_HANDLES);
+    QueryAnswerElement qa_path1(0, 1, 2, false, false, true);
+    QueryAnswerElement qa_path2(1, 1, 2, false, false, true);
     QueryAnswerElement qa_nothing;
     QueryAnswerElement qa_everything(QueryAnswerElement::EVERYTHING);
 
@@ -822,13 +832,9 @@ static void query_evolution(
         {{V1, qa_predicate}},
         {{V2, qa_concept}}
     };
-    vector<vector<pair<QueryAnswerElement, QueryAnswerElement>>> correlation_mapping_1 = {
-        {{qa_concept, qa_concept}},
-        {{qa_predicate, qa_predicate}}
-    };
     vector<vector<pair<QueryAnswerElement, QueryAnswerElement>>> correlation_mapping = {
-        {{qa_concept, qa_concept}, {qa_path, qa_nothing}},
-        {{qa_predicate, qa_predicate}, {qa_path, qa_nothing}}
+        {{qa_concept, qa_concept}, {qa_path1, qa_nothing}, {qa_path2, qa_nothing}},
+        {{qa_predicate, qa_predicate}, {qa_path1, qa_nothing}, {qa_path2, qa_nothing}}
     };
 
     QueryEvolutionProxy* proxy_ptr = new QueryEvolutionProxy(
@@ -847,7 +853,7 @@ static void query_evolution(
     proxy->parameters[BaseQueryProxy::ALLOW_INCOMPLETE_CHAIN_PATH] = true;
     proxy->parameters[BaseQueryProxy::MAX_BUNDLE_SIZE] = (unsigned int) 1000;
     proxy->parameters[PatternMatchingQueryProxy::DISREGARD_IMPORTANCE_FLAG] = false;
-    proxy->parameters[PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG] = false;
+    proxy->parameters[PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG] = true;
     proxy->parameters[PatternMatchingQueryProxy::UNIQUE_VALUE_FLAG] = false;
     proxy->parameters[PatternMatchingQueryProxy::COUNT_FLAG] = false;
     proxy->parameters[QueryEvolutionProxy::POPULATION_SIZE] = (unsigned int) POPULATION_SIZE;
@@ -1320,6 +1326,8 @@ static void run(const string& context_tag) {
     }
     LOG_INFO("Updating AttentionBroker");
     AttentionBrokerClient::drop_and_load_context(context, string(context_file_name));
+    AttentionBrokerClient::stimulate({{TARGET_PREDICATE_HANDLE, 1}, {TARGET_CONCEPT_HANDLE, 1}},
+                                     context);
     LOG_INFO("Context " + context + " is ready");
 
     add_preset_links(implication_to_target_predicate_metta_query,
@@ -1338,6 +1346,8 @@ static void run(const string& context_tag) {
         LOG_INFO("Iteration " + to_string(iteration));
         LOG_INFO("--------------------------------------------------------------------------------");
         LOG_INFO("----- Building links");
+        AttentionBrokerClient::stimulate({{TARGET_PREDICATE_HANDLE, 1}, {TARGET_CONCEPT_HANDLE, 1}},
+                                         context);
         LOG_INFO("Building Implication links");
         build_links(implication_query, context, "", build_implication_link);
         // LOG_INFO("Building Implication links to paths");
@@ -1352,6 +1362,8 @@ static void run(const string& context_tag) {
         LOG_INFO("----- Updating AttentionBroker");
         AttentionBrokerClient::set_determiners(buffer_determiners, context);
         buffer_determiners.clear();
+        AttentionBrokerClient::stimulate({{TARGET_PREDICATE_HANDLE, 1}, {TARGET_CONCEPT_HANDLE, 1}},
+                                         context);
         LOG_INFO("----- Evolving query");
         query_evolution((USE_MORK ? metta_query_to_evolve : query_to_evolve),
                         (USE_MORK ? correlation_metta_query_template : correlation_query_template),
