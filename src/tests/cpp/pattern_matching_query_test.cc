@@ -1,6 +1,5 @@
 #include "AtomDBAPITypes.h"
 #include "AtomDBSingleton.h"
-#include "AttentionBrokerClient.h"
 #include "Chain.h"
 #include "Hasher.h"
 #include "PatternMatchingQueryProcessor.h"
@@ -17,7 +16,6 @@
 using namespace query_engine;
 using namespace query_element;
 using namespace atomdb;
-using namespace attention_broker;
 using das_test::init_test_system_parameters_singleton;
 
 string handle_to_atom(const string& handle) {
@@ -92,9 +90,9 @@ void check_query(const string& query_tag,
     shared_ptr<PatternMatchingQueryProxy> proxy2(new PatternMatchingQueryProxy(query, context));
     proxy2->parameters[BaseQueryProxy::UNIQUE_ASSIGNMENT_FLAG] = unique_assignment;
     proxy2->parameters[BaseQueryProxy::ATTENTION_UPDATE] =
-        (unsigned int) (update_attention_broker ? BaseQueryProxy::HANDLES : BaseQueryProxy::NONE);
+        (unsigned int) (update_attention_broker ? BaseQueryProxy::HANDLES_AND_VARIABLES : BaseQueryProxy::NONE);
     proxy2->parameters[BaseQueryProxy::ATTENTION_CORRELATION] =
-        (unsigned int) (update_attention_broker ? BaseQueryProxy::NONE : BaseQueryProxy::NONE);
+        (unsigned int) (update_attention_broker ? BaseQueryProxy::HANDLES_AND_VARIABLES : BaseQueryProxy::NONE);
     proxy2->parameters[BaseQueryProxy::ATTENTION_FOCUS_STRICTNESS] = attention_focus_strictness;
     proxy2->parameters[PatternMatchingQueryProxy::COUNT_FLAG] = true;
     proxy2->parameters[PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG] = positive_importance;
@@ -108,7 +106,7 @@ void check_query(const string& query_tag,
     proxy3->parameters[BaseQueryProxy::ATTENTION_UPDATE] =
         (unsigned int) (update_attention_broker ? BaseQueryProxy::HANDLES : BaseQueryProxy::NONE);
     proxy3->parameters[BaseQueryProxy::ATTENTION_CORRELATION] =
-        (unsigned int) (update_attention_broker ? BaseQueryProxy::NONE : BaseQueryProxy::NONE);
+        (unsigned int) (update_attention_broker ? BaseQueryProxy::HANDLES_AND_VARIABLES : BaseQueryProxy::NONE);
     proxy3->parameters[BaseQueryProxy::ATTENTION_FOCUS_STRICTNESS] = attention_focus_strictness;
     proxy3->parameters[BaseQueryProxy::POPULATE_METTA_MAPPING] = false;
     proxy3->parameters[PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG] = positive_importance;
@@ -269,7 +267,6 @@ TEST(PatternMatchingQuery, queries) {
     AtomDBSingleton::init(test_atomdb_json_config());
     init_test_system_parameters_singleton();
     ServiceBus::initialize_statics({}, 40200, 40299);
-    AttentionBrokerClient::set_parameters(0.20, 0.20, 0.20);
 
     string peer1_id = "localhost:40041";
     string peer2_id = "localhost:40042";
