@@ -375,7 +375,7 @@ shared_ptr<QueryElement> PatternMatchingQueryProcessor::build_link_template(
         query_tokens[cursor + 1],
         targets,
         proxy->get_context(),
-        proxy->parameters.get<double>(PatternMatchingQueryProxy::ATTENTION_FOCUS_STRICTNESS),
+        proxy->parameters.get<double>(BaseQueryProxy::ATTENTION_FOCUS_STRICTNESS),
         proxy->parameters.get<bool>(PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG),
         proxy->parameters.get<bool>(PatternMatchingQueryProxy::DISREGARD_IMPORTANCE_FLAG),
         proxy->parameters.get<bool>(PatternMatchingQueryProxy::UNIQUE_VALUE_FLAG),

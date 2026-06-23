@@ -80,7 +80,7 @@ void check_query(const string& query_tag,
     proxy1->parameters[BaseQueryProxy::ATTENTION_UPDATE] = (unsigned int) (update_attention_broker ? BaseQueryProxy::HANDLES_AND_VARIABLES : BaseQueryProxy::NONE);
     proxy1->parameters[BaseQueryProxy::ATTENTION_CORRELATION] = (unsigned int) (update_attention_broker ? BaseQueryProxy::HANDLES_AND_VARIABLES : BaseQueryProxy::NONE);
     proxy1->parameters[BaseQueryProxy::POPULATE_METTA_MAPPING] = false;
-    proxy1->parameters[PatternMatchingQueryProxy::ATTENTION_FOCUS_STRICTNESS] = attention_focus_strictness;
+    proxy1->parameters[BaseQueryProxy::ATTENTION_FOCUS_STRICTNESS] = attention_focus_strictness;
     proxy1->parameters[PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG] = positive_importance;
     proxy1->parameters[PatternMatchingQueryProxy::UNIQUE_VALUE_FLAG] = unique_value_flag;
     LOG_INFO("proxy1: " + proxy1->to_string());
@@ -89,7 +89,7 @@ void check_query(const string& query_tag,
     proxy2->parameters[BaseQueryProxy::UNIQUE_ASSIGNMENT_FLAG] = unique_assignment;
     proxy2->parameters[BaseQueryProxy::ATTENTION_UPDATE] = (unsigned int) (update_attention_broker ? BaseQueryProxy::HANDLES : BaseQueryProxy::NONE);
     proxy2->parameters[BaseQueryProxy::ATTENTION_CORRELATION] = (unsigned int) (update_attention_broker ? BaseQueryProxy::NONE : BaseQueryProxy::NONE);
-    proxy2->parameters[PatternMatchingQueryProxy::ATTENTION_FOCUS_STRICTNESS] = attention_focus_strictness;
+    proxy2->parameters[BaseQueryProxy::ATTENTION_FOCUS_STRICTNESS] = attention_focus_strictness;
     proxy2->parameters[PatternMatchingQueryProxy::COUNT_FLAG] = true;
     proxy2->parameters[PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG] = positive_importance;
     proxy2->parameters[PatternMatchingQueryProxy::UNIQUE_VALUE_FLAG] = unique_value_flag;
@@ -101,7 +101,7 @@ void check_query(const string& query_tag,
     proxy3->parameters[BaseQueryProxy::UNIQUE_ASSIGNMENT_FLAG] = unique_assignment;
     proxy3->parameters[BaseQueryProxy::ATTENTION_UPDATE] = (unsigned int) (update_attention_broker ? BaseQueryProxy::HANDLES : BaseQueryProxy::NONE);
     proxy3->parameters[BaseQueryProxy::ATTENTION_CORRELATION] = (unsigned int) (update_attention_broker ? BaseQueryProxy::NONE : BaseQueryProxy::NONE);
-    proxy3->parameters[PatternMatchingQueryProxy::ATTENTION_FOCUS_STRICTNESS] = attention_focus_strictness;
+    proxy3->parameters[BaseQueryProxy::ATTENTION_FOCUS_STRICTNESS] = attention_focus_strictness;
     proxy3->parameters[BaseQueryProxy::POPULATE_METTA_MAPPING] = false;
     proxy3->parameters[PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG] = positive_importance;
     proxy3->parameters[PatternMatchingQueryProxy::UNIQUE_VALUE_FLAG] = unique_value_flag;
@@ -192,7 +192,7 @@ void check_query_chain(const string& query_tag,
     proxies[0]->parameters[BaseQueryProxy::ATTENTION_UPDATE] = (unsigned int) (update_attention_broker ? BaseQueryProxy::HANDLES_AND_VARIABLES : BaseQueryProxy::NONE);
     proxies[0]->parameters[BaseQueryProxy::ATTENTION_CORRELATION] = (unsigned int) (update_attention_broker ? BaseQueryProxy::HANDLES_AND_VARIABLES : BaseQueryProxy::NONE);
     proxies[0]->parameters[BaseQueryProxy::POPULATE_METTA_MAPPING] = true;
-    proxies[0]->parameters[PatternMatchingQueryProxy::ATTENTION_FOCUS_STRICTNESS] = attention_focus_strictness;
+    proxies[0]->parameters[BaseQueryProxy::ATTENTION_FOCUS_STRICTNESS] = attention_focus_strictness;
     proxies[0]->parameters[PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG] = positive_importance;
     proxies[0]->parameters[PatternMatchingQueryProxy::UNIQUE_VALUE_FLAG] = unique_value_flag;
     LOG_INFO("proxy 0: " + proxies[0]->to_string());
@@ -206,7 +206,7 @@ void check_query_chain(const string& query_tag,
         proxies[1]->parameters[BaseQueryProxy::ATTENTION_UPDATE] = (unsigned int) (update_attention_broker ? BaseQueryProxy::HANDLES_AND_VARIABLES : BaseQueryProxy::NONE);
         proxies[1]->parameters[BaseQueryProxy::ATTENTION_CORRELATION] = (unsigned int) (update_attention_broker ? BaseQueryProxy::HANDLES_AND_VARIABLES : BaseQueryProxy::NONE);
         proxies[1]->parameters[BaseQueryProxy::POPULATE_METTA_MAPPING] = true;
-        proxies[1]->parameters[PatternMatchingQueryProxy::ATTENTION_FOCUS_STRICTNESS] = attention_focus_strictness;
+        proxies[1]->parameters[BaseQueryProxy::ATTENTION_FOCUS_STRICTNESS] = attention_focus_strictness;
         proxies[1]->parameters[PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG] =
             positive_importance;
         proxies[1]->parameters[PatternMatchingQueryProxy::UNIQUE_VALUE_FLAG] = unique_value_flag;
