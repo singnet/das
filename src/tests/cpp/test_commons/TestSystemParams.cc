@@ -15,6 +15,7 @@ const char kAgentsJson[] = R"({
         "unique_assignment_flag": false,
         "attention_update": 0,
         "attention_correlation": 0,
+        "attention_focus_strictness": 0.0,
         "max_bundle_size": 1000,
         "max_answers": 0,
         "use_link_template_cache": false,
@@ -30,8 +31,7 @@ const char kAgentsJson[] = R"({
         "positive_importance_flag": false,
         "disregard_importance_flag": false,
         "unique_value_flag": false,
-        "count_flag": false,
-        "attention_focus_strictness": 0.0
+        "count_flag": false
       }
     },
     "link_creation": {

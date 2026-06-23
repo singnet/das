@@ -17,7 +17,6 @@ string PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG = "positive_importanc
 string PatternMatchingQueryProxy::DISREGARD_IMPORTANCE_FLAG = "disregard_importance_flag";
 string PatternMatchingQueryProxy::UNIQUE_VALUE_FLAG = "unique_value_flag";
 string PatternMatchingQueryProxy::COUNT_FLAG = "count_flag";
-string PatternMatchingQueryProxy::ATTENTION_FOCUS_STRICTNESS = "attention_focus_strictness";
 
 PatternMatchingQueryProxy::PatternMatchingQueryProxy() {
     // constructor typically used in processor
