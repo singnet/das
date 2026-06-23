@@ -243,7 +243,8 @@ static shared_ptr<PatternMatchingQueryProxy> issue_link_building_query(
     proxy->parameters[BaseQueryProxy::UNIQUE_ASSIGNMENT_FLAG] = true;
     proxy->parameters[BaseQueryProxy::USE_LINK_TEMPLATE_CACHE] = false;
     proxy->parameters[BaseQueryProxy::ALLOW_INCOMPLETE_CHAIN_PATH] = false;
-    proxy->parameters[BaseQueryProxy::ATTENTION_FOCUS_STRICTNESS] = (double) (SETUP_ONLY ? 0.0 : ATTENTION_FOCUS_STRICTNESS);
+    proxy->parameters[BaseQueryProxy::ATTENTION_FOCUS_STRICTNESS] =
+        (double) (SETUP_ONLY ? 0.0 : ATTENTION_FOCUS_STRICTNESS);
     proxy->parameters[PatternMatchingQueryProxy::DISREGARD_IMPORTANCE_FLAG] = false;
     proxy->parameters[PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG] = true;
     proxy->parameters[PatternMatchingQueryProxy::MAX_ANSWERS] = (unsigned int) 0;
