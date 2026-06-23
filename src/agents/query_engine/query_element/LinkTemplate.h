@@ -26,6 +26,33 @@ namespace query_element {
  */
 class LinkTemplate : public QueryElement {
    private:
+    enum AttentionFocusStrategy { UNDEFINED = 0, PERCENTAGE };
+    class AttentionFocusRecord {
+     public:
+        AttentionFocusRecord(char* handle, float importance, const Assignment& assignment, const map<string, string>& metta_expression) {
+            this->handle = handle;
+            this->importance = importance;
+            this->assignment = assignment;
+            this->metta_expression = metta_expression;
+        }
+        AttentionFocusRecord(const AttentionFocusRecord& other) {
+            this->handle = other.handle;
+            this->importance = other.importance;
+            this->assignment = other.assignment;
+            this->metta_expression = other.metta_expression;
+        }
+        AttentionFocusRecord& operator=(const AttentionFocusRecord& other) {
+            this->handle = other.handle;
+            this->importance = other.importance;
+            this->assignment = other.assignment;
+            this->metta_expression = other.metta_expression;
+            return *this;
+        }
+        char* handle;
+        float importance;
+        Assignment assignment;
+        map<string, string> metta_expression;
+    };
     class SourceElement : public Source {
        public:
         bool buffers_set_up_flag;
@@ -54,6 +81,7 @@ class LinkTemplate : public QueryElement {
 
     vector<shared_ptr<QueryElement>> targets;
     string context;
+    double attention_focus_strictness;
     bool positive_importance_flag;
     bool disregard_importance_flag;
     bool unique_value_flag;
@@ -63,7 +91,11 @@ class LinkTemplate : public QueryElement {
     shared_ptr<SourceElement> source_element;
     shared_ptr<StoppableThread> processor;
     std::mt19937* random_generator;
+    AttentionFocusStrategy attention_focus_strategy;
     static ThreadSafeHashmap<string, shared_ptr<atomdb_api_types::HandleSet>> cache;
+
+    unsigned int report_attention_focus_by_percentage(vector<AttentionFocusRecord>& attention_focus_candidates);
+    unsigned int report_attention_focus(vector<AttentionFocusRecord>& attention_focus_candidates);
 
     void recursive_build(shared_ptr<QueryElement> element, LinkSchema& link_schema);
     void compute_importance(vector<pair<char*, float>>& handles);
@@ -75,6 +107,7 @@ class LinkTemplate : public QueryElement {
     LinkTemplate(const string& type,
                  const vector<shared_ptr<QueryElement>>& targets,
                  const string& context,
+                 double attention_focus_strictness,
                  bool positive_importance_flag,
                  bool disregard_importance_flag,
                  bool unique_value_flag,

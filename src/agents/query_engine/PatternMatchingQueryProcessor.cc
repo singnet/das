@@ -160,10 +160,7 @@ void PatternMatchingQueryProcessor::process_query_answers(
     bool populate_metta = proxy->parameters.get<bool>(BaseQueryProxy::POPULATE_METTA_MAPPING);
     while ((answer = query_sink->input_buffer->pop_query_answer()) != NULL) {
         answer_count++;
-        if (proxy->parameters.get<unsigned int>(BaseQueryProxy::ATTENTION_CORRELATION) !=
-            BaseQueryProxy::NONE) {
-            update_attention_broker_single_answer(proxy, answer, joint_answer);
-        }
+        update_attention_broker_single_answer(proxy, answer, joint_answer);
         if (proxy->parameters.get<bool>(PatternMatchingQueryProxy::COUNT_FLAG)) {
             delete answer;
         } else {
@@ -378,6 +375,7 @@ shared_ptr<QueryElement> PatternMatchingQueryProcessor::build_link_template(
         query_tokens[cursor + 1],
         targets,
         proxy->get_context(),
+        proxy->parameters.get<double>(PatternMatchingQueryProxy::ATTENTION_FOCUS_STRICTNESS),
         proxy->parameters.get<bool>(PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG),
         proxy->parameters.get<bool>(PatternMatchingQueryProxy::DISREGARD_IMPORTANCE_FLAG),
         proxy->parameters.get<bool>(PatternMatchingQueryProxy::UNIQUE_VALUE_FLAG),
