@@ -78,6 +78,13 @@ RUN cd /tmp \
     && cp cpp-httplib-master/httplib.h /usr/local/include/ \
     && rm -rf /tmp/cpp-httplib-master*
 
+COPY src/assets/utfcpp-4.1.1.zip /tmp
+RUN cd /tmp \
+    && unzip -q utfcpp-4.1.1.zip \
+    && cp -r utfcpp-4.1.1/source/utf8 /usr/local/include/ \
+    && cp utfcpp-4.1.1/source/utf8.h /usr/local/include/ \
+    && rm -rf /tmp/utfcpp-4.1.1*
+
 
 # add regular user
 RUN useradd -ms /bin/bash builder

@@ -30,6 +30,11 @@ using namespace db_adapter;
 using namespace atoms;
 using namespace processor;
 
+class SQLWrapperTestHelper : public SQLWrapper {
+   public:
+    using SQLWrapper::sanitize_value;
+};
+
 class PostgresWrapperTestEnvironment : public ::testing::Environment {
    public:
     void SetUp() override { AtomDBSingleton::init(test_atomdb_json_config()); }
@@ -659,6 +664,40 @@ TEST_F(PostgresWrapperTest, MapSqlQueryWithInvalidClauseAtoms) {
     EXPECT_THROW({ wrapper->map_sql_query("test_feature_with_invalid_clause", query); },
                  std::runtime_error);
     EXPECT_EQ(read_atoms_from_queue(queue).size(), 0);
+}
+
+TEST_F(PostgresWrapperTest, SanitizeValue) {
+    auto wrapper = create_wrapper(create_db_connection());
+
+    string value1;
+    EXPECT_FALSE(wrapper->sanitize_value(value1));
+
+    string value2(MAX_VALUE_SIZE + 1, 'a');
+    EXPECT_FALSE(wrapper->sanitize_value(value2));
+
+    string value3(MAX_VALUE_SIZE, 'a');
+    EXPECT_TRUE(wrapper->sanitize_value(value3));
+    EXPECT_EQ(value3.size(), MAX_VALUE_SIZE);
+
+    string value4;
+    value4.push_back(static_cast<char>(0xC3));  // invalid UTF-8
+    EXPECT_FALSE(wrapper->sanitize_value(value4));
+
+    string value5 = "Darth";
+    EXPECT_TRUE(wrapper->sanitize_value(value5));
+    EXPECT_EQ(value5, "Darth");
+
+    string value6 = "Darth\nVader";
+    EXPECT_TRUE(wrapper->sanitize_value(value6));
+    EXPECT_EQ(value6, "Darth Vader");
+
+    string value7 = "Darth\tVader";
+    EXPECT_TRUE(wrapper->sanitize_value(value7));
+    EXPECT_EQ(value7, "Darth Vader");
+
+    string value8 = "Darth\n\tVader";
+    EXPECT_TRUE(wrapper->sanitize_value(value8));
+    EXPECT_EQ(value8, "Darth  Vader");
 }
 
 int main(int argc, char** argv) {
