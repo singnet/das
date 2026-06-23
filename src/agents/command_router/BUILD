@@ -59,13 +59,25 @@ cc_library(
 )
 
 cc_library(
+    name = "command_execution",
+    srcs = ["CommandExecution.cc"],
+    hdrs = ["CommandExecution.h"],
+    includes = ["."],
+    deps = [
+        "//commons:commons_lib",
+    ],
+)
+
+cc_library(
     name = "command_router_http_api",
     srcs = ["CommandRouterHttpAPI.cc"],
     hdrs = ["CommandRouterHttpAPI.h"],
     includes = ["."],
     deps = [
+        ":command_execution",
         "//commons:commons_lib",
         "//commons/processor:processor_lib",
+        "//hasher:hasher_lib",
     ],
 )
 

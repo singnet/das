@@ -1,6 +1,9 @@
 #include "CommandRouterHttpAPISingleton.h"
 
+#include "Utils.h"
+
 using namespace command_router;
+using namespace commons;
 
 bool CommandRouterHttpAPISingleton::INITIALIZED = false;
 shared_ptr<CommandRouterHttpAPI> CommandRouterHttpAPISingleton::HTTP_API =
@@ -14,21 +17,28 @@ void CommandRouterHttpAPISingleton::init(const JsonConfig& command_router_config
             "CommandRouterHttpAPISingleton already initialized. "
             "CommandRouterHttpAPISingleton::init() should be called only once.");
     } else {
-        auto host = command_router_config.at_path("http_api_host").get<string>();
-        auto port = command_router_config.at_path("http_api_port").get<int>();
-
-        // TODO: Change to get the number of threads on the machine.
-        unsigned int num_threads = 4;
+        auto endpoint = command_router_config.at_path("http_api.endpoint").get<string>();
+        auto tokens = Utils::split(endpoint, ':');
+        if (tokens.size() != 2) {
+            RAISE_ERROR(
+                "Invalid command_router.http_api configuration: endpoint must be in the format "
+                "<hostname>:<port>");
+        }
+        auto host = tokens[0];
+        auto port = stoi(tokens[1]);
+        auto settings = CommandRouterHttpAPI::settings_from_config(command_router_config);
+        unsigned int num_threads =
+            command_router_config.at_path("http_api.thread_pool_size").get_or<unsigned int>(4);
 
         auto thread_pool_executor =
             make_shared<ThreadPool>("http_api_thread_pool_executor", num_threads);
 
-        HTTP_API = make_shared<CommandRouterHttpAPI>(host, port, thread_pool_executor);
+        HTTP_API = make_shared<CommandRouterHttpAPI>(host, port, thread_pool_executor, settings);
 
         auto http_api_thread = make_shared<DedicatedThread>("http_api_thread", HTTP_API.get());
 
         try {
-            CommandRouterHttpAPI::initialize(HTTP_API, {thread_pool_executor, http_api_thread});
+            CommandRouterHttpAPI::initialize(HTTP_API, {http_api_thread, thread_pool_executor});
             Utils::sleep(200);  // time to bind the port
             INITIALIZED = true;
         } catch (const std::exception& e) {

@@ -20,8 +20,7 @@ class BusCommandRouterTestEnvironment : public ::testing::Environment {
         AtomDBSingleton::init(test_atomdb_json_config());
 
         auto json = nlohmann::json();
-        json["http_api_host"] = "localhost";
-        json["http_api_port"] = 19002;
+        json["http_api"] = {{"endpoint", "localhost:19002"}};
         CommandRouterHttpAPISingleton::init(commons::JsonConfig(json));
 
         init_test_system_parameters_singleton();

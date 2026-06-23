@@ -1,176 +1,128 @@
 #pragma once
 
-#include <condition_variable>
+#include <atomic>
 #include <memory>
 #include <mutex>
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
+#include "CommandExecution.h"
 #include "DedicatedThread.h"
 #include "JsonConfig.h"
 #include "Processor.h"
 #include "httplib.h"
+#include "nlohmann/json.hpp"
 #include "processor/ThreadPool.h"
 
 using namespace std;
 using namespace commons;
 using namespace processor;
 
+using json = nlohmann::json;
+
 namespace command_router {
 
+struct HttpAPISettings {
+    size_t max_concurrent_executions = 100;
+    size_t max_queued_executions = 500;
+    size_t max_events_per_execution = CommandExecution::DEFAULT_MAX_EVENTS;
+    long long execution_retention_ms = 15 * 60 * 1000;
+};
+
 /**
- * @brief Embedded HTTP + WebSocket server for asynchronous command execution.
+ * @brief HTTP + WebSocket server for asynchronous command execution.
  *
- * Exposes the command-router dashboard API:
- *   POST  /command-router/executions — create a new execution
- *   GET   /command-router/executions/{id} — inspect execution state
- *   POST  /command-router/executions/{id}/cancel — request cancellation
- *   WS    /command-router/ws/{id} — stream execution events
+ * Routes:
+ *   POST /command-router/executions          — schedule a command
+ *   GET  /command-router/executions/{id}     — poll status
+ *   POST /command-router/executions/{id}/cancel — request cancel
+ *   WS   /command-router/ws/{id}             — stream JSON events
  *
- *   This class implements ThreadMethod so it is driven by a DedicatedThread.
- *   thread_one_step() calls httplib::Server::listen(), which blocks for the
- *   entire server lifetime and handles all HTTP/WebSocket connections through
- *   httplib's own internal thread pool. It returns only after stop() is called.
- *   Background executions are dispatched to an internal ThreadPool so that the
- *   HTTP listener thread is never blocked.
- *
- *  * Memory management:
- *   Execution state is kept in memory. As soon as an execution reaches a
- *   terminal state (completed / error / aborted) it is removed from memory
- *   by cleanup_finished_executions().
+ * Runs on a DedicatedThread: thread_one_step() blocks in listen() until stop().
+ * Each accepted command is enqueued on thread_pool so the listener stays free.
+ * Terminal executions stay in executions until execution_retention_ms expires.
  */
 class CommandRouterHttpAPI : public Processor, public ThreadMethod {
    public:
-    /**
-     * @param host Address to bind.
-     * @param port Port to listen on.
-     * @param thread_pool Shared pointer to the thread pool for executing commands.
-     */
-    CommandRouterHttpAPI(const string& host, int port, shared_ptr<ThreadPool> thread_pool);
+    static const unordered_set<string> VALID_COMMAND_TYPES;
 
-    /** @brief calls stop() */
+    /**
+     * @brief Construct a CommandRouterHttpAPI.
+     * @param host        Hostname to bind.
+     * @param port        Port to bind.
+     * @param thread_pool Runs command work off the HTTP listener thread.
+     * @param settings    Concurrency, queue, event-buffer, and retention limits.
+     */
+    CommandRouterHttpAPI(const string& host,
+                         int port,
+                         shared_ptr<ThreadPool> thread_pool,
+                         HttpAPISettings settings = {});
+
+    /** @brief Calls stop(). */
     ~CommandRouterHttpAPI() override;
 
     /**
-     * @brief Initialises and starts the HTTP server within the project's Processor lifecycle.
-     *
-     * Binds each entry in additional_subprocessors to this instance via Processor::bind_subprocessor()
-     *
-     * @param instance                 The CommandRouterHttpAPI instance to initialise.
-     * @param additional_subprocessors Subprocessors to bind before starting
+     * @brief Bind subprocessors and start the Processor lifecycle.
+     * Typically called once with the DedicatedThread and thread_pool as subprocessors.
      */
     static void initialize(shared_ptr<CommandRouterHttpAPI> instance,
                            vector<shared_ptr<Processor>> additional_subprocessors);
 
-    /**
-     * @brief DedicatedThread entry point — called once by DedicatedThread.
-     *
-     * Registers all routes, starts the execution pool, then
-     * enters the blocking httplib::Server::listen() loop.
-     * Returns false when the loop exits (i.e. after stop() is called).
-     *
-     * @return false after the listening loop exits.
-     */
+    /** @brief Load HttpAPISettings from command_router.http_api.* config paths. */
+    static HttpAPISettings settings_from_config(const JsonConfig& command_router_config);
+
+    /** @brief DedicatedThread entry point; blocks in server.listen() until stop(). */
     bool thread_one_step() override;
 
-    /**
-     * @brief Request graceful shutdown of the HTTP listening loop.
-     */
+    /** @brief Register routes, then Processor::setup(). */
+    void setup() override;
+
+    /** @brief Stop listen(), drop expired executions, and stop the Processor. */
     void stop() override;
 
    private:
-    /**
-     * @brief In-memory state for one command execution.
-     *
-     * All fields are protected by mtx.
-     * cv is notified whenever a new event is appended so that the WebSocket
-     * handler wakes up and forwards it to the connected client.
-     */
-    struct Execution {
-        string execution_id;
-        string command_type;
-        string command_text;
-
-        mutex mtx;
-        condition_variable cv;
-
-        string status = "pending";  // pending|running|completed|error|aborted
-        int received_count = 0;
-        int total_items = 0;
-        long long duration_ms = 0;
-        string error_message;
-        bool cancel_requested = false;
-
-        vector<string> events;
-    };
-
     string host;
     int port;
     httplib::Server server;
     shared_ptr<processor::ThreadPool> thread_pool;
+    HttpAPISettings settings;
+
+    /** Set while shutting down; new POST /executions return 503. */
+    atomic<bool> shutting_down{false};
 
     mutex executions_mutex;
-    unordered_map<string, shared_ptr<Execution>> executions;
-    unsigned int next_execution_number{1};
 
-    // -------------------------------------------------------------------------
-    // Route setup
-    // -------------------------------------------------------------------------
+    unordered_map<string, shared_ptr<CommandExecution>> executions;
 
-    /**
-     * @brief Register all HTTP and WebSocket routes on server.
-     */
+    /** @brief Register all /command-router/* HTTP and WebSocket handlers. */
     void setup_routes();
 
-    // -------------------------------------------------------------------------
-    // Execution helpers
-    // -------------------------------------------------------------------------
+    shared_ptr<CommandExecution> find_execution(const string& execution_id);
 
-    /**
-     * @brief Look up an execution by id.
-     */
-    shared_ptr<Execution> find_execution(const string& execution_id);
+    /** @brief Thread-pool entry point; catches errors and marks the execution failed. */
+    void run_execution(const shared_ptr<CommandExecution>& exec);
 
-    /**
-     * @brief Run one command asynchronously (executed inside thread_pool).
-     *
-     * Publishes events to exec->events and notifies exec->cv after each append
-     * so that the WebSocket handler wakes up and forwards the event to the client.
-     */
-    void run_execution(const shared_ptr<Execution>& exec);
+    /** @brief Run command_type/command_text and publish chunk/lifecycle events. */
+    void run_execution_inner(const shared_ptr<CommandExecution>& exec);
 
-    /**
-     * @brief Append a serialised JSON event to exec->events and notify cv.
-     */
-    static void append_event_locked(const shared_ptr<Execution>& exec, const JsonConfig& payload);
-
-    /**
-     * @brief Remove all executions in a terminal state (completed / error / aborted).
-     */
     void cleanup_finished_executions();
 
-    /**
-     * @brief Generate a unique id.
-     */
     string generate_execution_id();
 
-    // -------------------------------------------------------------------------
-    // Event factory helpers
-    // -------------------------------------------------------------------------
+    bool is_valid_command_type(const string& command_type) const;
 
-    static JsonConfig started_event(const string& execution_id);
-    static JsonConfig chunk_event(const string& execution_id,
-                                  int seq,
-                                  const vector<string>& data,
-                                  int received_count);
-    static JsonConfig completed_event(const string& execution_id,
-                                      long long duration_ms,
-                                      int total_items);
-    static JsonConfig error_event(const string& execution_id, const string& message);
-    static JsonConfig aborted_event(const string& execution_id);
+    /**
+     * @brief Check concurrent and queued limits before accepting a new execution.
+     */
+    bool can_accept_execution(size_t& active_count);
 
-    void set_json_response(httplib::Response& res, int status_code, const JsonConfig& payload);
+    /** @brief Count executions that are not in a terminal status. */
+    size_t count_active_executions();
+
+    /** @brief Set response status and JSON body. */
+    void set_json_response(httplib::Response& res, int status_code, const json& payload);
 };
 
 }  // namespace command_router
