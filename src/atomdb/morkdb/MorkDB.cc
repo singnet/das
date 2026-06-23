@@ -23,7 +23,7 @@ using namespace metta;
 
 // --> MorkClient
 MorkClient::MorkClient(const string& base_url)
-    : base_url_(Utils::trim(base_url)), cli(httplib::Client(base_url)) {
+    : base_url_(Utils::trim(base_url)), cli(httplib::Client(base_url_)) {
     send_request("GET", "/status/-");
 }
 
@@ -56,23 +56,20 @@ string MorkClient::clear(const string& pattern) {
 httplib::Result MorkClient::send_request(const string& method, const string& path, const string& data) {
     httplib::Result res;
 
-    // TODO: Improve the way build with schema
-    string url = "http://" + this->base_url_ + path;
-
     if (method == "GET") {
-        res = this->cli.Get(url);
+        res = this->cli.Get(path);
     } else if (method == "POST") {
         if (data.empty()) {
             RAISE_ERROR("POST request data is empty. Cannot send an empty payload to MORK server.");
         }
-        res = this->cli.Post(url, data, "text/plain");
+        res = this->cli.Post(path, data, "text/plain");
     }
 
     if (!res) {
-        RAISE_ERROR("Connection error at " + url);
+        RAISE_ERROR("Connection error at http://" + this->base_url_ + path);
     } else if (res->status != httplib::StatusCode::OK_200) {
         auto err = res.error();
-        RAISE_ERROR("Http error: " + httplib::to_string(err));
+        RAISE_ERROR("Http error at http://" + this->base_url_ + path + ": " + httplib::to_string(err));
     }
     return res;
 }
@@ -104,13 +101,16 @@ MorkDB::~MorkDB() {}
 bool MorkDB::allow_nested_indexing() { return true; }
 
 void MorkDB::mork_setup(const JsonConfig& config) {
-    string address = config.at_path("morkdb.endpoint").get<string>();
-
+    string address = config.at_path("morkdb.endpoint").get_or<string>("");
+    if (address.empty()) {
+        RAISE_ERROR("Missing morkdb.endpoint in AtomDB configuration");
+    }
     try {
         this->mork_client = make_shared<MorkClient>(address);
         LOG_INFO("Connected to MORK at " << address);
     } catch (const exception& e) {
-        RAISE_ERROR(e.what());
+        const char* msg = e.what();
+        RAISE_ERROR(msg != nullptr ? msg : "Failed to connect to MORK server");
     }
 }
 
