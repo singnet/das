@@ -103,10 +103,13 @@ class LinkTemplate : public QueryElement {
      * @param type Type of the underlying LinkSchema.
      * @param targets Target elements attached to this LinkTemplate.
      * @param context Attention context used to query the AttentionBroker
-     * @param attention_focus_strictness Measure of how strict AttentionFocus will be considered, prunning fetched/matched handles before reporting them.
+     * @param attention_focus_strictness Measure of how strict AttentionFocus will be considered,
+     * prunning fetched/matched handles before reporting them.
      * @param positive_importance_flag If true, only handles eith STI > 0 will be reported.
-     * @param disregard_importance_flag If true, STI os the handles is disregarded (STI values are not even obtained).
-     * @param unique_value_flag If true, prevent the same value from being assigned to 2 different variables in the LinkTemplate.
+     * @param disregard_importance_flag If true, STI os the handles is disregarded (STI values are not
+     * even obtained).
+     * @param unique_value_flag If true, prevent the same value from being assigned to 2 different
+     * variables in the LinkTemplate.
      * @param use_cache If true, a cache for fetched elements will be used and maintained.
      */
     LinkTemplate(const string& type,
@@ -150,9 +153,11 @@ class LinkTemplate : public QueryElement {
     shared_ptr<Source> get_source_element();
 
     /**
-     * Return a global incremental index to assemble the name of the LinkTemplate object used as id in the DistributedAlgorithmNode.
+     * Return a global incremental index to assemble the name of the LinkTemplate object used as id in
+     * the DistributedAlgorithmNode.
      *
-     * @return a global incremental index to assemble the name of the LinkTemplate object used as id in the DistributedAlgorithmNode.
+     * @return a global incremental index to assemble the name of the LinkTemplate object used as id in
+     * the DistributedAlgorithmNode.
      */
     static unsigned int next_instance_count() {
         static unsigned int instance_count = 0;
