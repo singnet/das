@@ -476,6 +476,18 @@ TEST_F(MorkDBTest, ReIndexPatterns) {
     EXPECT_EQ(result->size(), 4);
 }
 
+TEST(MorkDBSetupTest, RejectsMissingEndpoint) {
+    auto config = test_atomdb_json_config("morkdb");
+    config["morkdb"].erase("endpoint");
+    EXPECT_THROW({ MorkDB db("setup_test_", config); }, runtime_error);
+}
+
+TEST(MorkDBSetupTest, RejectsBlankEndpoint) {
+    auto config = test_atomdb_json_config("morkdb");
+    config["morkdb"]["endpoint"] = "   ";
+    EXPECT_THROW({ MorkDB db("setup_test_", config); }, runtime_error);
+}
+
 int main(int argc, char** argv) {
     ::testing::InitGoogleTest(&argc, argv);
     ::testing::AddGlobalTestEnvironment(new MorkDBTestEnvironment());

@@ -66,10 +66,11 @@ httplib::Result MorkClient::send_request(const string& method, const string& pat
     }
 
     if (!res) {
-        RAISE_ERROR("Connection error at http://" + this->base_url_ + path);
+        RAISE_ERROR("Connection error at http://" + this->base_url_ + path + ": " +
+                    httplib::to_string(res.error()));
     } else if (res->status != httplib::StatusCode::OK_200) {
-        auto err = res.error();
-        RAISE_ERROR("Http error at http://" + this->base_url_ + path + ": " + httplib::to_string(err));
+        RAISE_ERROR("Http error at http://" + this->base_url_ + path + ": status " +
+                    std::to_string(res->status));
     }
     return res;
 }
@@ -101,7 +102,7 @@ MorkDB::~MorkDB() {}
 bool MorkDB::allow_nested_indexing() { return true; }
 
 void MorkDB::mork_setup(const JsonConfig& config) {
-    string address = config.at_path("morkdb.endpoint").get_or<string>("");
+    string address = Utils::trim(config.at_path("morkdb.endpoint").get_or<string>(""));
     if (address.empty()) {
         RAISE_ERROR("Missing morkdb.endpoint in AtomDB configuration");
     }
