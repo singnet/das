@@ -20,6 +20,11 @@ namespace atomdb {
 class RemoteAtomDB : public AtomDB {
    public:
     explicit RemoteAtomDB(const JsonConfig& peers_config);
+    /**
+     * Dependency-injection constructor for pre-built peers.
+     * Primarily used by tests to federate controllable backends without live config/connection.
+     */
+    explicit RemoteAtomDB(map<string, shared_ptr<RemoteAtomDBPeer>> peers);
     ~RemoteAtomDB();
 
     bool allow_nested_indexing() override;
@@ -74,7 +79,14 @@ class RemoteAtomDB : public AtomDB {
     RemoteAtomDBPeer* get_peer(const string& uid);
 
    private:
+    // Derives the aggregated nested-indexing capability from the current peers. Shared by both
+    // constructors so the config and DI paths stay consistent.
+    void derive_nested_indexing();
+
     map<string, shared_ptr<RemoteAtomDBPeer>> remote_db_;
+    // Aggregated nested-indexing capability, derived from peers at construction. True only when
+    // every peer supports nested indexing; mixed configurations are normalized to false.
+    bool nested_indexing_ = false;
 };
 
 }  // namespace atomdb

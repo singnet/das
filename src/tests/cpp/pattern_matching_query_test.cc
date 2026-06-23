@@ -69,16 +69,20 @@ void check_query(const string& query_tag,
                  bool unique_assignment,
                  bool positive_importance,
                  bool error_flag,
-                 bool unique_value_flag) {
+                 bool unique_value_flag,
+                 double attention_focus_strictness) {
     LOG_INFO("==================== Query tag: " + query_tag);
 
     shared_ptr<PatternMatchingQueryProxy> proxy1(new PatternMatchingQueryProxy(query, context));
     proxy1->parameters[BaseQueryProxy::UNIQUE_ASSIGNMENT_FLAG] = unique_assignment;
     proxy1->parameters[BaseQueryProxy::ATTENTION_UPDATE] =
-        (unsigned int) (update_attention_broker ? BaseQueryProxy::VARIABLES : BaseQueryProxy::NONE);
+        (unsigned int) (update_attention_broker ? BaseQueryProxy::HANDLES_AND_VARIABLES
+                                                : BaseQueryProxy::NONE);
     proxy1->parameters[BaseQueryProxy::ATTENTION_CORRELATION] =
-        (unsigned int) (update_attention_broker ? BaseQueryProxy::VARIABLES : BaseQueryProxy::NONE);
+        (unsigned int) (update_attention_broker ? BaseQueryProxy::HANDLES_AND_VARIABLES
+                                                : BaseQueryProxy::NONE);
     proxy1->parameters[BaseQueryProxy::POPULATE_METTA_MAPPING] = false;
+    proxy1->parameters[BaseQueryProxy::ATTENTION_FOCUS_STRICTNESS] = attention_focus_strictness;
     proxy1->parameters[PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG] = positive_importance;
     proxy1->parameters[PatternMatchingQueryProxy::UNIQUE_VALUE_FLAG] = unique_value_flag;
     LOG_INFO("proxy1: " + proxy1->to_string());
@@ -86,9 +90,12 @@ void check_query(const string& query_tag,
     shared_ptr<PatternMatchingQueryProxy> proxy2(new PatternMatchingQueryProxy(query, context));
     proxy2->parameters[BaseQueryProxy::UNIQUE_ASSIGNMENT_FLAG] = unique_assignment;
     proxy2->parameters[BaseQueryProxy::ATTENTION_UPDATE] =
-        (unsigned int) (update_attention_broker ? BaseQueryProxy::VARIABLES : BaseQueryProxy::NONE);
+        (unsigned int) (update_attention_broker ? BaseQueryProxy::HANDLES_AND_VARIABLES
+                                                : BaseQueryProxy::NONE);
     proxy2->parameters[BaseQueryProxy::ATTENTION_CORRELATION] =
-        (unsigned int) (update_attention_broker ? BaseQueryProxy::VARIABLES : BaseQueryProxy::NONE);
+        (unsigned int) (update_attention_broker ? BaseQueryProxy::HANDLES_AND_VARIABLES
+                                                : BaseQueryProxy::NONE);
+    proxy2->parameters[BaseQueryProxy::ATTENTION_FOCUS_STRICTNESS] = attention_focus_strictness;
     proxy2->parameters[PatternMatchingQueryProxy::COUNT_FLAG] = true;
     proxy2->parameters[PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG] = positive_importance;
     proxy2->parameters[PatternMatchingQueryProxy::UNIQUE_VALUE_FLAG] = unique_value_flag;
@@ -99,9 +106,11 @@ void check_query(const string& query_tag,
     proxy3->parameters[BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS] = true;
     proxy3->parameters[BaseQueryProxy::UNIQUE_ASSIGNMENT_FLAG] = unique_assignment;
     proxy3->parameters[BaseQueryProxy::ATTENTION_UPDATE] =
-        (unsigned int) (update_attention_broker ? BaseQueryProxy::VARIABLES : BaseQueryProxy::NONE);
+        (unsigned int) (update_attention_broker ? BaseQueryProxy::HANDLES : BaseQueryProxy::NONE);
     proxy3->parameters[BaseQueryProxy::ATTENTION_CORRELATION] =
-        (unsigned int) (update_attention_broker ? BaseQueryProxy::VARIABLES : BaseQueryProxy::NONE);
+        (unsigned int) (update_attention_broker ? BaseQueryProxy::HANDLES_AND_VARIABLES
+                                                : BaseQueryProxy::NONE);
+    proxy3->parameters[BaseQueryProxy::ATTENTION_FOCUS_STRICTNESS] = attention_focus_strictness;
     proxy3->parameters[BaseQueryProxy::POPULATE_METTA_MAPPING] = false;
     proxy3->parameters[PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG] = positive_importance;
     proxy3->parameters[PatternMatchingQueryProxy::UNIQUE_VALUE_FLAG] = unique_value_flag;
@@ -181,7 +190,8 @@ void check_query_chain(const string& query_tag,
                        bool unique_assignment,
                        bool positive_importance,
                        bool error_flag,
-                       bool unique_value_flag) {
+                       bool unique_value_flag,
+                       double attention_focus_strictness) {
     LOG_INFO("==================== Query tag: " + query_tag);
     vector<shared_ptr<PatternMatchingQueryProxy>> proxies;
 
@@ -189,10 +199,13 @@ void check_query_chain(const string& query_tag,
         shared_ptr<PatternMatchingQueryProxy>(new PatternMatchingQueryProxy(query, context)));
     proxies[0]->parameters[BaseQueryProxy::UNIQUE_ASSIGNMENT_FLAG] = unique_assignment;
     proxies[0]->parameters[BaseQueryProxy::ATTENTION_UPDATE] =
-        (unsigned int) (update_attention_broker ? BaseQueryProxy::VARIABLES : BaseQueryProxy::NONE);
+        (unsigned int) (update_attention_broker ? BaseQueryProxy::HANDLES_AND_VARIABLES
+                                                : BaseQueryProxy::NONE);
     proxies[0]->parameters[BaseQueryProxy::ATTENTION_CORRELATION] =
-        (unsigned int) (update_attention_broker ? BaseQueryProxy::VARIABLES : BaseQueryProxy::NONE);
+        (unsigned int) (update_attention_broker ? BaseQueryProxy::HANDLES_AND_VARIABLES
+                                                : BaseQueryProxy::NONE);
     proxies[0]->parameters[BaseQueryProxy::POPULATE_METTA_MAPPING] = true;
+    proxies[0]->parameters[BaseQueryProxy::ATTENTION_FOCUS_STRICTNESS] = attention_focus_strictness;
     proxies[0]->parameters[PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG] = positive_importance;
     proxies[0]->parameters[PatternMatchingQueryProxy::UNIQUE_VALUE_FLAG] = unique_value_flag;
     LOG_INFO("proxy 0: " + proxies[0]->to_string());
@@ -204,10 +217,13 @@ void check_query_chain(const string& query_tag,
         proxies[1]->parameters[BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS] = true;
         proxies[1]->parameters[BaseQueryProxy::UNIQUE_ASSIGNMENT_FLAG] = unique_assignment;
         proxies[1]->parameters[BaseQueryProxy::ATTENTION_UPDATE] =
-            (unsigned int) (update_attention_broker ? BaseQueryProxy::VARIABLES : BaseQueryProxy::NONE);
+            (unsigned int) (update_attention_broker ? BaseQueryProxy::HANDLES_AND_VARIABLES
+                                                    : BaseQueryProxy::NONE);
         proxies[1]->parameters[BaseQueryProxy::ATTENTION_CORRELATION] =
-            (unsigned int) (update_attention_broker ? BaseQueryProxy::VARIABLES : BaseQueryProxy::NONE);
+            (unsigned int) (update_attention_broker ? BaseQueryProxy::HANDLES_AND_VARIABLES
+                                                    : BaseQueryProxy::NONE);
         proxies[1]->parameters[BaseQueryProxy::POPULATE_METTA_MAPPING] = true;
+        proxies[1]->parameters[BaseQueryProxy::ATTENTION_FOCUS_STRICTNESS] = attention_focus_strictness;
         proxies[1]->parameters[PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG] =
             positive_importance;
         proxies[1]->parameters[PatternMatchingQueryProxy::UNIQUE_VALUE_FLAG] = unique_value_flag;
@@ -535,33 +551,36 @@ TEST(PatternMatchingQuery, queries) {
     int q16_expected_count = 1;
 
     // Regular queries
-    check_query("q1", q1, q1m, q1_expected_count, client_bus, "PatternMatchingQuery.queries", false, false, false, false, false);
-    check_query("q2", q2, q2m, q2_expected_count, client_bus, "PatternMatchingQuery.queries", false, false, false, false, false);
-    check_query("q3", q3, q3m, q3_expected_count, client_bus, "PatternMatchingQuery.queries", false, false, false, false, false);
-    check_query("q4", q4, q4m, q4_expected_count, client_bus, "PatternMatchingQuery.queries", false, true, false, false, true);
-    check_query("q4", q4, q4m, 26, client_bus, "PatternMatchingQuery.queries", false, false, false, false, false);
-    check_query("q5", q5, q5m, q5_expected_count, client_bus, "PatternMatchingQuery.queries", false, false, false, false, false);
-    check_query("q6", q6, q6m, q6_expected_count, client_bus, "PatternMatchingQuery.queries", false, true, false, false, false);
-    check_query("q7", q7, q7m, q7_expected_count, client_bus, "PatternMatchingQuery.queries", false, true, false, false, false);
-    check_query_chain("q8", q8, q8m, Hasher::node_handle("Symbol", "\"chimp\""), Hasher::node_handle("Symbol", "\"ent\""), q8_expected_count, client_bus, "PatternMatchingQuery.queries", false, true, false, false, false);
-    check_query_chain("q9", q9, q9m, Hasher::node_handle("Symbol", "\"ent\""), Hasher::node_handle("Symbol", "\"animal\""), q9_expected_count, client_bus, "PatternMatchingQuery.queries", false, true, false, false, false);
-    check_query_chain("q10", q10, q10m, Hasher::node_handle("Symbol", "\"chimp\""), Hasher::node_handle("Symbol", "\"ent\""), q10_expected_count, client_bus, "PatternMatchingQuery.queries", false, true, false, false, false);
-    check_query("q11", q11, q11m, q11_expected_count, client_bus, "PatternMatchingQuery.queries", false, true, false, false, false);
-    check_query("q12", q12, q12m, q12_expected_count, client_bus, "PatternMatchingQuery.queries", false, true, false, false, false);
-    check_query("q13", q13, q13m, q13_expected_count, client_bus, "PatternMatchingQuery.queries", false, true, false, false, false);
-    check_query("q14", q14, q14m, q14_expected_count, client_bus, "PatternMatchingQuery.queries", false, true, false, false, false);
-    check_query("q15", q15, q15m, q15_expected_count, client_bus, "PatternMatchingQuery.queries", false, false, false, false, false);
-    check_query("q16", q16, q16m, q16_expected_count, client_bus, "PatternMatchingQuery.queries", false, false, false, false, false);
+    check_query("q1", q1, q1m, q1_expected_count, client_bus, "PatternMatchingQuery.queries", false, false, false, false, false, 0.0);
+    check_query("q2", q2, q2m, q2_expected_count, client_bus, "PatternMatchingQuery.queries", false, false, false, false, false, 0.0);
+    check_query("q3", q3, q3m, q3_expected_count, client_bus, "PatternMatchingQuery.queries", false, false, false, false, false, 0.0);
+    check_query("q4", q4, q4m, q4_expected_count, client_bus, "PatternMatchingQuery.queries", false, true, false, false, true, 0.0);
+    check_query("q4", q4, q4m, 26, client_bus, "PatternMatchingQuery.queries", false, false, false, false, false, 0.0);
+    check_query("q5", q5, q5m, q5_expected_count, client_bus, "PatternMatchingQuery.queries", false, false, false, false, false, 0.0);
+    check_query("q6", q6, q6m, q6_expected_count, client_bus, "PatternMatchingQuery.queries", false, true, false, false, false, 0.0);
+    check_query("q7", q7, q7m, q7_expected_count, client_bus, "PatternMatchingQuery.queries", false, true, false, false, false, 0.0);
+    check_query_chain("q8", q8, q8m, Hasher::node_handle("Symbol", "\"chimp\""), Hasher::node_handle("Symbol", "\"ent\""), q8_expected_count, client_bus, "PatternMatchingQuery.queries", false, true, false, false, false, 0.0);
+    check_query_chain("q9", q9, q9m, Hasher::node_handle("Symbol", "\"ent\""), Hasher::node_handle("Symbol", "\"animal\""), q9_expected_count, client_bus, "PatternMatchingQuery.queries", false, true, false, false, false, 0.0);
+    check_query_chain("q10", q10, q10m, Hasher::node_handle("Symbol", "\"chimp\""), Hasher::node_handle("Symbol", "\"ent\""), q10_expected_count, client_bus, "PatternMatchingQuery.queries", false, true, false, false, false, 0.0);
+    check_query("q11", q11, q11m, q11_expected_count, client_bus, "PatternMatchingQuery.queries", false, true, false, false, false, 0.0);
+    check_query("q12", q12, q12m, q12_expected_count, client_bus, "PatternMatchingQuery.queries", false, true, false, false, false, 0.0);
+    check_query("q13", q13, q13m, q13_expected_count, client_bus, "PatternMatchingQuery.queries", false, true, false, false, false, 0.0);
+    check_query("q14", q14, q14m, q14_expected_count, client_bus, "PatternMatchingQuery.queries", false, true, false, false, false, 0.0);
+    check_query("q15", q15, q15m, q15_expected_count, client_bus, "PatternMatchingQuery.queries", false, false, false, false, false, 0.0);
+    check_query("q16", q16, q16m, q16_expected_count, client_bus, "PatternMatchingQuery.queries", false, false, false, false, false, 0.0);
 
     // Importance filtering
-    // XXX AttentionBroker is being revised so its dynamics is a bit unpredictable right now
-    // XXX so we're disabling the following test cases for while because they rely on these
-    // XXX dynamics.
-    //check_query("filtered q2", q2, q2m, q2_expected_count, client_bus, "PatternMatchingQuery.queries", true, false, false, false, false);
-    //check_query("filtered q1", q1, q1m, 3, client_bus, "PatternMatchingQuery.queries", false, false, true, false, false);
+    check_query("filtered q2", q2, q2m, q2_expected_count, client_bus, "PatternMatchingQuery.spreading", true, false, false, false, false, 0.0);
+    check_query("filtered q1", q1, q1m, 3, client_bus, "PatternMatchingQuery.spreading", false, false, true, false, false, 0.0);
 
     // Remote exception
-    check_query("invalid", {"BLAH"}, "", 0, client_bus, "PatternMatchingQuery.queries", false, false, false, true, false);
+    check_query("invalid", {"BLAH"}, "", 0, client_bus, "PatternMatchingQuery.queries", false, false, false, true, false, 0.0);
+
+    // Attention Focus Strictness
+    check_query("AF strictness 1", q1, q1m, 14, client_bus, "PatternMatchingQuery.strictness", true, false, false, false, false, 0.0);
+    check_query("AF strictness 2", q1, q1m, 4, client_bus, "PatternMatchingQuery.strictness", false, false, false, false, false, 0.3);
+    check_query("AF strictness 3", q1, q1m, 6, client_bus, "PatternMatchingQuery.strictness", false, false, true, false, false, 0.4);
+    check_query("AF strictness 4", q1, q1m, 1, client_bus, "PatternMatchingQuery.strictness", false, false, false, false, false, 1.0);
 
     // Metta expression in QueryAnswer
     shared_ptr<PatternMatchingQueryProxy> proxy(new PatternMatchingQueryProxy(q3, "PatternMatchingQuery.queries"));

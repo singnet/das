@@ -1,3 +1,4 @@
+#define LOG_LEVEL INFO_LEVEL
 #include "RemoteAtomDBPeer.h"
 
 #include <algorithm>
@@ -7,12 +8,10 @@
 #include "Atom.h"
 #include "InMemoryDBAPITypes.h"
 #include "Link.h"
+#include "Logger.h"
 #include "Node.h"
 #include "Utils.h"
 #include "expression_hasher.h"
-
-#define LOG_LEVEL INFO_LEVEL
-#include "Logger.h"
 
 using namespace atomdb;
 using namespace atomdb_api_types;
@@ -33,7 +32,9 @@ RemoteAtomDBPeer::RemoteAtomDBPeer(shared_ptr<AtomDB> remote_atomdb,
 
 RemoteAtomDBPeer::~RemoteAtomDBPeer() { stop_cleanup_thread(); }
 
-bool RemoteAtomDBPeer::allow_nested_indexing() { return false; }
+bool RemoteAtomDBPeer::allow_nested_indexing() {
+    return atomdb_ ? atomdb_->allow_nested_indexing() : false;
+}
 
 shared_ptr<Atom> RemoteAtomDBPeer::get_atom(const string& handle) {
     auto atom = cache_.get_atom(handle);
@@ -42,6 +43,7 @@ shared_ptr<Atom> RemoteAtomDBPeer::get_atom(const string& handle) {
     if (local_persistence_) {
         atom = local_persistence_->get_atom(handle);
         if (atom) {
+            LOG_DEBUG("[" << uid_ << "] get_atom(" << handle << ") <- local_persistence (cached)");
             cache_.add_atom(atom.get());
             return atom;
         }
@@ -50,11 +52,13 @@ shared_ptr<Atom> RemoteAtomDBPeer::get_atom(const string& handle) {
     if (atomdb_) {
         atom = atomdb_->get_atom(handle);
         if (atom) {
+            LOG_DEBUG("[" << uid_ << "] get_atom(" << handle << ") <- remote atomdb (cached)");
             cache_.add_atom(atom.get());
             return atom;
         }
     }
 
+    LOG_DEBUG("[" << uid_ << "] get_atom(" << handle << ") miss");
     return nullptr;
 }
 
@@ -65,6 +69,7 @@ shared_ptr<Node> RemoteAtomDBPeer::get_node(const string& handle) {
     if (local_persistence_) {
         node = local_persistence_->get_node(handle);
         if (node) {
+            LOG_DEBUG("[" << uid_ << "] get_node(" << handle << ") <- local_persistence (cached)");
             cache_.add_node(node.get());
             return node;
         }
@@ -73,11 +78,13 @@ shared_ptr<Node> RemoteAtomDBPeer::get_node(const string& handle) {
     if (atomdb_) {
         node = atomdb_->get_node(handle);
         if (node) {
+            LOG_DEBUG("[" << uid_ << "] get_node(" << handle << ") <- remote atomdb (cached)");
             cache_.add_node(node.get());
             return node;
         }
     }
 
+    LOG_DEBUG("[" << uid_ << "] get_node(" << handle << ") miss");
     return nullptr;
 }
 
@@ -88,6 +95,7 @@ shared_ptr<Link> RemoteAtomDBPeer::get_link(const string& handle) {
     if (local_persistence_) {
         link = local_persistence_->get_link(handle);
         if (link) {
+            LOG_DEBUG("[" << uid_ << "] get_link(" << handle << ") <- local_persistence (cached)");
             cache_.add_link(link.get());
             return link;
         }
@@ -96,12 +104,26 @@ shared_ptr<Link> RemoteAtomDBPeer::get_link(const string& handle) {
     if (atomdb_) {
         link = atomdb_->get_link(handle);
         if (link) {
+            LOG_DEBUG("[" << uid_ << "] get_link(" << handle << ") <- remote atomdb (cached)");
             cache_.add_link(link.get());
             return link;
         }
     }
 
+    LOG_DEBUG("[" << uid_ << "] get_link(" << handle << ") miss");
     return nullptr;
+}
+
+shared_ptr<Atom> RemoteAtomDBPeer::get_cached_atom(const string& handle) {
+    return cache_.get_atom(handle);
+}
+
+shared_ptr<Node> RemoteAtomDBPeer::get_cached_node(const string& handle) {
+    return cache_.get_node(handle);
+}
+
+shared_ptr<Link> RemoteAtomDBPeer::get_cached_link(const string& handle) {
+    return cache_.get_link(handle);
 }
 
 vector<shared_ptr<Atom>> RemoteAtomDBPeer::get_matching_atoms(bool is_toplevel, Atom& key) {
@@ -146,6 +168,8 @@ void RemoteAtomDBPeer::feed_cache_from_handle_set(shared_ptr<HandleSet> handle_s
     auto it = handle_set->get_iterator();
     if (!it) return;
 
+    LOG_DEBUG("[" << uid_ << "] feed_cache_from_handle_set: warming cache with " << handle_set->size()
+                  << " handles");
     while (true) {
         char* handle_cstr = it->next();
         if (!handle_cstr) break;
@@ -160,14 +184,22 @@ void RemoteAtomDBPeer::feed_cache_from_handle_set(shared_ptr<HandleSet> handle_s
 
 void RemoteAtomDBPeer::merge_handle_set(shared_ptr<HandleSet> source,
                                         shared_ptr<HandleSetInMemory> dest,
-                                        set<string>& seen) {
+                                        set<string>& seen,
+                                        bool copy_metadata) {
     if (!source) return;
     auto it = source->get_iterator();
     char* h;
     while ((h = it->next()) != nullptr) {
         string s(h);
         if (seen.insert(s).second) {
-            dest->add_handle(s);
+            // copy_metadata must only be set when the source backend supports nested indexing;
+            // otherwise get_*_by_handle may be unsupported (e.g. HandleSetRedis raises).
+            if (copy_metadata) {
+                dest->add_handle(
+                    s, source->get_metta_expressions_by_handle(s), source->get_assignments_by_handle(s));
+            } else {
+                dest->add_handle(s);
+            }
         }
     }
 }
@@ -177,18 +209,31 @@ shared_ptr<HandleSet> RemoteAtomDBPeer::query_for_pattern(const LinkSchema& link
     set<string> seen;
 
     if (schema_already_fetched(link_schema)) {
-        merge_handle_set(cache_.query_for_pattern(link_schema), result, seen);
+        LOG_DEBUG("[" << uid_ << "] query_for_pattern(" << link_schema.handle() << ") cache-hit"
+                      << (local_persistence_ ? ", merging cache + local_persistence" : "."));
+        merge_handle_set(
+            cache_.query_for_pattern(link_schema), result, seen, cache_.allow_nested_indexing());
         if (local_persistence_) {
-            merge_handle_set(local_persistence_->query_for_pattern(link_schema), result, seen);
+            merge_handle_set(local_persistence_->query_for_pattern(link_schema),
+                             result,
+                             seen,
+                             local_persistence_->allow_nested_indexing());
         }
     } else {
+        LOG_DEBUG("[" << uid_ << "] query_for_pattern(" << link_schema.handle()
+                      << ") cache-miss, fetching from remote atomdb");
         if (atomdb_) {
-            merge_handle_set(atomdb_->query_for_pattern(link_schema), result, seen);
+            auto handle_set = atomdb_->query_for_pattern(link_schema);
+            if (handle_set) {
+                merge_handle_set(handle_set, result, seen, atomdb_->allow_nested_indexing());
+            }
         }
         feed_cache_from_handle_set(result);
         fetched_link_templates_.insert(link_schema.handle(), empty_trie_value_);
     }
 
+    LOG_DEBUG("[" << uid_ << "] query_for_pattern(" << link_schema.handle() << ") -> " << result->size()
+                  << " handles");
     return result;
 }
 
@@ -198,10 +243,14 @@ shared_ptr<HandleList> RemoteAtomDBPeer::query_for_targets(const string& handle)
 
     if (local_persistence_) {
         result = local_persistence_->query_for_targets(handle);
-        if (result) return result;
+        if (result) {
+            LOG_DEBUG("[" << uid_ << "] query_for_targets(" << handle << ") <- local_persistence");
+            return result;
+        }
     }
 
     if (atomdb_) {
+        LOG_DEBUG("[" << uid_ << "] query_for_targets(" << handle << ") <- remote atomdb");
         return atomdb_->query_for_targets(handle);
     }
 
@@ -220,6 +269,8 @@ shared_ptr<HandleSet> RemoteAtomDBPeer::query_for_incoming_set(const string& han
         merge_handle_set(atomdb_->query_for_incoming_set(handle), result, seen);
     }
 
+    LOG_DEBUG("[" << uid_ << "] query_for_incoming_set(" << handle << ") -> " << result->size()
+                  << " handles");
     return result;
 }
 
@@ -431,6 +482,8 @@ size_t RemoteAtomDBPeer::atom_count() const {
 
 void RemoteAtomDBPeer::fetch(const LinkSchema& link_schema) {
     if (!schema_already_fetched(link_schema) && atomdb_) {
+        LOG_DEBUG("[" << uid_ << "] fetch(" << link_schema.handle()
+                      << ") prefetching from remote atomdb");
         auto result = atomdb_->query_for_pattern(link_schema);
         if (result) {
             feed_cache_from_handle_set(result);
@@ -443,6 +496,8 @@ void RemoteAtomDBPeer::release(const LinkSchema& link_schema) {
     // Query cache for pattern results before removing, so we can persist them.
     // TODO: This may remove atoms that were also fetched by another schema. We need to handle this
     // properly.
+    LOG_DEBUG("[" << uid_ << "] release(" << link_schema.handle()
+                  << ") evicting from cache to local_persistence");
     auto handle_set = cache_.query_for_pattern(link_schema);
     if (handle_set && local_persistence_) {
         auto it = handle_set->get_iterator();

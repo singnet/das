@@ -154,6 +154,7 @@ void MettaParserActions::expression_end(bool toplevel, const string& metta_expre
                 MettaMapping::EXPRESSION_LINK_TYPE,
                 targets,
                 this->proxy->get_context(),
+                this->proxy->parameters.get<double>(BaseQueryProxy::ATTENTION_FOCUS_STRICTNESS),
                 this->proxy->parameters.get<bool>(PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG),
                 this->proxy->parameters.get<bool>(PatternMatchingQueryProxy::DISREGARD_IMPORTANCE_FLAG),
                 this->proxy->parameters.get<bool>(PatternMatchingQueryProxy::UNIQUE_VALUE_FLAG),

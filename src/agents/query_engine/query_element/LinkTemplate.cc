@@ -20,6 +20,7 @@ ThreadSafeHashmap<string, shared_ptr<atomdb_api_types::HandleSet>> LinkTemplate:
 LinkTemplate::LinkTemplate(const string& type,
                            const vector<shared_ptr<QueryElement>>& targets,
                            const string& context,
+                           double attention_focus_strictness,
                            bool positive_importance_flag,
                            bool disregard_importance_flag,
                            bool unique_value_flag,
@@ -27,9 +28,18 @@ LinkTemplate::LinkTemplate(const string& type,
     : link_schema(type, targets.size()) {
     this->targets = targets;
     this->context = context;
-    if (positive_importance_flag && disregard_importance_flag) {
-        RAISE_ERROR("Conficting settings for positive_importance_flag and disregard_importance_flag");
+    if (disregard_importance_flag && (positive_importance_flag || (attention_focus_strictness != 0.0))) {
+        RAISE_ERROR(
+            "Conficting settings. positive_importance_flag: " +
+            string(positive_importance_flag ? "true" : "false") +
+            " disregard_importance_flag: " + string(disregard_importance_flag ? "true" : "false") +
+            " attention_focus_strictness: " + std::to_string(attention_focus_strictness));
     }
+    if ((attention_focus_strictness < 0.0) || (attention_focus_strictness > 1.0)) {
+        RAISE_ERROR("Invalid value for attention_focus_strictness: " +
+                    std::to_string(attention_focus_strictness) + ". Expecting a value in [0..1]");
+    }
+    this->attention_focus_strictness = attention_focus_strictness;
     this->positive_importance_flag = positive_importance_flag;
     this->disregard_importance_flag = disregard_importance_flag;
     this->unique_value_flag = unique_value_flag;
@@ -40,6 +50,7 @@ LinkTemplate::LinkTemplate(const string& type,
     this->random_generator =
         new std::mt19937(std::chrono::system_clock::now().time_since_epoch().count());
     unsigned int max_reverse_nesting = 0;
+    this->attention_focus_strategy = PERCENTAGE;
     for (auto element : targets) {
         if (element->reverse_nesting_level > max_reverse_nesting) {
             max_reverse_nesting = element->reverse_nesting_level;
@@ -129,6 +140,33 @@ void LinkTemplate::compute_importance(vector<pair<char*, float>>& handles) {
               });
 }
 
+unsigned int LinkTemplate::report_attention_focus_by_percentage(
+    vector<AttentionFocusRecord>& attention_focus_candidates) {
+    unsigned int limit = lround(this->attention_focus_strictness * attention_focus_candidates.size());
+    if ((limit == 0) && (attention_focus_candidates.size() > 0)) {
+        limit = 1;
+    }
+    for (unsigned int i = 0; i < limit; i++) {
+        this->source_element->add_handle(attention_focus_candidates[i].handle,
+                                         attention_focus_candidates[i].importance,
+                                         attention_focus_candidates[i].assignment,
+                                         attention_focus_candidates[i].metta_expression);
+    }
+    return limit;
+}
+
+unsigned int LinkTemplate::report_attention_focus(
+    vector<AttentionFocusRecord>& attention_focus_candidates) {
+    switch (this->attention_focus_strategy) {
+        case PERCENTAGE:
+            return report_attention_focus_by_percentage(attention_focus_candidates);
+        default:
+            RAISE_ERROR("Invalid Attention Focus strategy: " +
+                        std::to_string(this->attention_focus_strategy));
+    }
+    return 0;
+}
+
 void LinkTemplate::processor_method(shared_ptr<StoppableThread> monitor) {
     while (!this->source_element->buffers_set_up() && !monitor->stopped()) {
         Utils::sleep();
@@ -145,8 +183,11 @@ void LinkTemplate::processor_method(shared_ptr<StoppableThread> monitor) {
     } else {
         LOG_INFO("Fetching " + link_schema_handle + " from AtomDB");
         handles = db->query_for_pattern(this->link_schema);
-        LinkTemplate::fetched_links_cache().set(link_schema_handle, handles);
+        if (this->use_cache) {
+            LinkTemplate::fetched_links_cache().set(link_schema_handle, handles);
+        }
     }
+    LOG_DEBUG("Attention Focus Strictness: " + std::to_string(this->attention_focus_strictness));
     LOG_DEBUG("Positive importance flag: " + string(this->positive_importance_flag ? "true" : "false"));
     LOG_DEBUG("Disregard importance flag: " +
               string(this->disregard_importance_flag ? "true" : "false"));
@@ -164,6 +205,10 @@ void LinkTemplate::processor_method(shared_ptr<StoppableThread> monitor) {
             compute_importance(tagged_handles);
         }
     }
+    vector<AttentionFocusRecord> attention_focus_candidates;
+    if ((this->attention_focus_strictness != 0.0) && (this->attention_focus_strictness != 1.0)) {
+        attention_focus_candidates.reserve(tagged_handles.size());
+    }
     unsigned int pending = tagged_handles.size();
     unsigned int processed = 0;
     unsigned int cursor = 0;
@@ -176,20 +221,38 @@ void LinkTemplate::processor_method(shared_ptr<StoppableThread> monitor) {
         } else {
             if (tagged_handle.second > 0 || !this->positive_importance_flag) {
                 if (db->allow_nested_indexing()) {
-                    this->source_element->add_handle(
-                        tagged_handle.first,
-                        tagged_handle.second,
-                        handles->get_assignments_by_handle(tagged_handle.first),
-                        handles->get_metta_expressions_by_handle(tagged_handle.first));
+                    if ((this->attention_focus_strictness == 0.0) ||
+                        (this->attention_focus_strictness == 1.0)) {
+                        this->source_element->add_handle(
+                            tagged_handle.first,
+                            tagged_handle.second,
+                            handles->get_assignments_by_handle(tagged_handle.first),
+                            handles->get_metta_expressions_by_handle(tagged_handle.first));
+                    } else {
+                        attention_focus_candidates.push_back(AttentionFocusRecord(
+                            tagged_handle.first,
+                            tagged_handle.second,
+                            handles->get_assignments_by_handle(tagged_handle.first),
+                            handles->get_metta_expressions_by_handle(tagged_handle.first)));
+                    }
                     count_matched++;
                 } else {
+                    assignment.clear();
                     if (this->link_schema.match(string(tagged_handle.first), assignment, *db.get())) {
-                        this->source_element->add_handle(
-                            tagged_handle.first, tagged_handle.second, assignment);
-                        assignment.clear();
+                        if ((this->attention_focus_strictness == 0.0) ||
+                            (this->attention_focus_strictness == 1.0)) {
+                            this->source_element->add_handle(
+                                tagged_handle.first, tagged_handle.second, assignment);
+                        } else {
+                            attention_focus_candidates.push_back(AttentionFocusRecord(
+                                tagged_handle.first, tagged_handle.second, assignment, {}));
+                        }
                         count_matched++;
                     }
                 }
+            }
+            if ((this->attention_focus_strictness == 1.0) && (count_matched > 0)) {
+                break;
             }
             if (!(++processed % 1000000)) {
                 LOG_INFO("Processed " + std::to_string(processed) + "/" +
@@ -200,6 +263,13 @@ void LinkTemplate::processor_method(shared_ptr<StoppableThread> monitor) {
         }
     }
     LOG_INFO("Matched " + std::to_string(count_matched) + " atoms in " + link_schema_handle);
+    unsigned int reported;
+    if ((this->attention_focus_strictness == 0.0) || (this->attention_focus_strictness == 1.0)) {
+        reported = count_matched;
+    } else {
+        reported = report_attention_focus(attention_focus_candidates);
+    }
+    LOG_INFO("Reported " + std::to_string(reported) + " atoms in " + link_schema_handle);
     Utils::sleep();
     this->source_element->query_answers_finished();
     LOG_DEBUG("LinkTemplate " + link_schema_handle + " finished processing. It's going to sleep.");
