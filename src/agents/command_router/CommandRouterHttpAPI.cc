@@ -79,10 +79,12 @@ void CommandRouterHttpAPI::setup() {
 }
 
 bool CommandRouterHttpAPI::thread_one_step() {
-    if (this->shutting_down.load()) {
-        return false;
+    if (this->shutting_down.load()) return false;
+
+    if (!this->server.listen(this->host, this->port) && !this->shutting_down.load()) {
+        LOG_ERROR("CommandRouter HTTP API failed to bind " << this->host << ":" << this->port);
     }
-    this->server.listen(this->host, this->port);
+
     return false;
 }
 
@@ -144,8 +146,13 @@ void CommandRouterHttpAPI::setup_routes() {
                 return;
             }
 
+            auto exec = make_shared<CommandExecution>(this->generate_execution_id(),
+                                                      command_type,
+                                                      command_text,
+                                                      this->settings.max_events_per_execution);
+
             size_t active_count = 0;
-            if (!this->can_accept_execution(active_count)) {
+            if (!this->try_admit_execution(exec, active_count)) {
                 if (active_count >= this->settings.max_concurrent_executions) {
                     this->set_json_response(
                         response, 429, {{"error", "Maximum concurrent executions reached"}});
@@ -155,10 +162,11 @@ void CommandRouterHttpAPI::setup_routes() {
                 return;
             }
 
-            auto exec = make_shared<CommandExecution>(this->generate_execution_id(),
-                                                      command_type,
-                                                      command_text,
-                                                      this->settings.max_events_per_execution);
+            string status_for_response;
+            {
+                lock_guard<mutex> exec_semaphore(exec->mtx);
+                status_for_response = CommandExecution::status_to_string(exec->status);
+            }
 
             LOG_INFO("CommandRouter HTTP API execution scheduled id=" << exec->execution_id
                                                                       << " type=" << command_type);
@@ -166,21 +174,20 @@ void CommandRouterHttpAPI::setup_routes() {
             try {
                 this->thread_pool->enqueue([this, exec]() { this->run_execution(exec); });
             } catch (const exception& e) {
+                {
+                    lock_guard<mutex> semaphore(this->executions_mutex);
+                    this->executions.erase(exec->execution_id);
+                }
                 this->set_json_response(
                     response, 503, {{"error", string("Failed to schedule execution: ") + e.what()}});
                 return;
-            }
-
-            {
-                lock_guard<mutex> semaphore(this->executions_mutex);
-                this->executions[exec->execution_id] = exec;
             }
 
             this->set_json_response(response,
                                     202,
                                     {
                                         {"execution_id", exec->execution_id},
-                                        {"status", CommandExecution::status_to_string(exec->status)},
+                                        {"status", status_for_response},
                                     });
         });
 
@@ -402,8 +409,10 @@ void CommandRouterHttpAPI::cleanup_finished_executions() {
 }
 
 string CommandRouterHttpAPI::generate_execution_id() {
+    static atomic<uint64_t> counter{0};
     auto ms = Utils::get_current_time_millis();
-    char* hash = compute_hash((char*) std::to_string(ms).c_str());
+    auto seed = std::to_string(ms) + "-" + std::to_string(counter.fetch_add(1));
+    char* hash = compute_hash((char*) seed.c_str());
     string execution_id = string("exec-") + hash;
     delete[] hash;
     return execution_id;
@@ -413,8 +422,7 @@ bool CommandRouterHttpAPI::is_valid_command_type(const string& command_type) con
     return this->VALID_COMMAND_TYPES.find(command_type) != this->VALID_COMMAND_TYPES.end();
 }
 
-size_t CommandRouterHttpAPI::count_active_executions() {
-    lock_guard<mutex> semaphore(this->executions_mutex);
+size_t CommandRouterHttpAPI::count_active_executions_locked() const {
     size_t active_count = 0;
     for (const auto& entry : this->executions) {
         lock_guard<mutex> exec_semaphore(entry.second->mtx);
@@ -425,8 +433,10 @@ size_t CommandRouterHttpAPI::count_active_executions() {
     return active_count;
 }
 
-bool CommandRouterHttpAPI::can_accept_execution(size_t& active_count) {
-    active_count = this->count_active_executions();
+bool CommandRouterHttpAPI::try_admit_execution(const shared_ptr<CommandExecution>& exec,
+                                               size_t& active_count) {
+    lock_guard<mutex> semaphore(this->executions_mutex);
+    active_count = this->count_active_executions_locked();
     if (active_count >= this->settings.max_concurrent_executions) {
         return false;
     }
@@ -434,6 +444,7 @@ bool CommandRouterHttpAPI::can_accept_execution(size_t& active_count) {
         this->thread_pool->size() >= static_cast<int>(this->settings.max_queued_executions)) {
         return false;
     }
+    this->executions[exec->execution_id] = exec;
     return true;
 }
 

@@ -11,7 +11,11 @@ CommandExecution::CommandExecution(const string& execution_id,
     : execution_id(execution_id),
       command_type(command_type),
       command_text(command_text),
-      max_events(max_events) {}
+      max_events(max_events) {
+    if (this->max_events == 0) {
+        RAISE_ERROR("max_events must be greater than 0");
+    }
+}
 
 string CommandExecution::status_to_string(ExecutionStatus status) {
     switch (status) {

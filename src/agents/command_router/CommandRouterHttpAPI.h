@@ -114,12 +114,13 @@ class CommandRouterHttpAPI : public Processor, public ThreadMethod {
     bool is_valid_command_type(const string& command_type) const;
 
     /**
-     * @brief Check concurrent and queued limits before accepting a new execution.
+     * @brief Check limits and reserve a slot in executions under executions_mutex.
+     * Caller must hold no locks. Returns false if concurrent or queue limit is hit.
      */
-    bool can_accept_execution(size_t& active_count);
+    bool try_admit_execution(const shared_ptr<CommandExecution>& exec, size_t& active_count);
 
-    /** @brief Count executions that are not in a terminal status. */
-    size_t count_active_executions();
+    /** @brief Count non-terminal executions; caller must hold executions_mutex. */
+    size_t count_active_executions_locked() const;
 
     /** @brief Set response status and JSON body. */
     void set_json_response(httplib::Response& res, int status_code, const json& payload);
