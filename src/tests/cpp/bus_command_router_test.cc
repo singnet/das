@@ -14,6 +14,12 @@ using namespace service_bus;
 using namespace atomdb;
 using das_test::init_test_system_parameters_singleton;
 
+namespace {
+
+string bus_node_id(unsigned int port) { return "localhost:" + std::to_string(port); }
+
+}  // namespace
+
 class BusCommandRouterTestEnvironment : public ::testing::Environment {
    public:
     void SetUp() override {
@@ -227,12 +233,16 @@ TEST(BusCommandRouter, get_and_set_params) {
     set<string> commands = {ServiceBus::BUS_COMMAND_ROUTER};
     ServiceBus::initialize_statics(commands, 40500, 40599);
 
+    unsigned int router_port = PortPool::get_port();
+    unsigned int client_port = PortPool::get_port();
+    string router_id = bus_node_id(router_port);
+
     auto router_processor = make_shared<BusCommandRouterProcessor>();
-    ServiceBus router_bus("localhost:40510");
+    ServiceBus router_bus(router_id);
     router_bus.register_processor(router_processor);
     Utils::sleep(500);
 
-    ServiceBus client_bus("localhost:40511", "localhost:40510");
+    ServiceBus client_bus(bus_node_id(client_port), router_id);
     Utils::sleep(500);
 
     auto get_proxy = make_shared<RouterTestProxy>("get", "params");
@@ -269,12 +279,16 @@ TEST(BusCommandRouter, set_param_rejects_unknown_and_type_mismatch) {
     set<string> commands = {ServiceBus::BUS_COMMAND_ROUTER};
     ServiceBus::initialize_statics(commands, 40800, 40899);
 
+    unsigned int router_port = PortPool::get_port();
+    unsigned int client_port = PortPool::get_port();
+    string router_id = bus_node_id(router_port);
+
     auto router_processor = make_shared<BusCommandRouterProcessor>();
-    ServiceBus router_bus("localhost:40810");
+    ServiceBus router_bus(router_id);
     router_bus.register_processor(router_processor);
     Utils::sleep(500);
 
-    ServiceBus client_bus("localhost:40811", "localhost:40810");
+    ServiceBus client_bus(bus_node_id(client_port), router_id);
     Utils::sleep(500);
 
     auto set_unknown = make_shared<RouterTestProxy>("set", "param does_not_exist hello");
@@ -307,13 +321,18 @@ TEST(BusCommandRouter, params_isolated_per_peer) {
     set<string> commands = {ServiceBus::BUS_COMMAND_ROUTER};
     ServiceBus::initialize_statics(commands, 40700, 40799);
 
+    unsigned int router_port = PortPool::get_port();
+    unsigned int client_a_port = PortPool::get_port();
+    unsigned int client_b_port = PortPool::get_port();
+    string router_id = bus_node_id(router_port);
+
     auto router_processor = make_shared<BusCommandRouterProcessor>();
-    ServiceBus router_bus("localhost:40710");
+    ServiceBus router_bus(router_id);
     router_bus.register_processor(router_processor);
     Utils::sleep(500);
 
-    ServiceBus client_a("localhost:40711", "localhost:40710");
-    ServiceBus client_b("localhost:40712", "localhost:40710");
+    ServiceBus client_a(bus_node_id(client_a_port), router_id);
+    ServiceBus client_b(bus_node_id(client_b_port), router_id);
     Utils::sleep(500);
 
     auto set_a = make_shared<RouterTestProxy>("set", "param max_answers 111");
@@ -341,17 +360,24 @@ TEST(BusCommandRouter, forward_query_preserves_caller_identity) {
     set<string> commands = {ServiceBus::BUS_COMMAND_ROUTER, ServiceBus::PATTERN_MATCHING_QUERY};
     ServiceBus::initialize_statics(commands, 40600, 40699);
 
+    unsigned int query_port = PortPool::get_port();
+    unsigned int router_port = PortPool::get_port();
+    unsigned int client_port = PortPool::get_port();
+    string query_id = bus_node_id(query_port);
+    string router_id = bus_node_id(router_port);
+    string client_id = bus_node_id(client_port);
+
     auto query_processor = make_shared<CaptureForwardProcessor>();
-    shared_ptr<ServiceBus> query_bus = make_shared<ServiceBus>("localhost:40610");
+    shared_ptr<ServiceBus> query_bus = make_shared<ServiceBus>(query_id);
     query_bus->register_processor(query_processor);
     Utils::sleep(500);
 
-    shared_ptr<ServiceBus> router_bus = make_shared<ServiceBus>("localhost:40611", "localhost:40610");
+    shared_ptr<ServiceBus> router_bus = make_shared<ServiceBus>(router_id, query_id);
     auto router_processor = make_shared<BusCommandRouterProcessor>(router_bus);
     router_bus->register_processor(router_processor);
     Utils::sleep(1000);
 
-    ServiceBus client_bus("localhost:40612", "localhost:40611");
+    ServiceBus client_bus(client_id, router_id);
     Utils::sleep(500);
 
     auto query_proxy = make_shared<RouterTestProxy>("query", "(Similarity $a $b)");
@@ -360,7 +386,7 @@ TEST(BusCommandRouter, forward_query_preserves_caller_identity) {
 
     EXPECT_TRUE(query_proxy->routed_flag);
     // Downstream command keeps the original client identity so answers go to the client proxy.
-    EXPECT_EQ(query_processor->last_requestor_id, "localhost:40612");
+    EXPECT_EQ(query_processor->last_requestor_id, client_id);
     EXPECT_EQ(query_processor->last_proxy_node_id, query_proxy->my_id());
     bool found_query = false;
     for (const auto& arg : query_processor->last_packed_args) {

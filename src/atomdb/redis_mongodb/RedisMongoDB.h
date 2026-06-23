@@ -33,7 +33,6 @@ class RedisMongoDB : public AtomDB {
 
     bool allow_nested_indexing() override;
 
-    static bool SKIP_REDIS;
     static string REDIS_PATTERNS_PREFIX;
     static string REDIS_OUTGOING_PREFIX;
     static string REDIS_INCOMING_PREFIX;
@@ -45,8 +44,7 @@ class RedisMongoDB : public AtomDB {
     static string MONGODB_FIELD_NAME[MONGODB_FIELD::size];
     static uint MONGODB_CHUNK_SIZE;
 
-    static void initialize_statics(const string& context = "", bool skip_redis = false) {
-        SKIP_REDIS = skip_redis;
+    static void initialize_statics(const string& context = "") {
         REDIS_PATTERNS_PREFIX = context + "patterns";
         REDIS_OUTGOING_PREFIX = context + "outgoing_set";
         REDIS_INCOMING_PREFIX = context + "incoming_set";
@@ -148,6 +146,7 @@ class RedisMongoDB : public AtomDB {
 
    private:
     string context;
+    bool skip_redis_;
     bool cluster_flag;
     RedisContextPool* redis_pool;
     mongocxx::pool* mongodb_pool;
