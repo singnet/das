@@ -143,6 +143,9 @@ void LinkTemplate::compute_importance(vector<pair<char*, float>>& handles) {
 unsigned int LinkTemplate::report_attention_focus_by_percentage(
     vector<AttentionFocusRecord>& attention_focus_candidates) {
     unsigned int limit = lround(this->attention_focus_strictness * attention_focus_candidates.size());
+    if ((limit == 0) && (attention_focus_candidates.size() > 0)) {
+        limit = 1;
+    }
     for (unsigned int i = 0; i < limit; i++) {
         this->source_element->add_handle(attention_focus_candidates[i].handle,
                                          attention_focus_candidates[i].importance,
@@ -203,7 +206,7 @@ void LinkTemplate::processor_method(shared_ptr<StoppableThread> monitor) {
         }
     }
     vector<AttentionFocusRecord> attention_focus_candidates;
-    if ((this->attention_focus_strictness != 0.0) || (this->attention_focus_strictness != 1.0)) {
+    if ((this->attention_focus_strictness != 0.0) && (this->attention_focus_strictness != 1.0)) {
         attention_focus_candidates.reserve(tagged_handles.size());
     }
     unsigned int pending = tagged_handles.size();
