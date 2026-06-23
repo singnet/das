@@ -9,12 +9,13 @@ namespace das_test {
 
 const char kAgentsJson[] = R"({
   "agents": {
-    "schema_version": "1.0",
+    "schema_version": "1.0.1",
     "base_query": {
       "params": {
         "unique_assignment_flag": false,
         "attention_update": 0,
         "attention_correlation": 0,
+        "attention_focus_strictness": 0.0,
         "max_bundle_size": 1000,
         "max_answers": 0,
         "use_link_template_cache": false,

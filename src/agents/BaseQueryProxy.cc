@@ -16,6 +16,7 @@ string BaseQueryProxy::FINISHED = "finished";
 string BaseQueryProxy::UNIQUE_ASSIGNMENT_FLAG = "unique_assignment_flag";
 string BaseQueryProxy::ATTENTION_UPDATE = "attention_update";
 string BaseQueryProxy::ATTENTION_CORRELATION = "attention_correlation";
+string BaseQueryProxy::ATTENTION_FOCUS_STRICTNESS = "attention_focus_strictness";
 string BaseQueryProxy::MAX_BUNDLE_SIZE = "max_bundle_size";
 string BaseQueryProxy::MAX_ANSWERS = "max_answers";
 string BaseQueryProxy::USE_LINK_TEMPLATE_CACHE = "use_link_template_cache";

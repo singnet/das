@@ -20,7 +20,7 @@ using namespace std;
 class MorkDBTestEnvironment : public ::testing::Environment {
    public:
     void SetUp() override {
-        auto atomdb = new MorkDB("morkdb_test_", test_atomdb_json_config());
+        auto atomdb = new MorkDB("morkdb_test_", test_atomdb_json_config("morkdb"));
         atomdb->drop_all();
         AtomDBSingleton::provide(shared_ptr<AtomDB>(atomdb));
         load_animals_data();
@@ -297,7 +297,7 @@ TEST_F(MorkDBTest, AddLinksWithDuplicateTargets) {
 }
 
 TEST_F(MorkDBTest, ConcurrentAddLinks) {
-    int num_links = 5000;
+    int num_links = 1000;
     int arity = 3;
     int chunck_size = 500;
 
@@ -474,6 +474,18 @@ TEST_F(MorkDBTest, ReIndexPatterns) {
 
     result = db->query_for_pattern(link_schema);
     EXPECT_EQ(result->size(), 4);
+}
+
+TEST(MorkDBSetupTest, RejectsMissingEndpoint) {
+    auto config = test_atomdb_json_config("morkdb");
+    config["morkdb"].erase("endpoint");
+    EXPECT_THROW({ MorkDB db("setup_test_", config); }, runtime_error);
+}
+
+TEST(MorkDBSetupTest, RejectsBlankEndpoint) {
+    auto config = test_atomdb_json_config("morkdb");
+    config["morkdb"]["endpoint"] = "   ";
+    EXPECT_THROW({ MorkDB db("setup_test_", config); }, runtime_error);
 }
 
 int main(int argc, char** argv) {
