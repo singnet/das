@@ -8,7 +8,7 @@ using namespace commons;
 using nlohmann::json;
 using namespace std;
 
-string SystemParametersValidation::SCHEMA_VERSION = "1.0";
+string SystemParametersValidation::SCHEMA_VERSION = "1.0.1";
 
 namespace {
 
@@ -21,6 +21,7 @@ const AgentParamsSchema& params_schema() {
          {{"unique_assignment_flag", "bool"},
           {"attention_update", "long"},
           {"attention_correlation", "long"},
+          {"attention_focus_strictness", "double"},
           {"max_bundle_size", "unsigned_int"},
           {"max_answers", "unsigned_int"},
           {"use_link_template_cache", "bool"},
@@ -133,6 +134,13 @@ Properties parse_agent_params_with_schema(const json& agent_params,
             if (!property_matches_type(value, field_it->second)) {
                 RAISE_ERROR("Invalid type for parameter '" + key + "' for agent '" + agent +
                             "' (expected " + field_it->second + ")");
+            }
+            if (agent == "base_query" && key == "attention_focus_strictness") {
+                const double strictness = get<double>(value);
+                if (strictness < 0.0 || strictness > 1.0) {
+                    RAISE_ERROR("Invalid value for parameter '" + key + "' for agent '" + agent +
+                                "' (expected value in range [0.0, 1.0])");
+                }
             }
             agent_props[key] = value;
         } else {

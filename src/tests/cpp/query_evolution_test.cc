@@ -126,7 +126,8 @@ TEST(QueryEvolution, proxy_object) {
     EXPECT_EQ(
         proxy.to_string(),
         "{BaseQueryProxy: {context: query_evolution_test, tokens: [t0, t1], BaseProxy: {parameters: "
-        "{allow_incomplete_chain_path: false, attention_correlation: 0, attention_update: 0, "
+        "{allow_incomplete_chain_path: false, attention_correlation: 0, attention_focus_strictness: "
+        "0.000000, attention_update: 0, "
         "elitism_rate: 0.010000, "
         "max_answers: 0, max_bundle_size: 1000, "
         "max_generations: 100, populate_metta_mapping: false, population_size: 1000, selection_rate: "
