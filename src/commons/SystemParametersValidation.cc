@@ -135,6 +135,13 @@ Properties parse_agent_params_with_schema(const json& agent_params,
                 RAISE_ERROR("Invalid type for parameter '" + key + "' for agent '" + agent +
                             "' (expected " + field_it->second + ")");
             }
+            if (agent == "base_query" && key == "attention_focus_strictness") {
+                const double strictness = get<double>(value);
+                if (strictness < 0.0 || strictness > 1.0) {
+                    RAISE_ERROR("Invalid value for parameter '" + key + "' for agent '" + agent +
+                                "' (expected value in range [0.0, 1.0])");
+                }
+            }
             agent_props[key] = value;
         } else {
             agent_props[key] = json_scalar_to_property(pit.value(), path);
