@@ -28,8 +28,11 @@ class LinkTemplate : public QueryElement {
    private:
     enum AttentionFocusStrategy { UNDEFINED = 0, PERCENTAGE };
     class AttentionFocusRecord {
-     public:
-        AttentionFocusRecord(char* handle, float importance, const Assignment& assignment, const map<string, string>& metta_expression) {
+       public:
+        AttentionFocusRecord(char* handle,
+                             float importance,
+                             const Assignment& assignment,
+                             const map<string, string>& metta_expression) {
             this->handle = handle;
             this->importance = importance;
             this->assignment = assignment;
@@ -94,7 +97,8 @@ class LinkTemplate : public QueryElement {
     AttentionFocusStrategy attention_focus_strategy;
     static ThreadSafeHashmap<string, shared_ptr<atomdb_api_types::HandleSet>> cache;
 
-    unsigned int report_attention_focus_by_percentage(vector<AttentionFocusRecord>& attention_focus_candidates);
+    unsigned int report_attention_focus_by_percentage(
+        vector<AttentionFocusRecord>& attention_focus_candidates);
     unsigned int report_attention_focus(vector<AttentionFocusRecord>& attention_focus_candidates);
 
     void recursive_build(shared_ptr<QueryElement> element, LinkSchema& link_schema);

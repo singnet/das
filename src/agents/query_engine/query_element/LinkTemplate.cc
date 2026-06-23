@@ -29,10 +29,15 @@ LinkTemplate::LinkTemplate(const string& type,
     this->targets = targets;
     this->context = context;
     if (disregard_importance_flag && (positive_importance_flag || (attention_focus_strictness != 0.0))) {
-        RAISE_ERROR("Conficting settings. positive_importance_flag: " + string(positive_importance_flag ? "true" : "false") + " disregard_importance_flag: " + string(disregard_importance_flag ? "true" : "false") + " attention_focus_strictness: " + std::to_string(attention_focus_strictness));
+        RAISE_ERROR(
+            "Conficting settings. positive_importance_flag: " +
+            string(positive_importance_flag ? "true" : "false") +
+            " disregard_importance_flag: " + string(disregard_importance_flag ? "true" : "false") +
+            " attention_focus_strictness: " + std::to_string(attention_focus_strictness));
     }
     if ((attention_focus_strictness < 0.0) || (attention_focus_strictness > 1.0)) {
-        RAISE_ERROR("Invalid value for attention_focus_strictness: " + std::to_string(attention_focus_strictness) + ". Expecting a value in [0..1]");
+        RAISE_ERROR("Invalid value for attention_focus_strictness: " +
+                    std::to_string(attention_focus_strictness) + ". Expecting a value in [0..1]");
     }
     this->attention_focus_strictness = attention_focus_strictness;
     this->positive_importance_flag = positive_importance_flag;
@@ -135,25 +140,29 @@ void LinkTemplate::compute_importance(vector<pair<char*, float>>& handles) {
               });
 }
 
-unsigned int LinkTemplate::report_attention_focus_by_percentage(vector<AttentionFocusRecord>& attention_focus_candidates) {
+unsigned int LinkTemplate::report_attention_focus_by_percentage(
+    vector<AttentionFocusRecord>& attention_focus_candidates) {
     unsigned int limit = lround(this->attention_focus_strictness * attention_focus_candidates.size());
     if (limit > attention_focus_candidates.size()) {
         limit = attention_focus_candidates.size();
     }
     for (unsigned int i = 0; i < limit; i++) {
-        this->source_element->add_handle(
-            attention_focus_candidates[i].handle,
-            attention_focus_candidates[i].importance,
-            attention_focus_candidates[i].assignment,
-            attention_focus_candidates[i].metta_expression);
+        this->source_element->add_handle(attention_focus_candidates[i].handle,
+                                         attention_focus_candidates[i].importance,
+                                         attention_focus_candidates[i].assignment,
+                                         attention_focus_candidates[i].metta_expression);
     }
     return limit;
 }
 
-unsigned int LinkTemplate::report_attention_focus(vector<AttentionFocusRecord>& attention_focus_candidates) {
-    switch(this->attention_focus_strategy) {
-        case PERCENTAGE: return report_attention_focus_by_percentage(attention_focus_candidates);
-        default: RAISE_ERROR("Invalid Attention Focus strategy: " + std::to_string(this->attention_focus_strategy));
+unsigned int LinkTemplate::report_attention_focus(
+    vector<AttentionFocusRecord>& attention_focus_candidates) {
+    switch (this->attention_focus_strategy) {
+        case PERCENTAGE:
+            return report_attention_focus_by_percentage(attention_focus_candidates);
+        default:
+            RAISE_ERROR("Invalid Attention Focus strategy: " +
+                        std::to_string(this->attention_focus_strategy));
     }
     return 0;
 }
@@ -208,24 +217,31 @@ void LinkTemplate::processor_method(shared_ptr<StoppableThread> monitor) {
         } else {
             if (tagged_handle.second > 0 || !this->positive_importance_flag) {
                 if (db->allow_nested_indexing()) {
-                    if ((this->attention_focus_strictness == 0.0) || (this->attention_focus_strictness == 1.0)) {
+                    if ((this->attention_focus_strictness == 0.0) ||
+                        (this->attention_focus_strictness == 1.0)) {
                         this->source_element->add_handle(
                             tagged_handle.first,
                             tagged_handle.second,
                             handles->get_assignments_by_handle(tagged_handle.first),
                             handles->get_metta_expressions_by_handle(tagged_handle.first));
                     } else {
-                        attention_focus_candidates.push_back(AttentionFocusRecord(tagged_handle.first, tagged_handle.second, handles->get_assignments_by_handle(tagged_handle.first), handles->get_metta_expressions_by_handle(tagged_handle.first)));
+                        attention_focus_candidates.push_back(AttentionFocusRecord(
+                            tagged_handle.first,
+                            tagged_handle.second,
+                            handles->get_assignments_by_handle(tagged_handle.first),
+                            handles->get_metta_expressions_by_handle(tagged_handle.first)));
                     }
                     count_matched++;
                 } else {
                     assignment.clear();
                     if (this->link_schema.match(string(tagged_handle.first), assignment, *db.get())) {
-                        if ((this->attention_focus_strictness == 0.0) || (this->attention_focus_strictness == 1.0)) {
+                        if ((this->attention_focus_strictness == 0.0) ||
+                            (this->attention_focus_strictness == 1.0)) {
                             this->source_element->add_handle(
                                 tagged_handle.first, tagged_handle.second, assignment);
                         } else {
-                            attention_focus_candidates.push_back(AttentionFocusRecord(tagged_handle.first, tagged_handle.second, assignment, {}));
+                            attention_focus_candidates.push_back(AttentionFocusRecord(
+                                tagged_handle.first, tagged_handle.second, assignment, {}));
                         }
                         count_matched++;
                     }
