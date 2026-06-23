@@ -78,7 +78,9 @@ int main(int argc, char* argv[]) {
     } else if (atomdb_type == "morkdb") {
         AtomDBSingleton::provide(make_shared<MorkDB>(context, atomdb_config));
     } else if (atomdb_type == "remotedb") {
-        AtomDBSingleton::provide(make_shared<RemoteAtomDB>(atomdb_config));
+        auto remote_peers_config =
+            atomdb_config.at_path("remote_peers").get_or<JsonConfig>(JsonConfig());
+        AtomDBSingleton::provide(make_shared<RemoteAtomDB>(remote_peers_config));
     } else if (atomdb_type == "adapterdb") {
         AtomDBSingleton::provide(make_shared<AdapterDB>(atomdb_config));
     } else {

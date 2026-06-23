@@ -55,26 +55,32 @@ Assignment HandleSetInMemory::get_assignments_by_handle(const string& handle) {
 
 void HandleSetInMemory::add_handle(const string& handle) { handles.insert(handle); }
 
+void HandleSetInMemory::add_handle(const string& handle,
+                                   const map<string, string>& metta_expressions,
+                                   const Assignment& assignment) {
+    handles.insert(handle);
+    if (!metta_expressions.empty()) {
+        metta_expressions_by_handle[handle] = metta_expressions;
+    }
+    assignments_by_handle[handle] = assignment;
+}
+
 // HandleSetInMemoryIterator
 HandleSetInMemoryIterator::HandleSetInMemoryIterator(HandleSetInMemory* handle_set)
     : handle_set(handle_set), it(handle_set->handles.begin()) {}
 
-HandleSetInMemoryIterator::~HandleSetInMemoryIterator() {
-    for (auto ptr : allocated_strings) {
-        delete[] ptr;
-    }
-}
+HandleSetInMemoryIterator::~HandleSetInMemoryIterator() {}
 
 char* HandleSetInMemoryIterator::next() {
     if (it == handle_set->handles.end()) {
         return nullptr;
     }
-    string handle = *it;
+    // Return a pointer into the handle stored by the HandleSet (not the iterator), so that the
+    // returned char* stays valid for the lifetime of the HandleSet. Consumers (e.g. LinkTemplate)
+    // keep the char* around after the iterator is destroyed, mirroring HandleSetRedis semantics.
+    const char* handle_cstr = it->c_str();
     ++it;
-    char* handle_cstr = new char[handle.size() + 1];
-    strcpy(handle_cstr, handle.c_str());
-    allocated_strings.push_back(handle_cstr);
-    return handle_cstr;
+    return const_cast<char*>(handle_cstr);
 }
 
 // HandleListInMemory

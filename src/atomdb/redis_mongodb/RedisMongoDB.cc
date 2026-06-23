@@ -21,7 +21,6 @@ using namespace atomdb;
 using namespace commons;
 using namespace atoms;
 
-bool RedisMongoDB::SKIP_REDIS;
 string RedisMongoDB::REDIS_PATTERNS_PREFIX;
 string RedisMongoDB::REDIS_OUTGOING_PREFIX;
 string RedisMongoDB::REDIS_INCOMING_PREFIX;
@@ -33,8 +32,9 @@ string RedisMongoDB::MONGODB_PATTERN_INDEX_SCHEMA_COLLECTION_NAME;
 string RedisMongoDB::MONGODB_FIELD_NAME[MONGODB_FIELD::size];
 uint RedisMongoDB::MONGODB_CHUNK_SIZE;
 
-RedisMongoDB::RedisMongoDB(const string& context, bool skip_redis, const JsonConfig& config) {
-    initialize_statics(context, skip_redis);
+RedisMongoDB::RedisMongoDB(const string& context, bool skip_redis, const JsonConfig& config)
+    : context(context), skip_redis_(skip_redis), cluster_flag(false) {
+    initialize_statics(context);
     mongodb_setup(config);
     load_pattern_index_schema();
     redis_setup(config);
@@ -44,13 +44,13 @@ RedisMongoDB::RedisMongoDB(const string& context, bool skip_redis, const JsonCon
 
 RedisMongoDB::~RedisMongoDB() {
     delete this->mongodb_pool;
-    if (!SKIP_REDIS) delete this->redis_pool;
+    if (!skip_redis_) delete this->redis_pool;
 }
 
 bool RedisMongoDB::allow_nested_indexing() { return false; }
 
 void RedisMongoDB::redis_setup(const JsonConfig& config) {
-    if (SKIP_REDIS) return;
+    if (skip_redis_) return;
 
     string address = config.at_path("redis.endpoint").get<string>();
     auto tokens = Utils::split(address, ':');
@@ -146,7 +146,7 @@ shared_ptr<Link> RedisMongoDB::get_link(const string& handle) {
 }
 
 shared_ptr<atomdb_api_types::HandleSet> RedisMongoDB::query_for_pattern(const LinkSchema& link_schema) {
-    if (SKIP_REDIS) return nullptr;
+    if (skip_redis_) return nullptr;
 
     auto pattern_handle = link_schema.handle();
 
@@ -187,7 +187,7 @@ shared_ptr<atomdb_api_types::HandleSet> RedisMongoDB::query_for_pattern(const Li
 }
 
 shared_ptr<atomdb_api_types::HandleList> RedisMongoDB::query_for_targets(const string& handle) {
-    if (SKIP_REDIS) return nullptr;
+    if (skip_redis_) return nullptr;
 
     redisReply* reply;
     try {
@@ -218,7 +218,7 @@ shared_ptr<atomdb_api_types::HandleList> RedisMongoDB::query_for_targets(const s
 }
 
 shared_ptr<atomdb_api_types::HandleSet> RedisMongoDB::query_for_incoming_set(const string& handle) {
-    if (SKIP_REDIS) return nullptr;
+    if (skip_redis_) return nullptr;
 
     unsigned int redis_cursor = 0;
     bool redis_has_more = true;
@@ -257,7 +257,7 @@ shared_ptr<atomdb_api_types::HandleSet> RedisMongoDB::query_for_incoming_set(con
 }
 
 void RedisMongoDB::add_pattern(const string& pattern_handle, const string& handle) {
-    if (SKIP_REDIS) return;
+    if (skip_redis_) return;
 
     auto ctx = this->redis_pool->acquire();
     string command = "ZADD " + REDIS_PATTERNS_PREFIX + ":" + pattern_handle + " " +
@@ -273,7 +273,7 @@ void RedisMongoDB::add_pattern(const string& pattern_handle, const string& handl
 }
 
 void RedisMongoDB::add_patterns(const vector<pair<string, string>>& pattern_handles) {
-    if (SKIP_REDIS) return;
+    if (skip_redis_) return;
 
     if (pattern_handles.empty()) return;
 
@@ -308,7 +308,7 @@ void RedisMongoDB::add_patterns(const vector<pair<string, string>>& pattern_hand
 }
 
 void RedisMongoDB::delete_pattern(const string& handle) {
-    if (SKIP_REDIS) return;
+    if (skip_redis_) return;
 
     auto ctx = this->redis_pool->acquire();
 
@@ -322,7 +322,7 @@ void RedisMongoDB::delete_pattern(const string& handle) {
 }
 
 void RedisMongoDB::update_pattern(const string& key, const string& value) {
-    if (SKIP_REDIS) return;
+    if (skip_redis_) return;
 
     auto ctx = this->redis_pool->acquire();
     string command = "ZREM " + REDIS_PATTERNS_PREFIX + ":" + key + " " + value;
@@ -331,7 +331,7 @@ void RedisMongoDB::update_pattern(const string& key, const string& value) {
 }
 
 uint RedisMongoDB::get_next_score(const string& key) {
-    if (SKIP_REDIS) return 0;
+    if (skip_redis_) return 0;
 
     auto ctx = this->redis_pool->acquire();
     string command = "GET " + key;
@@ -350,7 +350,7 @@ uint RedisMongoDB::get_next_score(const string& key) {
 }
 
 void RedisMongoDB::set_next_score(const string& key, uint score) {
-    if (SKIP_REDIS) return;
+    if (skip_redis_) return;
     auto ctx = this->redis_pool->acquire();
     set_next_score_with_context(ctx, key, score);
 }
@@ -358,7 +358,7 @@ void RedisMongoDB::set_next_score(const string& key, uint score) {
 void RedisMongoDB::set_next_score_with_context(shared_ptr<RedisContext> ctx,
                                                const string& key,
                                                uint score) {
-    if (SKIP_REDIS) return;
+    if (skip_redis_) return;
 
     string command = "SET " + key + " " + to_string(score);
     redisReply* reply = ctx->execute(command.c_str());
@@ -375,7 +375,7 @@ void RedisMongoDB::reset_scores() {
 }
 
 void RedisMongoDB::add_outgoing_set(const string& handle, const vector<string>& outgoing_handles) {
-    if (SKIP_REDIS) return;
+    if (skip_redis_) return;
 
     auto ctx = this->redis_pool->acquire();
     string command = "SET " + REDIS_OUTGOING_PREFIX + ":" + handle + " ";
@@ -391,7 +391,7 @@ void RedisMongoDB::add_outgoing_set(const string& handle, const vector<string>& 
 }
 
 void RedisMongoDB::delete_outgoing_set(const string& handle) {
-    if (SKIP_REDIS) return;
+    if (skip_redis_) return;
 
     auto ctx = this->redis_pool->acquire();
     string command = "DEL " + REDIS_OUTGOING_PREFIX + ":" + handle;
@@ -400,7 +400,7 @@ void RedisMongoDB::delete_outgoing_set(const string& handle) {
 }
 
 void RedisMongoDB::add_incoming_set(const string& handle, const string& incoming_handle) {
-    if (SKIP_REDIS) return;
+    if (skip_redis_) return;
 
     auto ctx = this->redis_pool->acquire();
     string command = "ZADD " + REDIS_INCOMING_PREFIX + ":" + handle + " " +
@@ -416,7 +416,7 @@ void RedisMongoDB::add_incoming_set(const string& handle, const string& incoming
 }
 
 void RedisMongoDB::delete_incoming_set(const string& handle) {
-    if (SKIP_REDIS) return;
+    if (skip_redis_) return;
 
     auto ctx = this->redis_pool->acquire();
 
@@ -430,7 +430,7 @@ void RedisMongoDB::delete_incoming_set(const string& handle) {
 }
 
 void RedisMongoDB::update_incoming_set(const string& key, const string& value) {
-    if (SKIP_REDIS) return;
+    if (skip_redis_) return;
 
     auto ctx = this->redis_pool->acquire();
 
@@ -993,7 +993,7 @@ bool RedisMongoDB::delete_document(const string& handle,
     auto reply = mongodb_collection.delete_one(bsoncxx::v_noabi::builder::basic::make_document(
         bsoncxx::v_noabi::builder::basic::kvp(MONGODB_FIELD_NAME[MONGODB_FIELD::ID], handle)));
 
-    if (!SKIP_REDIS) {
+    if (!skip_redis_) {
         auto incoming_set = query_for_incoming_set(handle);
         auto it = incoming_set->get_iterator();
         char* incoming_handle;
@@ -1031,7 +1031,7 @@ bool RedisMongoDB::delete_link(const string& handle, bool delete_targets) {
         auto target_handle = link_document->get(MONGODB_FIELD_NAME[MONGODB_FIELD::TARGETS], i);
         // If target is referenced more than once, we need to update incoming_set or delete target
         // otherwise
-        if (!SKIP_REDIS && query_for_incoming_set(target_handle)->size() > 1) {
+        if (!skip_redis_ && query_for_incoming_set(target_handle)->size() > 1) {
             update_incoming_set(target_handle, handle);
         } else if (delete_targets) {
             delete_atom(target_handle, delete_targets);
@@ -1289,7 +1289,7 @@ void RedisMongoDB::re_index_patterns(bool flush_patterns) {
 }
 
 void RedisMongoDB::flush_redis_by_prefix(const string& prefix) {
-    if (SKIP_REDIS) return;
+    if (skip_redis_) return;
 
     auto ctx = this->redis_pool->acquire();
     std::string cursor = "0";
@@ -1324,7 +1324,7 @@ void RedisMongoDB::drop_all() {
     (*conn)[MONGODB_DB_NAME].drop();
 
     // Drop Redis database (by prefixes)
-    if (!SKIP_REDIS) {
+    if (!skip_redis_) {
         auto ctx = this->redis_pool->acquire();
         vector<string> keys = {REDIS_PATTERNS_PREFIX, REDIS_OUTGOING_PREFIX, REDIS_INCOMING_PREFIX};
         for (const auto& key : keys) {

@@ -2,15 +2,22 @@
 
 #include <gtest/gtest.h>
 
+#include <algorithm>
+#include <map>
 #include <memory>
+#include <string>
 #include <vector>
 
+#include "Assignment.h"
+#include "InMemoryDBAPITypes.h"
 #include "Link.h"
 #include "LinkSchema.h"
 #include "Node.h"
 
 using namespace atomdb;
+using namespace atomdb::atomdb_api_types;
 using namespace atoms;
+using namespace commons;
 using namespace std;
 
 class InMemoryDBTest : public ::testing::Test {
@@ -532,6 +539,116 @@ TEST_F(InMemoryDBTest, AtomsCount) {
 
     EXPECT_EQ(db->atom_count(), 4);
     EXPECT_EQ(db->empty(), false);
+}
+
+// =============================================================================
+// HandleSetInMemory / HandleSetInMemoryIterator tests
+//
+// These cover the metadata-preserving add_handle overload and the iterator
+// pointer-lifetime contract (next() returns a pointer owned by the HandleSet,
+// not the iterator), used when federating nested-indexing backends.
+// =============================================================================
+
+TEST(HandleSetInMemoryTest, MetadataRoundTrip) {
+    HandleSetInMemory set;
+
+    const string handle = "0123456789abcdef0123456789abcdef";
+    map<string, string> metta = {{"$x", "(Symbol human)"}, {"$y", "(Symbol mammal)"}};
+    Assignment assignment;
+    assignment.assign("$x", "human_value");
+    assignment.assign("$y", "mammal_value");
+
+    set.add_handle(handle, metta, assignment);
+
+    EXPECT_EQ(set.size(), 1u);
+
+    auto retrieved_metta = set.get_metta_expressions_by_handle(handle);
+    EXPECT_EQ(retrieved_metta.size(), 2u);
+    EXPECT_EQ(retrieved_metta["$x"], "(Symbol human)");
+    EXPECT_EQ(retrieved_metta["$y"], "(Symbol mammal)");
+
+    auto retrieved_assignment = set.get_assignments_by_handle(handle);
+    EXPECT_EQ(retrieved_assignment.get("$x"), "human_value");
+    EXPECT_EQ(retrieved_assignment.get("$y"), "mammal_value");
+}
+
+TEST(HandleSetInMemoryTest, MetadataAbsentForPlainAddHandle) {
+    HandleSetInMemory set;
+    const string handle = "0123456789abcdef0123456789abcdef";
+
+    set.add_handle(handle);
+
+    EXPECT_EQ(set.size(), 1u);
+    // Plain add_handle stores no metadata; accessors must return empty (never throw).
+    EXPECT_TRUE(set.get_metta_expressions_by_handle(handle).empty());
+    EXPECT_EQ(set.get_assignments_by_handle(handle).variable_count(), 0u);
+}
+
+TEST(HandleSetInMemoryTest, AppendPreservesMetadataFromBothSets) {
+    const string handle_a = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+    const string handle_b = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
+
+    auto first = make_shared<HandleSetInMemory>();
+    Assignment assignment_a;
+    assignment_a.assign("$a", "value_a");
+    first->add_handle(handle_a, {{"$a", "(Symbol a)"}}, assignment_a);
+
+    auto second = make_shared<HandleSetInMemory>();
+    Assignment assignment_b;
+    assignment_b.assign("$b", "value_b");
+    second->add_handle(handle_b, {{"$b", "(Symbol b)"}}, assignment_b);
+
+    first->append(second);
+
+    EXPECT_EQ(first->size(), 2u);
+
+    // Metadata from the original set survives.
+    EXPECT_EQ(first->get_metta_expressions_by_handle(handle_a)["$a"], "(Symbol a)");
+    EXPECT_EQ(first->get_assignments_by_handle(handle_a).get("$a"), "value_a");
+
+    // Metadata merged in from the appended set survives.
+    EXPECT_EQ(first->get_metta_expressions_by_handle(handle_b)["$b"], "(Symbol b)");
+    EXPECT_EQ(first->get_assignments_by_handle(handle_b).get("$b"), "value_b");
+}
+
+TEST(HandleSetInMemoryTest, IteratorPointerOutlivesIterator) {
+    auto set = make_shared<HandleSetInMemory>();
+    const string handle = "0123456789abcdef0123456789abcdef";
+    set->add_handle(handle);
+
+    // Grab a pointer from the iterator, then destroy the iterator. The pointer must remain valid
+    // because it points into storage owned by the HandleSet (mirrors HandleSetRedis semantics).
+    char* captured = nullptr;
+    {
+        auto it = set->get_iterator();
+        captured = it->next();
+        ASSERT_NE(captured, nullptr);
+        EXPECT_EQ(it->next(), nullptr);
+    }  // iterator destroyed here
+
+    ASSERT_NE(captured, nullptr);
+    EXPECT_EQ(string(captured), handle);  // still valid while the set is alive
+}
+
+TEST(HandleSetInMemoryTest, IteratorVisitsAllHandlesOnce) {
+    auto set = make_shared<HandleSetInMemory>();
+    const string handle_a = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+    const string handle_b = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
+    set->add_handle(handle_a);
+    set->add_handle(handle_b);
+    set->add_handle(handle_a);  // duplicate, set semantics collapse it
+
+    EXPECT_EQ(set->size(), 2u);
+
+    vector<string> visited;
+    auto it = set->get_iterator();
+    char* h;
+    while ((h = it->next()) != nullptr) {
+        visited.push_back(string(h));
+    }
+    EXPECT_EQ(visited.size(), 2u);
+    EXPECT_NE(find(visited.begin(), visited.end(), handle_a), visited.end());
+    EXPECT_NE(find(visited.begin(), visited.end(), handle_b), visited.end());
 }
 
 int main(int argc, char** argv) {
