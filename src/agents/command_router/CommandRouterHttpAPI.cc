@@ -31,10 +31,18 @@ void CommandRouterHttpAPI::initialize(shared_ptr<CommandRouterHttpAPI> instance,
 }
 
 bool CommandRouterHttpAPI::thread_one_step() {
-    setup_routes();
-    LOG_INFO("bus_command_router HTTP server listening on " << host << ":" << port);
-    this->server.listen(host, port);
+    LOG_INFO("bus_command_router HTTP server listening on " << this->host << ":" << this->port);
+    this->server.listen_after_bind();
     return false;
+}
+
+void CommandRouterHttpAPI::setup() {
+    this->setup_routes();
+    if (!this->server.bind_to_port(this->host.c_str(), this->port)) {
+        RAISE_ERROR("CommandRouter HTTP API failed to bind on " + this->host + ":" +
+                    std::to_string(this->port));
+    }
+    Processor::setup();
 }
 
 void CommandRouterHttpAPI::stop() {

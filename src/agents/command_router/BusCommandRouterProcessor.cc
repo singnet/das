@@ -4,7 +4,6 @@
 #include <variant>
 
 #include "BaseQueryProxy.h"
-#include "CommandRouterHttpAPISingleton.h"
 #include "EvolutionMettaParser.h"
 #include "PatternMatchingQueryProxy.h"
 #include "QueryEvolutionProxy.h"
@@ -26,15 +25,9 @@ const string CONTEXT_KEY = "context";
 }  // namespace
 
 BusCommandRouterProcessor::BusCommandRouterProcessor(shared_ptr<ServiceBus> service_bus)
-    : BusCommandProcessor({ServiceBus::BUS_COMMAND_ROUTER}), service_bus(service_bus) {
-    this->http_api = CommandRouterHttpAPISingleton::get_instance();
-}
+    : BusCommandProcessor({ServiceBus::BUS_COMMAND_ROUTER}), service_bus(service_bus) {}
 
-BusCommandRouterProcessor::~BusCommandRouterProcessor() {
-    if (this->http_api != nullptr) {
-        this->http_api->stop();
-    }
-}
+BusCommandRouterProcessor::~BusCommandRouterProcessor() {}
 
 shared_ptr<BusCommandProxy> BusCommandRouterProcessor::factory_empty_proxy() {
     return make_shared<BusCommandRouterProxy>();

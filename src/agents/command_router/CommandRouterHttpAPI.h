@@ -28,9 +28,8 @@ namespace command_router {
  *   WS    /command-router/ws/{id} — stream execution events
  *
  *   This class implements ThreadMethod so it is driven by a DedicatedThread.
- *   thread_one_step() calls httplib::Server::listen(), which blocks for the
- *   entire server lifetime and handles all HTTP/WebSocket connections through
- *   httplib's own internal thread pool. It returns only after stop() is called.
+ *   setup() binds the port synchronously with bind_to_port(); thread_one_step()
+ *   then calls listen_after_bind(), which blocks until stop() is called.
  *   Background executions are dispatched to an internal ThreadPool so that the
  *   HTTP listener thread is never blocked.
  *
@@ -63,15 +62,14 @@ class CommandRouterHttpAPI : public processor::Processor, public processor::Thre
                            vector<shared_ptr<processor::Processor>> additional_subprocessors);
 
     /**
-     * @brief DedicatedThread entry point — called once by DedicatedThread.
-     *
-     * Registers all routes, starts the execution pool, then
-     * enters the blocking httplib::Server::listen() loop.
-     * Returns false when the loop exits (i.e. after stop() is called).
+     * @brief DedicatedThread entry point — enters the blocking listen_after_bind() loop.
      *
      * @return false after the listening loop exits.
      */
     bool thread_one_step() override;
+
+    /** @brief Register routes, bind the port, then Processor::setup(). */
+    void setup() override;
 
     /**
      * @brief Request graceful shutdown of the HTTP listening loop.

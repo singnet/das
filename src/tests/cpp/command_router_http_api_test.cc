@@ -4,7 +4,6 @@
 #include "CommandRouterHttpAPISingleton.h"
 #include "DedicatedThread.h"
 #include "JsonConfig.h"
-#include "Utils.h"
 #include "gtest/gtest.h"
 #include "httplib.h"
 #include "processor/ThreadPool.h"
@@ -28,7 +27,6 @@ class CommandRouterHttpAPITest : public ::testing::Test {
         api = make_shared<CommandRouterHttpAPI>(TEST_HOST, TEST_PORT, thread_pool);
         api_thread = make_shared<DedicatedThread>("test_api_thread", api.get());
         CommandRouterHttpAPI::initialize(api, {thread_pool, api_thread});
-        Utils::sleep(300);
     }
 
     static void TearDownTestSuite() { api->stop(); }

@@ -24,11 +24,6 @@ class BusCommandRouterTestEnvironment : public ::testing::Environment {
    public:
     void SetUp() override {
         AtomDBSingleton::init(test_atomdb_json_config());
-
-        auto json = nlohmann::json();
-        json["http_api"] = {{"endpoint", "localhost:19002"}};
-        CommandRouterHttpAPISingleton::init(commons::JsonConfig(json));
-
         init_test_system_parameters_singleton();
     }
     void TearDown() override {}
