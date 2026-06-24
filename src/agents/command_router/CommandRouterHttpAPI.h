@@ -44,7 +44,7 @@ struct HttpAPISettings {
  * Each accepted command is enqueued on thread_pool so the listener stays free.
  * Terminal executions stay in executions until execution_retention_ms expires.
  */
-class CommandRouterHttpAPI : public Processor, public ThreadMethod {
+class CommandRouterHttpAPI : public processor::Processor, public processor::ThreadMethod {
    public:
     static const unordered_set<string> VALID_COMMAND_TYPES;
 
@@ -68,7 +68,7 @@ class CommandRouterHttpAPI : public Processor, public ThreadMethod {
      * Typically called once with the DedicatedThread and thread_pool as subprocessors.
      */
     static void initialize(shared_ptr<CommandRouterHttpAPI> instance,
-                           vector<shared_ptr<Processor>> additional_subprocessors);
+                           vector<shared_ptr<processor::Processor>> additional_subprocessors);
 
     /** @brief Load HttpAPISettings from command_router.http_api.* config paths. */
     static HttpAPISettings settings_from_config(const JsonConfig& command_router_config);
