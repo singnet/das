@@ -2,13 +2,23 @@ name: Code Quality & Tests
 
 on:
   workflow_call:
+
   pull_request:
+
     branches:
       - develop
       - master
+
+    paths:
+      - '**/*.h'
+      - '**/*.cc'
+      - '**/*.bazel'
+      - '**/BUILD'
+
   workflow_dispatch:
 
   push:
+
     paths:
       - '**/*.h'
       - '**/*.cc'
