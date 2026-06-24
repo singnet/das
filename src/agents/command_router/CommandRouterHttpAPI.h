@@ -75,6 +75,9 @@ class CommandRouterHttpAPI : public processor::Processor, public processor::Thre
     /** @brief DedicatedThread entry point; blocks in server.listen() until stop(). */
     bool thread_one_step() override;
 
+    /** @brief Register routes, bind the port, then Processor::setup(). */
+    void setup() override;
+
     /** @brief Register routes, then Processor::setup(). */
     void setup() override;
 

@@ -81,11 +81,20 @@ void CommandRouterHttpAPI::setup() {
 bool CommandRouterHttpAPI::thread_one_step() {
     if (this->shutting_down.load()) return false;
 
-    if (!this->server.listen(this->host, this->port) && !this->shutting_down.load()) {
+    if (!this->server.listen_after_bind() && !this->shutting_down.load()) {
         LOG_ERROR("CommandRouter HTTP API failed to bind " << this->host << ":" << this->port);
     }
 
     return false;
+}
+
+void CommandRouterHttpAPI::setup() {
+    this->setup_routes();
+    if (!this->server.bind_to_port(this->host.c_str(), this->port)) {
+        RAISE_ERROR("CommandRouter HTTP API failed to bind on " + this->host + ":" +
+                    std::to_string(this->port));
+    }
+    Processor::setup();
 }
 
 void CommandRouterHttpAPI::stop() {

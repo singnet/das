@@ -110,14 +110,6 @@ int main(int argc, char* argv[]) {
                                   props.get_or<string>(Helper::BUS_ENDPOINT, ""),
                                   ports_range.first,
                                   ports_range.second);
-
-        if (Helper::processor_type_from_string(cmd_args[Helper::SERVICE]) ==
-            mains::ProcessorType::COMMAND_ROUTER) {
-            auto command_router_config =
-                json_config.at_path("agents.command_router").get_or<JsonConfig>(JsonConfig());
-            CommandRouterHttpAPISingleton::init(command_router_config);
-        }
-
         ///////// Registering processor
         auto service = ProcessorFactory::create_processor(cmd_args[Helper::SERVICE], props);
         if (service == nullptr) {
@@ -130,6 +122,14 @@ int main(int argc, char* argv[]) {
         shared_ptr<ServiceBus> service_bus = ServiceBusSingleton::get_instance();
         LOG_INFO("Processor registered for service: " + cmd_args[Helper::SERVICE]);
         service_bus->register_processor(service);
+
+        // Initializing CommandRouterHttpAPI
+        if (Helper::processor_type_from_string(cmd_args[Helper::SERVICE]) ==
+            mains::ProcessorType::COMMAND_ROUTER) {
+            auto command_router_config =
+                json_config.at_path("agents.command_router").get_or<JsonConfig>(JsonConfig());
+            CommandRouterHttpAPISingleton::init(command_router_config);
+        }
 
         while (true) {
             Utils::sleep();

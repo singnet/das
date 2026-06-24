@@ -57,7 +57,6 @@ void CommandRouterHttpAPISingleton::create_and_start(const JsonConfig& command_r
 
     try {
         CommandRouterHttpAPI::initialize(HTTP_API, {http_api_thread, thread_pool_executor});
-        Utils::sleep(200);  // time to bind the port
         INITIALIZED = true;
     } catch (const std::exception& e) {
         CommandRouterHttpAPISingleton::shutdown_on_startup_failure();

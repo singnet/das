@@ -7,7 +7,6 @@
 #include "CommandRouterHttpAPISingleton.h"
 #include "DedicatedThread.h"
 #include "JsonConfig.h"
-#include "Utils.h"
 #include "gtest/gtest.h"
 #include "httplib.h"
 #include "processor/ThreadPool.h"
