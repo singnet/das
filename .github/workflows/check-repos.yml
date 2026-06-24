@@ -9,7 +9,7 @@ on:
 
 jobs:
   ci:
-    uses: ./.github/workflows/run-code-quality-and-tests-no-cache.yml@master
+    uses: ./.github/workflows/run-code-quality-and-tests-no-cache.yml
 
   notify-success:
     needs: ci
