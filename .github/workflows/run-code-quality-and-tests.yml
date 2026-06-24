@@ -8,6 +8,17 @@ on:
       - master
   workflow_dispatch:
 
+  push:
+    paths:
+      - '**/*.h'
+      - '**/*.cc'
+      - '**/*.bazel'
+      - '**/BUILD'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
 jobs:
   format-check:
     uses: ./.github/workflows/run-format-check.yaml
