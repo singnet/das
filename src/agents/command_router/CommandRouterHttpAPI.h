@@ -18,7 +18,6 @@
 
 using namespace std;
 using namespace commons;
-using namespace processor;
 
 using json = nlohmann::json;
 
@@ -57,7 +56,7 @@ class CommandRouterHttpAPI : public processor::Processor, public processor::Thre
      */
     CommandRouterHttpAPI(const string& host,
                          int port,
-                         shared_ptr<ThreadPool> thread_pool,
+                         shared_ptr<processor::ThreadPool> thread_pool,
                          HttpAPISettings settings = {});
 
     /** @brief Calls stop(). */

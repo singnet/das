@@ -41,7 +41,7 @@ HttpAPISettings load_http_api_settings(const JsonConfig& command_router_config) 
 
 CommandRouterHttpAPI::CommandRouterHttpAPI(const string& host,
                                            int port,
-                                           shared_ptr<ThreadPool> thread_pool,
+                                           shared_ptr<processor::ThreadPool> thread_pool,
                                            HttpAPISettings settings)
     : Processor("command_router_http_api"),
       host(host),
