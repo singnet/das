@@ -15,7 +15,6 @@
 
 using namespace std;
 using namespace commons;
-using namespace processor;
 
 namespace command_router {
 
@@ -40,14 +39,14 @@ namespace command_router {
  *   terminal state (completed / error / aborted) it is removed from memory
  *   by cleanup_finished_executions().
  */
-class CommandRouterHttpAPI : public Processor, public ThreadMethod {
+class CommandRouterHttpAPI : public processor::Processor, public processor::ThreadMethod {
    public:
     /**
      * @param host Address to bind.
      * @param port Port to listen on.
      * @param thread_pool Shared pointer to the thread pool for executing commands.
      */
-    CommandRouterHttpAPI(const string& host, int port, shared_ptr<ThreadPool> thread_pool);
+    CommandRouterHttpAPI(const string& host, int port, shared_ptr<processor::ThreadPool> thread_pool);
 
     /** @brief calls stop() */
     ~CommandRouterHttpAPI() override;
@@ -61,7 +60,7 @@ class CommandRouterHttpAPI : public Processor, public ThreadMethod {
      * @param additional_subprocessors Subprocessors to bind before starting
      */
     static void initialize(shared_ptr<CommandRouterHttpAPI> instance,
-                           vector<shared_ptr<Processor>> additional_subprocessors);
+                           vector<shared_ptr<processor::Processor>> additional_subprocessors);
 
     /**
      * @brief DedicatedThread entry point — called once by DedicatedThread.

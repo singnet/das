@@ -49,10 +49,11 @@ void CommandRouterHttpAPISingleton::create_and_start(const JsonConfig& command_r
     unsigned int num_threads =
         command_router_config.at_path("http_api.thread_pool_size").get_or<unsigned int>(4);
 
-    auto thread_pool_executor = make_shared<ThreadPool>("http_api_thread_pool_executor", num_threads);
+    auto thread_pool_executor =
+        make_shared<processor::ThreadPool>("http_api_thread_pool_executor", num_threads);
     HTTP_API = make_shared<CommandRouterHttpAPI>(host, port, thread_pool_executor);
 
-    auto http_api_thread = make_shared<DedicatedThread>("http_api_thread", HTTP_API.get());
+    auto http_api_thread = make_shared<processor::DedicatedThread>("http_api_thread", HTTP_API.get());
 
     try {
         CommandRouterHttpAPI::initialize(HTTP_API, {http_api_thread, thread_pool_executor});

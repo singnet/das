@@ -13,7 +13,7 @@ using namespace processor;
 
 CommandRouterHttpAPI::CommandRouterHttpAPI(const string& host,
                                            int port,
-                                           shared_ptr<ThreadPool> thread_pool)
+                                           shared_ptr<processor::ThreadPool> thread_pool)
     : Processor("command_router_http_api"), host(host), port(port), thread_pool(thread_pool) {}
 
 CommandRouterHttpAPI::~CommandRouterHttpAPI() { this->stop(); }

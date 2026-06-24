@@ -17,7 +17,6 @@ using namespace std;
 using namespace service_bus;
 using namespace agents;
 using namespace query_engine;
-using namespace processor;
 
 namespace command_router {
 
