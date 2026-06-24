@@ -73,11 +73,6 @@ HttpAPISettings CommandRouterHttpAPI::settings_from_config(const JsonConfig& com
     return load_http_api_settings(command_router_config);
 }
 
-void CommandRouterHttpAPI::setup() {
-    this->setup_routes();
-    Processor::setup();
-}
-
 bool CommandRouterHttpAPI::thread_one_step() {
     if (this->shutting_down.load()) return false;
 
