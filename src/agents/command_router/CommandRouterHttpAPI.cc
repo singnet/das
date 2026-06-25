@@ -179,7 +179,7 @@ void CommandRouterHttpAPI::setup_routes() {
                 this->thread_pool->enqueue([this, exec]() { this->run_execution(exec); });
             } catch (const exception& e) {
                 {
-                    lock_guard<mutex> semaphore(this->executions_mutex);
+                    lock_guard<mutex> semaphore(this->executions_mtx);
                     this->executions.erase(exec->execution_id);
                 }
                 this->set_json_response(
@@ -223,10 +223,16 @@ void CommandRouterHttpAPI::setup_routes() {
                     unique_lock<mutex> exec_semaphore(exec->mtx);
 
                     bool has_new_event = exec->cv.wait_for(exec_semaphore, chrono::seconds(1), [&] {
-                        return next_index < exec->events.size();
+                        return next_index < exec->events.size() ||
+                               CommandExecution::is_terminal(exec->status);
                     });
 
                     if (!has_new_event) continue;
+
+                    if (next_index >= exec->events.size()) {
+                        stream_finished = CommandExecution::is_terminal(exec->status);
+                        continue;
+                    }
 
                     payload = exec->events[next_index++];
                     stream_finished =
@@ -322,7 +328,7 @@ void CommandRouterHttpAPI::setup_routes() {
 }
 
 shared_ptr<CommandExecution> CommandRouterHttpAPI::find_execution(const string& execution_id) {
-    lock_guard<mutex> semaphore(this->executions_mutex);
+    lock_guard<mutex> semaphore(this->executions_mtx);
     auto it = this->executions.find(execution_id);
     return (it != this->executions.end()) ? it->second : nullptr;
 }
@@ -397,14 +403,18 @@ void CommandRouterHttpAPI::cleanup_finished_executions() {
     }
 
     const auto now = Utils::get_current_time_millis();
-    lock_guard<mutex> semaphore(this->executions_mutex);
+    lock_guard<mutex> semaphore(this->executions_mtx);
     for (auto it = this->executions.begin(); it != this->executions.end();) {
-        lock_guard<mutex> exec_semaphore(it->second->mtx);
-        const auto& exec = it->second;
-        const bool retention_expired =
-            exec->finished_at_ms > 0 &&
-            now - exec->finished_at_ms >= this->settings.execution_retention_ms;
-        if (CommandExecution::is_terminal(exec->status) && retention_expired) {
+        auto exec = it->second;
+        bool should_erase = false;
+        {
+            lock_guard<mutex> exec_semaphore(exec->mtx);
+            const bool retention_expired =
+                exec->finished_at_ms > 0 &&
+                (now - exec->finished_at_ms) > this->settings.execution_retention_ms;
+            should_erase = CommandExecution::is_terminal(exec->status) && retention_expired;
+        }
+        if (should_erase) {
             it = this->executions.erase(it);
         } else {
             ++it;
@@ -439,7 +449,7 @@ size_t CommandRouterHttpAPI::count_active_executions_locked() const {
 
 bool CommandRouterHttpAPI::try_admit_execution(const shared_ptr<CommandExecution>& exec,
                                                size_t& active_count) {
-    lock_guard<mutex> semaphore(this->executions_mutex);
+    lock_guard<mutex> semaphore(this->executions_mtx);
     active_count = this->count_active_executions_locked();
     if (active_count >= this->settings.max_concurrent_executions) {
         return false;

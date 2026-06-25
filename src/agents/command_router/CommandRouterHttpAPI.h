@@ -78,9 +78,6 @@ class CommandRouterHttpAPI : public processor::Processor, public processor::Thre
     /** @brief Register routes, bind the port, then Processor::setup(). */
     void setup() override;
 
-    /** @brief Register routes, then Processor::setup(). */
-    void setup() override;
-
     /** @brief Stop listen(), drop expired executions, and stop the Processor. */
     void stop() override;
 
@@ -90,15 +87,11 @@ class CommandRouterHttpAPI : public processor::Processor, public processor::Thre
     httplib::Server server;
     shared_ptr<processor::ThreadPool> thread_pool;
     HttpAPISettings settings;
-
-    /** Set while shutting down; new POST /executions return 503. */
     atomic<bool> shutting_down{false};
-
-    mutex executions_mutex;
-
     unordered_map<string, shared_ptr<CommandExecution>> executions;
+    mutex executions_mtx;
 
-    /** @brief Register all /command-router/* HTTP and WebSocket handlers. */
+    /** @brief Register all /command-router/ HTTP and WebSocket handlers. */
     void setup_routes();
 
     shared_ptr<CommandExecution> find_execution(const string& execution_id);
@@ -109,19 +102,21 @@ class CommandRouterHttpAPI : public processor::Processor, public processor::Thre
     /** @brief Run command_type/command_text and publish chunk/lifecycle events. */
     void run_execution_inner(const shared_ptr<CommandExecution>& exec);
 
+    /** @brief Remove finished executions from the executions map. */
     void cleanup_finished_executions();
 
     string generate_execution_id();
 
+    /** @brief Check if the command_type is valid. (Allowed values: query, evolution, get, set) */
     bool is_valid_command_type(const string& command_type) const;
 
     /**
-     * @brief Check limits and reserve a slot in executions under executions_mutex.
-     * Caller must hold no locks. Returns false if concurrent or queue limit is hit.
+     * @brief Check limits and reserve a slot in executions under executions_mtx. Returns false if
+     * concurrent or queue limit is hit.
      */
     bool try_admit_execution(const shared_ptr<CommandExecution>& exec, size_t& active_count);
 
-    /** @brief Count non-terminal executions; caller must hold executions_mutex. */
+    /** @brief Count non-terminal executions */
     size_t count_active_executions_locked() const;
 
     /** @brief Set response status and JSON body. */
