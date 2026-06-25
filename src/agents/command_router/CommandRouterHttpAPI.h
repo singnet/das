@@ -1,6 +1,7 @@
 #pragma once
 
 #include <atomic>
+#include <condition_variable>
 #include <memory>
 #include <mutex>
 #include <string>
@@ -90,6 +91,9 @@ class CommandRouterHttpAPI : public processor::Processor, public processor::Thre
     atomic<bool> shutting_down{false};
     unordered_map<string, shared_ptr<CommandExecution>> executions;
     mutex executions_mtx;
+    condition_variable execution_slots_cv;
+    size_t running_executions = 0;
+    size_t pending_executions = 0;
 
     /** @brief Register all /command-router/ HTTP and WebSocket handlers. */
     void setup_routes();
@@ -110,17 +114,9 @@ class CommandRouterHttpAPI : public processor::Processor, public processor::Thre
     /** @brief Check if the command_type is valid. (Allowed values: query, evolution, get, set) */
     bool is_valid_command_type(const string& command_type) const;
 
-    /**
-     * @brief Check limits and reserve a slot in executions. Returns false if
-     * concurrent or queue limit is hit.
-     */
-    bool try_admit_execution(const shared_ptr<CommandExecution>& exec, size_t& running_count);
-
-    /** @brief Count executions currently in RUNNING state */
-    size_t count_running_executions_locked() const;
-
-    /** @brief Count executions currently in PENDING state */
-    size_t count_pending_executions_locked() const;
+    /** @brief Check limits and register a pending execution. */
+    enum class AdmitResult { Admitted, ConcurrentLimit, QueueFull };
+    AdmitResult try_admit_execution(const shared_ptr<CommandExecution>& exec);
 
     /** @brief Set response status and JSON body. */
     void set_json_response(httplib::Response& res, int status_code, const json& payload);

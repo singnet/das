@@ -1,5 +1,6 @@
 #include "CommandRouterHttpAPI.h"
 
+#include <algorithm>
 #include <cctype>
 #include <sstream>
 
@@ -94,6 +95,10 @@ void CommandRouterHttpAPI::setup() {
 
 void CommandRouterHttpAPI::stop() {
     this->shutting_down = true;
+    {
+        lock_guard<mutex> semaphore(this->executions_mtx);
+        this->execution_slots_cv.notify_all();
+    }
     LOG_INFO("CommandRouter HTTP API stopping on " << this->host << ":" << this->port);
     this->server.stop();
     this->cleanup_finished_executions();
@@ -163,15 +168,16 @@ void CommandRouterHttpAPI::setup_routes() {
                                                       command_text,
                                                       this->settings.max_events_per_execution);
 
-            size_t running_count = 0;
-            if (!this->try_admit_execution(exec, running_count)) {
-                if (running_count >= this->settings.max_concurrent_executions) {
+            switch (this->try_admit_execution(exec)) {
+                case AdmitResult::ConcurrentLimit:
                     this->set_json_response(
                         response, 429, {{"error", "Maximum concurrent executions reached"}});
-                } else {
+                    return;
+                case AdmitResult::QueueFull:
                     this->set_json_response(response, 503, {{"error", "Execution queue is full"}});
-                }
-                return;
+                    return;
+                case AdmitResult::Admitted:
+                    break;
             }
 
             string status_for_response;
@@ -189,6 +195,7 @@ void CommandRouterHttpAPI::setup_routes() {
                 {
                     lock_guard<mutex> semaphore(this->executions_mtx);
                     this->executions.erase(exec->execution_id);
+                    this->pending_executions--;
                 }
                 this->set_json_response(
                     response, 503, {{"error", string("Failed to schedule execution: ") + e.what()}});
@@ -342,11 +349,6 @@ shared_ptr<CommandExecution> CommandRouterHttpAPI::find_execution(const string& 
 }
 
 void CommandRouterHttpAPI::run_execution_inner(const shared_ptr<CommandExecution>& exec) {
-    {
-        lock_guard<mutex> lock(exec->mtx);
-        exec->mark_running();
-    }
-
     // POC code to simulate event streaming.
 
     const int TOTAL = 1000;
@@ -357,10 +359,9 @@ void CommandRouterHttpAPI::run_execution_inner(const shared_ptr<CommandExecution
     for (int i = 0; i < TOTAL; i += CHUNK_SIZE) {
         {
             lock_guard<mutex> lock(exec->mtx);
-            if (exec->cancel_requested) {
+            if (exec->cancel_requested || this->shutting_down.load()) {
                 exec->mark_aborted();
                 LOG_INFO("CommandRouter HTTP API execution aborted id=" << exec->execution_id);
-                // this->cleanup_finished_executions(); WIP
                 return;
             }
         }
@@ -386,6 +387,30 @@ void CommandRouterHttpAPI::run_execution_inner(const shared_ptr<CommandExecution
 }
 
 void CommandRouterHttpAPI::run_execution(const shared_ptr<CommandExecution>& exec) {
+    {
+        unique_lock<mutex> semaphore(this->executions_mtx);
+        this->execution_slots_cv.wait(semaphore, [&] {
+            return this->shutting_down.load() ||
+                   this->running_executions < this->settings.max_concurrent_executions;
+        });
+
+        if (this->shutting_down.load()) {
+            lock_guard<mutex> exec_semaphore(exec->mtx);
+            if (!CommandExecution::is_terminal(exec->status)) {
+                exec->mark_error("Server is shutting down");
+            }
+            this->pending_executions--;
+            return;
+        }
+
+        {
+            lock_guard<mutex> exec_semaphore(exec->mtx);
+            exec->mark_running();
+        }
+        this->pending_executions--;
+        this->running_executions++;
+    }
+
     try {
         this->run_execution_inner(exec);
     } catch (const exception& e) {
@@ -403,6 +428,10 @@ void CommandRouterHttpAPI::run_execution(const shared_ptr<CommandExecution>& exe
             exec->mark_error("Execution failed: unknown error");
         }
     }
+
+    lock_guard<mutex> semaphore(this->executions_mtx);
+    this->running_executions--;
+    this->execution_slots_cv.notify_one();
 }
 
 void CommandRouterHttpAPI::cleanup_finished_executions() {
@@ -444,41 +473,19 @@ bool CommandRouterHttpAPI::is_valid_command_type(const string& command_type) con
     return this->VALID_COMMAND_TYPES.find(command_type) != this->VALID_COMMAND_TYPES.end();
 }
 
-size_t CommandRouterHttpAPI::count_running_executions_locked() const {
-    size_t running_count = 0;
-    for (const auto& entry : this->executions) {
-        lock_guard<mutex> exec_semaphore(entry.second->mtx);
-        if (entry.second->status == ExecutionStatus::RUNNING) {
-            ++running_count;
-        }
-    }
-    return running_count;
-}
-
-size_t CommandRouterHttpAPI::count_pending_executions_locked() const {
-    size_t pending_count = 0;
-    for (const auto& entry : this->executions) {
-        lock_guard<mutex> exec_semaphore(entry.second->mtx);
-        if (entry.second->status == ExecutionStatus::PENDING) {
-            ++pending_count;
-        }
-    }
-    return pending_count;
-}
-
-bool CommandRouterHttpAPI::try_admit_execution(const shared_ptr<CommandExecution>& exec,
-                                               size_t& running_count) {
+CommandRouterHttpAPI::AdmitResult CommandRouterHttpAPI::try_admit_execution(
+    const shared_ptr<CommandExecution>& exec) {
     lock_guard<mutex> semaphore(this->executions_mtx);
-    running_count = this->count_running_executions_locked();
-    if (running_count >= this->settings.max_concurrent_executions) {
-        return false;
+    if (this->running_executions >= this->settings.max_concurrent_executions) {
+        return AdmitResult::ConcurrentLimit;
     }
     if (this->settings.max_queued_executions > 0 &&
-        this->count_pending_executions_locked() >= this->settings.max_queued_executions) {
-        return false;
+        this->pending_executions >= this->settings.max_queued_executions) {
+        return AdmitResult::QueueFull;
     }
     this->executions[exec->execution_id] = exec;
-    return true;
+    this->pending_executions++;
+    return AdmitResult::Admitted;
 }
 
 void CommandRouterHttpAPI::set_json_response(httplib::Response& response, int status, const json& body) {

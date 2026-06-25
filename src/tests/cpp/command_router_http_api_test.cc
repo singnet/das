@@ -89,6 +89,24 @@ class CommandRouterHttpAPILimitsTest : public ::testing::Test {
 
 HttpAPIServerFixture CommandRouterHttpAPILimitsTest::server;
 
+class CommandRouterHttpAPIQueuedConcurrencyTest : public ::testing::Test {
+   protected:
+    static HttpAPIServerFixture server;
+
+    static void SetUpTestSuite() {
+        HttpAPISettings settings;
+        settings.max_concurrent_executions = 2;
+        settings.max_queued_executions = 10;
+        server.start(19007, settings, 1);
+    }
+
+    static void TearDownTestSuite() { server.stop(); }
+
+    httplib::Client client() { return server.make_client(19007); }
+};
+
+HttpAPIServerFixture CommandRouterHttpAPIQueuedConcurrencyTest::server;
+
 class CommandRouterHttpAPISingletonTest : public ::testing::Test {
     void TearDown() override { CommandRouterHttpAPISingleton::provide(nullptr); }
 };
@@ -228,6 +246,38 @@ TEST_F(CommandRouterHttpAPITest, cancel_running_execution_aborts_and_second_canc
     ASSERT_TRUE(second_cancel);
     EXPECT_EQ(second_cancel->status, 409);
     EXPECT_EQ(json::parse(second_cancel->body)["status"], "aborted");
+}
+
+TEST_F(CommandRouterHttpAPIQueuedConcurrencyTest, queued_executions_respect_concurrent_limit) {
+    vector<string> execution_ids;
+    for (int i = 0; i < 4; ++i) {
+        auto create =
+            client().Post("/command-router/executions",
+                          make_execution_body("query", SHORT_COMMAND_TEXT + std::to_string(i)).dump(),
+                          "application/json");
+        ASSERT_TRUE(create);
+        if (create->status == 202) {
+            execution_ids.push_back(json::parse(create->body)["execution_id"].get<string>());
+        }
+    }
+    ASSERT_GE(execution_ids.size(), 2u);
+
+    int max_observed_running = 0;
+    for (int attempt = 0; attempt < 100; ++attempt) {
+        int running_count = 0;
+        for (const auto& execution_id : execution_ids) {
+            auto get_res = client().Get("/command-router/executions/" + execution_id);
+            ASSERT_TRUE(get_res);
+            ASSERT_EQ(get_res->status, 200);
+            if (json::parse(get_res->body)["status"].get<string>() == "running") {
+                ++running_count;
+            }
+        }
+        max_observed_running = std::max(max_observed_running, running_count);
+        Utils::sleep(50);
+    }
+
+    EXPECT_LE(max_observed_running, 2);
 }
 
 TEST_F(CommandRouterHttpAPILimitsTest, rejects_concurrency_limit) {
