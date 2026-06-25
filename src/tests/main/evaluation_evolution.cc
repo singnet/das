@@ -73,6 +73,7 @@ static double ELITISM_RATE = 0.08;
 static unsigned int POPULATION_SIZE = 50;
 static unsigned int MAX_GENERATIONS = 20;
 static unsigned int NUM_ITERATIONS = 10;
+static double ATTENTION_FOCUS_STRICTNESS = 0.00;
 
 static string TARGET_CONCEPT = "undefined";
 static string TARGET_PREDICATE = "undefined";
@@ -85,7 +86,6 @@ static double LINK_CREATION_STRENGTH_THRESHOLD = (SETUP_ONLY ? 0.0 : 0.1);
 static unsigned int LINK_CREATION_COUNT = 10;
 static unsigned int LINK_CREATION_MAX_VISIT_ATTEMPTS = LINK_CREATION_COUNT;
 static unsigned int LINK_CREATION_MAX_ATTEMPTS = 500;
-static double ATTENTION_FOCUS_STRICTNESS = 0.30;
 
 static string PRESET_LINKS_FILE_PREFIX = "/opt/das/_PRESET_LINKS_";
 static string PRESET_LINKS_FILE = PRESET_LINKS_FILE_PREFIX;
@@ -1398,12 +1398,12 @@ static void insert_type_symbols() {
 int main(int argc, char* argv[]) {
     STACK_TRACE();
     // clang-format off
-    if (argc != 16) {
+    if (argc != 18) {
         cerr << "Usage: " << argv[0]
-             << " <client_endpoint> <server_endpoint> <start_port:end_port> <config_file>"
+             << " <client_endpoint> <server_endpoint> <attention_broker_endpoint> <start_port:end_port> <config_file>"
                 " <context_tag> <target_predicate> <target_concept>"
                 " <RENT_RATE> <SPREADING_RATE_LOWERBOUND> <SPREADING_RATE_UPPERBOUND>"
-                " <ELITISM_RATE> <SELECTION_RATE> <POPULATION_SIZE> <MAX_GENERATIONS> <NUM_ITERATIONS>" << endl;
+                " <ELITISM_RATE> <SELECTION_RATE> <POPULATION_SIZE> <MAX_GENERATIONS> <NUM_ITERATIONS> <ATTENTION_FOCUS_STRICTNESS>" << endl;
         cerr << endl;
         cerr << "<target_predicate> <target_concept> are MeTTa expressions" << endl;
         cerr << endl;
@@ -1418,6 +1418,7 @@ int main(int argc, char* argv[]) {
         cerr << "    POPULATION_SIZE: 500" << endl;
         cerr << "    MAX_GENERATIONS: 20" << endl;
         cerr << "    NUM_ITERATIONS: 10" << endl;
+        cerr << "    ATTENTION_FOCUS_STRICTNESS: 0.0" << endl;
         exit(1);
     }
     // clang-format on
@@ -1426,6 +1427,7 @@ int main(int argc, char* argv[]) {
 
     string client_endpoint = argv[++cursor];
     string server_endpoint = argv[++cursor];
+    string attention_broker_endpoint = argv[++cursor];
     auto ports_range = Utils::parse_ports_range(argv[++cursor]);
     string config_file = argv[++cursor];
     string context_tag = argv[++cursor];
@@ -1441,8 +1443,9 @@ int main(int argc, char* argv[]) {
     POPULATION_SIZE = (unsigned int) Utils::string_to_int(string(argv[++cursor]));
     MAX_GENERATIONS = (unsigned int) Utils::string_to_int(string(argv[++cursor]));
     NUM_ITERATIONS = (unsigned int) Utils::string_to_int(string(argv[++cursor]));
+    ATTENTION_FOCUS_STRICTNESS = (double) Utils::string_to_float(string(argv[++cursor]));
 
-    if (cursor != 15) {
+    if (cursor != 17) {
         RAISE_ERROR("Error setting up parameters");
     }
 
@@ -1450,12 +1453,15 @@ int main(int argc, char* argv[]) {
     auto atomdb_config = json_config.at_path("atomdb").get_or<JsonConfig>(JsonConfig());
     SystemParametersSingleton::init(json_config);
     AtomDBSingleton::init(atomdb_config);
-
     db = AtomDBSingleton::get_instance();
+    LOG_INFO("Atom count: " + to_string(db->atom_count()));
     DECODER = static_pointer_cast<HandleDecoder>(db).get();
     ServiceBusSingleton::init(client_endpoint, server_endpoint, ports_range.first, ports_range.second);
     FitnessFunctionRegistry::initialize_statics();
     bus = ServiceBusSingleton::get_instance();
+    AttentionBrokerClient::set_server_address(attention_broker_endpoint);
+    AttentionBrokerClient::health_check(true);
+
     AttentionBrokerClient::set_parameters(
         RENT_RATE, SPREADING_RATE_LOWERBOUND, SPREADING_RATE_UPPERBOUND);
 

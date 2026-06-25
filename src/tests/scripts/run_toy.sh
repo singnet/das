@@ -1,6 +1,7 @@
 #!/bin/bash
 
-AVAIABLE_RAM=55G
+AVAIABLE_RAM="55G"
+ATTENTION_BROKER_SERVER="localhost"
 
 KB=$1
 CONTEXT_TAG=$2
@@ -11,6 +12,7 @@ SPREAD_LOWER=$6
 SPREAD_UPPER=$7
 ELITISM=$8
 SELECTION=$9
+ATTENTION_FOCUS_STRICTNESS=${10}
 
 POPULATION_SIZE=100
 NUM_GENERATIONS=5
@@ -31,9 +33,13 @@ make run-db-loader OPTIONS="--config=/opt/das/config/das.json --file=$KB --threa
 
 echo
 echo "--------------------------------------------------"
-echo "Stating agents"
+echo "Starting agents"
 echo
-make run-attention-broker &>> /tmp/ab.log &
+if [[ "$ATTENTION_BROKER_SERVER" == "localhost" ]]; then
+    make run-attention-broker &>> /tmp/ab.log &
+else
+    echo "Skipping Attention Broker because it's running in another server"
+fi
 sleep 2
 make run-busnode OPTIONS="--service=query-engine --config=/opt/das/config/das.json" &>> /tmp/qa.log &
 sleep 2
@@ -42,7 +48,7 @@ sleep 2
 docker update -m $AVAIABLE_RAM --memory-swap $AVAIABLE_RAM $(docker ps -q)
 echo "Done. Logs are in /tmp/ab.log /tmp/qa.log /tmp/ev.log"
 
-command_line=(src/scripts/run.sh evaluation_evolution localhost:35000 localhost:40002 35001:35999 /opt/das/config/das.json $CONTEXT_TAG "$TARGET_PREDICATE" "$TARGET_CONCEPT" $RENT $SPREAD_LOWER $SPREAD_UPPER $ELITISM $SELECTION $POPULATION_SIZE $NUM_GENERATIONS $NUM_ITERATIONS)
+command_line=(src/scripts/run.sh evaluation_evolution localhost:35000 localhost:40002 $ATTENTION_BROKER_SERVER:40001 35001:35999 /opt/das/config/das.json $CONTEXT_TAG "$TARGET_PREDICATE" "$TARGET_CONCEPT" $RENT $SPREAD_LOWER $SPREAD_UPPER $ELITISM $SELECTION $POPULATION_SIZE $NUM_GENERATIONS $NUM_ITERATIONS $ATTENTION_FOCUS_STRICTNESS)
 echo
 echo "--------------------------------------------------"
 echo "Running <${command_line[@]}>"

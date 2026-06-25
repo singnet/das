@@ -11,23 +11,26 @@ for LOG_FILE in "${log_files[@]}"; do
     rm -f $LOG_FILE
 done
 
+ATTENTION_FOCUS_STRICTNESS_LIST=("0.10" "0.30" "0.50" "0.70" "0.90")
 RENT_LIST=("0.1" "0.2" "0.3")
 SPREAD_LIST=("0.1" "0.2" "0.3")
 SELECTION_LIST=("0.10:0.10" "0.05:0.05")
 
-for selection_pair in "${SELECTION_LIST[@]}"; do
-    for RENT in "${RENT_LIST[@]}"; do
-        for SPREAD in "${SPREAD_LIST[@]}"; do
-            ELITISM="${selection_pair%%:*}"
-            SELECTION="${selection_pair#*:}"
-            command_line=(./src/tests/scripts/run_toy.sh $KB $CONTEXT_TAG "$TARGET_PREDICATE" "$TARGET_CONCEPT" $RENT $SPREAD $SPREAD $ELITISM $SELECTION)
-            for LOG_FILE in "${log_files[@]}"; do
-                echo "----------------------------------------------------------------------------------------------------" >> $LOG_FILE
-                echo "${command_line[@]}" >> $LOG_FILE
-                echo "----------------------------------------------------------------------------------------------------" >> $LOG_FILE
-                echo "" >> $LOG_FILE
+for ATTENTION_FOCUS_STRICTNESS in "${ATTENTION_FOCUS_STRICTNESS_LIST[@]}"; do
+    for selection_pair in "${SELECTION_LIST[@]}"; do
+        for RENT in "${RENT_LIST[@]}"; do
+            for SPREAD in "${SPREAD_LIST[@]}"; do
+                ELITISM="${selection_pair%%:*}"
+                SELECTION="${selection_pair#*:}"
+                command_line=(./src/tests/scripts/run_toy.sh $KB $CONTEXT_TAG "$TARGET_PREDICATE" "$TARGET_CONCEPT" $RENT $SPREAD $SPREAD $ELITISM $SELECTION $ATTENTION_FOCUS_STRICTNESS)
+                for LOG_FILE in "${log_files[@]}"; do
+                    echo "----------------------------------------------------------------------------------------------------" >> $LOG_FILE
+                    echo "${command_line[@]}" >> $LOG_FILE
+                    echo "----------------------------------------------------------------------------------------------------" >> $LOG_FILE
+                    echo "" >> $LOG_FILE
+                done
+                "${command_line[@]}"
             done
-            "${command_line[@]}"
         done
     done
 done
