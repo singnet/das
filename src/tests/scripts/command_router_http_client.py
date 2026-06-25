@@ -116,7 +116,10 @@ def main() -> int:
     def until_aborted(event: dict, _events: list[dict]) -> bool:
         return event.get("status") == "aborted"
 
-    read_ws_events(ws, until_aborted, timeout=30.0)
+    aborted_events = read_ws_events(ws, until_aborted, timeout=30.0)
+    assert any(event.get("status") == "aborted" for event in aborted_events), (
+        "websocket never received aborted event"
+    )
     ws.close()
 
     # GET /command-router/executions/{id}

@@ -235,7 +235,22 @@ TEST_F(CommandRouterHttpAPILimitsTest, rejects_concurrency_limit) {
                                make_execution_body("query", SHORT_COMMAND_TEXT).dump(),
                                "application/json");
     ASSERT_TRUE(first);
-    EXPECT_EQ(first->status, 202);
+    ASSERT_EQ(first->status, 202);
+
+    const auto execution_id = json::parse(first->body)["execution_id"].get<string>();
+
+    string status;
+    for (int attempt = 0; attempt < 50; ++attempt) {
+        auto get_res = client().Get("/command-router/executions/" + execution_id);
+        ASSERT_TRUE(get_res);
+        ASSERT_EQ(get_res->status, 200);
+        status = json::parse(get_res->body)["status"].get<string>();
+        if (status == "running") {
+            break;
+        }
+        Utils::sleep(100);
+    }
+    ASSERT_EQ(status, "running");
 
     auto second = client().Post("/command-router/executions",
                                 make_execution_body("evolution", SHORT_COMMAND_TEXT).dump(),

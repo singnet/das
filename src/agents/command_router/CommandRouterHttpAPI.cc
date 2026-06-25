@@ -133,8 +133,16 @@ void CommandRouterHttpAPI::setup_routes() {
                 return;
             }
 
-            string command_type = body.value("command_type", "");
-            string command_text = body.value("command_text", "");
+            if (!body.is_object() || !body.contains("command_type") ||
+                !body["command_type"].is_string() || !body.contains("command_text") ||
+                !body["command_text"].is_string()) {
+                this->set_json_response(
+                    response, 400, {{"error", "Missing fields: command_type, command_text"}});
+                return;
+            }
+
+            string command_type = body["command_type"].get<string>();
+            string command_text = body["command_text"].get<string>();
 
             if (command_type.empty() || command_text.empty()) {
                 this->set_json_response(
@@ -155,9 +163,9 @@ void CommandRouterHttpAPI::setup_routes() {
                                                       command_text,
                                                       this->settings.max_events_per_execution);
 
-            size_t active_count = 0;
-            if (!this->try_admit_execution(exec, active_count)) {
-                if (active_count >= this->settings.max_concurrent_executions) {
+            size_t running_count = 0;
+            if (!this->try_admit_execution(exec, running_count)) {
+                if (running_count >= this->settings.max_concurrent_executions) {
                     this->set_json_response(
                         response, 429, {{"error", "Maximum concurrent executions reached"}});
                 } else {
@@ -436,26 +444,37 @@ bool CommandRouterHttpAPI::is_valid_command_type(const string& command_type) con
     return this->VALID_COMMAND_TYPES.find(command_type) != this->VALID_COMMAND_TYPES.end();
 }
 
-size_t CommandRouterHttpAPI::count_active_executions_locked() const {
-    size_t active_count = 0;
+size_t CommandRouterHttpAPI::count_running_executions_locked() const {
+    size_t running_count = 0;
     for (const auto& entry : this->executions) {
         lock_guard<mutex> exec_semaphore(entry.second->mtx);
-        if (!CommandExecution::is_terminal(entry.second->status)) {
-            ++active_count;
+        if (entry.second->status == ExecutionStatus::RUNNING) {
+            ++running_count;
         }
     }
-    return active_count;
+    return running_count;
+}
+
+size_t CommandRouterHttpAPI::count_pending_executions_locked() const {
+    size_t pending_count = 0;
+    for (const auto& entry : this->executions) {
+        lock_guard<mutex> exec_semaphore(entry.second->mtx);
+        if (entry.second->status == ExecutionStatus::PENDING) {
+            ++pending_count;
+        }
+    }
+    return pending_count;
 }
 
 bool CommandRouterHttpAPI::try_admit_execution(const shared_ptr<CommandExecution>& exec,
-                                               size_t& active_count) {
+                                               size_t& running_count) {
     lock_guard<mutex> semaphore(this->executions_mtx);
-    active_count = this->count_active_executions_locked();
-    if (active_count >= this->settings.max_concurrent_executions) {
+    running_count = this->count_running_executions_locked();
+    if (running_count >= this->settings.max_concurrent_executions) {
         return false;
     }
     if (this->settings.max_queued_executions > 0 &&
-        this->thread_pool->size() >= static_cast<int>(this->settings.max_queued_executions)) {
+        this->count_pending_executions_locked() >= this->settings.max_queued_executions) {
         return false;
     }
     this->executions[exec->execution_id] = exec;

@@ -111,13 +111,16 @@ class CommandRouterHttpAPI : public processor::Processor, public processor::Thre
     bool is_valid_command_type(const string& command_type) const;
 
     /**
-     * @brief Check limits and reserve a slot in executions under executions_mtx. Returns false if
+     * @brief Check limits and reserve a slot in executions. Returns false if
      * concurrent or queue limit is hit.
      */
-    bool try_admit_execution(const shared_ptr<CommandExecution>& exec, size_t& active_count);
+    bool try_admit_execution(const shared_ptr<CommandExecution>& exec, size_t& running_count);
 
-    /** @brief Count non-terminal executions */
-    size_t count_active_executions_locked() const;
+    /** @brief Count executions currently in RUNNING state */
+    size_t count_running_executions_locked() const;
+
+    /** @brief Count executions currently in PENDING state */
+    size_t count_pending_executions_locked() const;
 
     /** @brief Set response status and JSON body. */
     void set_json_response(httplib::Response& res, int status_code, const json& payload);
