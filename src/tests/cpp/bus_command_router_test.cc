@@ -1,6 +1,7 @@
 #include "AtomDBSingleton.h"
 #include "BusCommandRouterProcessor.h"
 #include "BusCommandRouterProxy.h"
+#include "CommandRouterHttpAPISingleton.h"
 #include "EvolutionMettaParser.h"
 #include "ServiceBus.h"
 #include "TestAtomDBJsonConfig.h"

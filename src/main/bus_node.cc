@@ -1,6 +1,7 @@
 #include <signal.h>
 
 #include "AttentionBrokerClient.h"
+#include "CommandRouterHttpAPISingleton.h"
 #include "FitnessFunctionRegistry.h"
 #include "Helper.h"
 #include "JsonConfigParser.h"
@@ -122,11 +123,20 @@ int main(int argc, char* argv[]) {
         LOG_INFO("Processor registered for service: " + cmd_args[Helper::SERVICE]);
         service_bus->register_processor(service);
 
+        // Initializing CommandRouterHttpAPI
+        if (Helper::processor_type_from_string(cmd_args[Helper::SERVICE]) ==
+            mains::ProcessorType::COMMAND_ROUTER) {
+            auto command_router_config =
+                json_config.at_path("agents.command_router").get_or<JsonConfig>(JsonConfig());
+            CommandRouterHttpAPISingleton::init(command_router_config);
+        }
+
         while (true) {
             Utils::sleep();
         }
 
     } catch (const std::exception& e) {
+        LOG_ERROR("Service startup failed: " + string(e.what()));
         return 1;
     }
     return 0;

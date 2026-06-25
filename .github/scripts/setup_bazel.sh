@@ -104,16 +104,16 @@ sudo ldconfig
 
 echo "[INFO] Installing cpp-httplib..."
 
-if [[ ! -f "${ASSETS_DIR}/cpp-httplib-master.zip" ]]; then
-  echo "[ERROR] ${ASSETS_DIR}/cpp-httplib-master.zip not found."
+if [[ ! -f "${ASSETS_DIR}/cpp-httplib-0.47.0.zip" ]]; then
+  echo "[ERROR] ${ASSETS_DIR}/cpp-httplib-0.47.0.zip not found."
   exit 1
 fi
 
-cp "${ASSETS_DIR}/cpp-httplib-master.zip" "${TMP_DIR}/"
+cp "${ASSETS_DIR}/cpp-httplib-0.47.0.zip" "${TMP_DIR}/"
 cd "${TMP_DIR}"
-unzip -q cpp-httplib-master.zip
-sudo cp cpp-httplib-master/httplib.h /usr/local/include/
-rm -rf "${TMP_DIR}/cpp-httplib-master"*
+unzip -q cpp-httplib-0.47.0.zip
+sudo cp cpp-httplib-0.47.0/httplib.h /usr/local/include/
+rm -rf "${TMP_DIR}/cpp-httplib-0.47.0"*
 
 echo "[INFO] Installing utfcpp..."
 
