@@ -75,25 +75,20 @@ void ServiceBus::register_processor(shared_ptr<BusCommandProcessor> processor) {
 }
 
 void ServiceBus::issue_bus_command(shared_ptr<BusCommandProxy> proxy) {
-    string command;
-    vector<string> args;
-    bool dispatch_locally = false;
-    shared_ptr<ServiceBus::Node> node = this->bus_node;
-
-    {
-        lock_guard<mutex> semaphore(this->api_mutex);
-        LOG_DEBUG(bus_node->node_id() << " is issuing BUS command <" << proxy->command << ">");
-        if (proxy->issued) {
-            RAISE_ERROR("Attempt to issue the same proxy twice");
-        }
-        proxy->issued = true;
-        proxy->requestor_id = this->bus_node->node_id();
-        proxy->serial = this->next_request_serial++;
-        proxy->proxy_port = PortPool::get_port();
-        if (proxy->proxy_port == 0) {
-            RAISE_ERROR("No port is available to start bus command proxy");
-        }
+    lock_guard<mutex> semaphore(this->api_mutex);
+    LOG_DEBUG(bus_node->node_id() << " is issuing BUS command <" << proxy->command << ">");
+    if (proxy->issued) {
+        RAISE_ERROR("Attempt to issue the same proxy twice");
+    }
+    proxy->issued = true;
+    proxy->requestor_id = this->bus_node->node_id();
+    proxy->serial = this->next_request_serial++;
+    proxy->proxy_port = PortPool::get_port();
+    if (proxy->proxy_port == 0) {
+        RAISE_ERROR("No port is available to start bus command proxy");
+    } else {
         proxy->setup_proxy_node();
+        vector<string> args;
         args.push_back(proxy->requestor_id);
         args.push_back(to_string(proxy->serial));
         args.push_back(proxy->proxy_node->node_id());
@@ -101,18 +96,7 @@ void ServiceBus::issue_bus_command(shared_ptr<BusCommandProxy> proxy) {
         for (auto arg : proxy->args) {
             args.push_back(arg);
         }
-        command = proxy->command;
-        dispatch_locally = this->bus_node->get_ownership(command) == this->bus_node->node_id();
-        if (!dispatch_locally) {
-            this->bus_node->send_bus_command(command, args);
-        }
-    }
-
-    if (dispatch_locally) {
-        LOG_DEBUG(bus_node->node_id() << " is dispatching BUS command <" << command << "> locally");
-        shared_ptr<BusCommandMessage> message =
-            shared_ptr<BusCommandMessage>(new BusCommandMessage(command, args));
-        message->act(node);
+        this->bus_node->send_bus_command(proxy->command, args);
     }
 }
 
