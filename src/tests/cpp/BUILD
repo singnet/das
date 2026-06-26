@@ -1050,7 +1050,7 @@ cc_test(
     linkstatic = 1,
     deps = [
         "//agents/command_router:bus_command_router_processor",
-        "//agents/command_router/http_api:bus_command_router_proxy_client",
+        "//agents/command_router/http_api:bus_command_router_proxy_stream_poller",
         "//agents/command_router/http_api:command_execution",
         "//agents/command_router/http_api:command_router_http_api",
         "//agents/command_router/http_api:command_router_http_api_config",

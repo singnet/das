@@ -13,13 +13,13 @@ cc_library(
 )
 
 cc_library(
-    name = "bus_command_router_proxy_client",
-    srcs = ["BusCommandRouterProxyClient.cc"],
-    hdrs = ["BusCommandRouterProxyClient.h"],
+    name = "bus_command_router_proxy_stream_poller",
+    srcs = ["BusCommandRouterProxyStreamPoller.cc"],
+    hdrs = ["BusCommandRouterProxyStreamPoller.h"],
     includes = ["."],
     deps = [
-        "//agents/command_router:bus_command_router_proxy",
         "//agents:base_query_proxy",
+        "//agents/command_router:bus_command_router_proxy",
         "//commons:commons_lib",
     ],
 )
@@ -41,7 +41,7 @@ cc_library(
     hdrs = ["CommandRouterHttpAPI.h"],
     includes = ["."],
     deps = [
-        ":bus_command_router_proxy_client",
+        ":bus_command_router_proxy_stream_poller",
         ":command_execution",
         ":command_router_http_api_config",
         "//agents/command_router:bus_command_router_proxy",

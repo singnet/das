@@ -1,4 +1,4 @@
-#include "BusCommandRouterProxyClient.h"
+#include "BusCommandRouterProxyStreamPoller.h"
 
 #include "BaseQueryProxy.h"
 #include "Utils.h"
@@ -9,7 +9,8 @@ using namespace agents;
 
 namespace {
 
-void emit_chunk(const function<void(const vector<string>& chunk)>& on_chunk, vector<string>& chunk_data) {
+void emit_chunk(const function<void(const vector<string>& chunk)>& on_chunk,
+                vector<string>& chunk_data) {
     if (!chunk_data.empty() && on_chunk) {
         on_chunk(chunk_data);
         chunk_data.clear();
@@ -33,13 +34,14 @@ void append_answer_chunk(const shared_ptr<BusCommandRouterProxy>& router_proxy,
 
 }  // namespace
 
-bool command_router::poll_router_proxy_stream(const shared_ptr<BusCommandRouterProxy>& router_proxy,
-                                              const string& command_type,
-                                              size_t items_per_chunk,
-                                              const function<bool()>& should_abort,
-                                              const function<void(const vector<string>& chunk)>& on_chunk,
-                                              const function<void(const string& error)>& on_error,
-                                              const function<void()>& on_aborted) {
+bool BusCommandRouterProxyStreamPoller::poll_stream(
+    const shared_ptr<BusCommandRouterProxy>& router_proxy,
+    const string& command_type,
+    size_t items_per_chunk,
+    const function<bool()>& should_abort,
+    const function<void(const vector<string>& chunk)>& on_chunk,
+    const function<void(const string& error)>& on_error,
+    const function<void()>& on_aborted) {
     if (items_per_chunk == 0) {
         if (on_error) {
             on_error("items_per_chunk must be at least 1");

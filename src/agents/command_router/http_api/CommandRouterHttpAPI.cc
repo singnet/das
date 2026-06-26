@@ -5,7 +5,7 @@
 #include <sstream>
 
 #include "BusCommandRouterProxy.h"
-#include "BusCommandRouterProxyClient.h"
+#include "BusCommandRouterProxyStreamPoller.h"
 
 #define LOG_LEVEL INFO_LEVEL
 #include "Logger.h"
@@ -374,13 +374,13 @@ void CommandRouterHttpAPI::run_execution_inner(const shared_ptr<CommandExecution
         auto router_proxy = make_shared<BusCommandRouterProxy>(exec->command_type, router_arg);
         this->issuer_bus->issue_bus_command(router_proxy);
 
-        if (!poll_router_proxy_stream(router_proxy,
-                                      exec->command_type,
-                                      this->settings.stream_items_per_chunk,
-                                      should_abort,
-                                      on_chunk,
-                                      on_error,
-                                      on_aborted)) {
+        if (!BusCommandRouterProxyStreamPoller::poll_stream(router_proxy,
+                                                            exec->command_type,
+                                                            this->settings.stream_items_per_chunk,
+                                                            should_abort,
+                                                            on_chunk,
+                                                            on_error,
+                                                            on_aborted)) {
             return;
         }
 

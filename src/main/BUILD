@@ -32,8 +32,8 @@ cc_library(
     srcs = ["bus_node.cc"],
     deps = [
         "//agents/atomdb_broker:atomdb_broker_lib",
-        "//agents/command_router/http_api:command_router_http_api_singleton",
         "//agents/command_router:command_router_lib",
+        "//agents/command_router/http_api:command_router_http_api_singleton",
         "//commons:commons_lib",
         "//main/helpers:main_helper_processor_factory_lib",
     ],

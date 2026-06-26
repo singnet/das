@@ -7,7 +7,7 @@
 #include "BaseQueryProxy.h"
 #include "BusCommandRouterProcessor.h"
 #include "BusCommandRouterProxy.h"
-#include "BusCommandRouterProxyClient.h"
+#include "BusCommandRouterProxyStreamPoller.h"
 #include "CommandExecution.h"
 #include "CommandRouterHttpAPI.h"
 #include "CommandRouterHttpAPIConfig.h"
@@ -257,8 +257,8 @@ TEST(CommandRouterHttpAPIConfigTest, from_config_loads_http_api_fields) {
 }
 
 TEST(CommandRouterHttpAPIConfigTest, from_config_uses_explicit_bus_client_endpoint) {
-    const auto config = CommandRouterHttpAPIConfig::from_config(make_command_router_config(
-        {{"http_api", {{"bus_client_endpoint", "localhost:50000"}}}}));
+    const auto config = CommandRouterHttpAPIConfig::from_config(
+        make_command_router_config({{"http_api", {{"bus_client_endpoint", "localhost:50000"}}}}));
 
     EXPECT_EQ(config.issuer_bus_endpoint, "localhost:50000");
 }
@@ -270,15 +270,15 @@ TEST(CommandRouterHttpAPIConfigTest, from_config_rejects_zero_stream_items_per_c
 }
 
 TEST(CommandRouterHttpAPIConfigTest, from_config_rejects_invalid_http_api_endpoint) {
-    EXPECT_THROW(CommandRouterHttpAPIConfig::from_config(make_command_router_config(
-                     {{"http_api", {{"endpoint", "not-a-valid-endpoint"}}}})),
+    EXPECT_THROW(CommandRouterHttpAPIConfig::from_config(
+                     make_command_router_config({{"http_api", {{"endpoint", "not-a-valid-endpoint"}}}})),
                  runtime_error);
 }
 
 // -----------------------------------------------------------------------------
-// BusCommandRouterProxyClient (HTTP stream polling)
+// BusCommandRouterProxyStreamPoller (HTTP stream polling)
 
-TEST(BusCommandRouterProxyClientTest, stream_emits_one_item_per_chunk_by_default) {
+TEST(BusCommandRouterProxyStreamPollerTest, stream_emits_one_item_per_chunk_by_default) {
     auto proxy = make_shared<StreamTestProxy>();
     proxy->mark_routed();
     proxy->enqueue_answers(5);
@@ -287,14 +287,15 @@ TEST(BusCommandRouterProxyClientTest, stream_emits_one_item_per_chunk_by_default
     vector<vector<string>> chunks;
     auto on_chunk = [&](const vector<string>& chunk) { chunks.push_back(chunk); };
 
-    ASSERT_TRUE(poll_router_proxy_stream(proxy, "query", 1, nullptr, on_chunk, nullptr, nullptr));
+    ASSERT_TRUE(BusCommandRouterProxyStreamPoller::poll_stream(
+        proxy, "query", 1, nullptr, on_chunk, nullptr, nullptr));
     EXPECT_EQ(chunks.size(), 5u);
     EXPECT_EQ(chunk_sizes(chunks), (vector<size_t>{1, 1, 1, 1, 1}));
     EXPECT_EQ(total_items(chunks), 5u);
     EXPECT_NE(chunks.front().front().find("answer-0"), string::npos);
 }
 
-TEST(BusCommandRouterProxyClientTest, stream_groups_items_per_chunk) {
+TEST(BusCommandRouterProxyStreamPollerTest, stream_groups_items_per_chunk) {
     auto proxy = make_shared<StreamTestProxy>();
     proxy->mark_routed();
     proxy->enqueue_answers(7);
@@ -303,13 +304,14 @@ TEST(BusCommandRouterProxyClientTest, stream_groups_items_per_chunk) {
     vector<vector<string>> chunks;
     auto on_chunk = [&](const vector<string>& chunk) { chunks.push_back(chunk); };
 
-    ASSERT_TRUE(poll_router_proxy_stream(proxy, "query", 3, nullptr, on_chunk, nullptr, nullptr));
+    ASSERT_TRUE(BusCommandRouterProxyStreamPoller::poll_stream(
+        proxy, "query", 3, nullptr, on_chunk, nullptr, nullptr));
     EXPECT_EQ(chunks.size(), 3u);
     EXPECT_EQ(chunk_sizes(chunks), (vector<size_t>{3, 3, 1}));
     EXPECT_EQ(total_items(chunks), 7u);
 }
 
-TEST(BusCommandRouterProxyClientTest, rejects_zero_items_per_chunk) {
+TEST(BusCommandRouterProxyStreamPollerTest, rejects_zero_items_per_chunk) {
     auto proxy = make_shared<StreamTestProxy>();
     proxy->mark_routed();
     proxy->enqueue_answers(1);
@@ -318,18 +320,24 @@ TEST(BusCommandRouterProxyClientTest, rejects_zero_items_per_chunk) {
     string error_message;
     auto on_error = [&](const string& message) { error_message = message; };
 
-    EXPECT_FALSE(poll_router_proxy_stream(proxy, "query", 0, nullptr, nullptr, on_error, nullptr));
+    EXPECT_FALSE(BusCommandRouterProxyStreamPoller::poll_stream(
+        proxy, "query", 0, nullptr, nullptr, on_error, nullptr));
     EXPECT_NE(error_message.find("items_per_chunk"), string::npos);
 }
 
-TEST(BusCommandRouterProxyClientTest, get_and_set_emit_single_chunk) {
+TEST(BusCommandRouterProxyStreamPollerTest, get_and_set_emit_single_chunk) {
     auto get_proxy = make_shared<StreamTestProxy>();
     get_proxy->from_remote_peer(BusCommandRouterProxy::PARAMS_RESPONSE, {"params-body"});
 
     vector<vector<string>> get_chunks;
-    ASSERT_TRUE(poll_router_proxy_stream(
-        get_proxy, "get", 1, nullptr, [&](const vector<string>& chunk) { get_chunks.push_back(chunk); },
-        nullptr, nullptr));
+    ASSERT_TRUE(BusCommandRouterProxyStreamPoller::poll_stream(
+        get_proxy,
+        "get",
+        1,
+        nullptr,
+        [&](const vector<string>& chunk) { get_chunks.push_back(chunk); },
+        nullptr,
+        nullptr));
     ASSERT_EQ(get_chunks.size(), 1u);
     EXPECT_EQ(get_chunks[0], vector<string>{"params-body"});
 
@@ -337,9 +345,14 @@ TEST(BusCommandRouterProxyClientTest, get_and_set_emit_single_chunk) {
     set_proxy->from_remote_peer(BusCommandRouterProxy::SET_PARAM_ACK, {"ack-body"});
 
     vector<vector<string>> set_chunks;
-    ASSERT_TRUE(poll_router_proxy_stream(
-        set_proxy, "set", 1, nullptr, [&](const vector<string>& chunk) { set_chunks.push_back(chunk); },
-        nullptr, nullptr));
+    ASSERT_TRUE(BusCommandRouterProxyStreamPoller::poll_stream(
+        set_proxy,
+        "set",
+        1,
+        nullptr,
+        [&](const vector<string>& chunk) { set_chunks.push_back(chunk); },
+        nullptr,
+        nullptr));
     ASSERT_EQ(set_chunks.size(), 1u);
     EXPECT_EQ(set_chunks[0], vector<string>{"ack-body"});
 }
