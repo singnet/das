@@ -5,13 +5,18 @@
 #include <sstream>
 
 #define LOG_LEVEL INFO_LEVEL
+#include "BaseQueryProxy.h"
+#include "BusCommandRouterProxy.h"
 #include "Logger.h"
+#include "ServiceBusSingleton.h"
 #include "Utils.h"
 #include "expression_hasher.h"
 
 using namespace command_router;
 using namespace commons;
 using namespace processor;
+using namespace agents;
+using namespace service_bus;
 
 using json = nlohmann::json;
 
@@ -349,32 +354,109 @@ shared_ptr<CommandExecution> CommandRouterHttpAPI::find_execution(const string& 
 }
 
 void CommandRouterHttpAPI::run_execution_inner(const shared_ptr<CommandExecution>& exec) {
-    // POC code to simulate event streaming.
-
-    const int TOTAL = 1000;
-    const int CHUNK_SIZE = 10;
-    auto started_at = Utils::get_current_time_millis();
+    const auto started_at = Utils::get_current_time_millis();
     int seq = 0;
 
-    for (int i = 0; i < TOTAL; i += CHUNK_SIZE) {
-        {
-            lock_guard<mutex> lock(exec->mtx);
-            if (exec->cancel_requested || this->shutting_down.load()) {
-                exec->mark_aborted();
-                LOG_INFO("CommandRouter HTTP API execution aborted id=" << exec->execution_id);
+    auto should_stop = [&]() -> bool {
+        lock_guard<mutex> lock(exec->mtx);
+        return exec->cancel_requested || this->shutting_down.load();
+    };
+
+    auto abort_execution = [&](BusCommandRouterProxy& router_proxy) {
+        router_proxy.abort();
+        lock_guard<mutex> lock(exec->mtx);
+        exec->mark_aborted();
+        LOG_INFO("CommandRouter HTTP API execution aborted id=" << exec->execution_id);
+    };
+
+    auto mark_proxy_error = [&](BusCommandRouterProxy& router_proxy) {
+        lock_guard<mutex> lock(exec->mtx);
+        exec->mark_error(router_proxy.error_message);
+    };
+
+    string router_arg = exec->command_text;
+    Utils::replace_all(router_arg, "%", "$");
+
+    auto proxy = make_shared<BusCommandRouterProxy>(exec->command_type, router_arg);
+    auto router_proxy = dynamic_pointer_cast<BusCommandRouterProxy>(proxy);
+    ServiceBusSingleton::get_instance()->issue_bus_command(proxy);
+
+    auto finished_or_error = [&]() {
+        return router_proxy->finished() || router_proxy->error_flag;
+    };
+
+    const string& command = exec->command_type;
+
+    if (command == "get") {
+        while (router_proxy->params_response.empty() && !finished_or_error()) {
+            if (should_stop()) {
+                abort_execution(*router_proxy);
                 return;
             }
+            Utils::sleep(100);
         }
-
-        Utils::sleep(200);
-
-        vector<string> chunk_data;
-        for (int k = i; k < min(i + CHUNK_SIZE, TOTAL); ++k) {
-            chunk_data.push_back("result-" + std::to_string(k));
+        if (router_proxy->error_flag) {
+            mark_proxy_error(*router_proxy);
+            return;
         }
-
         lock_guard<mutex> lock(exec->mtx);
-        exec->publish_chunk(++seq, chunk_data);
+        exec->publish_chunk(++seq, {router_proxy->params_response});
+    } else if (command == "set") {
+        while (router_proxy->set_param_ack.empty() && !finished_or_error()) {
+            if (should_stop()) {
+                abort_execution(*router_proxy);
+                return;
+            }
+            Utils::sleep(100);
+        }
+        if (router_proxy->error_flag) {
+            mark_proxy_error(*router_proxy);
+            return;
+        }
+        lock_guard<mutex> lock(exec->mtx);
+        exec->publish_chunk(++seq, {router_proxy->set_param_ack});
+    } else if (command == "query" || command == "evolution") {
+        while (!router_proxy->routed_flag && !finished_or_error()) {
+            if (should_stop()) {
+                abort_execution(*router_proxy);
+                return;
+            }
+            Utils::sleep(100);
+        }
+        if (router_proxy->error_flag) {
+            mark_proxy_error(*router_proxy);
+            return;
+        }
+
+        bool use_metta_as_query_tokens =
+            router_proxy->parameters.get_or<bool>(BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS, true);
+
+        while (!router_proxy->finished()) {
+            if (should_stop()) {
+                abort_execution(*router_proxy);
+                return;
+            }
+
+            vector<string> chunk_data;
+            shared_ptr<QueryAnswer> answer;
+            while ((answer = router_proxy->pop()) != nullptr) {
+                chunk_data.push_back(answer->to_string(use_metta_as_query_tokens));
+            }
+
+            if (!chunk_data.empty()) {
+                lock_guard<mutex> lock(exec->mtx);
+                exec->publish_chunk(++seq, chunk_data);
+            }
+            Utils::sleep(100);
+        }
+        if (router_proxy->error_flag) {
+            mark_proxy_error(*router_proxy);
+            return;
+        }
+    } else {
+        lock_guard<mutex> lock(exec->mtx);
+        exec->mark_error("Unknown command_type: " + command);
+        return;
     }
 
     const auto duration_ms = Utils::get_current_time_millis() - started_at;

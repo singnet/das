@@ -74,10 +74,12 @@ cc_library(
     hdrs = ["CommandRouterHttpAPI.h"],
     includes = ["."],
     deps = [
+        ":bus_command_router_proxy",
         ":command_execution",
         "//commons:commons_lib",
         "//commons/processor:processor_lib",
         "//hasher:hasher_lib",
+        "//service_bus:service_bus_singleton",
     ],
 )
 
