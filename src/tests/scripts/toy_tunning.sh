@@ -22,7 +22,7 @@ for ATTENTION_FOCUS_STRICTNESS in "${ATTENTION_FOCUS_STRICTNESS_LIST[@]}"; do
             for SPREAD in "${SPREAD_LIST[@]}"; do
                 ELITISM="${selection_pair%%:*}"
                 SELECTION="${selection_pair#*:}"
-                command_line=(./src/tests/scripts/run_toy.sh $KB $CONTEXT_TAG "$TARGET_PREDICATE" "$TARGET_CONCEPT" $RENT $SPREAD $SPREAD $ELITISM $SELECTION $ATTENTION_FOCUS_STRICTNESS)
+                command_line=(./src/tests/scripts/run_evaluation_evolution.sh $KB $CONTEXT_TAG "$TARGET_PREDICATE" "$TARGET_CONCEPT" $RENT $SPREAD $SPREAD $ELITISM $SELECTION $ATTENTION_FOCUS_STRICTNESS)
                 for LOG_FILE in "${log_files[@]}"; do
                     echo "----------------------------------------------------------------------------------------------------" >> $LOG_FILE
                     echo "${command_line[@]}" >> $LOG_FILE
