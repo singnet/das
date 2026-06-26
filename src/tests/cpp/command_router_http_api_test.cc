@@ -2,11 +2,23 @@
 #include <mutex>
 #include <nlohmann/json.hpp>
 
+#include "AtomDBSingleton.h"
+#include "BaseProxy.h"
+#include "BaseQueryProxy.h"
+#include "BusCommandRouterProcessor.h"
+#include "BusCommandRouterProxy.h"
+#include "BusCommandRouterProxyClient.h"
 #include "CommandExecution.h"
 #include "CommandRouterHttpAPI.h"
+#include "CommandRouterHttpAPIConfig.h"
 #include "CommandRouterHttpAPISingleton.h"
 #include "DedicatedThread.h"
 #include "JsonConfig.h"
+#include "PortPool.h"
+#include "QueryAnswer.h"
+#include "ServiceBus.h"
+#include "TestAtomDBJsonConfig.h"
+#include "TestSystemParams.h"
 #include "gtest/gtest.h"
 #include "httplib.h"
 #include "processor/ThreadPool.h"
@@ -14,6 +26,11 @@
 using namespace command_router;
 using namespace processor;
 using namespace commons;
+using namespace agents;
+using namespace atomdb;
+using namespace query_engine;
+using namespace service_bus;
+using das_test::init_test_system_parameters_singleton;
 using json = nlohmann::json;
 
 namespace {
@@ -29,11 +46,32 @@ json make_execution_body(const string& command_type = "query",
     return {{"command_type", command_type}, {"command_text", command_text}};
 }
 
+/**
+ * HTTP API fixture with an in-process command router bus so executions reach "running".
+ */
 class HttpAPIServerFixture {
    public:
     void start(int port, const HttpAPISettings& settings = {}, unsigned int num_threads = 8) {
+        if (!service_bus_statics_initialized) {
+            ServiceBus::initialize_statics({ServiceBus::BUS_COMMAND_ROUTER}, 49500, 49999);
+            service_bus_statics_initialized = true;
+        }
+
+        const unsigned int router_port = PortPool::get_port();
+        const unsigned int issuer_port = PortPool::get_port();
+        const string router_id = TEST_HOST + ":" + std::to_string(router_port);
+        const string issuer_id = TEST_HOST + ":" + std::to_string(issuer_port);
+
+        this->router_bus = make_shared<ServiceBus>(router_id);
+        this->router_bus->register_processor(make_shared<BusCommandRouterProcessor>());
+        Utils::sleep(500);
+
+        this->issuer_bus = make_shared<ServiceBus>(issuer_id, router_id);
+        Utils::sleep(500);
+
         this->thread_pool = make_shared<ThreadPool>("test_thread_pool", num_threads);
-        this->api = make_shared<CommandRouterHttpAPI>(TEST_HOST, port, this->thread_pool, settings);
+        this->api = make_shared<CommandRouterHttpAPI>(
+            TEST_HOST, port, this->thread_pool, settings, this->issuer_bus);
         this->api_thread = make_shared<DedicatedThread>("test_api_thread", this->api.get());
         CommandRouterHttpAPI::initialize(this->api, {this->api_thread, this->thread_pool});
         Utils::sleep(300);
@@ -42,7 +80,10 @@ class HttpAPIServerFixture {
     void stop() {
         if (this->api != nullptr) {
             this->api->stop();
+            this->api = nullptr;
         }
+        this->issuer_bus = nullptr;
+        this->router_bus = nullptr;
     }
 
     httplib::Client make_client(int port) const {
@@ -53,10 +94,70 @@ class HttpAPIServerFixture {
     }
 
    private:
+    inline static bool service_bus_statics_initialized = false;
+    shared_ptr<ServiceBus> router_bus;
+    shared_ptr<ServiceBus> issuer_bus;
     shared_ptr<ThreadPool> thread_pool;
     shared_ptr<CommandRouterHttpAPI> api;
     shared_ptr<DedicatedThread> api_thread;
 };
+
+class CommandRouterStreamTestEnvironment : public ::testing::Environment {
+   public:
+    void SetUp() override {
+        AtomDBSingleton::init(test_atomdb_json_config());
+        init_test_system_parameters_singleton();
+    }
+};
+
+class StreamTestProxy : public BusCommandRouterProxy {
+   public:
+    StreamTestProxy() : BusCommandRouterProxy("query", "(Similarity %V1 %V2)") {}
+
+    void enqueue_answers(unsigned int count) {
+        vector<string> bundle;
+        for (unsigned int i = 0; i < count; ++i) {
+            QueryAnswer answer("answer-" + std::to_string(i), 0.0);
+            bundle.push_back(answer.tokenize());
+        }
+        this->from_remote_peer(BaseQueryProxy::ANSWER_BUNDLE, bundle);
+    }
+
+    void mark_routed() { this->from_remote_peer(BusCommandRouterProxy::ROUTED, {}); }
+
+    void mark_finished() { this->from_remote_peer(BaseProxy::FINISHED, {}); }
+};
+
+size_t total_items(const vector<vector<string>>& chunks) {
+    size_t count = 0;
+    for (const auto& chunk : chunks) {
+        count += chunk.size();
+    }
+    return count;
+}
+
+vector<size_t> chunk_sizes(const vector<vector<string>>& chunks) {
+    vector<size_t> sizes;
+    for (const auto& chunk : chunks) {
+        sizes.push_back(chunk.size());
+    }
+    return sizes;
+}
+
+JsonConfig make_command_router_config(const json& overrides = json::object()) {
+    json root = {{"endpoint", "localhost:40008"},
+                 {"ports_range", "48000:48999"},
+                 {"http_api",
+                  {{"endpoint", "localhost:40009"},
+                   {"thread_pool_size", 8},
+                   {"max_concurrent_executions", 50},
+                   {"max_queued_executions", 200},
+                   {"max_events_per_execution", 5000},
+                   {"stream_items_per_chunk", 25},
+                   {"execution_retention_ms", 123456}}}};
+    root.merge_patch(overrides);
+    return JsonConfig(root);
+}
 
 }  // namespace
 
@@ -135,6 +236,112 @@ TEST(CommandExecutionTest, event_buffer_overflow_raises) {
     exec.mark_running();
     exec.publish_chunk(1, {"a"});
     EXPECT_THROW(exec.publish_chunk(2, {"b", "c"}), runtime_error);
+}
+
+// -----------------------------------------------------------------------------
+// CommandRouterHttpAPIConfig
+
+TEST(CommandRouterHttpAPIConfigTest, from_config_loads_http_api_fields) {
+    const auto config = CommandRouterHttpAPIConfig::from_config(make_command_router_config());
+
+    EXPECT_EQ(config.host, "localhost");
+    EXPECT_EQ(config.port, 40009);
+    EXPECT_EQ(config.thread_pool_size, 8u);
+    EXPECT_EQ(config.router_bus_endpoint, "localhost:40008");
+    EXPECT_EQ(config.issuer_bus_endpoint, "localhost:40018");
+    EXPECT_EQ(config.settings.max_concurrent_executions, 50u);
+    EXPECT_EQ(config.settings.max_queued_executions, 200u);
+    EXPECT_EQ(config.settings.max_events_per_execution, 5000u);
+    EXPECT_EQ(config.settings.execution_retention_ms, 123456);
+    EXPECT_EQ(config.settings.stream_items_per_chunk, 25u);
+}
+
+TEST(CommandRouterHttpAPIConfigTest, from_config_uses_explicit_bus_client_endpoint) {
+    const auto config = CommandRouterHttpAPIConfig::from_config(make_command_router_config(
+        {{"http_api", {{"bus_client_endpoint", "localhost:50000"}}}}));
+
+    EXPECT_EQ(config.issuer_bus_endpoint, "localhost:50000");
+}
+
+TEST(CommandRouterHttpAPIConfigTest, from_config_rejects_zero_stream_items_per_chunk) {
+    EXPECT_THROW(CommandRouterHttpAPIConfig::from_config(
+                     make_command_router_config({{"http_api", {{"stream_items_per_chunk", 0}}}})),
+                 runtime_error);
+}
+
+TEST(CommandRouterHttpAPIConfigTest, from_config_rejects_invalid_http_api_endpoint) {
+    EXPECT_THROW(CommandRouterHttpAPIConfig::from_config(make_command_router_config(
+                     {{"http_api", {{"endpoint", "not-a-valid-endpoint"}}}})),
+                 runtime_error);
+}
+
+// -----------------------------------------------------------------------------
+// BusCommandRouterProxyClient (HTTP stream polling)
+
+TEST(BusCommandRouterProxyClientTest, stream_emits_one_item_per_chunk_by_default) {
+    auto proxy = make_shared<StreamTestProxy>();
+    proxy->mark_routed();
+    proxy->enqueue_answers(5);
+    proxy->mark_finished();
+
+    vector<vector<string>> chunks;
+    auto on_chunk = [&](const vector<string>& chunk) { chunks.push_back(chunk); };
+
+    ASSERT_TRUE(poll_router_proxy_stream(proxy, "query", 1, nullptr, on_chunk, nullptr, nullptr));
+    EXPECT_EQ(chunks.size(), 5u);
+    EXPECT_EQ(chunk_sizes(chunks), (vector<size_t>{1, 1, 1, 1, 1}));
+    EXPECT_EQ(total_items(chunks), 5u);
+    EXPECT_NE(chunks.front().front().find("answer-0"), string::npos);
+}
+
+TEST(BusCommandRouterProxyClientTest, stream_groups_items_per_chunk) {
+    auto proxy = make_shared<StreamTestProxy>();
+    proxy->mark_routed();
+    proxy->enqueue_answers(7);
+    proxy->mark_finished();
+
+    vector<vector<string>> chunks;
+    auto on_chunk = [&](const vector<string>& chunk) { chunks.push_back(chunk); };
+
+    ASSERT_TRUE(poll_router_proxy_stream(proxy, "query", 3, nullptr, on_chunk, nullptr, nullptr));
+    EXPECT_EQ(chunks.size(), 3u);
+    EXPECT_EQ(chunk_sizes(chunks), (vector<size_t>{3, 3, 1}));
+    EXPECT_EQ(total_items(chunks), 7u);
+}
+
+TEST(BusCommandRouterProxyClientTest, rejects_zero_items_per_chunk) {
+    auto proxy = make_shared<StreamTestProxy>();
+    proxy->mark_routed();
+    proxy->enqueue_answers(1);
+    proxy->mark_finished();
+
+    string error_message;
+    auto on_error = [&](const string& message) { error_message = message; };
+
+    EXPECT_FALSE(poll_router_proxy_stream(proxy, "query", 0, nullptr, nullptr, on_error, nullptr));
+    EXPECT_NE(error_message.find("items_per_chunk"), string::npos);
+}
+
+TEST(BusCommandRouterProxyClientTest, get_and_set_emit_single_chunk) {
+    auto get_proxy = make_shared<StreamTestProxy>();
+    get_proxy->from_remote_peer(BusCommandRouterProxy::PARAMS_RESPONSE, {"params-body"});
+
+    vector<vector<string>> get_chunks;
+    ASSERT_TRUE(poll_router_proxy_stream(
+        get_proxy, "get", 1, nullptr, [&](const vector<string>& chunk) { get_chunks.push_back(chunk); },
+        nullptr, nullptr));
+    ASSERT_EQ(get_chunks.size(), 1u);
+    EXPECT_EQ(get_chunks[0], vector<string>{"params-body"});
+
+    auto set_proxy = make_shared<StreamTestProxy>();
+    set_proxy->from_remote_peer(BusCommandRouterProxy::SET_PARAM_ACK, {"ack-body"});
+
+    vector<vector<string>> set_chunks;
+    ASSERT_TRUE(poll_router_proxy_stream(
+        set_proxy, "set", 1, nullptr, [&](const vector<string>& chunk) { set_chunks.push_back(chunk); },
+        nullptr, nullptr));
+    ASSERT_EQ(set_chunks.size(), 1u);
+    EXPECT_EQ(set_chunks[0], vector<string>{"ack-body"});
 }
 
 // -----------------------------------------------------------------------------
@@ -369,5 +576,6 @@ TEST_F(CommandRouterHttpAPISingletonTest, init_after_provide_throws) {
 
 int main(int argc, char** argv) {
     ::testing::InitGoogleTest(&argc, argv);
+    ::testing::AddGlobalTestEnvironment(new CommandRouterStreamTestEnvironment());
     return RUN_ALL_TESTS();
 }

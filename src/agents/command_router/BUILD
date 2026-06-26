@@ -28,6 +28,29 @@ cc_library(
 )
 
 cc_library(
+    name = "bus_command_router_proxy_client",
+    srcs = ["BusCommandRouterProxyClient.cc"],
+    hdrs = ["BusCommandRouterProxyClient.h"],
+    includes = ["."],
+    deps = [
+        ":bus_command_router_proxy",
+        "//agents:base_query_proxy",
+        "//commons:commons_lib",
+    ],
+)
+
+cc_library(
+    name = "command_router_http_api_config",
+    srcs = ["CommandRouterHttpAPIConfig.cc"],
+    hdrs = ["CommandRouterHttpAPIConfig.h"],
+    includes = ["."],
+    deps = [
+        ":command_execution",
+        "//commons:commons_lib",
+    ],
+)
+
+cc_library(
     name = "evolution_metta_parser",
     srcs = ["EvolutionMettaParser.cc"],
     hdrs = ["EvolutionMettaParser.h"],
@@ -47,7 +70,6 @@ cc_library(
     includes = ["."],
     deps = [
         ":bus_command_router_proxy",
-        ":command_router_http_api_singleton",
         ":evolution_metta_parser",
         "//agents/evolution:query_evolution_proxy",
         "//agents/query_engine:pattern_matching_query_proxy",
@@ -75,11 +97,13 @@ cc_library(
     includes = ["."],
     deps = [
         ":bus_command_router_proxy",
+        ":bus_command_router_proxy_client",
         ":command_execution",
+        ":command_router_http_api_config",
         "//commons:commons_lib",
         "//commons/processor:processor_lib",
         "//hasher:hasher_lib",
-        "//service_bus:service_bus_singleton",
+        "//service_bus:service_bus_lib",
     ],
 )
 
@@ -90,7 +114,8 @@ cc_library(
     includes = ["."],
     deps = [
         ":command_router_http_api",
-        "//commons:commons_lib",
+        ":command_router_http_api_config",
         "//commons/processor:processor_lib",
+        "//service_bus:service_bus_lib",
     ],
 )

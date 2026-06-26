@@ -4,43 +4,24 @@
 #include <cctype>
 #include <sstream>
 
-#define LOG_LEVEL INFO_LEVEL
-#include "BaseQueryProxy.h"
 #include "BusCommandRouterProxy.h"
+#include "BusCommandRouterProxyClient.h"
+
+#define LOG_LEVEL INFO_LEVEL
 #include "Logger.h"
-#include "ServiceBusSingleton.h"
 #include "Utils.h"
 #include "expression_hasher.h"
 
 using namespace command_router;
 using namespace commons;
 using namespace processor;
-using namespace agents;
 using namespace service_bus;
+using namespace agents;
 
 using json = nlohmann::json;
 
 const unordered_set<string> CommandRouterHttpAPI::VALID_COMMAND_TYPES = {
     "query", "evolution", "get", "set"};
-
-namespace {
-
-HttpAPISettings load_http_api_settings(const JsonConfig& command_router_config) {
-    HttpAPISettings settings;
-    settings.max_concurrent_executions =
-        command_router_config.at_path("http_api.max_concurrent_executions")
-            .get_or<size_t>(settings.max_concurrent_executions);
-    settings.max_queued_executions = command_router_config.at_path("http_api.max_queued_executions")
-                                         .get_or<size_t>(settings.max_queued_executions);
-    settings.max_events_per_execution =
-        command_router_config.at_path("http_api.max_events_per_execution")
-            .get_or<size_t>(settings.max_events_per_execution);
-    settings.execution_retention_ms = command_router_config.at_path("http_api.execution_retention_ms")
-                                          .get_or<long long>(settings.execution_retention_ms);
-    return settings;
-}
-
-}  // namespace
 
 // -------------------------------------------------------------------------------------------------
 // Constructors, destructors
@@ -48,11 +29,13 @@ HttpAPISettings load_http_api_settings(const JsonConfig& command_router_config) 
 CommandRouterHttpAPI::CommandRouterHttpAPI(const string& host,
                                            int port,
                                            shared_ptr<processor::ThreadPool> thread_pool,
-                                           HttpAPISettings settings)
+                                           HttpAPISettings settings,
+                                           shared_ptr<ServiceBus> issuer_bus)
     : Processor("command_router_http_api"),
       host(host),
       port(port),
       thread_pool(thread_pool),
+      issuer_bus(issuer_bus),
       settings(std::move(settings)) {
     if (this->thread_pool == nullptr) {
         RAISE_ERROR("CommandRouterHttpAPI requires a non-null thread pool");
@@ -73,10 +56,6 @@ void CommandRouterHttpAPI::initialize(shared_ptr<CommandRouterHttpAPI> instance,
     instance->start();
     LOG_INFO("CommandRouter HTTP API"
              << " listening on " << instance->host << ":" << instance->port);
-}
-
-HttpAPISettings CommandRouterHttpAPI::settings_from_config(const JsonConfig& command_router_config) {
-    return load_http_api_settings(command_router_config);
 }
 
 bool CommandRouterHttpAPI::thread_one_step() {
@@ -354,118 +333,61 @@ shared_ptr<CommandExecution> CommandRouterHttpAPI::find_execution(const string& 
 }
 
 void CommandRouterHttpAPI::run_execution_inner(const shared_ptr<CommandExecution>& exec) {
+    if (this->issuer_bus == nullptr) {
+        lock_guard<mutex> lock(exec->mtx);
+        exec->mark_error("Issuer ServiceBus is not configured for command execution");
+        return;
+    }
+
     const auto started_at = Utils::get_current_time_millis();
     int seq = 0;
+    int received_count = 0;
 
-    auto should_stop = [&]() -> bool {
+    auto should_abort = [&]() {
         lock_guard<mutex> lock(exec->mtx);
         return exec->cancel_requested || this->shutting_down.load();
     };
-
-    auto abort_execution = [&](BusCommandRouterProxy& router_proxy) {
-        router_proxy.abort();
+    auto on_chunk = [&](const vector<string>& chunk) {
+        lock_guard<mutex> lock(exec->mtx);
+        received_count += static_cast<int>(chunk.size());
+        exec->publish_chunk(++seq, chunk);
+    };
+    auto on_error = [&](const string& message) {
+        lock_guard<mutex> lock(exec->mtx);
+        exec->mark_error(message);
+    };
+    auto on_aborted = [&]() {
         lock_guard<mutex> lock(exec->mtx);
         exec->mark_aborted();
         LOG_INFO("CommandRouter HTTP API execution aborted id=" << exec->execution_id);
     };
-
-    auto mark_proxy_error = [&](BusCommandRouterProxy& router_proxy) {
+    auto on_complete = [&](long long duration_ms, int total_items) {
         lock_guard<mutex> lock(exec->mtx);
-        exec->mark_error(router_proxy.error_message);
+        exec->mark_completed(duration_ms, total_items);
+        LOG_INFO("CommandRouter HTTP API execution completed id="
+                 << exec->execution_id << " duration_ms=" << duration_ms << " items=" << total_items);
     };
 
-    string router_arg = exec->command_text;
-    Utils::replace_all(router_arg, "%", "$");
+    try {
+        string router_arg = exec->command_text;
+        Utils::replace_all(router_arg, "%", "$");
+        auto router_proxy = make_shared<BusCommandRouterProxy>(exec->command_type, router_arg);
+        this->issuer_bus->issue_bus_command(router_proxy);
 
-    auto proxy = make_shared<BusCommandRouterProxy>(exec->command_type, router_arg);
-    auto router_proxy = dynamic_pointer_cast<BusCommandRouterProxy>(proxy);
-    ServiceBusSingleton::get_instance()->issue_bus_command(proxy);
-
-    auto finished_or_error = [&]() {
-        return router_proxy->finished() || router_proxy->error_flag;
-    };
-
-    const string& command = exec->command_type;
-
-    if (command == "get") {
-        while (router_proxy->params_response.empty() && !finished_or_error()) {
-            if (should_stop()) {
-                abort_execution(*router_proxy);
-                return;
-            }
-            Utils::sleep(100);
-        }
-        if (router_proxy->error_flag) {
-            mark_proxy_error(*router_proxy);
-            return;
-        }
-        lock_guard<mutex> lock(exec->mtx);
-        exec->publish_chunk(++seq, {router_proxy->params_response});
-    } else if (command == "set") {
-        while (router_proxy->set_param_ack.empty() && !finished_or_error()) {
-            if (should_stop()) {
-                abort_execution(*router_proxy);
-                return;
-            }
-            Utils::sleep(100);
-        }
-        if (router_proxy->error_flag) {
-            mark_proxy_error(*router_proxy);
-            return;
-        }
-        lock_guard<mutex> lock(exec->mtx);
-        exec->publish_chunk(++seq, {router_proxy->set_param_ack});
-    } else if (command == "query" || command == "evolution") {
-        while (!router_proxy->routed_flag && !finished_or_error()) {
-            if (should_stop()) {
-                abort_execution(*router_proxy);
-                return;
-            }
-            Utils::sleep(100);
-        }
-        if (router_proxy->error_flag) {
-            mark_proxy_error(*router_proxy);
+        if (!poll_router_proxy_stream(router_proxy,
+                                      exec->command_type,
+                                      this->settings.stream_items_per_chunk,
+                                      should_abort,
+                                      on_chunk,
+                                      on_error,
+                                      on_aborted)) {
             return;
         }
 
-        bool use_metta_as_query_tokens =
-            router_proxy->parameters.get_or<bool>(BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS, true);
-
-        while (!router_proxy->finished()) {
-            if (should_stop()) {
-                abort_execution(*router_proxy);
-                return;
-            }
-
-            vector<string> chunk_data;
-            shared_ptr<QueryAnswer> answer;
-            while ((answer = router_proxy->pop()) != nullptr) {
-                chunk_data.push_back(answer->to_string(use_metta_as_query_tokens));
-            }
-
-            if (!chunk_data.empty()) {
-                lock_guard<mutex> lock(exec->mtx);
-                exec->publish_chunk(++seq, chunk_data);
-            }
-            Utils::sleep(100);
-        }
-        if (router_proxy->error_flag) {
-            mark_proxy_error(*router_proxy);
-            return;
-        }
-    } else {
-        lock_guard<mutex> lock(exec->mtx);
-        exec->mark_error("Unknown command_type: " + command);
-        return;
+        on_complete(Utils::get_current_time_millis() - started_at, received_count);
+    } catch (const exception& e) {
+        on_error(e.what());
     }
-
-    const auto duration_ms = Utils::get_current_time_millis() - started_at;
-    lock_guard<mutex> lock(exec->mtx);
-    exec->mark_completed(duration_ms, exec->received_count);
-
-    LOG_INFO("CommandRouter HTTP API execution completed id=" << exec->execution_id
-                                                              << " duration_ms=" << duration_ms
-                                                              << " items=" << exec->received_count);
 }
 
 void CommandRouterHttpAPI::run_execution(const shared_ptr<CommandExecution>& exec) {

@@ -10,26 +10,21 @@
 #include <vector>
 
 #include "CommandExecution.h"
+#include "CommandRouterHttpAPIConfig.h"
 #include "DedicatedThread.h"
-#include "JsonConfig.h"
 #include "Processor.h"
+#include "ServiceBus.h"
 #include "httplib.h"
 #include "nlohmann/json.hpp"
 #include "processor/ThreadPool.h"
 
 using namespace std;
 using namespace commons;
+using namespace service_bus;
 
 using json = nlohmann::json;
 
 namespace command_router {
-
-struct HttpAPISettings {
-    size_t max_concurrent_executions = 100;
-    size_t max_queued_executions = 500;
-    size_t max_events_per_execution = CommandExecution::DEFAULT_MAX_EVENTS;
-    long long execution_retention_ms = 15 * 60 * 1000;
-};
 
 /**
  * @brief HTTP + WebSocket server for asynchronous command execution.
@@ -39,6 +34,9 @@ struct HttpAPISettings {
  *   GET  /command-router/executions/{id}     — poll status
  *   POST /command-router/executions/{id}/cancel — request cancel
  *   WS   /command-router/ws/{id}             — stream JSON events
+ *
+ * Command execution uses a dedicated issuer ServiceBus (same path as bus_client) because
+ * the router node cannot issue bus_command_router to itself on ServiceBusSingleton.
  *
  * Runs on a DedicatedThread: thread_one_step() blocks in listen() until stop().
  * Each accepted command is enqueued on thread_pool so the listener stays free.
@@ -58,7 +56,8 @@ class CommandRouterHttpAPI : public processor::Processor, public processor::Thre
     CommandRouterHttpAPI(const string& host,
                          int port,
                          shared_ptr<processor::ThreadPool> thread_pool,
-                         HttpAPISettings settings = {});
+                         HttpAPISettings settings = {},
+                         shared_ptr<ServiceBus> issuer_bus = nullptr);
 
     /** @brief Calls stop(). */
     ~CommandRouterHttpAPI() override;
@@ -69,9 +68,6 @@ class CommandRouterHttpAPI : public processor::Processor, public processor::Thre
      */
     static void initialize(shared_ptr<CommandRouterHttpAPI> instance,
                            vector<shared_ptr<processor::Processor>> additional_subprocessors);
-
-    /** @brief Load HttpAPISettings from command_router.http_api.* config paths. */
-    static HttpAPISettings settings_from_config(const JsonConfig& command_router_config);
 
     /** @brief DedicatedThread entry point; blocks in server.listen() until stop(). */
     bool thread_one_step() override;
@@ -87,6 +83,7 @@ class CommandRouterHttpAPI : public processor::Processor, public processor::Thre
     int port;
     httplib::Server server;
     shared_ptr<processor::ThreadPool> thread_pool;
+    shared_ptr<ServiceBus> issuer_bus;
     HttpAPISettings settings;
     atomic<bool> shutting_down{false};
     unordered_map<string, shared_ptr<CommandExecution>> executions;
