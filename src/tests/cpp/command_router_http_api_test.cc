@@ -58,20 +58,16 @@ class HttpAPIServerFixture {
         }
 
         const unsigned int router_port = PortPool::get_port();
-        const unsigned int issuer_port = PortPool::get_port();
         const string router_id = TEST_HOST + ":" + std::to_string(router_port);
-        const string issuer_id = TEST_HOST + ":" + std::to_string(issuer_port);
 
+        this->router_processor = make_shared<BusCommandRouterProcessor>();
         this->router_bus = make_shared<ServiceBus>(router_id);
-        this->router_bus->register_processor(make_shared<BusCommandRouterProcessor>());
-        Utils::sleep(500);
-
-        this->issuer_bus = make_shared<ServiceBus>(issuer_id, router_id);
+        this->router_bus->register_processor(this->router_processor);
         Utils::sleep(500);
 
         this->thread_pool = make_shared<ThreadPool>("test_thread_pool", num_threads);
         this->api = make_shared<CommandRouterHttpAPI>(
-            TEST_HOST, port, this->thread_pool, settings, this->issuer_bus);
+            TEST_HOST, port, this->thread_pool, settings, this->router_processor, TEST_HOST);
         this->api_thread = make_shared<DedicatedThread>("test_api_thread", this->api.get());
         CommandRouterHttpAPI::initialize(this->api, {this->api_thread, this->thread_pool});
         Utils::sleep(300);
@@ -82,7 +78,7 @@ class HttpAPIServerFixture {
             this->api->stop();
             this->api = nullptr;
         }
-        this->issuer_bus = nullptr;
+        this->router_processor = nullptr;
         this->router_bus = nullptr;
     }
 
@@ -96,7 +92,7 @@ class HttpAPIServerFixture {
    private:
     inline static bool service_bus_statics_initialized = false;
     shared_ptr<ServiceBus> router_bus;
-    shared_ptr<ServiceBus> issuer_bus;
+    shared_ptr<BusCommandRouterProcessor> router_processor;
     shared_ptr<ThreadPool> thread_pool;
     shared_ptr<CommandRouterHttpAPI> api;
     shared_ptr<DedicatedThread> api_thread;
@@ -247,20 +243,12 @@ TEST(CommandRouterHttpAPIConfigTest, from_config_loads_http_api_fields) {
     EXPECT_EQ(config.host, "localhost");
     EXPECT_EQ(config.port, 40009);
     EXPECT_EQ(config.thread_pool_size, 8u);
-    EXPECT_EQ(config.router_bus_endpoint, "localhost:40008");
-    EXPECT_EQ(config.issuer_bus_endpoint, "localhost:40018");
+    EXPECT_EQ(config.bus_host, "localhost");
     EXPECT_EQ(config.settings.max_concurrent_executions, 50u);
     EXPECT_EQ(config.settings.max_queued_executions, 200u);
     EXPECT_EQ(config.settings.max_events_per_execution, 5000u);
     EXPECT_EQ(config.settings.execution_retention_ms, 123456);
     EXPECT_EQ(config.settings.stream_items_per_chunk, 25u);
-}
-
-TEST(CommandRouterHttpAPIConfigTest, from_config_uses_explicit_bus_client_endpoint) {
-    const auto config = CommandRouterHttpAPIConfig::from_config(
-        make_command_router_config({{"http_api", {{"bus_client_endpoint", "localhost:50000"}}}}));
-
-    EXPECT_EQ(config.issuer_bus_endpoint, "localhost:50000");
 }
 
 TEST(CommandRouterHttpAPIConfigTest, from_config_rejects_zero_stream_items_per_chunk) {
@@ -273,6 +261,27 @@ TEST(CommandRouterHttpAPIConfigTest, from_config_rejects_invalid_http_api_endpoi
     EXPECT_THROW(CommandRouterHttpAPIConfig::from_config(
                      make_command_router_config({{"http_api", {{"endpoint", "not-a-valid-endpoint"}}}})),
                  runtime_error);
+}
+
+// -----------------------------------------------------------------------------
+// BusCommandRouterProcessor HTTP dispatch
+
+TEST(BusCommandRouterProcessorTest, dispatch_http_command_get_returns_params) {
+    set<string> commands = {ServiceBus::BUS_COMMAND_ROUTER};
+    ServiceBus::initialize_statics(commands, 49400, 49499);
+
+    auto router_processor = make_shared<BusCommandRouterProcessor>();
+    const string router_id = TEST_HOST + ":" + std::to_string(PortPool::get_port());
+    ServiceBus router_bus(router_id);
+    router_bus.register_processor(router_processor);
+    Utils::sleep(500);
+
+    auto caller_proxy = make_shared<BusCommandRouterProxy>("get", "params");
+    router_processor->dispatch_http_command(caller_proxy, "exec-http-get-test");
+    Utils::sleep(500);
+
+    EXPECT_FALSE(caller_proxy->params_response.empty());
+    EXPECT_TRUE(caller_proxy->finished());
 }
 
 // -----------------------------------------------------------------------------
@@ -584,7 +593,9 @@ TEST_F(CommandRouterHttpAPISingletonTest, init_after_provide_throws) {
     CommandRouterHttpAPISingleton::provide(make_shared<CommandRouterHttpAPI>("localhost", 19005, pool));
 
     json raw = {{"http_api", {{"endpoint", "localhost:19005"}}}};
-    EXPECT_THROW(CommandRouterHttpAPISingleton::init(JsonConfig(raw)), runtime_error);
+    EXPECT_THROW(
+        CommandRouterHttpAPISingleton::init(JsonConfig(raw), make_shared<BusCommandRouterProcessor>()),
+        runtime_error);
 }
 
 int main(int argc, char** argv) {

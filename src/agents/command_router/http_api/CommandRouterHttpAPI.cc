@@ -4,6 +4,7 @@
 #include <cctype>
 #include <sstream>
 
+#include "BusCommandRouterProcessor.h"
 #include "BusCommandRouterProxy.h"
 #include "BusCommandRouterProxyStreamPoller.h"
 
@@ -15,7 +16,6 @@
 using namespace command_router;
 using namespace commons;
 using namespace processor;
-using namespace service_bus;
 using namespace agents;
 
 using json = nlohmann::json;
@@ -30,12 +30,14 @@ CommandRouterHttpAPI::CommandRouterHttpAPI(const string& host,
                                            int port,
                                            shared_ptr<processor::ThreadPool> thread_pool,
                                            HttpAPISettings settings,
-                                           shared_ptr<ServiceBus> issuer_bus)
+                                           shared_ptr<BusCommandRouterProcessor> router_processor,
+                                           const string& bus_host)
     : Processor("command_router_http_api"),
       host(host),
       port(port),
       thread_pool(thread_pool),
-      issuer_bus(issuer_bus),
+      router_processor(std::move(router_processor)),
+      bus_host(bus_host),
       settings(std::move(settings)) {
     if (this->thread_pool == nullptr) {
         RAISE_ERROR("CommandRouterHttpAPI requires a non-null thread pool");
@@ -333,9 +335,9 @@ shared_ptr<CommandExecution> CommandRouterHttpAPI::find_execution(const string& 
 }
 
 void CommandRouterHttpAPI::run_execution_inner(const shared_ptr<CommandExecution>& exec) {
-    if (this->issuer_bus == nullptr) {
+    if (this->router_processor == nullptr) {
         lock_guard<mutex> lock(exec->mtx);
-        exec->mark_error("Issuer ServiceBus is not configured for command execution");
+        exec->mark_error("Command router processor is not configured for HTTP execution");
         return;
     }
 
@@ -372,7 +374,9 @@ void CommandRouterHttpAPI::run_execution_inner(const shared_ptr<CommandExecution
         string router_arg = exec->command_text;
         Utils::replace_all(router_arg, "%", "$");
         auto router_proxy = make_shared<BusCommandRouterProxy>(exec->command_type, router_arg);
-        this->issuer_bus->issue_bus_command(router_proxy);
+
+        string http_requestor_id = this->bus_host + ":http-" + exec->execution_id;
+        this->router_processor->dispatch_http_command(router_proxy, http_requestor_id);
 
         if (!BusCommandRouterProxyStreamPoller::poll_stream(router_proxy,
                                                             exec->command_type,

@@ -49,6 +49,13 @@ bool BusCommandRouterProxyStreamPoller::poll_stream(
         return false;
     }
 
+    if (!router_proxy) {
+        if (on_error) {
+            on_error("router_proxy must not be null");
+        }
+        return false;
+    }
+
     auto finished_or_error = [&]() { return router_proxy->finished() || router_proxy->error_flag; };
 
     auto handle_abort = [&]() -> bool {
@@ -118,7 +125,7 @@ bool BusCommandRouterProxyStreamPoller::poll_stream(
             router_proxy->parameters.get_or<bool>(BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS, true);
 
         vector<string> chunk_data;
-        while (!router_proxy->finished()) {
+        while (!finished_or_error()) {
             if (handle_abort()) {
                 return false;
             }

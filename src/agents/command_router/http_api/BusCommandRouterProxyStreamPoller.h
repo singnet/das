@@ -20,22 +20,22 @@ namespace command_router {
 class BusCommandRouterProxyStreamPoller {
    public:
     /**
-     * Poll @p router_proxy until the command finishes, is aborted, or fails.
+     * Poll router_proxy until the command finishes, is aborted, or fails.
      *
-     * For @p command_type "query" and "evolution", answers are popped from the proxy
-     * and forwarded in batches of at most @p items_per_chunk strings. For "get" and
+     * For command_type "query" and "evolution", answers are popped from the proxy
+     * and forwarded in batches of at most items_per_chunk strings. For "get" and
      * "set", a single chunk is emitted once the proxy response is ready.
      *
      * @param router_proxy Proxy already issued on the service bus.
      * @param command_type Router command: "get", "set", "query", or "evolution".
-     * @param items_per_chunk Maximum answers per @p on_chunk call for query/evolution.
+     * @param items_per_chunk Maximum answers per on_chunk call for query/evolution.
      *                        Must be at least 1.
      * @param should_abort Optional callback; when it returns true, the proxy is aborted
-     *                     and @p on_aborted is invoked.
+     *                     and on_aborted is invoked.
      * @param on_chunk Called with each batch of serialized answers or response payload.
      * @param on_error Called with an error message on validation, proxy, or unknown
      *                 command failures.
-     * @param on_aborted Called when polling stops because @p should_abort returned true.
+     * @param on_aborted Called when polling stops because should_abort returned true.
      * @return true when the command completed without error; false otherwise.
      */
     static bool poll_stream(const shared_ptr<BusCommandRouterProxy>& router_proxy,

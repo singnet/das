@@ -6,6 +6,10 @@ using namespace std;
 using namespace commons;
 using namespace distributed_algorithm_node;
 
+namespace command_router {
+class BusCommandRouterProcessor;
+}  // namespace command_router
+
 namespace service_bus {
 
 class BusCommandProxy;
@@ -83,6 +87,7 @@ class ProxyMessage : public Message {
  */
 class BusCommandProxy {
     friend class ServiceBus;
+    friend class command_router::BusCommandRouterProcessor;
 
    public:
     // Commands allowed at the proxy level (caller <--> processor)

@@ -13,18 +13,18 @@
 #include "CommandRouterHttpAPIConfig.h"
 #include "DedicatedThread.h"
 #include "Processor.h"
-#include "ServiceBus.h"
 #include "httplib.h"
 #include "nlohmann/json.hpp"
 #include "processor/ThreadPool.h"
 
 using namespace std;
 using namespace commons;
-using namespace service_bus;
 
 using json = nlohmann::json;
 
 namespace command_router {
+
+class BusCommandRouterProcessor;
 
 /**
  * @brief HTTP + WebSocket server for asynchronous command execution.
@@ -35,8 +35,8 @@ namespace command_router {
  *   POST /command-router/executions/{id}/cancel — request cancel
  *   WS   /command-router/ws/{id}             — stream JSON events
  *
- * Command execution uses a dedicated issuer ServiceBus (same path as bus_client) because
- * the router node cannot issue bus_command_router to itself on ServiceBusSingleton.
+ * Command execution uses the registered BusCommandRouterProcessor via in-process proxy
+ * dispatch (dispatch_http_command). Each HTTP execution owns a caller proxy for streaming.
  *
  * Runs on a DedicatedThread: thread_one_step() blocks in listen() until stop().
  * Each accepted command is enqueued on thread_pool so the listener stays free.
@@ -57,7 +57,8 @@ class CommandRouterHttpAPI : public processor::Processor, public processor::Thre
                          int port,
                          shared_ptr<processor::ThreadPool> thread_pool,
                          HttpAPISettings settings = {},
-                         shared_ptr<ServiceBus> issuer_bus = nullptr);
+                         shared_ptr<BusCommandRouterProcessor> router_processor = nullptr,
+                         const string& bus_host = "localhost");
 
     /** @brief Calls stop(). */
     ~CommandRouterHttpAPI() override;
@@ -83,7 +84,8 @@ class CommandRouterHttpAPI : public processor::Processor, public processor::Thre
     int port;
     httplib::Server server;
     shared_ptr<processor::ThreadPool> thread_pool;
-    shared_ptr<ServiceBus> issuer_bus;
+    shared_ptr<BusCommandRouterProcessor> router_processor;
+    string bus_host;
     HttpAPISettings settings;
     atomic<bool> shutting_down{false};
     unordered_map<string, shared_ptr<CommandExecution>> executions;

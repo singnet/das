@@ -1,11 +1,14 @@
 #include "CommandRouterHttpAPIConfig.h"
 
+#include <tuple>
+
 #include "Utils.h"
 
 using namespace command_router;
 using namespace commons;
 
-static pair<string, int> parse_host_port(const string& endpoint, const string& config_path) {
+static pair<string, int> parse_host_port(const string& endpoint) {
+    string config_path = "command_router." + endpoint;
     auto tokens = Utils::split(endpoint, ':');
     if (tokens.size() != 2) {
         RAISE_ERROR("Invalid " + config_path + " configuration: endpoint must be <hostname>:<port>");
@@ -19,17 +22,6 @@ static pair<string, int> parse_host_port(const string& endpoint, const string& c
     }
 
     return {tokens[0], port};
-}
-
-static string resolve_issuer_bus_endpoint(const JsonConfig& command_router_config) {
-    auto configured = command_router_config.at_path("http_api.bus_client_endpoint").get_or<string>("");
-    if (!configured.empty()) {
-        return configured;
-    }
-
-    const string router_bus_endpoint = command_router_config.at_path("endpoint").get<string>();
-    auto [host, router_port] = parse_host_port(router_bus_endpoint, "command_router.endpoint");
-    return host + ":" + to_string(router_port + 10);
 }
 
 static HttpAPISettings load_http_api_settings(const JsonConfig& command_router_config) {
@@ -56,12 +48,11 @@ CommandRouterHttpAPIConfig CommandRouterHttpAPIConfig::from_config(
     const JsonConfig& command_router_config) {
     CommandRouterHttpAPIConfig config;
     tie(config.host, config.port) =
-        parse_host_port(command_router_config.at_path("http_api.endpoint").get<string>(),
-                        "command_router.http_api.endpoint");
+        parse_host_port(command_router_config.at_path("http_api.endpoint").get<string>());
     config.settings = load_http_api_settings(command_router_config);
     config.thread_pool_size =
         command_router_config.at_path("http_api.thread_pool_size").get_or<unsigned int>(4);
-    config.router_bus_endpoint = command_router_config.at_path("endpoint").get<string>();
-    config.issuer_bus_endpoint = resolve_issuer_bus_endpoint(command_router_config);
+    tie(config.bus_host, std::ignore) =
+        parse_host_port(command_router_config.at_path("endpoint").get<string>());
     return config;
 }

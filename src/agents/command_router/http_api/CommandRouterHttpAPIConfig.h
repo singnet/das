@@ -22,10 +22,10 @@ struct HttpAPISettings {
 struct CommandRouterHttpAPIConfig {
     string host;
     int port = 0;
+    /** Hostname of the command router bus node (from command_router.endpoint). */
+    string bus_host;
     HttpAPISettings settings;
     unsigned int thread_pool_size = 4;
-    string router_bus_endpoint;
-    string issuer_bus_endpoint;
 
     static CommandRouterHttpAPIConfig from_config(const JsonConfig& command_router_config);
 };

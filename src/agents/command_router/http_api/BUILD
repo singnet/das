@@ -44,11 +44,11 @@ cc_library(
         ":bus_command_router_proxy_stream_poller",
         ":command_execution",
         ":command_router_http_api_config",
+        "//agents/command_router:bus_command_router_processor",
         "//agents/command_router:bus_command_router_proxy",
         "//commons:commons_lib",
         "//commons/processor:processor_lib",
         "//hasher:hasher_lib",
-        "//service_bus:service_bus_lib",
     ],
 )
 
@@ -60,7 +60,8 @@ cc_library(
     deps = [
         ":command_router_http_api",
         ":command_router_http_api_config",
+        "//agents/command_router:bus_command_router_processor",
         "//commons/processor:processor_lib",
-        "//service_bus:service_bus_lib",
+        "//service_bus:bus_command_processor",
     ],
 )
