@@ -47,48 +47,13 @@ cc_library(
     includes = ["."],
     deps = [
         ":bus_command_router_proxy",
-        ":command_router_http_api_singleton",
         ":evolution_metta_parser",
+        "//agents/command_router/http_api:command_router_http_api_singleton",
         "//agents/evolution:query_evolution_proxy",
         "//agents/query_engine:pattern_matching_query_proxy",
         "//agents/query_engine:query_answer",
         "//service_bus:bus_command_processor",
         "//service_bus:service_bus_lib",
         "//service_bus:service_bus_singleton",
-    ],
-)
-
-cc_library(
-    name = "command_execution",
-    srcs = ["CommandExecution.cc"],
-    hdrs = ["CommandExecution.h"],
-    includes = ["."],
-    deps = [
-        "//commons:commons_lib",
-    ],
-)
-
-cc_library(
-    name = "command_router_http_api",
-    srcs = ["CommandRouterHttpAPI.cc"],
-    hdrs = ["CommandRouterHttpAPI.h"],
-    includes = ["."],
-    deps = [
-        ":command_execution",
-        "//commons:commons_lib",
-        "//commons/processor:processor_lib",
-        "//hasher:hasher_lib",
-    ],
-)
-
-cc_library(
-    name = "command_router_http_api_singleton",
-    srcs = ["CommandRouterHttpAPISingleton.cc"],
-    hdrs = ["CommandRouterHttpAPISingleton.h"],
-    includes = ["."],
-    deps = [
-        ":command_router_http_api",
-        "//commons:commons_lib",
-        "//commons/processor:processor_lib",
     ],
 )

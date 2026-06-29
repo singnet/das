@@ -10,8 +10,8 @@
 #include <vector>
 
 #include "CommandExecution.h"
+#include "CommandRouterHttpAPIConfig.h"
 #include "DedicatedThread.h"
-#include "JsonConfig.h"
 #include "Processor.h"
 #include "httplib.h"
 #include "nlohmann/json.hpp"
@@ -23,13 +23,6 @@ using namespace commons;
 using json = nlohmann::json;
 
 namespace command_router {
-
-struct HttpAPISettings {
-    size_t max_concurrent_executions = 100;
-    size_t max_queued_executions = 500;
-    size_t max_events_per_execution = CommandExecution::DEFAULT_MAX_EVENTS;
-    long long execution_retention_ms = 15 * 60 * 1000;
-};
 
 /**
  * @brief HTTP + WebSocket server for asynchronous command execution.
@@ -69,9 +62,6 @@ class CommandRouterHttpAPI : public processor::Processor, public processor::Thre
      */
     static void initialize(shared_ptr<CommandRouterHttpAPI> instance,
                            vector<shared_ptr<processor::Processor>> additional_subprocessors);
-
-    /** @brief Load HttpAPISettings from command_router.http_api.* config paths. */
-    static HttpAPISettings settings_from_config(const JsonConfig& command_router_config);
 
     /** @brief DedicatedThread entry point; blocks in server.listen() until stop(). */
     bool thread_one_step() override;

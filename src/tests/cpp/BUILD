@@ -1040,9 +1040,9 @@ cc_test(
     ],
     linkstatic = 1,
     deps = [
-        "//agents/command_router:command_execution",
-        "//agents/command_router:command_router_http_api",
-        "//agents/command_router:command_router_http_api_singleton",
+        "//agents/command_router/http_api:command_execution",
+        "//agents/command_router/http_api:command_router_http_api",
+        "//agents/command_router/http_api:command_router_http_api_singleton",
         "//commons/processor:processor_lib",
         "@com_github_google_googletest//:gtest",
         "@mbedtls",

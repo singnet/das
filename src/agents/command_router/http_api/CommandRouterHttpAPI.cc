@@ -18,25 +18,6 @@ using json = nlohmann::json;
 const unordered_set<string> CommandRouterHttpAPI::VALID_COMMAND_TYPES = {
     "query", "evolution", "get", "set"};
 
-namespace {
-
-HttpAPISettings load_http_api_settings(const JsonConfig& command_router_config) {
-    HttpAPISettings settings;
-    settings.max_concurrent_executions =
-        command_router_config.at_path("http_api.max_concurrent_executions")
-            .get_or<size_t>(settings.max_concurrent_executions);
-    settings.max_queued_executions = command_router_config.at_path("http_api.max_queued_executions")
-                                         .get_or<size_t>(settings.max_queued_executions);
-    settings.max_events_per_execution =
-        command_router_config.at_path("http_api.max_events_per_execution")
-            .get_or<size_t>(settings.max_events_per_execution);
-    settings.execution_retention_ms = command_router_config.at_path("http_api.execution_retention_ms")
-                                          .get_or<long long>(settings.execution_retention_ms);
-    return settings;
-}
-
-}  // namespace
-
 // -------------------------------------------------------------------------------------------------
 // Constructors, destructors
 
@@ -68,10 +49,6 @@ void CommandRouterHttpAPI::initialize(shared_ptr<CommandRouterHttpAPI> instance,
     instance->start();
     LOG_INFO("CommandRouter HTTP API"
              << " listening on " << instance->host << ":" << instance->port);
-}
-
-HttpAPISettings CommandRouterHttpAPI::settings_from_config(const JsonConfig& command_router_config) {
-    return load_http_api_settings(command_router_config);
 }
 
 bool CommandRouterHttpAPI::thread_one_step() {
