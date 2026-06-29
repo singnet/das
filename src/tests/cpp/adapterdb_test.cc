@@ -33,14 +33,11 @@ struct AdapterTestParams {
     string test_name;
 };
 
-class AdapterDBTestEnvironment : public ::testing::Environment {
-   public:
-    void SetUp() override {
-        auto mork_client = make_shared<MorkClient>("localhost:40022");
-        mork_client->post("(Similarity \"ent\" \"human\")");
-        mork_client->post("(Inheritance \"human\" \"mammal\")");
-    }
-};
+void seed_mork_adapter_test_data() {
+    auto mork_client = make_shared<MorkClient>("localhost:40022");
+    mork_client->post("(Similarity \"ent\" \"human\")");
+    mork_client->post("(Inheritance \"human\" \"mammal\")");
+}
 
 class AdapterDBTestBase : public ::testing::Test {
    protected:
@@ -111,6 +108,10 @@ class AdapterDBTest : public AdapterDBTestBase, public ::testing::WithParamInter
         file << comment;
         file << p.mapping_file_content;
         file.close();
+
+        if (p.adapter_type == "mork") {
+            seed_mork_adapter_test_data();
+        }
     }
 
     void TearDown() override { remove(mapping_file_path.c_str()); }
@@ -525,6 +526,5 @@ TEST_F(AdapterDBConstructorFailureTest, ConstructorFailsWhenMappingFileDoesNotEx
 
 int main(int argc, char** argv) {
     ::testing::InitGoogleTest(&argc, argv);
-    ::testing::AddGlobalTestEnvironment(new AdapterDBTestEnvironment());
     return RUN_ALL_TESTS();
 }
