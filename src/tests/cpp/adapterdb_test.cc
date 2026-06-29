@@ -34,24 +34,19 @@ struct AdapterTestParams {
 };
 
 void seed_mork_adapter_test_data() {
-    static bool seeded = false;
-    if (seeded) {
-        return;
-    }
-
     auto mork_client = make_shared<MorkClient>("localhost:40022");
 
-    const string similarity_query = "(Similarity \"ent\" $h)";
-    const string inheritance_query = "(Inheritance \"human\" $m)";
+    const string similarity_seed = "(Similarity \"ent\" \"human\")";
+    const string inheritance_seed = "(Inheritance \"human\" \"mammal\")";
 
-    const auto similarity_results = mork_client->get(similarity_query, similarity_query);
-    const auto inheritance_results = mork_client->get(inheritance_query, inheritance_query);
+    const auto similarity_results = mork_client->get(similarity_seed, similarity_seed);
+    const auto inheritance_results = mork_client->get(inheritance_seed, inheritance_seed);
 
     if (similarity_results.empty()) {
-        mork_client->post("(Similarity \"ent\" \"human\")");
+        mork_client->post(similarity_seed);
     }
     if (inheritance_results.empty()) {
-        mork_client->post("(Inheritance \"human\" \"mammal\")");
+        mork_client->post(inheritance_seed);
     }
 
     seeded = true;
