@@ -194,7 +194,7 @@ class CommandRouterHttpAPIQueuedConcurrencyTest : public ::testing::Test {
         HttpAPISettings settings;
         settings.max_concurrent_executions = 2;
         settings.max_queued_executions = 10;
-        server.start(19007, settings, 1);
+        server.start(19007, settings, 4);
     }
 
     static void TearDownTestSuite() { server.stop(); }
