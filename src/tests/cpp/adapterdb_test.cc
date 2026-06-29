@@ -34,11 +34,27 @@ struct AdapterTestParams {
 };
 
 void seed_mork_adapter_test_data() {
+    static bool seeded = false;
+    if (seeded) {
+        return;
+    }
+
     auto mork_client = make_shared<MorkClient>("localhost:40022");
-    mork_client->clear("(Similarity \"ent\" $h)");
-    mork_client->clear("(Inheritance \"human\" $m)");
-    mork_client->post("(Similarity \"ent\" \"human\")");
-    mork_client->post("(Inheritance \"human\" \"mammal\")");
+
+    const string similarity_query = "(Similarity \"ent\" $h)";
+    const string inheritance_query = "(Inheritance \"human\" $m)";
+
+    const auto similarity_results = mork_client->get(similarity_query, similarity_query);
+    const auto inheritance_results = mork_client->get(inheritance_query, inheritance_query);
+
+    if (similarity_results.empty()) {
+        mork_client->post("(Similarity \"ent\" \"human\")");
+    }
+    if (inheritance_results.empty()) {
+        mork_client->post("(Inheritance \"human\" \"mammal\")");
+    }
+
+    seeded = true;
 }
 
 class AdapterDBTestBase : public ::testing::Test {
