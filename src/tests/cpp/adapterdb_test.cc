@@ -35,6 +35,8 @@ struct AdapterTestParams {
 
 void seed_mork_adapter_test_data() {
     auto mork_client = make_shared<MorkClient>("localhost:40022");
+    mork_client->clear("(Similarity \"ent\" $h)");
+    mork_client->clear("(Inheritance \"human\" $m)");
     mork_client->post("(Similarity \"ent\" \"human\")");
     mork_client->post("(Inheritance \"human\" \"mammal\")");
 }
