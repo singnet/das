@@ -36,11 +36,6 @@ static HttpAPISettings load_http_api_settings(const JsonConfig& command_router_c
             .get_or<size_t>(settings.max_events_per_execution);
     settings.execution_retention_ms = command_router_config.at_path("http_api.execution_retention_ms")
                                           .get_or<long long>(settings.execution_retention_ms);
-    settings.stream_items_per_chunk = command_router_config.at_path("http_api.stream_items_per_chunk")
-                                          .get_or<size_t>(settings.stream_items_per_chunk);
-    if (settings.stream_items_per_chunk == 0) {
-        RAISE_ERROR("command_router.http_api.stream_items_per_chunk must be at least 1");
-    }
     return settings;
 }
 
