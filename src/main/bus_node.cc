@@ -41,7 +41,10 @@ int main(int argc, char* argv[]) {
             mallopt(M_ARENA_MAX, 4);
         }
         // Return free heap pages to the OS instead of caching unbounded amounts in the arenas.
-        mallopt(M_TRIM_THRESHOLD, 128 * 1024);
+        // Honor an explicit MALLOC_TRIM_THRESHOLD_ from the environment if the operator set one.
+        if (getenv("MALLOC_TRIM_THRESHOLD_") == nullptr) {
+            mallopt(M_TRIM_THRESHOLD, 128 * 1024);
+        }
 #endif
         auto required_cmd_args = {Helper::SERVICE, Helper::CONFIG};
         auto cmd_args = Utils::parse_command_line(argc, argv);

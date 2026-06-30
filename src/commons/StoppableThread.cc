@@ -27,19 +27,42 @@ void StoppableThread::attach(thread* thread_object) { this->thread_object = thre
 void StoppableThread::stop() { this->stop(true); }
 
 void StoppableThread::stop(bool join_thread) {
-    if (this->thread_object == NULL) {
-        RAISE_ERROR("No thread attached to StoppableThread: " + this->id);
-    } else if (!this->stop_flag) {
-        LOG_DEBUG("Stopping thread: " << this->id);
-        this->stop_flag_mutex.lock();
-        this->stop_flag = true;
-        this->stop_flag_mutex.unlock();
-        if (join_thread) {
-            LOG_DEBUG("Joining thread: " << this->id);
-            this->thread_object->join();
-            LOG_DEBUG("Thread joined: " << this->id << ". destroying it.");
-            delete this->thread_object;
+    {
+        // Set the flag under the lock, but join OUTSIDE the lock so the thread being joined can
+        // still call stopped() without deadlocking.
+        lock_guard<mutex> guard(this->stop_flag_mutex);
+        if (this->stop_flag) {
+            return;  // already stopped or detached
         }
+        this->stop_flag = true;
+    }
+    if (this->thread_object == NULL) {
+        return;  // nothing attached
+    }
+    if (join_thread) {
+        LOG_DEBUG("Joining thread: " << this->id);
+        this->thread_object->join();
+        LOG_DEBUG("Thread joined: " << this->id << ". destroying it.");
+        delete this->thread_object;
+        this->thread_object = NULL;
+    }
+}
+
+void StoppableThread::detach() {
+    {
+        lock_guard<mutex> guard(this->stop_flag_mutex);
+        if (this->stop_flag) {
+            return;  // already stopped or detached
+        }
+        this->stop_flag = true;
+    }
+    if (this->thread_object != NULL) {
+        LOG_DEBUG("Detaching thread: " << this->id);
+        // detach() releases the OS thread; deleting the std::thread handle afterwards does not
+        // affect the still-running OS thread.
+        this->thread_object->detach();
+        delete this->thread_object;
+        this->thread_object = NULL;
     }
 }
 
