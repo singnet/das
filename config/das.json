@@ -134,8 +134,8 @@
                 "max_bundle_size": 1000,
                 "max_answers": 0,
                 "use_link_template_cache": false,
-                "populate_metta_mapping": false,
-                "use_metta_as_query_tokens": false,
+                "populate_metta_mapping": true,
+                "use_metta_as_query_tokens": true,
                 "allow_incomplete_chain_path": false
             }
         },
