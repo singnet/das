@@ -94,9 +94,8 @@ optional<string> CommandExecution::wait_next_event(size_t& next_index,
     unique_lock<mutex> lock(this->mtx_);
     stream_finished = false;
 
-    const bool ready = this->cv_.wait_for(lock, timeout, [&] {
-        return next_index < this->events_.size() || is_terminal(this->status_);
-    });
+    const bool ready = this->cv_.wait_for(
+        lock, timeout, [&] { return next_index < this->events_.size() || is_terminal(this->status_); });
 
     if (!ready) {
         return nullopt;
