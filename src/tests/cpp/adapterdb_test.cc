@@ -48,8 +48,6 @@ void seed_mork_adapter_test_data() {
     if (inheritance_results.empty()) {
         mork_client->post(inheritance_seed);
     }
-
-    seeded = true;
 }
 
 class AdapterDBTestBase : public ::testing::Test {
