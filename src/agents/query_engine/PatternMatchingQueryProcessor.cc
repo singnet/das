@@ -3,6 +3,10 @@
 
 #include "Logger.h"
 
+#if defined(__GLIBC__)
+#include <malloc.h>
+#endif
+
 #include <map>
 
 #include "And.h"
@@ -57,6 +61,7 @@ shared_ptr<BusCommandProxy> PatternMatchingQueryProcessor::factory_empty_proxy()
 
 void PatternMatchingQueryProcessor::run_command(shared_ptr<BusCommandProxy> proxy) {
     lock_guard<mutex> semaphore(this->query_threads_mutex);
+    reap_finished_threads();
     auto query_proxy = dynamic_pointer_cast<PatternMatchingQueryProxy>(proxy);
     string thread_id = "thread<" + proxy->my_id() + "_" + std::to_string(proxy->get_serial()) + ">";
     LOG_DEBUG("Starting new thread: " << thread_id << " to run command: <" << proxy->get_command()
@@ -246,8 +251,31 @@ void PatternMatchingQueryProcessor::thread_process_one_query(
     } catch (const std::exception& exception) {
         proxy->raise_error_on_peer(exception.what());
     }
+    // At this point the query tree (root_query_element, query_sink) declared inside the try block
+    // above has already been destroyed, so every QueryAnswer/HandleSet allocated for this query is
+    // freed. Return that freed heap to the OS so RSS does not stay pinned at the peak.
+#if defined(__GLIBC__)
+    malloc_trim(0);
+#endif
+    // This thread cannot join itself, so just flag it as finished. The next run_command (or the
+    // graceful shutdown path) will join and erase it from query_threads.
+    {
+        lock_guard<mutex> semaphore(this->query_threads_mutex);
+        this->finished_query_threads.insert(monitor->get_id());
+    }
     LOG_DEBUG("Command finished: <" << proxy->get_command() << ">");
-    // TODO add a call to remove_query_thread(monitor->get_id());
+}
+
+void PatternMatchingQueryProcessor::reap_finished_threads() {
+    // Must be called while holding query_threads_mutex.
+    for (const auto& thread_id : this->finished_query_threads) {
+        auto it = this->query_threads.find(thread_id);
+        if (it != this->query_threads.end()) {
+            it->second->stop();  // joins the (already finished) thread and releases its stack
+            this->query_threads.erase(it);
+        }
+    }
+    this->finished_query_threads.clear();
 }
 
 void PatternMatchingQueryProcessor::remove_query_thread(const string& stoppable_thread_id) {

@@ -2,6 +2,7 @@
 
 #include <map>
 #include <memory>
+#include <set>
 #include <stack>
 #include <thread>
 
@@ -87,7 +88,17 @@ class PatternMatchingQueryProcessor : public BusCommandProcessor {
 
     void remove_query_thread(const string& stoppable_thread_id);
 
+    /**
+     * Joins and removes every query thread that already finished running.
+     *
+     * A running query thread cannot join itself, so it only marks its id as finished when it is
+     * about to return. The actual join + erase (which releases the thread stack and lets the
+     * StoppableThread/query tree memory be reclaimed) is performed here, from a different thread.
+     */
+    void reap_finished_threads();
+
     map<string, shared_ptr<StoppableThread>> query_threads;
+    set<string> finished_query_threads;
     mutex query_threads_mutex;
     shared_ptr<PatternMatchingQueryProxy> proxy;
     shared_ptr<AtomDB> atomdb;

@@ -2,6 +2,7 @@
 
 #include <map>
 #include <memory>
+#include <set>
 #include <thread>
 
 #include "BusCommandProcessor.h"
@@ -72,11 +73,21 @@ class QueryEvolutionProcessor : public BusCommandProcessor {
                    vector<std::pair<shared_ptr<QueryAnswer>, float>>& selected);
     void thread_process_one_query(shared_ptr<StoppableThread>, shared_ptr<QueryEvolutionProxy> proxy);
     void remove_query_thread(const string& stoppable_thread_id);
+
+    /**
+     * Joins and removes every query thread that already finished running.
+     *
+     * A running query thread cannot join itself, so it only marks its id as finished when it is
+     * about to return. The actual join + erase (which releases the thread stack and lets the
+     * StoppableThread memory be reclaimed) is performed here, from a different thread.
+     */
+    void reap_finished_threads();
     string answer_to_string_1(shared_ptr<QueryAnswer> answer, shared_ptr<AtomDB> db);
     string answer_to_string_2(shared_ptr<QueryAnswer> answer, shared_ptr<AtomDB> db);
     string answer_to_string(shared_ptr<QueryAnswer> answer);
 
     map<string, shared_ptr<StoppableThread>> query_threads;
+    set<string> finished_query_threads;
     mutex query_threads_mutex;
     shared_ptr<QueryEvolutionProxy> proxy;
     set<string> visited_individuals;

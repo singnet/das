@@ -1,5 +1,9 @@
 #include "QueryEvolutionProcessor.h"
 
+#if defined(__GLIBC__)
+#include <malloc.h>
+#endif
+
 #include "AttentionBrokerClient.h"
 #include "Hasher.h"
 #include "LinkSchema.h"
@@ -34,6 +38,7 @@ shared_ptr<BusCommandProxy> QueryEvolutionProcessor::factory_empty_proxy() {
 
 void QueryEvolutionProcessor::run_command(shared_ptr<BusCommandProxy> proxy) {
     lock_guard<mutex> semaphore(this->query_threads_mutex);
+    reap_finished_threads();
     auto query_proxy = dynamic_pointer_cast<QueryEvolutionProxy>(proxy);
     string thread_id = "thread<" + proxy->my_id() + "_" + std::to_string(proxy->get_serial()) + ">";
     LOG_DEBUG("Starting new thread: " << thread_id << " to run command: <" << proxy->get_command()
@@ -70,8 +75,30 @@ void QueryEvolutionProcessor::thread_process_one_query(shared_ptr<StoppableThrea
     } catch (const std::exception& exception) {
         proxy->raise_error_on_peer(exception.what());
     }
+    // The evolution run is over, so the population and all intermediate query answers held during
+    // it are freed. Return that freed heap to the OS so RSS does not stay pinned at the peak.
+#if defined(__GLIBC__)
+    malloc_trim(0);
+#endif
+    // This thread cannot join itself, so just flag it as finished. The next run_command will join
+    // and erase it from query_threads.
+    {
+        lock_guard<mutex> semaphore(this->query_threads_mutex);
+        this->finished_query_threads.insert(monitor->get_id());
+    }
     LOG_DEBUG("Command finished: <" << proxy->get_command() << ">");
-    // TODO add a call to remove_query_thread(monitor->get_id());
+}
+
+void QueryEvolutionProcessor::reap_finished_threads() {
+    // Must be called while holding query_threads_mutex.
+    for (const auto& thread_id : this->finished_query_threads) {
+        auto it = this->query_threads.find(thread_id);
+        if (it != this->query_threads.end()) {
+            it->second->stop();  // joins the (already finished) thread and releases its stack
+            this->query_threads.erase(it);
+        }
+    }
+    this->finished_query_threads.clear();
 }
 
 shared_ptr<PatternMatchingQueryProxy> QueryEvolutionProcessor::issue_sampling_query(
