@@ -16,30 +16,28 @@ POPULATION_SIZE=100
 NUM_GENERATIONS=5
 NUM_ITERATIONS=5
 
-# echo "--------------------------------------------------"
-# echo "Cleaning docker containers"
-# echo
-# das-cli db stop --prune
-# docker stop `docker ps | tail -n +2 | cut -d" " -f1` ; docker container prune -f ; docker ps -a
+echo "--------------------------------------------------"
+echo "Cleaning docker containers"
+echo
+das-cli db stop --prune
+docker stop `docker ps | tail -n +2 | cut -d" " -f1` ; docker container prune -f ; docker ps -a
 
-# echo
-# echo "--------------------------------------------------"
-# echo "Loading knowledge base"
-# echo
-# das-cli db start
-# make run-db-loader OPTIONS="--config=/opt/das/config/das.json --file=$KB --threads=4 --chunk=5000"
-
-rm -f /tmp/ab.log /tmp/qa.log /tmp/ev.log
+echo
+echo "--------------------------------------------------"
+echo "Loading knowledge base"
+echo
+das-cli db start
+make run-db-loader OPTIONS="--config=/opt/das/config/das.json --file=$KB --threads=4 --chunk=5000"
 
 echo
 echo "--------------------------------------------------"
 echo "Stating agents"
 echo
-make run-attention-broker 2>&1 >> /tmp/ab.log &
+make run-attention-broker &>> /tmp/ab.log &
 sleep 2
-make run-busnode OPTIONS="--service=query-engine --config=/opt/das/config/das.json" 2>&1 >> /tmp/qa.log &
+make run-busnode OPTIONS="--service=query-engine --config=/opt/das/config/das.json" &>> /tmp/qa.log &
 sleep 2
-make run-busnode OPTIONS="--service=evolution-agent --bus-endpoint=localhost:40002 --config=/opt/das/config/das.json" 2>&1 >> /tmp/ev.log &
+make run-busnode OPTIONS="--service=evolution-agent --bus-endpoint=localhost:40002 --config=/opt/das/config/das.json" &>> /tmp/ev.log &
 sleep 2
 docker update -m $AVAIABLE_RAM --memory-swap $AVAIABLE_RAM $(docker ps -q)
 echo "Done. Logs are in /tmp/ab.log /tmp/qa.log /tmp/ev.log"
