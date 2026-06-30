@@ -3,8 +3,8 @@
 #include <memory>
 #include <mutex>
 
-#include "CommandRouterHttpAPI.h"
 #include "BusCommandProcessor.h"
+#include "CommandRouterHttpAPI.h"
 #include "JsonConfig.h"
 
 using namespace std;

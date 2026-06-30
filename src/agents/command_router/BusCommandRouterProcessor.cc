@@ -86,7 +86,7 @@ void BusCommandRouterProcessor::dispatch_http_command(
     processor_proxy->command = caller_proxy->command;
     processor_proxy->args = caller_proxy->args;
 
-    run_command(processor_proxy);
+    this->run_command(processor_proxy);
 }
 
 void BusCommandRouterProcessor::run_command(shared_ptr<BusCommandProxy> proxy) {

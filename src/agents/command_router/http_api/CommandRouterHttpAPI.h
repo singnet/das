@@ -56,8 +56,8 @@ class CommandRouterHttpAPI : public processor::Processor, public processor::Thre
     CommandRouterHttpAPI(const string& host,
                          int port,
                          shared_ptr<processor::ThreadPool> thread_pool,
+                         shared_ptr<BusCommandRouterProcessor> router_processor,
                          HttpAPISettings settings = {},
-                         shared_ptr<BusCommandRouterProcessor> router_processor = nullptr,
                          const string& bus_host = "localhost");
 
     /** @brief Calls stop(). */

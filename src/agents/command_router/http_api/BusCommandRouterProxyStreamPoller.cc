@@ -82,6 +82,12 @@ bool BusCommandRouterProxyStreamPoller::poll_stream(
             }
             return false;
         }
+        if (router_proxy->params_response.empty()) {
+            if (on_error) {
+                on_error("GET command finished without params response");
+            }
+            return false;
+        }
         if (on_chunk) {
             on_chunk({router_proxy->params_response});
         }
@@ -101,6 +107,12 @@ bool BusCommandRouterProxyStreamPoller::poll_stream(
             }
             return false;
         }
+        if (router_proxy->set_param_ack.empty()) {
+            if (on_error) {
+                on_error("SET command finished without parameter ack");
+            }
+            return false;
+        }
         if (on_chunk) {
             on_chunk({router_proxy->set_param_ack});
         }
@@ -117,6 +129,12 @@ bool BusCommandRouterProxyStreamPoller::poll_stream(
         if (router_proxy->error_flag) {
             if (on_error) {
                 on_error(router_proxy->error_message);
+            }
+            return false;
+        }
+        if (!router_proxy->routed_flag) {
+            if (on_error) {
+                on_error("Command finished without being routed to a downstream service");
             }
             return false;
         }

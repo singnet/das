@@ -38,8 +38,8 @@ void CommandRouterHttpAPISingleton::create_and_start(const JsonConfig& command_r
     HTTP_API = make_shared<CommandRouterHttpAPI>(config.host,
                                                  config.port,
                                                  thread_pool_executor,
-                                                 config.settings,
                                                  router_processor,
+                                                 config.settings,
                                                  config.bus_host);
 
     auto http_api_thread = make_shared<processor::DedicatedThread>("http_api_thread", HTTP_API.get());

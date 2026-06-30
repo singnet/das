@@ -1,7 +1,9 @@
 #pragma once
 
+#include <chrono>
 #include <condition_variable>
 #include <mutex>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -23,7 +25,7 @@ enum ExecutionStatus { PENDING, RUNNING, COMPLETED, ERROR, ABORTED };
  * GET /executions/{id} and WebSocket replay. Status transitions always emit a
  * lifecycle event so clients can rely on status in the stream.
  *
- * All mutable fields are protected by mtx. cv is notified on each new event.
+ * Thread-safe: callers do not need to lock mtx; public methods synchronize internally.
  */
 class CommandExecution {
    public:
@@ -46,30 +48,37 @@ class CommandExecution {
     string command_text;
     size_t max_events;
 
-    mutex mtx;
-    condition_variable cv;
+    ExecutionStatus status() const;
+    string status_string() const;
+    bool is_terminal_status() const;
+    bool is_cancel_requested() const;
+    int received_count() const;
+    long long finished_at_ms() const;
 
-    ExecutionStatus status = ExecutionStatus::PENDING;
-    int received_count = 0;
-    int total_items = 0;
-    long long duration_ms = 0;
-    long long finished_at_ms = 0;
-    string error_message;
-    bool cancel_requested = false;
-
-    /** Serialised JSON payloads, in order, for WebSocket replay. */
-    vector<string> events;
+    /** @brief JSON body for GET /executions/{id}. */
+    json to_status_json() const;
 
     /**
-     * @brief Append one serialised JSON event and notify cv.
-     * Caller must hold mtx. Throws if the buffer is full while still running.
+     * @brief Request cancellation.
+     * @return false if already terminal; sets already_terminal when non-null.
      */
-    void publish_event(const json& payload);
+    bool try_request_cancel(ExecutionStatus* already_terminal = nullptr);
 
-    /** @brief Append a chunk event and update received_count */
+    /**
+     * @brief Wait for the next stream event or terminal state.
+     * @return payload when next_index points at a new event; nullopt on timeout or terminal drain.
+     */
+    optional<string> wait_next_event(size_t& next_index,
+                                     chrono::milliseconds timeout,
+                                     bool& stream_finished);
+
+    /** @brief True when terminal and finished_at_ms is older than retention_ms. */
+    bool is_retention_expired(long long now_ms, long long retention_ms) const;
+
+    /** @brief Append a chunk event and update received_count. */
     void publish_chunk(int seq, const vector<string>& data);
 
-    /** @brief PENDING -> RUNNING; emits a lifecycle event */
+    /** @brief PENDING -> RUNNING; emits a lifecycle event. */
     void mark_running();
 
     /** @brief -> COMPLETED; sets duration/totals and emits a lifecycle event. */
@@ -78,15 +87,28 @@ class CommandExecution {
     /** @brief -> ERROR; sets error_message and emits a lifecycle event. */
     void mark_error(const string& message);
 
-    /** @brief -> ABORTED; emits a lifecycle event (e.g. after cancel_requested). */
+    /** @brief -> ABORTED; emits a lifecycle event. */
     void mark_aborted();
 
-   private:
-    /** @brief Set finished_at_ms once, on first transition to a terminal status. */
-    void stamp_finished_at();
+    void mark_error_unless_terminal(const string& message);
+    void mark_aborted_unless_terminal();
 
-    /** @brief Base lifecycle payload: execution_id + current status. */
-    json lifecycle_event() const;
+   private:
+    mutable mutex mtx_;
+    condition_variable cv_;
+
+    ExecutionStatus status_ = ExecutionStatus::PENDING;
+    int received_count_ = 0;
+    int total_items_ = 0;
+    long long duration_ms_ = 0;
+    long long finished_at_ms_ = 0;
+    string error_message_;
+    bool cancel_requested_ = false;
+    vector<string> events_;
+
+    void publish_event_locked(const json& payload);
+    void stamp_finished_at_locked();
+    json lifecycle_event_locked() const;
 };
 
 }  // namespace command_router
