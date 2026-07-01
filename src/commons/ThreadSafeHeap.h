@@ -88,6 +88,7 @@ class ThreadSafeHeap {
             lock_guard<mutex> semaphore(this->api_mutex);
             copy = this->queue;
         }
+        output.reserve(output.size() + copy.size());
         while (!copy.empty()) {
             output.push_back(copy.top().element);
             copy.pop();
