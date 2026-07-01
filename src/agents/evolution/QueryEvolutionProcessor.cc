@@ -151,7 +151,12 @@ void QueryEvolutionProcessor::sample_population(
             Utils::sleep();
         }
     }
-    double renew_rate = ((double) this->visited_individuals.size() - visited_count) / population.size();
+    double renew_rate;
+    if (population.size() == 0) {
+        renew_rate = 0;
+    } else {
+        renew_rate = ((double) this->visited_individuals.size() - visited_count) / population.size();
+    }
     LOG_INFO("Individuals with non-zero importance: " + std::to_string(positive_importance_count));
     LOG_INFO("Renew rate: " + std::to_string(std::lround(100 * renew_rate)) + "%");
     if (!pm_query->finished()) {
@@ -561,8 +566,7 @@ void QueryEvolutionProcessor::evolve_query(shared_ptr<StoppableThread> monitor,
     RAM_FOOTPRINT_START(evolution);
     STOP_WATCH_START(evolution);
     while (!monitor->stopped() && !proxy->stop_criteria_met()) {
-        LOG_INFO("==================== Generation: " + std::to_string(this->generation_count) +
-                 " ====================");
+        LOG_INFO("==================== Generation: " + std::to_string(this->generation_count) + " ====================");
         RAM_CHECKPOINT("Generation " + std::to_string(this->generation_count));
         STOP_WATCH_START(generation);
         STOP_WATCH_START(sample_population);
@@ -592,13 +596,15 @@ void QueryEvolutionProcessor::evolve_query(shared_ptr<StoppableThread> monitor,
             }
             population.clear();
             selected.clear();
+        } else {
+            proxy->set_no_selection_flag(true);
         }
         RAM_FOOTPRINT_CHECK(evolution, "Generation " + std::to_string(this->generation_count));
         STOP_WATCH_FINISH(generation, "OneGeneration");
         this->generation_count++;
     }
     proxy->flush_answer_bundle();
-    LOG_INFO("--------------------");
+    LOG_INFO("-------------------------------------------------------");
     LOG_INFO("Last generation with answer improvement: " +
              std::to_string(proxy->last_improving_generation()));
     LOG_INFO("Total number of visited individuals: " + std::to_string(this->visited_individuals.size()));
@@ -612,6 +618,7 @@ void QueryEvolutionProcessor::evolve_query(shared_ptr<StoppableThread> monitor,
     RAM_FOOTPRINT_FINISH(evolution, "");
     Utils::sleep(1000);
     proxy->query_processing_finished();
+    LOG_INFO("-------------------------------------------------------");
 }
 
 void QueryEvolutionProcessor::remove_query_thread(const string& stoppable_thread_id) {
