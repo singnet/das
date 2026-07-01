@@ -1,5 +1,4 @@
 #include <cctype>
-#include <mutex>
 #include <nlohmann/json.hpp>
 
 #include "AtomDBSingleton.h"

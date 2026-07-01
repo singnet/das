@@ -167,6 +167,7 @@ void CommandRouterHttpAPI::setup_routes() {
             }
 
             string status_for_response = exec->status_string();
+            string status_for_response = exec->status_string();
 
             LOG_INFO("CommandRouter HTTP API execution scheduled id=" << exec->execution_id
                                                                       << " type=" << command_type);
