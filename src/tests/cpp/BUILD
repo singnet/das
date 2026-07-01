@@ -823,7 +823,6 @@ cc_test(
         "-lbsoncxx",
     ],
     linkstatic = 1,
-    tags = ["exclusive"],
     deps = [
         "//atomdb:atomdb_singleton",
         "//tests/cpp/test_commons:mock_animals_data_lib",
@@ -990,7 +989,6 @@ cc_test(
         "-lbsoncxx",
     ],
     linkstatic = 1,
-    tags = ["exclusive"],
     deps = [
         "//atomdb:atomdb_singleton",
         "//db_adapter:db_adapter_lib",
@@ -1021,7 +1019,6 @@ cc_test(
         "-lbsoncxx",
     ],
     linkstatic = 1,
-    tags = ["exclusive"],
     deps = [
         "//atomdb:atomdb_singleton",
         "//db_adapter:db_adapter_lib",
