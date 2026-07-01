@@ -78,3 +78,39 @@ TEST(StoppableThread, stop_after_detach_is_noop) {
     EXPECT_TRUE(stoppable_thread->stopped());
     EXPECT_NO_THROW(stoppable_thread->stop());  // must not join/double-free a detached thread
 }
+
+// stop_flag means "stop requested", not "thread reaped". stop(false) only requests the stop; a later
+// stop() must still join/reap the (still joinable) thread instead of being skipped because the flag
+// is already set. This covers the "request-stop-now, reap-later" ordering.
+TEST(StoppableThread, stop_false_then_stop_reaps) {
+    auto stoppable_thread = make_shared<StoppableThread>("request_then_reap");
+    atomic<bool> ran{false};
+    atomic<bool> exited{false};
+    stoppable_thread->attach(new thread(
+        [&ran, &exited](shared_ptr<StoppableThread> monitor) {
+            ran = true;
+            while (!monitor->stopped()) {
+                Utils::sleep(5);
+            }
+            exited = true;
+        },
+        stoppable_thread));
+
+    while (!ran.load()) {
+        Utils::sleep(5);
+    }
+
+    stoppable_thread->stop(false);  // request stop only: flag is set, but nothing is reaped yet
+    EXPECT_TRUE(stoppable_thread->stopped());
+
+    // The worker observes the request and exits on its own.
+    for (int i = 0; i < 200 && !exited.load(); i++) {
+        Utils::sleep(5);
+    }
+    EXPECT_TRUE(exited.load());
+
+    // The thread is still joinable; the full stop() must reap it (and the destructor must stay a
+    // safe no-op afterwards). If stop_flag short-circuited reaping, this would leak the thread.
+    EXPECT_NO_THROW(stoppable_thread->stop());
+    EXPECT_NO_THROW(stoppable_thread->stop());  // idempotent: second reap is a no-op
+}
