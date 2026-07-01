@@ -1,5 +1,4 @@
 #include <cctype>
-#include <mutex>
 #include <nlohmann/json.hpp>
 
 #include "CommandExecution.h"
@@ -123,15 +122,13 @@ TEST(CommandExecutionTest, status_and_terminal_flags) {
 TEST(CommandExecutionTest, terminal_marks_finished_at) {
     CommandExecution exec("exec-abc", "query", "(Similarity %V1 %V2)");
 
-    lock_guard<mutex> lock(exec.mtx);
     exec.mark_completed(100, 5);
-    EXPECT_GT(exec.finished_at_ms, 0);
+    EXPECT_GT(exec.finished_at_ms(), 0);
 }
 
 TEST(CommandExecutionTest, event_buffer_overflow_raises) {
     CommandExecution exec("exec-abc", "query", "(Similarity %V1 %V2)", 2);
 
-    lock_guard<mutex> lock(exec.mtx);
     exec.mark_running();
     exec.publish_chunk(1, {"a"});
     EXPECT_THROW(exec.publish_chunk(2, {"b", "c"}), runtime_error);

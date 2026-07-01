@@ -157,11 +157,7 @@ void CommandRouterHttpAPI::setup_routes() {
                     break;
             }
 
-            string status_for_response;
-            {
-                lock_guard<mutex> exec_semaphore(exec->mtx);
-                status_for_response = CommandExecution::status_to_string(exec->status);
-            }
+            string status_for_response = exec->status_string();
 
             LOG_INFO("CommandRouter HTTP API execution scheduled id=" << exec->execution_id
                                                                       << " type=" << command_type);
@@ -209,29 +205,12 @@ void CommandRouterHttpAPI::setup_routes() {
             bool stream_finished = false;
 
             while (!stream_finished && ws.is_open()) {
-                string payload;
-
-                {
-                    unique_lock<mutex> exec_semaphore(exec->mtx);
-
-                    bool has_new_event = exec->cv.wait_for(exec_semaphore, chrono::seconds(1), [&] {
-                        return next_index < exec->events.size() ||
-                               CommandExecution::is_terminal(exec->status);
-                    });
-
-                    if (!has_new_event) continue;
-
-                    if (next_index >= exec->events.size()) {
-                        stream_finished = CommandExecution::is_terminal(exec->status);
-                        continue;
-                    }
-
-                    payload = exec->events[next_index++];
-                    stream_finished =
-                        CommandExecution::is_terminal(exec->status) && next_index >= exec->events.size();
+                auto payload = exec->wait_next_event(next_index, chrono::seconds(1), stream_finished);
+                if (!payload.has_value()) {
+                    continue;
                 }
 
-                bool send_ok = ws.send(payload);
+                bool send_ok = ws.send(*payload);
 
                 if (!send_ok) {
                     LOG_INFO("CommandRouter HTTP API WebSocket send failed id=" << execution_id);
@@ -257,25 +236,10 @@ void CommandRouterHttpAPI::setup_routes() {
                              return;
                          }
 
-                         lock_guard<mutex> exec_semaphore(exec->mtx);
-
                          LOG_DEBUG("CommandRouter HTTP API GET /command-router/executions/"
-                                   << execution_id
-                                   << " status=" << CommandExecution::status_to_string(exec->status));
+                                   << execution_id << " status=" << exec->status_string());
 
-                         json success_body = {
-                             {"execution_id", exec->execution_id},
-                             {"status", CommandExecution::status_to_string(exec->status)},
-                             {"received_count", exec->received_count},
-                             {"total_items", exec->total_items},
-                             {"duration_ms", exec->duration_ms},
-                         };
-
-                         if (!exec->error_message.empty()) {
-                             success_body["error_message"] = exec->error_message;
-                         }
-
-                         this->set_json_response(response, 200, success_body);
+                         this->set_json_response(response, 200, exec->to_status_json());
                      });
 
     // POST /command-router/executions/:id/cancel
@@ -293,24 +257,14 @@ void CommandRouterHttpAPI::setup_routes() {
             }
 
             ExecutionStatus current_status;
-            {
-                lock_guard<mutex> exec_semaphore(exec->mtx);
-                current_status = exec->status;
-
-                if (CommandExecution::is_terminal(current_status)) {
-                    this->set_json_response(
-                        response,
-                        409,
-                        {{"execution_id", execution_id},
-                         {"status", CommandExecution::status_to_string(current_status)},
-                         {"error", "Execution is already in a terminal state"}});
-                    return;
-                }
-
-                exec->cancel_requested = true;
+            if (!exec->try_request_cancel(&current_status)) {
+                this->set_json_response(response,
+                                        409,
+                                        {{"execution_id", execution_id},
+                                         {"status", CommandExecution::status_to_string(current_status)},
+                                         {"error", "Execution is already in a terminal state"}});
+                return;
             }
-
-            exec->cv.notify_all();
 
             LOG_INFO("CommandRouter HTTP API execution cancel requested id=" << execution_id);
 
@@ -334,13 +288,10 @@ void CommandRouterHttpAPI::run_execution_inner(const shared_ptr<CommandExecution
     int seq = 0;
 
     for (int i = 0; i < TOTAL; i += CHUNK_SIZE) {
-        {
-            lock_guard<mutex> lock(exec->mtx);
-            if (exec->cancel_requested || this->shutting_down.load()) {
-                exec->mark_aborted();
-                LOG_INFO("CommandRouter HTTP API execution aborted id=" << exec->execution_id);
-                return;
-            }
+        if (exec->is_cancel_requested() || this->shutting_down.load()) {
+            exec->mark_aborted();
+            LOG_INFO("CommandRouter HTTP API execution aborted id=" << exec->execution_id);
+            return;
         }
 
         Utils::sleep(200);
@@ -350,17 +301,15 @@ void CommandRouterHttpAPI::run_execution_inner(const shared_ptr<CommandExecution
             chunk_data.push_back("result-" + std::to_string(k));
         }
 
-        lock_guard<mutex> lock(exec->mtx);
         exec->publish_chunk(++seq, chunk_data);
     }
 
     const auto duration_ms = Utils::get_current_time_millis() - started_at;
-    lock_guard<mutex> lock(exec->mtx);
-    exec->mark_completed(duration_ms, exec->received_count);
+    exec->mark_completed(duration_ms, exec->received_count());
 
     LOG_INFO("CommandRouter HTTP API execution completed id=" << exec->execution_id
                                                               << " duration_ms=" << duration_ms
-                                                              << " items=" << exec->received_count);
+                                                              << " items=" << exec->received_count());
 }
 
 void CommandRouterHttpAPI::run_execution(const shared_ptr<CommandExecution>& exec) {
@@ -372,18 +321,12 @@ void CommandRouterHttpAPI::run_execution(const shared_ptr<CommandExecution>& exe
         });
 
         if (this->shutting_down.load()) {
-            lock_guard<mutex> exec_semaphore(exec->mtx);
-            if (!CommandExecution::is_terminal(exec->status)) {
-                exec->mark_error("Server is shutting down");
-            }
+            exec->mark_error_unless_terminal("Server is shutting down");
             this->pending_executions--;
             return;
         }
 
-        {
-            lock_guard<mutex> exec_semaphore(exec->mtx);
-            exec->mark_running();
-        }
+        exec->mark_running();
         this->pending_executions--;
         this->running_executions++;
     }
@@ -393,17 +336,11 @@ void CommandRouterHttpAPI::run_execution(const shared_ptr<CommandExecution>& exe
     } catch (const exception& e) {
         LOG_ERROR("CommandRouter HTTP API execution failed id=" << exec->execution_id << ": "
                                                                 << e.what());
-        lock_guard<mutex> lock(exec->mtx);
-        if (!CommandExecution::is_terminal(exec->status)) {
-            exec->mark_error(string("Execution failed: ") + e.what());
-        }
+        exec->mark_error_unless_terminal(string("Execution failed: ") + e.what());
     } catch (...) {
         LOG_ERROR("CommandRouter HTTP API execution failed id=" << exec->execution_id
                                                                 << ": unknown error");
-        lock_guard<mutex> lock(exec->mtx);
-        if (!CommandExecution::is_terminal(exec->status)) {
-            exec->mark_error("Execution failed: unknown error");
-        }
+        exec->mark_error_unless_terminal("Execution failed: unknown error");
     }
 
     lock_guard<mutex> semaphore(this->executions_mtx);
@@ -419,16 +356,7 @@ void CommandRouterHttpAPI::cleanup_finished_executions() {
     const auto now = Utils::get_current_time_millis();
     lock_guard<mutex> semaphore(this->executions_mtx);
     for (auto it = this->executions.begin(); it != this->executions.end();) {
-        auto exec = it->second;
-        bool should_erase = false;
-        {
-            lock_guard<mutex> exec_semaphore(exec->mtx);
-            const bool retention_expired =
-                exec->finished_at_ms > 0 &&
-                (now - exec->finished_at_ms) > this->settings.execution_retention_ms;
-            should_erase = CommandExecution::is_terminal(exec->status) && retention_expired;
-        }
-        if (should_erase) {
+        if (it->second->is_retention_expired(now, this->settings.execution_retention_ms)) {
             it = this->executions.erase(it);
         } else {
             ++it;
