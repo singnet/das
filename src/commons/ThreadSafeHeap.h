@@ -78,7 +78,16 @@ class ThreadSafeHeap {
     }
 
     void snapshot(vector<T>& output) {
-        priority_queue<HeapElement, vector<HeapElement>> copy = this->queue;
+        // Copy the underlying queue UNDER the lock. Without it, this copy races with a concurrent
+        // push()/pop() (which mutate the backing vector under api_mutex); a reallocation mid-copy
+        // would read freed memory and produce corrupt elements (e.g. shared_ptrs built from garbage
+        // control blocks), leading to later double-free/heap corruption. Drain the local copy
+        // outside the lock so other threads are only blocked for the duration of the copy.
+        priority_queue<HeapElement, vector<HeapElement>> copy;
+        {
+            lock_guard<mutex> semaphore(this->api_mutex);
+            copy = this->queue;
+        }
         while (!copy.empty()) {
             output.push_back(copy.top().element);
             copy.pop();
