@@ -1030,7 +1030,7 @@ cc_test(
 
 cc_test(
     name = "command_router_http_api_test",
-    size = "small",
+    size = "medium",
     srcs = [
         "command_router_http_api_test.cc",
     ],
@@ -1038,12 +1038,29 @@ cc_test(
         "-Iexternal/gtest/googletest/include",
         "-Iexternal/gtest/googletest",
     ],
+    linkopts = [
+        "-L/usr/local/lib",
+        "-lpqxx",
+        "-lpq",
+        "-lhiredis_cluster",
+        "-lhiredis",
+        "-lmongocxx",
+        "-lbsoncxx",
+    ],
     linkstatic = 1,
     deps = [
+        "//agents/command_router:bus_command_router_processor",
+        "//agents/command_router/http_api:bus_command_router_proxy_stream_poller",
         "//agents/command_router/http_api:command_execution",
         "//agents/command_router/http_api:command_router_http_api",
+        "//agents/command_router/http_api:command_router_http_api_config",
         "//agents/command_router/http_api:command_router_http_api_singleton",
+        "//agents/query_engine:query_answer",
+        "//atomdb:atomdb_singleton",
         "//commons/processor:processor_lib",
+        "//service_bus:service_bus_lib",
+        "//tests/cpp/test_commons:test_atomdb_json_config",
+        "//tests/cpp/test_commons:test_system_params",
         "@com_github_google_googletest//:gtest",
         "@mbedtls",
     ],

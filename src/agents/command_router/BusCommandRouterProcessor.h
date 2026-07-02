@@ -31,6 +31,10 @@ class BusCommandRouterProcessor : public BusCommandProcessor {
     shared_ptr<BusCommandProxy> factory_empty_proxy() override;
     void run_command(shared_ptr<BusCommandProxy> proxy) override;
 
+    /** Run a router command in-process for HTTP; responses are written to caller_proxy. */
+    void dispatch_http_command(const shared_ptr<BusCommandRouterProxy>& caller_proxy,
+                               const string& http_requestor_id);
+
    private:
     void handle_get(shared_ptr<BusCommandRouterProxy> proxy, const string& arg);
     void handle_set(shared_ptr<BusCommandRouterProxy> proxy, const string& arg);

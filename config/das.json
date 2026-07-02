@@ -207,7 +207,8 @@
                 "thread_pool_size": 4,
                 "max_concurrent_executions": 100,
                 "max_queued_executions": 500,
-                "max_events_per_execution": 10000,
+                "max_events_per_execution": 100000,
+                "stream_items_per_chunk": 100,
                 "execution_retention_ms": 900000
             }
         }
