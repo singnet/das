@@ -83,8 +83,8 @@ void BusCommandRouterProcessor::dispatch_http_command(
     const string requestor_host = http_requestor_id.substr(0, http_requestor_id.find(':'));
     const string processor_proxy_node_id = requestor_host + ":" + to_string(processor_proxy->proxy_port);
     processor_proxy->setup_proxy_node(processor_proxy_node_id, caller_proxy->my_id());
-    processor_proxy->command = caller_proxy->command;
-    processor_proxy->args = caller_proxy->args;
+    processor_proxy->command = std::move(caller_proxy->command);
+    processor_proxy->args = std::move(caller_proxy->args);
 
     this->run_command(processor_proxy);
 }

@@ -1,4 +1,3 @@
-#include <cctype>
 #include <nlohmann/json.hpp>
 
 #include "AtomDBSingleton.h"
@@ -25,7 +24,6 @@
 using namespace command_router;
 using namespace processor;
 using namespace commons;
-using namespace agents;
 using namespace atomdb;
 using namespace query_engine;
 using namespace service_bus;
@@ -62,17 +60,22 @@ class HangingQueryForwardProcessor : public BusCommandProcessor {
     void run_command(shared_ptr<BusCommandProxy> /*proxy*/) override {}
 };
 
+void initialize_test_service_bus_statics_once() {
+    static bool initialized = false;
+    if (!initialized) {
+        ServiceBus::initialize_statics(
+            {ServiceBus::BUS_COMMAND_ROUTER, ServiceBus::PATTERN_MATCHING_QUERY}, 49400, 49999);
+        initialized = true;
+    }
+}
+
 /**
  * HTTP API fixture with an in-process command router bus so executions reach "running".
  */
 class HttpAPIServerFixture {
    public:
     void start(int port, const HttpAPISettings& settings = {}, unsigned int num_threads = 8) {
-        if (!service_bus_statics_initialized) {
-            ServiceBus::initialize_statics(
-                {ServiceBus::BUS_COMMAND_ROUTER, ServiceBus::PATTERN_MATCHING_QUERY}, 49500, 49999);
-            service_bus_statics_initialized = true;
-        }
+        initialize_test_service_bus_statics_once();
 
         const unsigned int query_port = PortPool::get_port();
         const string query_id = TEST_HOST + ":" + std::to_string(query_port);
@@ -99,8 +102,10 @@ class HttpAPIServerFixture {
     void stop() {
         if (this->api != nullptr) {
             this->api->stop();
-            this->api = nullptr;
         }
+        this->api_thread = nullptr;
+        this->thread_pool = nullptr;
+        this->api = nullptr;
         this->router_processor = nullptr;
         this->router_bus = nullptr;
         this->query_bus = nullptr;
@@ -114,7 +119,6 @@ class HttpAPIServerFixture {
     }
 
    private:
-    inline static bool service_bus_statics_initialized = false;
     shared_ptr<ServiceBus> query_bus;
     shared_ptr<ServiceBus> router_bus;
     shared_ptr<BusCommandRouterProcessor> router_processor;
@@ -286,12 +290,25 @@ TEST(CommandRouterHttpAPIConfigTest, from_config_rejects_invalid_http_api_endpoi
                  runtime_error);
 }
 
+TEST(CommandRouterHttpAPIConfigTest, from_config_rejects_non_numeric_http_api_port) {
+    EXPECT_THROW(CommandRouterHttpAPIConfig::from_config(
+                     make_command_router_config({{"http_api", {{"endpoint", "localhost:abc"}}}})),
+                 runtime_error);
+}
+
+TEST(CommandRouterHttpAPIConfigTest, from_config_rejects_trailing_junk_http_api_port) {
+    EXPECT_THROW(CommandRouterHttpAPIConfig::from_config(
+                     make_command_router_config({{"http_api", {{"endpoint", "localhost:8080abc"}}}})),
+                 runtime_error);
+}
+
 // -----------------------------------------------------------------------------
 // BusCommandRouterProcessor HTTP dispatch
 
 TEST(BusCommandRouterProcessorTest, dispatch_http_command_get_returns_params) {
     set<string> commands = {ServiceBus::BUS_COMMAND_ROUTER};
     ServiceBus::initialize_statics(commands, 49400, 49499);
+    initialize_test_service_bus_statics_once();
 
     const string router_id = TEST_HOST + ":" + std::to_string(PortPool::get_port());
     auto router_bus = make_shared<ServiceBus>(router_id);
