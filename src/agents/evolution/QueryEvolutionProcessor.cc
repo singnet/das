@@ -84,8 +84,8 @@ void QueryEvolutionProcessor::thread_process_one_query(shared_ptr<StoppableThrea
     // command. A thread cannot join itself, hence detach instead of join.
     {
         lock_guard<mutex> semaphore(this->query_threads_mutex);
-        monitor->detach();
         this->query_threads.erase(monitor->get_id());
+        monitor->detach();
     }
     LOG_DEBUG("Command finished: <" << proxy->get_command() << ">");
 }
