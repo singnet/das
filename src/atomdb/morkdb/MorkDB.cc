@@ -21,6 +21,17 @@ using namespace atoms;
 using namespace commons;
 using namespace metta;
 
+namespace {
+
+bool is_transient_mork_http_status(int status) {
+    // MORK returns 401 when a path is temporarily locked by a concurrent request, and 409 for
+    // PathForbiddenTemporary. Both are expected under parallel test load and should be retried.
+    return status == httplib::StatusCode::Unauthorized_401 ||
+           status == httplib::StatusCode::Conflict_409;
+}
+
+}  // namespace
+
 // --> MorkClient
 MorkClient::MorkClient(const string& base_url)
     : base_url_(Utils::trim(base_url)), cli(httplib::Client(base_url_)) {
@@ -54,25 +65,43 @@ string MorkClient::clear(const string& pattern) {
 }
 
 httplib::Result MorkClient::send_request(const string& method, const string& path, const string& data) {
-    httplib::Result res;
+    const unsigned int max_attempts = 16;
+    unsigned int delay_ms = 5;
 
-    if (method == "GET") {
-        res = this->cli.Get(path);
-    } else if (method == "POST") {
-        if (data.empty()) {
-            RAISE_ERROR("POST request data is empty. Cannot send an empty payload to MORK server.");
+    for (unsigned int attempt = 0; attempt < max_attempts; ++attempt) {
+        httplib::Result res;
+
+        if (method == "GET") {
+            res = this->cli.Get(path);
+        } else if (method == "POST") {
+            if (data.empty()) {
+                RAISE_ERROR("POST request data is empty. Cannot send an empty payload to MORK server.");
+            }
+            res = this->cli.Post(path, data, "text/plain");
         }
-        res = this->cli.Post(path, data, "text/plain");
-    }
 
-    if (!res) {
-        RAISE_ERROR("Connection error at http://" + this->base_url_ + path + ": " +
-                    httplib::to_string(res.error()));
-    } else if (res->status != httplib::StatusCode::OK_200) {
+        if (!res) {
+            RAISE_ERROR("Connection error at http://" + this->base_url_ + path + ": " +
+                        httplib::to_string(res.error()));
+        }
+
+        if (res->status == httplib::StatusCode::OK_200) {
+            return res;
+        }
+
+        if (is_transient_mork_http_status(res->status) && attempt + 1 < max_attempts) {
+            LOG_DEBUG("MORK transient HTTP " << res->status << " at " << path << ", retrying (attempt "
+                                             << attempt + 1 << "/" << max_attempts << ")");
+            Utils::sleep(delay_ms);
+            delay_ms *= 2;
+            continue;
+        }
+
         RAISE_ERROR("Http error at http://" + this->base_url_ + path + ": status " +
                     std::to_string(res->status));
     }
-    return res;
+
+    RAISE_ERROR("Http error at http://" + this->base_url_ + path + ": exhausted retries");
 }
 
 string MorkClient::url_encode(const string& value) {
