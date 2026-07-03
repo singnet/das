@@ -66,7 +66,8 @@ string MorkClient::clear(const string& pattern) {
 
 httplib::Result MorkClient::send_request(const string& method, const string& path, const string& data) {
     const unsigned int max_attempts = 16;
-    unsigned int delay_ms = 5;
+    const unsigned int initial_delay_ms = 5;  // 0.005s, matching mork_loader.py
+    const double backoff = 2.0;
 
     for (unsigned int attempt = 0; attempt < max_attempts; ++attempt) {
         httplib::Result res;
@@ -89,11 +90,21 @@ httplib::Result MorkClient::send_request(const string& method, const string& pat
             return res;
         }
 
-        if (is_transient_mork_http_status(res->status) && attempt + 1 < max_attempts) {
+        if (is_transient_mork_http_status(res->status)) {
+            if (attempt + 1 >= max_attempts) {
+                RAISE_ERROR("Http error at http://" + this->base_url_ + path + ": exhausted " +
+                            std::to_string(max_attempts) + " retries, last status " +
+                            std::to_string(res->status));
+            }
+
+            unsigned int delay_ms = initial_delay_ms;
+            for (unsigned int i = 0; i < attempt; ++i) {
+                delay_ms = static_cast<unsigned int>(delay_ms * backoff);
+            }
+
             LOG_DEBUG("MORK transient HTTP " << res->status << " at " << path << ", retrying (attempt "
                                              << attempt + 1 << "/" << max_attempts << ")");
             Utils::sleep(delay_ms);
-            delay_ms *= 2;
             continue;
         }
 
@@ -101,7 +112,8 @@ httplib::Result MorkClient::send_request(const string& method, const string& pat
                     std::to_string(res->status));
     }
 
-    RAISE_ERROR("Http error at http://" + this->base_url_ + path + ": exhausted retries");
+    RAISE_ERROR("Http error at http://" + this->base_url_ + path + ": exhausted " +
+                std::to_string(max_attempts) + " retries");
 }
 
 string MorkClient::url_encode(const string& value) {
