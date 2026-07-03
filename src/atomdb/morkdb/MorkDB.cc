@@ -24,8 +24,6 @@ using namespace metta;
 namespace {
 
 bool is_transient_mork_http_status(int status) {
-    // MORK returns 401 when a path is temporarily locked by a concurrent request, and 409 for
-    // PathForbiddenTemporary. Both are expected under parallel test load and should be retried.
     return status == httplib::StatusCode::Unauthorized_401 ||
            status == httplib::StatusCode::Conflict_409;
 }
@@ -66,7 +64,7 @@ string MorkClient::clear(const string& pattern) {
 
 httplib::Result MorkClient::send_request(const string& method, const string& path, const string& data) {
     const unsigned int max_attempts = 16;
-    const unsigned int initial_delay_ms = 5;  // 0.005s, matching mork_loader.py
+    const unsigned int initial_delay_ms = 5;
     const double backoff = 2.0;
 
     for (unsigned int attempt = 0; attempt < max_attempts; ++attempt) {
