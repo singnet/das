@@ -114,7 +114,7 @@ feature as f WHERE f.feature_id<=500;
             }
         },
         "morkdb": {
-            "image": "trueagi/das:mork-server-1.0.4",
+            "image": "trueagi/das:mork-server-1.1.0",
             "endpoint": "localhost:40022"
         },
         "remote_peers": [
@@ -160,7 +160,7 @@ feature as f WHERE f.feature_id<=500;
             "image": "trueagi/das:1.0.0-metta-parser"
         },
         "morkdb": {
-            "image": "trueagi/das:mork-loader-1.0.4"
+            "image": "trueagi/das:mork-loader-1.1.0"
         }
     },
     "agents": {
