@@ -17,9 +17,9 @@ DAS_MORK_PORT=40022
 REDIS_IMAGE=redis:7.2.3-alpine
 MONGODB_IMAGE=mongodb/mongodb-community-server:8.2-ubuntu2204
 METTA_LOADER_IMAGE=trueagi/das:1.0.0-metta-parser
-MORK_IMAGE=trueagi/das:mork-server-1.0.4
-MORK_LOADER_IMAGE=trueagi/das:mork-loader-1.0.4
-MORK_SERVER_IMAGE=trueagi/das:mork-server-1.0.4
+MORK_IMAGE=trueagi/das:mork-server-1.1.0
+MORK_LOADER_IMAGE=trueagi/das:mork-loader-1.1.0
+MORK_SERVER_IMAGE=trueagi/das:mork-server-1.1.0
 POSTGRES_IMAGE=postgres:15
 
 ANIMALS_FILE=/tmp/animals.metta
