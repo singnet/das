@@ -10,7 +10,7 @@ DAS_MORK_HOSTNAME=0.0.0.0
 DAS_MORK_PORT=40022
 
 MONGODB_IMAGE=mongodb/mongodb-community-server:8.2-ubuntu2204
-MORK_IMAGE=trueagi/das:mork-server-1.0.5
+MORK_IMAGE=trueagi/das:mork-server-1.1.0
 POSTGRES_IMAGE=postgres:15
 
 ARCH=$(uname -m)
