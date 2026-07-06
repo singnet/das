@@ -100,7 +100,7 @@ httplib::Result MorkClient::send_request(const string& method, const string& pat
                 delay_ms = static_cast<unsigned int>(delay_ms * backoff);
             }
 
-            LOG_DEBUG("MORK transient HTTP " << res->status << " at " << path << ", retrying (attempt "
+            LOG_ERROR("MORK transient HTTP " << res->status << " at " << path << ", retrying (attempt "
                                              << attempt + 1 << "/" << max_attempts << ")");
             Utils::sleep(delay_ms);
             continue;
