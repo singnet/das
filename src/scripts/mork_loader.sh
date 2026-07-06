@@ -9,7 +9,7 @@ else
     FILE=$1
 fi
 
-IMAGE_NAME="trueagi/das:mork-loader-1.0.0"
+IMAGE_NAME="trueagi/das:mork-loader-1.1.0"
 CONTAINER_NAME="das-mork-loader-$(date +%Y%m%d%H%M%S)"
 
 docker run --rm \
