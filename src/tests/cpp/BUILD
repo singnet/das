@@ -750,6 +750,21 @@ cc_test(
 )
 
 cc_test(
+    name = "stoppable_thread_test",
+    size = "small",
+    srcs = ["stoppable_thread_test.cc"],
+    copts = [
+        "-Iexternal/gtest/googletest/include",
+        "-Iexternal/gtest/googletest",
+    ],
+    linkstatic = 1,
+    deps = [
+        "//commons:commons_lib",
+        "@com_github_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
     name = "redis_mongodb_test",
     size = "medium",
     srcs = [

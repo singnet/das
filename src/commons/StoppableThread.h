@@ -52,6 +52,15 @@ class StoppableThread : public Stoppable {
     void attach(thread* thread_object);
 
     /**
+     * Detach the attached thread so it cleans itself up on completion.
+     *
+     * Used when a thread needs to "reap itself" (a thread cannot join itself). After detach(),
+     * the thread is no longer joinable and both stop() and the destructor become no-ops with
+     * respect to it.
+     */
+    void detach();
+
+    /**
      * Stop attached thread.
      *
      * No action (other than flipping a flag inside this StoppableThread object) is actually taken
