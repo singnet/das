@@ -54,22 +54,29 @@ jobs:
       - name: Loading Load Knowledge Base
         run: das-cli metta load /tmp/animals.metta
 
-      - name: Setup bazel
-        run: .github/scripts/setup_bazel.sh
-
-      - name: Compile Binaries
-        run: .github/scripts/bazel_build.sh
-
       - name: Starting Attention Broker
         run: das-cli attention-broker restart
 
-      - name: Starting MORK Server and Load Knowledge Base
+      - name: Starting MORK Servers
         run: |-
-          make run-mork-server > /dev/null 2>&1 &
-          
-          until curl --silent http://localhost:40022/status/-; do
-            echo "Waiting MORK…"
-            sleep 1
+          make run-mork-server &
+          DAS_MORK_PORT=40032 make run-mork-server &
+          wait
+
+          for port in 40022 40032; do
+            for attempt in $(seq 1 60); do
+              if curl --silent "http://localhost:${port}/status/-"; then
+                echo "MORK ready on port ${port}"
+                break
+              fi
+              if [[ "${attempt}" -eq 60 ]]; then
+                echo "MORK failed to start on port ${port}" >&2
+                docker ps -a --filter "name=das-mork-server-${port}" >&2
+                exit 1
+              fi
+              echo "Waiting for MORK on port ${port}…"
+              sleep 1
+            done
           done
 
       - name: Starting Postgres Server and load database
@@ -87,5 +94,13 @@ jobs:
           
           docker exec -i pg_test psql -U postgres -d postgres_wrapper_test < src/scripts/postgres_setup.sql
 
+      - name: Setup bazel
+        run: .github/scripts/setup_bazel.sh
+
       - name: Execute Unit Test Suite
-        run: make run-tests-only
+        working-directory: ./src
+        run: ./scripts/bazel_exec.sh test --show_progress --cache_test_results=no //tests/cpp/...
+
+      - name: Build production binaries
+        working-directory: ./src
+        run: ./scripts/bazel_exec.sh build --noshow_progress //:ci_binaries

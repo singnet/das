@@ -215,3 +215,23 @@ cc_binary(
         "//main:bus_client_lib",
     ],
 )
+
+# Meta-target for CI: building this forces all production binaries to compile/link.
+# Used by .github/workflows/run-unit-tests.yml and bazel_build.sh.
+genrule(
+    name = "ci_binaries",
+    srcs = [
+        ":word_query",
+        ":word_query_evolution",
+        ":attention_broker_service",
+        ":attention_broker_client",
+        ":das",
+        ":db_loader",
+        ":busnode",
+        ":busclient",
+        ":database_adapter",
+    ],
+    outs = ["ci_binaries.stamp"],
+    cmd = "touch $@",
+    visibility = ["//visibility:public"],
+)

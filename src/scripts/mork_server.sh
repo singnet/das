@@ -1,20 +1,16 @@
 #!/bin/bash
 
-set -eoux pipefail
+set -euo pipefail
 
 IMAGE_NAME="trueagi/das:mork-server-1.1.0"
-CONTAINER_NAME="das-mork-server-$(date +%Y%m%d%H%M%S)"
+MORK_PORT="${DAS_MORK_PORT:-40022}"
+CONTAINER_NAME="das-mork-server-${MORK_PORT}"
 
-docker run --rm \
+docker rm -f "${CONTAINER_NAME}" 2>/dev/null || true
+
+docker run -d --rm \
     --name="${CONTAINER_NAME}" \
     --network host \
     -e MORK_SERVER_ADDR=0.0.0.0 \
-    -e MORK_SERVER_PORT=${DAS_MORK_PORT:-40022} \
+    -e MORK_SERVER_PORT="${MORK_PORT}" \
     "${IMAGE_NAME}" "$@"
-
-sleep 1
-
-if docker ps -a --format '{{.Names}}' | grep -q "^${CONTAINER_NAME}$"; then
-  echo "Removing existing container: ${CONTAINER_NAME}"
-  _=$(docker rm -f "${CONTAINER_NAME}" 2>&1 > /dev/null || true)
-fi
