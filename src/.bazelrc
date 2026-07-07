@@ -9,7 +9,7 @@ common --color=yes
 common --curses=yes
 # common --show_timestamps
 
-# Use half of all available CPU cores
+# Use 85% all available CPU cores
 common --jobs=HOST_CPUS*0.85
 
 # Enable bazel bzlmod (for Bazel 8+)
@@ -45,8 +45,8 @@ build --host_cxxopt=-w
 build --host_cxxopt=-Wno-all
 
 #################################### TEST #####################################
-# Use half of all available CPU cores
-# test --jobs=HOST_CPUS*0.5
+# Use 85% of all available CPU cores
+# test --jobs=HOST_CPUS*0.85
 
 # Other options
 test --test_output=errors

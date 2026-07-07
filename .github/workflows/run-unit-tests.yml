@@ -59,19 +59,31 @@ jobs:
 
       - name: Starting MORK Servers
         run: |-
+          set -euo pipefail
+
           make run-mork-server &
+          pid_40022=$!
           DAS_MORK_PORT=40032 make run-mork-server &
-          wait
+          pid_40032=$!
+
+          launch_failed=0
+          wait "${pid_40022}" || launch_failed=1
+          wait "${pid_40032}" || launch_failed=1
+          if [[ "${launch_failed}" -ne 0 ]]; then
+            echo "MORK server launch failed" >&2
+            docker ps -a --filter "name=das-mork-server-" >&2 || true
+            exit 1
+          fi
 
           for port in 40022 40032; do
             for attempt in $(seq 1 60); do
-              if curl --silent "http://localhost:${port}/status/-"; then
+              if curl --fail --silent --show-error "http://localhost:${port}/status/-"; then
                 echo "MORK ready on port ${port}"
                 break
               fi
               if [[ "${attempt}" -eq 60 ]]; then
                 echo "MORK failed to start on port ${port}" >&2
-                docker ps -a --filter "name=das-mork-server-${port}" >&2
+                docker ps -a --filter "name=das-mork-server-${port}" >&2 || true
                 exit 1
               fi
               echo "Waiting for MORK on port ${port}…"
