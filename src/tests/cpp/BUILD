@@ -942,7 +942,7 @@ cc_test(
 
 cc_test(
     name = "postgreswrapper_test",
-    size = "small",
+    size = "medium",
     srcs = [
         "postgreswrapper_test.cc",
     ],
@@ -971,7 +971,7 @@ cc_test(
 
 cc_test(
     name = "morkwrapper_test",
-    size = "small",
+    size = "medium",
     srcs = [
         "morkwrapper_test.cc",
     ],
@@ -1001,7 +1001,7 @@ cc_test(
 
 cc_test(
     name = "adapterdb_test",
-    size = "small",
+    size = "medium",
     srcs = [
         "adapterdb_test.cc",
     ],

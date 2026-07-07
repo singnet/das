@@ -35,7 +35,7 @@ using namespace processor;
 class MorkWrapperTest : public ::testing::Test {
    protected:
     string TEST_HOST = "localhost";
-    int TEST_PORT = 40022;
+    int TEST_PORT = 40032;
 
     string INVALID_HOST = "invalid.host";
     int INVALID_PORT = 99999;
