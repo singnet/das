@@ -58,15 +58,7 @@ BAZELISK_BUILD_CMD="${BAZELISK_CMD} build --noshow_progress --strategy=CppCompil
 BAZELISK_RUN_CMD="${BAZELISK_CMD} run"
 
 BAZEL_BINARY_TARGETS=(
-  "//:word_query"
-  "//:word_query_evolution"
-  "//:attention_broker_service"
-  "//:attention_broker_client"
-  "//:das"
-  "//:db_loader"
-  "//:busnode"
-  "//:busclient"
-  "//:database_adapter"
+  "//:ci_binaries"
 )
 
 BAZEL_BINARY_OUTPUTS=(

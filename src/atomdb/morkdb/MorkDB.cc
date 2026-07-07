@@ -79,20 +79,12 @@ httplib::Result MorkClient::send_request(const string& method, const string& pat
             res = this->cli.Post(path, data, "text/plain");
         }
 
-        if (!res) {
-            RAISE_ERROR("Connection error at http://" + this->base_url_ + path + ": " +
-                        httplib::to_string(res.error()));
-        }
+        if (!res || is_transient_mork_http_status(res->status)) {
+            string status_str = res ? std::to_string(res->status) : "unknown";
 
-        if (res->status == httplib::StatusCode::OK_200) {
-            return res;
-        }
-
-        if (is_transient_mork_http_status(res->status)) {
             if (attempt + 1 >= max_attempts) {
                 RAISE_ERROR("Http error at http://" + this->base_url_ + path + ": exhausted " +
-                            std::to_string(max_attempts) + " retries, last status " +
-                            std::to_string(res->status));
+                            std::to_string(max_attempts) + " retries, last status " + status_str);
             }
 
             unsigned int delay_ms = initial_delay_ms;
@@ -100,10 +92,14 @@ httplib::Result MorkClient::send_request(const string& method, const string& pat
                 delay_ms = static_cast<unsigned int>(delay_ms * backoff);
             }
 
-            LOG_ERROR("MORK transient HTTP " << res->status << " at " << path << ", retrying (attempt "
+            LOG_ERROR("MORK transient HTTP " << status_str << " at " << path << ", retrying (attempt "
                                              << attempt + 1 << "/" << max_attempts << ")");
             Utils::sleep(delay_ms);
             continue;
+        }
+
+        if (res->status == httplib::StatusCode::OK_200) {
+            return res;
         }
 
         RAISE_ERROR("Http error at http://" + this->base_url_ + path + ": status " +

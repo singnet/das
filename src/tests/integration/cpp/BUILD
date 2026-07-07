@@ -11,6 +11,7 @@ cc_test(
         "-Iexternal/gtest/googletest",
     ],
     linkstatic = 1,
+    tags = ["integration"],
     deps = [
         "//tests/integration/cpp/helpers:process_helper",
         "//tests/integration/cpp/helpers:test_helper",
