@@ -204,7 +204,11 @@
             "ports_range": "48000:48999",
             "http_api": {
                 "endpoint": "localhost:40009",
-                "thread_pool_size": 4
+                "thread_pool_size": 4,
+                "max_concurrent_executions": 100,
+                "max_queued_executions": 500,
+                "max_events_per_execution": 10000,
+                "execution_retention_ms": 900000
             }
         }
     }

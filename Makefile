@@ -112,6 +112,14 @@ test-agents-integration:
 run-tests-only:
 	@$(MAKE) bazel 'test --show_progress --cache_test_results=no //tests/...'
 
+build-ci-binaries:
+	@cd src && ./scripts/bazel_exec.sh build --noshow_progress //:ci_binaries
+
+run-tests-native:
+	@cd src && ./scripts/bazel_exec.sh test --show_progress --cache_test_results=no //tests/cpp/...
+
+ci-unit-tests: run-tests-native build-ci-binaries
+
 lint-all:
 	@$(MAKE) bazel lint \
 		"//... --fix --report --diff" \

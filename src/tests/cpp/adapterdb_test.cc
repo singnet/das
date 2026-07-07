@@ -34,7 +34,7 @@ struct AdapterTestParams {
 };
 
 void seed_mork_adapter_test_data() {
-    auto mork_client = make_shared<MorkClient>("localhost:40022");
+    auto mork_client = make_shared<MorkClient>("localhost:40032");
 
     const string similarity_seed = "(Similarity \"ent\" \"human\")";
     const string inheritance_seed = "(Inheritance \"human\" \"mammal\")";
@@ -192,7 +192,7 @@ static const AdapterTestParams MorkParams = {
     R"(
 (Similarity "ent" $h)
 (Inheritance "human" $m))",
-    {{"host", "localhost"}, {"port", 40022}},
+    {{"host", "localhost"}, {"port", 40032}},
     "Mork",
 };
 
