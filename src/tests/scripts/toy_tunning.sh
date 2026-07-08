@@ -11,7 +11,7 @@ for LOG_FILE in "${log_files[@]}"; do
     rm -f $LOG_FILE
 done
 
-ATTENTION_FOCUS_STRICTNESS_LIST=("0.10" "0.30" "0.50" "0.70" "0.90")
+ATTENTION_FOCUS_STRICTNESS_LIST=("0.0", "0.10" "0.30" "0.50" "0.70" "0.90")
 RENT_LIST=("0.1" "0.2" "0.3")
 SPREAD_LIST=("0.1" "0.2" "0.3")
 SELECTION_LIST=("0.10:0.10" "0.05:0.05")
@@ -29,6 +29,10 @@ for ATTENTION_FOCUS_STRICTNESS in "${ATTENTION_FOCUS_STRICTNESS_LIST[@]}"; do
                     echo "----------------------------------------------------------------------------------------------------" >> $LOG_FILE
                     echo "" >> $LOG_FILE
                 done
+                echo "----------------------------------------------------------------------------------------------------"
+                echo "${command_line[@]}"
+                echo "----------------------------------------------------------------------------------------------------"
+                echo ""
                 "${command_line[@]}"
             done
         done
