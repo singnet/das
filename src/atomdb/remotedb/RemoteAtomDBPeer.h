@@ -2,6 +2,7 @@
 
 #include <map>
 #include <memory>
+#include <mutex>
 #include <string>
 
 #include "AtomDB.h"
@@ -17,14 +18,17 @@ using namespace atoms;
 namespace atomdb {
 
 /**
- * RemoteAtomDBPeer represents a cached connection to a remote AtomDB.
- * It combines an in-memory cache, a read-only remote AtomDB, and local persistence
- * for newly added atoms.
+ * RemoteAtomDBPeer represents a connection to a remote AtomDB with optional layers.
+ * It may combine an in-memory cache, a read-only remote AtomDB backend, and optional
+ * local persistence for newly added atoms. If readonly is true, the peer doest not allow any
+ * mutations to the remote backend.
  */
 class RemoteAtomDBPeer : public AtomDB, public processor::ThreadMethod {
    public:
     RemoteAtomDBPeer(shared_ptr<AtomDB> remote_atomdb,
                      shared_ptr<AtomDB> local_persistence,
+                     bool readonly = false,
+                     bool cache = true,
                      const string& uid = "");
     ~RemoteAtomDBPeer();
 
@@ -85,7 +89,8 @@ class RemoteAtomDBPeer : public AtomDB, public processor::ThreadMethod {
 
     // Cache policy API
     void fetch(const LinkSchema& link_schema);
-    void release(const LinkSchema& link_schema);
+    void release(const LinkSchema& link_schema, bool persist = true, bool force = false);
+    void release_cache(bool persist_to_local, bool persist_entire_cache);
     double available_ram();
     void auto_cleanup();
     void start_cleanup_thread();
@@ -95,6 +100,7 @@ class RemoteAtomDBPeer : public AtomDB, public processor::ThreadMethod {
     bool thread_one_step() override;
 
     const string& get_uid() const { return uid_; }
+    bool is_readonly() const { return readonly_; }
 
    private:
     void feed_cache_from_handle_set(shared_ptr<atomdb_api_types::HandleSet> handle_set);
@@ -103,15 +109,22 @@ class RemoteAtomDBPeer : public AtomDB, public processor::ThreadMethod {
                           set<string>& seen,
                           bool copy_metadata = false);
     bool schema_already_fetched(const LinkSchema& link_schema);
+    void invalidate_fetched_templates_locked();
+    void persist_atoms_to_local(const vector<shared_ptr<atoms::Atom>>& atoms);
 
     string uid_;
-    InMemoryDB cache_;
+    bool readonly_;
+    shared_ptr<InMemoryDB> cache_;
     shared_ptr<AtomDB> atomdb_;
     shared_ptr<AtomDB> local_persistence_;
-    HandleTrie fetched_link_templates_;
-    EmptyTrieValue* empty_trie_value_;
+    unique_ptr<HandleTrie> fetched_link_templates_;
+    set<string> staged_handles_;
 
     unique_ptr<processor::DedicatedThread> cleanup_thread_;
+    // InMemoryDB and HandleTrie lock internal operations, but this peer mutates multiple structures
+    // as one logical state transition (cache + fetched templates + staged handles), so we keep a
+    // coarse lock to preserve consistency across them.
+    mutable recursive_mutex cache_mutex_;
 
     static constexpr double CRITICAL_RAM_THRESHOLD = 0.1;  // 10% - cleanup when below this
 };

@@ -62,6 +62,25 @@ struct ReIndexData {
     InMemoryDB* db;
 };
 
+shared_ptr<Atom> clone_atom(const Atom* atom) {
+    if (atom == nullptr) {
+        return nullptr;
+    }
+
+    if (atom->arity() == 0) {
+        auto node = dynamic_cast<const Node*>(atom);
+        return (node != nullptr) ? make_shared<Node>(*node) : nullptr;
+    }
+
+    auto link = dynamic_cast<const Link*>(atom);
+    return (link != nullptr) ? make_shared<Link>(*link) : nullptr;
+}
+
+void reset_trie(HandleTrie*& trie) {
+    delete trie;
+    trie = new HandleTrie(HANDLE_HASH_SIZE - 1);
+}
+
 bool re_index_visitor(HandleTrie::TrieNode* node, void* data) {
     ReIndexData* index_data = static_cast<ReIndexData*>(data);
     if (node->value != NULL) {
@@ -90,43 +109,8 @@ InMemoryDB::InMemoryDB(const string& context)
       incoming_sets_trie_(new HandleTrie(HANDLE_HASH_SIZE - 1)) {}
 
 InMemoryDB::~InMemoryDB() {
-    // Traverse and delete all atoms
-    this->atoms_trie_->traverse(
-        false,
-        [](HandleTrie::TrieNode* node, void* data) -> bool {
-            if (node->value != NULL) {
-                delete node->value;
-                node->value = NULL;
-            }
-            return false;  // Continue traversal
-        },
-        NULL);
     delete this->atoms_trie_;
-
-    // Traverse and delete all pattern index entries
-    this->pattern_index_trie_->traverse(
-        false,
-        [](HandleTrie::TrieNode* node, void* data) -> bool {
-            if (node->value != NULL) {
-                delete node->value;
-                node->value = NULL;
-            }
-            return false;  // Continue traversal
-        },
-        NULL);
     delete this->pattern_index_trie_;
-
-    // Traverse and delete all incoming set entries
-    this->incoming_sets_trie_->traverse(
-        false,
-        [](HandleTrie::TrieNode* node, void* data) -> bool {
-            if (node->value != NULL) {
-                delete node->value;
-                node->value = NULL;
-            }
-            return false;  // Continue traversal
-        },
-        NULL);
     delete this->incoming_sets_trie_;
 }
 
@@ -141,31 +125,18 @@ shared_ptr<Atom> InMemoryDB::get_atom(const string& handle) {
     if (atom_trie_value == NULL) {
         return nullptr;
     }
-    // Clone the atom to return a shared_ptr (caller doesn't own the original)
-    Atom* atom = atom_trie_value->get_atom();
-    if (atom->arity() == 0) {
-        auto node = dynamic_cast<Node*>(atom);
-        return make_shared<Node>(*node);
-    } else {
-        auto link = dynamic_cast<Link*>(atom);
-        return make_shared<Link>(*link);
-    }
+    // Return a deep copy (caller must not observe internal trie-owned storage).
+    return clone_atom(atom_trie_value->get_atom());
 }
 
 shared_ptr<Node> InMemoryDB::get_node(const string& handle) {
     auto atom = get_atom(handle);
-    if (atom != nullptr) {
-        return make_shared<Node>(*dynamic_cast<Node*>(atom.get()));
-    }
-    return nullptr;
+    return dynamic_pointer_cast<Node>(atom);
 }
 
 shared_ptr<Link> InMemoryDB::get_link(const string& handle) {
     auto atom = get_atom(handle);
-    if (atom != nullptr) {
-        return make_shared<Link>(*dynamic_cast<Link*>(atom.get()));
-    }
-    return nullptr;
+    return dynamic_pointer_cast<Link>(atom);
 }
 
 shared_ptr<HandleSet> InMemoryDB::query_for_pattern(const LinkSchema& link_schema) {
@@ -570,21 +541,40 @@ size_t InMemoryDB::atom_count() const {
     return static_cast<size_t>(size);
 }
 
+vector<shared_ptr<Atom>> InMemoryDB::get_all_atoms() {
+    vector<shared_ptr<Atom>> atoms;
+    atoms.reserve(this->atoms_trie_->size);
+    this->atoms_trie_->traverse(
+        false,
+        [](HandleTrie::TrieNode* node, void* data) -> bool {
+            if (node->value == nullptr) {
+                return false;
+            }
+            auto atom_trie_value = dynamic_cast<AtomTrieValue*>(node->value);
+            if (atom_trie_value == nullptr) {
+                return false;
+            }
+            auto* out = static_cast<vector<shared_ptr<Atom>>*>(data);
+            auto cloned = clone_atom(atom_trie_value->get_atom());
+            if (cloned != nullptr) {
+                out->push_back(cloned);
+            }
+            return false;
+        },
+        &atoms);
+    return atoms;
+}
+
+void InMemoryDB::drop_all() {
+    reset_trie(this->atoms_trie_);
+    reset_trie(this->pattern_index_trie_);
+    reset_trie(this->incoming_sets_trie_);
+}
+
 void InMemoryDB::re_index_patterns(bool flush_patterns) {
     if (flush_patterns) {
-        // Clear all pattern index entries by deleting and recreating the trie
-        this->pattern_index_trie_->traverse(
-            false,
-            [](HandleTrie::TrieNode* node, void* data) -> bool {
-                if (node->value != NULL) {
-                    delete node->value;
-                    node->value = NULL;
-                }
-                return false;  // Continue traversal
-            },
-            NULL);
-        delete this->pattern_index_trie_;
-        this->pattern_index_trie_ = new HandleTrie(HANDLE_HASH_SIZE - 1);
+        // Clear all pattern index entries by recreating the trie.
+        reset_trie(this->pattern_index_trie_);
     }
 
     // Re-index all links

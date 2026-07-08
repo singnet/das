@@ -1,0 +1,20 @@
+{
+    "atomdb": {
+        "type": "redismongodb",
+        "context": "",
+        "mongodb": {
+            "endpoint": "localhost:40021",
+            "username": "admin",
+            "password": "admin"
+        },
+        "redis": {
+            "endpoint": "localhost:40020",
+            "cluster": false
+        },
+        "morkdb": {
+            "endpoint": "localhost:40042"
+        }
+    },
+    "loaders": {},
+    "agents": {}
+}

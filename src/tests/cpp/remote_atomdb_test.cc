@@ -33,7 +33,7 @@ class RemoteAtomDBPeerTest : public ::testing::Test {
     void SetUp() override {
         remote_ = make_shared<InMemoryDB>("peer_remote_");
         local_ = make_shared<InMemoryDB>("peer_local_");
-        peer_ = make_shared<RemoteAtomDBPeer>(remote_, local_, "test_peer");
+        peer_ = make_shared<RemoteAtomDBPeer>(remote_, local_, true, "test_peer");
     }
 
     void TearDown() override {}
@@ -42,6 +42,41 @@ class RemoteAtomDBPeerTest : public ::testing::Test {
     shared_ptr<InMemoryDB> local_;
     shared_ptr<RemoteAtomDBPeer> peer_;
 };
+
+// Builds the Inheritance(x, "mammal") pattern used across several cache tests.
+static LinkSchema inheritance_mammal_schema() {
+    return LinkSchema({"LINK_TEMPLATE",
+                       "Expression",
+                       "3",
+                       "NODE",
+                       "Symbol",
+                       "Inheritance",
+                       "VARIABLE",
+                       "x",
+                       "NODE",
+                       "Symbol",
+                       "\"mammal\""});
+}
+
+// Populates a backend with two Inheritance(*, "mammal") links and returns their handles.
+static vector<string> populate_inheritance_mammal_links(shared_ptr<InMemoryDB> backend) {
+    auto human = new Node("Symbol", "\"human\"");
+    auto monkey = new Node("Symbol", "\"monkey\"");
+    auto mammal = new Node("Symbol", "\"mammal\"");
+    auto inheritance = new Node("Symbol", "Inheritance");
+
+    string human_handle = backend->add_node(human, false);
+    string monkey_handle = backend->add_node(monkey, false);
+    string mammal_handle = backend->add_node(mammal, false);
+    string inheritance_handle = backend->add_node(inheritance, false);
+
+    auto link1 = new Link("Expression", {inheritance_handle, human_handle, mammal_handle});
+    auto link2 = new Link("Expression", {inheritance_handle, monkey_handle, mammal_handle});
+    string link1_handle = backend->add_link(link1, false);
+    string link2_handle = backend->add_link(link2, false);
+    backend->re_index_patterns(true);
+    return {link1_handle, link2_handle};
+}
 
 TEST_F(RemoteAtomDBPeerTest, AddAndGetNodes) {
     auto human = new Node("Symbol", "\"human\"");
@@ -98,13 +133,17 @@ TEST_F(RemoteAtomDBPeerTest, GetFromCacheThenRemote) {
 
 TEST_F(RemoteAtomDBPeerTest, PersistsToLocal) {
     auto human = new Node("Symbol", "\"human\"");
+    auto monkey = new Node("Symbol", "\"monkey\"");
     string human_handle = peer_->add_node(human, false);
+    string monkey_handle = peer_->add_node(monkey, false);
 
-    // cache should have it
-    EXPECT_TRUE(peer_->node_exists(human_handle));
-    auto from_cache = peer_->get_node(human_handle);
-    ASSERT_NE(from_cache, nullptr);
-    EXPECT_EQ(from_cache->handle(), human_handle);
+    peer_->release_cache(true, true);
+
+    EXPECT_TRUE(local_->node_exists(human_handle));
+    EXPECT_EQ(peer_->get_cached_atom(human_handle), nullptr);
+
+    EXPECT_TRUE(local_->node_exists(monkey_handle));
+    EXPECT_EQ(peer_->get_cached_atom(monkey_handle), nullptr);
 }
 
 TEST_F(RemoteAtomDBPeerTest, QueryForPattern) {
@@ -217,65 +256,114 @@ TEST_F(RemoteAtomDBPeerTest, GetUid) { EXPECT_EQ(peer_->get_uid(), "test_peer");
 TEST_F(RemoteAtomDBPeerTest, AllowNestedIndexing) { EXPECT_FALSE(peer_->allow_nested_indexing()); }
 
 TEST_F(RemoteAtomDBPeerTest, FetchAndRelease) {
-    auto human = new Node("Symbol", "\"human\"");
-    auto monkey = new Node("Symbol", "\"monkey\"");
-    auto mammal = new Node("Symbol", "\"mammal\"");
-    auto inheritance = new Node("Symbol", "Inheritance");
+    auto handles = populate_inheritance_mammal_links(remote_);
+    string link1_handle = handles[0];
+    string link2_handle = handles[1];
+    LinkSchema link_schema = inheritance_mammal_schema();
 
-    // Add nodes and links to the remote DB directly (bypass peer)
-    string human_handle = remote_->add_node(human, false);
-    string monkey_handle = remote_->add_node(monkey, false);
-    string mammal_handle = remote_->add_node(mammal, false);
-    string inheritance_handle = remote_->add_node(inheritance, false);
-
-    auto link1 = new Link("Expression", {inheritance_handle, human_handle, mammal_handle});
-    auto link2 = new Link("Expression", {inheritance_handle, monkey_handle, mammal_handle});
-    string link1_handle = remote_->add_link(link1, false);
-    string link2_handle = remote_->add_link(link2, false);
-    remote_->re_index_patterns(true);
-
-    LinkSchema link_schema({"LINK_TEMPLATE",
-                            "Expression",
-                            "3",
-                            "NODE",
-                            "Symbol",
-                            "Inheritance",
-                            "VARIABLE",
-                            "x",
-                            "NODE",
-                            "Symbol",
-                            "\"mammal\""});
-
-    // fetch() should pull the pattern results into the cache
     peer_->fetch(link_schema);
 
-    // The peer should now answer the query from its cache
     auto result = peer_->query_for_pattern(link_schema);
     ASSERT_NE(result, nullptr);
     EXPECT_EQ(result->size(), 2);
+    EXPECT_NE(peer_->get_cached_atom(link1_handle), nullptr);
 
-    // Atoms from the query results should be in the cache (retrievable via peer)
-    auto atom1 = peer_->get_atom(link1_handle);
-    ASSERT_NE(atom1, nullptr);
-    EXPECT_EQ(atom1->handle(), link1_handle);
-
-    // release() should move cached atoms to local_persistence and remove from cache
     peer_->release(link_schema);
 
-    // After release, atoms should be in local_persistence
     EXPECT_TRUE(local_->atom_exists(link1_handle));
     EXPECT_TRUE(local_->atom_exists(link2_handle));
+    EXPECT_EQ(peer_->get_cached_atom(link1_handle), nullptr);
 
-    // The peer should still find the atoms (via local_persistence fallback)
     auto after_release = peer_->get_atom(link1_handle);
     ASSERT_NE(after_release, nullptr);
     EXPECT_EQ(after_release->handle(), link1_handle);
 }
 
+TEST_F(RemoteAtomDBPeerTest, AddAfterFetchRefetchesPatternFromRemote) {
+    auto handles = populate_inheritance_mammal_links(remote_);
+    string link1_handle = handles[0];
+    string link2_handle = handles[1];
+    LinkSchema link_schema = inheritance_mammal_schema();
+
+    peer_->fetch(link_schema);
+    ASSERT_EQ(peer_->query_for_pattern(link_schema)->size(), 2);
+    EXPECT_NE(peer_->get_cached_atom(link1_handle), nullptr);
+
+    // Any write invalidates the fetched-template registry but keeps read-cached atoms in cache.
+    auto staged = new Node("Symbol", "\"staged\"");
+    string staged_handle = peer_->add_node(staged, false);
+    EXPECT_NE(peer_->get_cached_atom(link1_handle), nullptr);
+    EXPECT_NE(peer_->get_cached_atom(link2_handle), nullptr);
+    EXPECT_NE(peer_->get_cached_atom(staged_handle), nullptr);
+
+    // Remote gains a new matching link after the template registry was invalidated.
+    auto link1 = peer_->get_link(link1_handle);
+    ASSERT_NE(link1, nullptr);
+    string inheritance_handle = link1->targets[0];
+    string mammal_handle = link1->targets[2];
+
+    auto chimp = new Node("Symbol", "\"chimp\"");
+    string chimp_handle = remote_->add_node(chimp, false);
+    auto link3 = new Link("Expression", {inheritance_handle, chimp_handle, mammal_handle});
+    string link3_handle = remote_->add_link(link3, false);
+    remote_->re_index_patterns(true);
+
+    auto result = peer_->query_for_pattern(link_schema);
+    ASSERT_NE(result, nullptr);
+    EXPECT_EQ(result->size(), 3);
+
+    vector<string> result_handles;
+    auto it = result->get_iterator();
+    char* h;
+    while ((h = it->next()) != nullptr) {
+        result_handles.push_back(h);
+    }
+    EXPECT_TRUE(find(result_handles.begin(), result_handles.end(), link3_handle) !=
+                result_handles.end());
+}
+
+TEST_F(RemoteAtomDBPeerTest, DeleteAfterFetchReleasesRemoteCache) {
+    auto handles = populate_inheritance_mammal_links(remote_);
+    string link1_handle = handles[0];
+    string link2_handle = handles[1];
+    LinkSchema link_schema = inheritance_mammal_schema();
+
+    peer_->fetch(link_schema);
+    EXPECT_NE(peer_->get_cached_atom(link1_handle), nullptr);
+    EXPECT_NE(peer_->get_cached_atom(link2_handle), nullptr);
+
+    // Delete removes the target from cache and invalidates the fetched-template registry.
+    ASSERT_TRUE(peer_->delete_link(link1_handle, false));
+    EXPECT_EQ(peer_->get_cached_atom(link1_handle), nullptr);
+    EXPECT_NE(peer_->get_cached_atom(link2_handle), nullptr);
+
+    auto link2 = peer_->get_link(link2_handle);
+    ASSERT_NE(link2, nullptr);
+
+    auto chimp = new Node("Symbol", "\"chimp\"");
+    string chimp_handle = remote_->add_node(chimp, false);
+    auto link3 = new Link("Expression", {link2->targets[0], chimp_handle, link2->targets[2]});
+    string link3_handle = remote_->add_link(link3, false);
+    remote_->re_index_patterns(true);
+
+    auto result = peer_->query_for_pattern(link_schema);
+    ASSERT_NE(result, nullptr);
+    EXPECT_EQ(result->size(), 3);
+
+    vector<string> result_handles;
+    auto it = result->get_iterator();
+    char* h;
+    while ((h = it->next()) != nullptr) {
+        result_handles.push_back(h);
+    }
+    EXPECT_TRUE(find(result_handles.begin(), result_handles.end(), link3_handle) !=
+                result_handles.end());
+}
+
 TEST_F(RemoteAtomDBPeerTest, ReleaseWithoutLocalPersistence) {
     // Create a peer without local persistence (nullptr)
     auto remote = make_shared<InMemoryDB>("no_local_remote_");
-    auto peer_no_local = make_shared<RemoteAtomDBPeer>(remote, nullptr, "no_local_peer");
+    auto peer_no_local = make_shared<RemoteAtomDBPeer>(remote, nullptr, true, "no_local_peer");
 
     auto human = new Node("Symbol", "\"human\"");
     auto mammal = new Node("Symbol", "\"mammal\"");
@@ -333,6 +421,98 @@ TEST_F(RemoteAtomDBPeerTest, AtomsCount) {
 
     EXPECT_EQ(peer_->atom_count(), 4);
     EXPECT_EQ(peer_->empty(), false);
+}
+
+// =============================================================================
+// RemoteAtomDBPeer no-cache tests
+// =============================================================================
+
+TEST(RemoteAtomDBPeerNoCacheTest, RepeatQueryStillHitsRemote) {
+    auto remote = make_shared<InMemoryDB>("no_cache_remote_");
+    auto peer = make_shared<RemoteAtomDBPeer>(remote, nullptr, false, "no_cache_peer");
+
+    auto handles = populate_inheritance_mammal_links(remote);
+    string link1_handle = handles[0];
+    LinkSchema link_schema = inheritance_mammal_schema();
+
+    auto result1 = peer->query_for_pattern(link_schema);
+    ASSERT_NE(result1, nullptr);
+    EXPECT_EQ(result1->size(), 2u);
+    EXPECT_EQ(peer->get_cached_atom(link1_handle), nullptr);
+
+    auto link1 = peer->get_link(link1_handle);
+    ASSERT_NE(link1, nullptr);
+    string inheritance_handle = link1->targets[0];
+    string mammal_handle = link1->targets[2];
+
+    auto chimp = new Node("Symbol", "\"chimp\"");
+    string chimp_handle = remote->add_node(chimp, false);
+    auto link3 = new Link("Expression", {inheritance_handle, chimp_handle, mammal_handle});
+    string link3_handle = remote->add_link(link3, false);
+    remote->re_index_patterns(true);
+
+    auto result2 = peer->query_for_pattern(link_schema);
+    ASSERT_NE(result2, nullptr);
+    EXPECT_EQ(result2->size(), 3u);
+
+    vector<string> result_handles;
+    auto it = result2->get_iterator();
+    char* h;
+    while ((h = it->next()) != nullptr) {
+        result_handles.push_back(h);
+    }
+    EXPECT_TRUE(find(result_handles.begin(), result_handles.end(), link3_handle) !=
+                result_handles.end());
+}
+
+TEST(RemoteAtomDBPeerNoCacheTest, AddUsesLocalPersistence) {
+    auto remote = make_shared<InMemoryDB>("no_cache_remote_local_");
+    auto local = make_shared<InMemoryDB>("no_cache_local_");
+    auto peer = make_shared<RemoteAtomDBPeer>(remote, local, false, "no_cache_local_peer");
+
+    auto human = new Node("Symbol", "\"human\"");
+    string human_handle = peer->add_node(human, false);
+
+    EXPECT_FALSE(human_handle.empty());
+    EXPECT_TRUE(local->node_exists(human_handle));
+    EXPECT_EQ(peer->get_cached_atom(human_handle), nullptr);
+    EXPECT_TRUE(peer->node_exists(human_handle));
+}
+
+TEST(RemoteAtomDBPeerNoCacheTest, AddFailsWithoutCacheOrLocal) {
+    auto remote = make_shared<InMemoryDB>("no_cache_read_only_remote_");
+    auto peer = make_shared<RemoteAtomDBPeer>(remote, nullptr, false, "read_only_peer");
+
+    auto human = new Node("Symbol", "\"human\"");
+    EXPECT_TRUE(peer->add_node(human, false).empty());
+    EXPECT_TRUE(peer->add_link(new Link("Expression", {"a", "b", "c"}), false).empty());
+}
+
+TEST(RemoteAtomDBPeerNoCacheTest, DeleteAtomWithoutCache) {
+    auto remote = make_shared<InMemoryDB>("no_cache_delete_remote_");
+    auto local = make_shared<InMemoryDB>("no_cache_delete_local_");
+    auto peer = make_shared<RemoteAtomDBPeer>(remote, local, false, "no_cache_delete_peer");
+
+    auto human = new Node("Symbol", "\"human\"");
+    string human_handle = local->add_node(human, false);
+
+    EXPECT_TRUE(peer->delete_atom(human_handle, false));
+    EXPECT_FALSE(peer->atom_exists(human_handle));
+    EXPECT_FALSE(local->atom_exists(human_handle));
+}
+
+TEST(RemoteAtomDBPeerNoCacheTest, FetchIsNoOp) {
+    auto remote = make_shared<InMemoryDB>("no_cache_fetch_remote_");
+    auto peer = make_shared<RemoteAtomDBPeer>(remote, nullptr, false, "no_cache_fetch_peer");
+    auto handles = populate_inheritance_mammal_links(remote);
+    LinkSchema link_schema = inheritance_mammal_schema();
+
+    peer->fetch(link_schema);
+    EXPECT_EQ(peer->get_cached_atom(handles[0]), nullptr);
+
+    auto result = peer->query_for_pattern(link_schema);
+    ASSERT_NE(result, nullptr);
+    EXPECT_EQ(result->size(), 2u);
 }
 
 // Resolves path to config file from Bazel runfiles or workspace.
@@ -531,48 +711,12 @@ class NestedInMemoryDB : public InMemoryDB {
     }
 };
 
-// Builds an Inheritance(x, "mammal") pattern that matches two links in the
-// helper-populated backends below.
-static LinkSchema inheritance_mammal_schema() {
-    return LinkSchema({"LINK_TEMPLATE",
-                       "Expression",
-                       "3",
-                       "NODE",
-                       "Symbol",
-                       "Inheritance",
-                       "VARIABLE",
-                       "x",
-                       "NODE",
-                       "Symbol",
-                       "\"mammal\""});
-}
-
-// Populates a backend with two Inheritance(*, "mammal") links and returns their handles.
-static vector<string> populate_inheritance_links(shared_ptr<InMemoryDB> backend) {
-    auto human = new Node("Symbol", "\"human\"");
-    auto monkey = new Node("Symbol", "\"monkey\"");
-    auto mammal = new Node("Symbol", "\"mammal\"");
-    auto inheritance = new Node("Symbol", "Inheritance");
-
-    string human_handle = backend->add_node(human, false);
-    string monkey_handle = backend->add_node(monkey, false);
-    string mammal_handle = backend->add_node(mammal, false);
-    string inheritance_handle = backend->add_node(inheritance, false);
-
-    auto link1 = new Link("Expression", {inheritance_handle, human_handle, mammal_handle});
-    auto link2 = new Link("Expression", {inheritance_handle, monkey_handle, mammal_handle});
-    string link1_handle = backend->add_link(link1, false);
-    string link2_handle = backend->add_link(link2, false);
-    backend->re_index_patterns(true);
-    return {link1_handle, link2_handle};
-}
-
 TEST(RemoteAtomDBFederationTest, MetadataAggregationFromNestedPeer) {
     auto backend = make_shared<NestedInMemoryDB>("fed_nested_backend_");
-    auto handles = populate_inheritance_links(backend);
+    auto handles = populate_inheritance_mammal_links(backend);
 
     map<string, shared_ptr<RemoteAtomDBPeer>> peers;
-    peers["nested"] = make_shared<RemoteAtomDBPeer>(backend, nullptr, "nested");
+    peers["nested"] = make_shared<RemoteAtomDBPeer>(backend, nullptr, true, "nested");
     auto db = make_shared<RemoteAtomDB>(peers);
 
     // All peers are nested-indexing -> facade advertises nested indexing.
@@ -604,13 +748,13 @@ TEST(RemoteAtomDBFederationTest, MixedPeersDowngradeAndDeduplicate) {
     // Both contain the SAME two links so the facade must dedup by handle.
     auto nested_backend = make_shared<NestedInMemoryDB>("fed_mixed_nested_");
     auto plain_backend = make_shared<InMemoryDB>("fed_mixed_plain_");
-    auto nested_handles = populate_inheritance_links(nested_backend);
-    auto plain_handles = populate_inheritance_links(plain_backend);
+    auto nested_handles = populate_inheritance_mammal_links(nested_backend);
+    auto plain_handles = populate_inheritance_mammal_links(plain_backend);
     ASSERT_EQ(nested_handles, plain_handles);  // identical content -> identical handles
 
     map<string, shared_ptr<RemoteAtomDBPeer>> peers;
-    peers["nested"] = make_shared<RemoteAtomDBPeer>(nested_backend, nullptr, "nested");
-    peers["plain"] = make_shared<RemoteAtomDBPeer>(plain_backend, nullptr, "plain");
+    peers["nested"] = make_shared<RemoteAtomDBPeer>(nested_backend, nullptr, true, "nested");
+    peers["plain"] = make_shared<RemoteAtomDBPeer>(plain_backend, nullptr, true, "plain");
     auto db = make_shared<RemoteAtomDB>(peers);
 
     // Mixed nested/non-nested peers -> facade downgrades to false.
@@ -632,8 +776,8 @@ TEST(RemoteAtomDBFederationTest, CacheFirstProbingAcrossPeers) {
     string handle = backend2->add_node(only_in_peer2, false);
 
     map<string, shared_ptr<RemoteAtomDBPeer>> peers;
-    peers["peer1"] = make_shared<RemoteAtomDBPeer>(backend1, nullptr, "peer1");
-    peers["peer2"] = make_shared<RemoteAtomDBPeer>(backend2, nullptr, "peer2");
+    peers["peer1"] = make_shared<RemoteAtomDBPeer>(backend1, nullptr, true, "peer1");
+    peers["peer2"] = make_shared<RemoteAtomDBPeer>(backend2, nullptr, true, "peer2");
     auto db = make_shared<RemoteAtomDB>(peers);
 
     auto* peer2 = db->get_peer("peer2");

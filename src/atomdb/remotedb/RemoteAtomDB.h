@@ -14,7 +14,7 @@ namespace atomdb {
 
 /**
  * RemoteAtomDB connects to multiple remote AtomDBs via RemoteAtomDBPeer instances.
- * Each peer maintains its own cache, remote connection, and local persistence.
+ * Each peer maintains its own optional cache, remote connection, and optional local persistence.
  * The constructor expects a JSON config with connection info for each remote peer.
  */
 class RemoteAtomDB : public AtomDB {
@@ -77,6 +77,8 @@ class RemoteAtomDB : public AtomDB {
 
     const map<string, shared_ptr<RemoteAtomDBPeer>>& get_remote_dbs() const { return remote_db_; }
     RemoteAtomDBPeer* get_peer(const string& uid);
+
+    void release_caches(const LinkSchema& link_schema, bool persist = true, bool force = false);
 
    private:
     // Derives the aggregated nested-indexing capability from the current peers. Shared by both

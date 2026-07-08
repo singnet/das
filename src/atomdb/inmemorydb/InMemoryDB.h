@@ -71,6 +71,9 @@ class InMemoryDB : public AtomDB {
 
     void re_index_patterns(bool flush_patterns = true) override;
 
+    vector<shared_ptr<Atom>> get_all_atoms();
+    void drop_all();
+
    private:
     string context_;
     HandleTrie* atoms_trie_;          // Stores handle -> Atom*

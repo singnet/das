@@ -19,6 +19,7 @@
 #include "PatternMatchingQueryProxy.h"
 #include "QueryAnswer.h"
 #include "QueryEvolutionProxy.h"
+#include "RemoteAtomDB.h"
 #include "ServiceBusSingleton.h"
 #include "SystemParametersSingleton.h"
 #include "TestAtomDBJsonConfig.h"
@@ -290,6 +291,14 @@ static shared_ptr<PatternMatchingQueryProxy> issue_context_creation_query(
 
     ServiceBusSingleton::get_instance()->issue_bus_command(proxy);
     return proxy;
+}
+
+static void flush_remote_link_template_cache(bool force = false) {
+    if (auto remote_db = dynamic_pointer_cast<RemoteAtomDB>(db); remote_db != nullptr) {
+        auto link_schema =
+            LinkSchema({LINK_TEMPLATE, EXPRESSION, "3", VARIABLE, "V1", VARIABLE, "V2", VARIABLE, "V3"});
+        remote_db->release_caches(link_schema, true, force);
+    }
 }
 
 static void insert_or_update(map<string, double>& count_map, const string& key, double value) {
@@ -813,6 +822,8 @@ static void build_links(const vector<string>& query,
     if (!proxy->finished()) {
         proxy->abort();
     }
+    // Persist staged writes once per build cycle instead of per created link.
+    flush_remote_link_template_cache();
     LOG_DEBUG("Built " + to_string(count_created) + " links");
 }
 
@@ -992,7 +1003,12 @@ static void add_preset_links(const vector<string>& implication_to_target_predica
             auto link = std::dynamic_pointer_cast<Link>(parser_handler->element_stack.top());
             link->custom_attributes["strength"] = (double) Utils::string_to_float(line[0]);
             LOG_DEBUG("Adding Link: [" + line[0] + "] " + line[1]);
-            db->add_link(link.get(), false);
+            vector<Atom*> atoms_to_add;
+            atoms_to_add.reserve(parser_handler->handle_to_atom.size());
+            for (const auto& [_, atom] : parser_handler->handle_to_atom) {
+                atoms_to_add.push_back(atom.get());
+            }
+            db->add_atoms(atoms_to_add, false, true);
             count++;
             line.clear();
             buffer_determiners.push_back({link->handle(), link->targets[1], link->targets[2]});
@@ -1018,6 +1034,7 @@ static void add_preset_links(const vector<string>& implication_to_target_predica
     LOG_INFO("Updating determiners in AttentionBroker");
     AttentionBrokerClient::set_determiners(buffer_determiners, context);
     buffer_determiners.clear();
+    flush_remote_link_template_cache();
 }
 
 static void run(const string& context_tag) {
@@ -1393,6 +1410,7 @@ static void insert_type_symbols() {
         db->add_node(node, false);
         delete (node);
     }
+    flush_remote_link_template_cache();
 }
 
 int main(int argc, char* argv[]) {
@@ -1499,6 +1517,8 @@ int main(int argc, char* argv[]) {
                                  to_string(SELECTION_RATE)};
     LOG_INFO("FINAL_RESULT " + to_string(best_strength) + " " + to_string(iteration) + " " +
              Utils::join(test_label, '_') + " " + answer_to_string(recorded_answers.back().first));
+
+    flush_remote_link_template_cache(true);
 
     return 0;
 }
