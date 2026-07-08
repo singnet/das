@@ -2,6 +2,7 @@
 
 #include <map>
 #include <memory>
+#include <set>
 #include <thread>
 
 #include "BusCommandProcessor.h"

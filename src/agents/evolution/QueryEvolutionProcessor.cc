@@ -1,5 +1,9 @@
 #include "QueryEvolutionProcessor.h"
 
+#if defined(__GLIBC__)
+#include <malloc.h>
+#endif
+
 #include "AttentionBrokerClient.h"
 #include "Hasher.h"
 #include "LinkSchema.h"
@@ -70,8 +74,20 @@ void QueryEvolutionProcessor::thread_process_one_query(shared_ptr<StoppableThrea
     } catch (const std::exception& exception) {
         proxy->raise_error_on_peer(exception.what());
     }
+    // The evolution run is over, so the population and all intermediate query answers held during
+    // it are freed. Return that freed heap to the OS so RSS does not stay pinned at the peak.
+#if defined(__GLIBC__)
+    malloc_trim(0);
+#endif
+    // Self-reap: detach this finished thread and drop it from query_threads immediately, so a
+    // burst that finishes while the node is idle returns to baseline without waiting for the next
+    // command. A thread cannot join itself, hence detach instead of join.
+    {
+        lock_guard<mutex> semaphore(this->query_threads_mutex);
+        this->query_threads.erase(monitor->get_id());
+        monitor->detach();
+    }
     LOG_DEBUG("Command finished: <" << proxy->get_command() << ">");
-    // TODO add a call to remove_query_thread(monitor->get_id());
 }
 
 shared_ptr<PatternMatchingQueryProxy> QueryEvolutionProcessor::issue_sampling_query(

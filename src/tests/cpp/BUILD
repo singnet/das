@@ -750,6 +750,21 @@ cc_test(
 )
 
 cc_test(
+    name = "stoppable_thread_test",
+    size = "small",
+    srcs = ["stoppable_thread_test.cc"],
+    copts = [
+        "-Iexternal/gtest/googletest/include",
+        "-Iexternal/gtest/googletest",
+    ],
+    linkstatic = 1,
+    deps = [
+        "//commons:commons_lib",
+        "@com_github_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
     name = "redis_mongodb_test",
     size = "medium",
     srcs = [
@@ -942,7 +957,7 @@ cc_test(
 
 cc_test(
     name = "postgreswrapper_test",
-    size = "small",
+    size = "medium",
     srcs = [
         "postgreswrapper_test.cc",
     ],
@@ -971,7 +986,7 @@ cc_test(
 
 cc_test(
     name = "morkwrapper_test",
-    size = "small",
+    size = "medium",
     srcs = [
         "morkwrapper_test.cc",
     ],
@@ -1001,7 +1016,7 @@ cc_test(
 
 cc_test(
     name = "adapterdb_test",
-    size = "small",
+    size = "medium",
     srcs = [
         "adapterdb_test.cc",
     ],
@@ -1024,6 +1039,27 @@ cc_test(
         "//db_adapter:db_adapter_lib",
         "//tests/cpp/test_commons:test_atomdb_json_config",
         "@com_github_google_googletest//:gtest_main",
+        "@mbedtls",
+    ],
+)
+
+cc_test(
+    name = "command_router_http_api_test",
+    size = "small",
+    srcs = [
+        "command_router_http_api_test.cc",
+    ],
+    copts = [
+        "-Iexternal/gtest/googletest/include",
+        "-Iexternal/gtest/googletest",
+    ],
+    linkstatic = 1,
+    deps = [
+        "//agents/command_router/http_api:command_execution",
+        "//agents/command_router/http_api:command_router_http_api",
+        "//agents/command_router/http_api:command_router_http_api_singleton",
+        "//commons/processor:processor_lib",
+        "@com_github_google_googletest//:gtest",
         "@mbedtls",
     ],
 )

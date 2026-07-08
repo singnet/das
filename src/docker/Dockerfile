@@ -36,7 +36,7 @@ RUN ARCH=$([ "$(uname -m)" = "aarch64" ] && echo "arm64" || echo "amd64") \
 # To be removed when AtomDB is properly integrated
 COPY src/assets/hiredis-cluster.tgz /tmp
 COPY src/assets/mongo-cxx-driver-r4.1.0.tar.gz /tmp
-COPY src/assets/cpp-httplib-master.zip /tmp
+COPY src/assets/cpp-httplib-0.47.0.zip /tmp
 
 # Redis client
 RUN cd /tmp \
@@ -74,9 +74,9 @@ RUN cd /tmp \
 
 # cpp-httplib
 RUN cd /tmp \
-    && unzip -q cpp-httplib-master.zip \
-    && cp cpp-httplib-master/httplib.h /usr/local/include/ \
-    && rm -rf /tmp/cpp-httplib-master*
+    && unzip -q cpp-httplib-0.47.0.zip \
+    && cp cpp-httplib-0.47.0/httplib.h /usr/local/include/ \
+    && rm -rf /tmp/cpp-httplib-0.47.0*
 
 COPY src/assets/utfcpp-4.1.1.zip /tmp
 RUN cd /tmp \

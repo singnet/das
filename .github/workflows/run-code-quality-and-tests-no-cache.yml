@@ -2,6 +2,11 @@ name: Code Quality & Tests Without Cache
 
 on:
   workflow_call:
+    outputs:
+      failed_job:
+        description: Name of the job that failed, if any
+        value: ${{ jobs.report.outputs.failed_job }}
+
   workflow_dispatch:
 
 jobs:
@@ -13,3 +18,21 @@ jobs:
     uses: ./.github/workflows/run-unit-tests.yml
     with:
       runner: self-hosted-nocache
+
+  report:
+    needs: [format-check, unit-tests]
+    if: always()
+    runs-on: self-hosted
+    outputs:
+      failed_job: ${{ steps.failed-job.outputs.name }}
+    steps:
+      - name: Determine failed job
+        id: failed-job
+        run: |
+          if [ "${{ needs.format-check.result }}" = "failure" ]; then
+            echo "name=format-check" >> "$GITHUB_OUTPUT"
+          elif [ "${{ needs.unit-tests.result }}" = "failure" ]; then
+            echo "name=unit-tests" >> "$GITHUB_OUTPUT"
+          else
+            echo "name=" >> "$GITHUB_OUTPUT"
+          fi

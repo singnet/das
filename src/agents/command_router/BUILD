@@ -48,6 +48,7 @@ cc_library(
     deps = [
         ":bus_command_router_proxy",
         ":evolution_metta_parser",
+        "//agents/command_router/http_api:command_router_http_api_singleton",
         "//agents/evolution:query_evolution_proxy",
         "//agents/query_engine:pattern_matching_query_proxy",
         "//agents/query_engine:query_answer",
