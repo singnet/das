@@ -84,8 +84,8 @@ static bool USE_MORK = false;
 static bool SETUP_ONLY = false;
 static double LINK_CREATION_STRENGTH_THRESHOLD = (SETUP_ONLY ? 0.0 : 0.1);
 static unsigned int LINK_CREATION_COUNT = 10;
-static unsigned int LINK_CREATION_MAX_VISIT_ATTEMPTS = LINK_CREATION_COUNT;
-static unsigned int LINK_CREATION_MAX_ATTEMPTS = 500;
+static unsigned int LINK_CREATION_MAX_VISIT_ATTEMPTS = 1 * LINK_CREATION_COUNT;
+static unsigned int LINK_CREATION_MAX_ATTEMPTS = 50 * LINK_CREATION_COUNT;
 
 static string PRESET_LINKS_FILE_PREFIX = "/opt/das/_PRESET_LINKS_";
 static string PRESET_LINKS_FILE = PRESET_LINKS_FILE_PREFIX;
