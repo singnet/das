@@ -82,10 +82,10 @@ static string TARGET_PREDICATE_HANDLE = "undefined";
 
 static bool USE_MORK = false;
 static bool SETUP_ONLY = false;
-static double LINK_CREATION_STRENGTH_THRESHOLD = (SETUP_ONLY ? 0.0 : 0.1);
+static double LINK_CREATION_STRENGTH_THRESHOLD = (SETUP_ONLY ? 0.0 : 0.20);
 static unsigned int LINK_CREATION_COUNT = 10;
-static unsigned int LINK_CREATION_MAX_VISIT_ATTEMPTS = 1 * LINK_CREATION_COUNT;
-static unsigned int LINK_CREATION_MAX_ATTEMPTS = 50 * LINK_CREATION_COUNT;
+static unsigned int LINK_CREATION_MAX_VISIT_ATTEMPTS = 10 * LINK_CREATION_COUNT;
+static unsigned int LINK_CREATION_MAX_ATTEMPTS = 500 * LINK_CREATION_COUNT;
 
 static string PRESET_LINKS_FILE_PREFIX = "/opt/das/_PRESET_LINKS_";
 static string PRESET_LINKS_FILE = PRESET_LINKS_FILE_PREFIX;
@@ -1489,7 +1489,11 @@ int main(int argc, char* argv[]) {
     LOG_INFO("Target predicate: " + TARGET_PREDICATE + " Handle: " + TARGET_PREDICATE_HANDLE);
     LOG_INFO("Target concept: " + TARGET_CONCEPT + " Handle: " + TARGET_CONCEPT_HANDLE);
 
+    StopWatch timer;
+    timer.start();
     run(context_tag);
+    timer.stop();
+    LOG_INFO("Total evaluation evolution time: " + timer.str_time());
 
     double best_strength = 0;
     unsigned int iteration = 0;

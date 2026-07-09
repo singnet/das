@@ -53,6 +53,6 @@ echo
 echo "--------------------------------------------------"
 echo "Running <${command_line[@]}>"
 echo
-echo "${#command_line[@]}"
-echo
+date
 "${command_line[@]}"
+date
