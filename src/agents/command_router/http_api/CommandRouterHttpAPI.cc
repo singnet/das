@@ -294,7 +294,9 @@ void CommandRouterHttpAPI::run_execution_inner(const shared_ptr<CommandExecution
         return;
     }
 
-    const auto started_at = Utils::get_current_time_millis();
+    StopWatch timer;
+    timer.start();
+
     int seq = 0;
 
     auto should_abort = [&]() { return exec->is_cancel_requested() || this->shutting_down.load(); };
@@ -304,7 +306,7 @@ void CommandRouterHttpAPI::run_execution_inner(const shared_ptr<CommandExecution
         exec->mark_aborted();
         LOG_INFO("CommandRouter HTTP API execution aborted id=" << exec->execution_id);
     };
-    auto on_complete = [&](long long duration_ms, int total_items) {
+    auto on_complete = [&](unsigned long duration_ms, int total_items) {
         exec->mark_completed(duration_ms, total_items);
         LOG_INFO("CommandRouter HTTP API execution completed id="
                  << exec->execution_id << " duration_ms=" << duration_ms << " items=" << total_items);
@@ -328,7 +330,9 @@ void CommandRouterHttpAPI::run_execution_inner(const shared_ptr<CommandExecution
             return;
         }
 
-        on_complete(Utils::get_current_time_millis() - started_at, exec->received_count());
+        timer.stop();
+
+        on_complete(timer.milliseconds(), exec->received_count());
     } catch (const exception& e) {
         on_error(e.what());
     }
@@ -370,8 +374,10 @@ void CommandRouterHttpAPI::run_execution(const shared_ptr<CommandExecution>& exe
 
     this->run_execution_inner(exec);
 
-    lock_guard<mutex> lock(this->executions_mtx);
-    this->running_executions--;
+    {
+        lock_guard<mutex> lock(this->executions_mtx);
+        this->running_executions--;
+    }
     this->execution_slots_cv.notify_one();
 }
 

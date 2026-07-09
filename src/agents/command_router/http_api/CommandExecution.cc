@@ -57,7 +57,7 @@ int CommandExecution::received_count() const {
     return this->received_count_;
 }
 
-long long CommandExecution::finished_at_ms() const {
+unsigned long CommandExecution::finished_at_ms() const {
     lock_guard<mutex> lock(this->mtx_);
     return this->finished_at_ms_;
 }
@@ -111,7 +111,7 @@ optional<string> CommandExecution::wait_next_event(size_t& next_index,
     return payload;
 }
 
-bool CommandExecution::is_retention_expired(long long now_ms, long long retention_ms) const {
+bool CommandExecution::is_retention_expired(unsigned long now_ms, unsigned long retention_ms) const {
     lock_guard<mutex> lock(this->mtx_);
     return is_terminal(this->status_) && this->finished_at_ms_ > 0 &&
            (now_ms - this->finished_at_ms_) > retention_ms;
@@ -151,7 +151,7 @@ void CommandExecution::publish_chunk(int seq, const vector<string>& data) {
                                 {"received_count", this->received_count_}});
 }
 
-void CommandExecution::mark_completed(long long duration_ms, int total_items) {
+void CommandExecution::mark_completed(unsigned long duration_ms, int total_items) {
     lock_guard<mutex> lock(this->mtx_);
     this->duration_ms_ = duration_ms;
     this->total_items_ = total_items;

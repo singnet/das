@@ -53,7 +53,7 @@ class CommandExecution {
     bool is_terminal_status() const;
     bool is_cancel_requested() const;
     int received_count() const;
-    long long finished_at_ms() const;
+    unsigned long finished_at_ms() const;
 
     /** @brief JSON body for GET /executions/{id}. */
     json to_status_json() const;
@@ -73,7 +73,7 @@ class CommandExecution {
                                      bool& stream_finished);
 
     /** @brief True when terminal and finished_at_ms is older than retention_ms. */
-    bool is_retention_expired(long long now_ms, long long retention_ms) const;
+    bool is_retention_expired(unsigned long now_ms, unsigned long retention_ms) const;
 
     /** @brief Append a chunk event and update received_count. */
     void publish_chunk(int seq, const vector<string>& data);
@@ -82,7 +82,7 @@ class CommandExecution {
     void mark_running();
 
     /** @brief -> COMPLETED; sets duration/totals and emits a lifecycle event. */
-    void mark_completed(long long duration_ms, int total_items);
+    void mark_completed(unsigned long duration_ms, int total_items);
 
     /** @brief -> ERROR; sets error_message and emits a lifecycle event. */
     void mark_error(const string& message);
@@ -100,8 +100,8 @@ class CommandExecution {
     ExecutionStatus status_ = ExecutionStatus::PENDING;
     int received_count_ = 0;
     int total_items_ = 0;
-    long long duration_ms_ = 0;
-    long long finished_at_ms_ = 0;
+    unsigned long duration_ms_ = 0;
+    unsigned long finished_at_ms_ = 0;
     string error_message_;
     bool cancel_requested_ = false;
     vector<string> events_;
