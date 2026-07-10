@@ -1,11 +1,13 @@
 #include "BusCommandRouterProcessor.h"
 
 #include <algorithm>
+#include <atomic>
 #include <variant>
 
 #include "BaseQueryProxy.h"
 #include "EvolutionMettaParser.h"
 #include "PatternMatchingQueryProxy.h"
+#include "PortPool.h"
 #include "QueryEvolutionProxy.h"
 #include "ServiceBusSingleton.h"
 #include "Utils.h"
@@ -21,6 +23,7 @@ using namespace service_bus;
 namespace {
 
 const string CONTEXT_KEY = "context";
+atomic<unsigned int> HTTP_REQUEST_SERIAL{1};
 
 }  // namespace
 
@@ -42,6 +45,48 @@ Properties& BusCommandRouterProcessor::parameters_for_peer(const string& peer_id
         iterator = this->router_parameters_by_peer.emplace(peer_id, defaults).first;
     }
     return iterator->second;
+}
+
+void BusCommandRouterProcessor::dispatch_http_command(
+    const shared_ptr<BusCommandRouterProxy>& caller_proxy, const string& http_requestor_id) {
+    if (caller_proxy == nullptr) {
+        RAISE_ERROR("HTTP command requires a caller proxy");
+    }
+    if (caller_proxy->issued) {
+        RAISE_ERROR("Attempt to dispatch the same HTTP caller proxy twice");
+    }
+    if (http_requestor_id.empty()) {
+        RAISE_ERROR("HTTP command dispatch requires a non-empty http_requestor_id");
+    }
+
+    const unsigned int serial = HTTP_REQUEST_SERIAL.fetch_add(1);
+
+    caller_proxy->issued = true;
+    caller_proxy->requestor_id = http_requestor_id;
+    caller_proxy->serial = serial;
+    caller_proxy->proxy_port = PortPool::get_port();
+    if (caller_proxy->proxy_port == 0) {
+        RAISE_ERROR("No port is available to start HTTP caller proxy");
+    }
+    caller_proxy->setup_proxy_node();
+
+    auto processor_proxy = dynamic_pointer_cast<BusCommandRouterProxy>(factory_empty_proxy());
+    if (processor_proxy == nullptr) {
+        RAISE_ERROR("Invalid proxy type for HTTP BUS_COMMAND_ROUTER dispatch");
+    }
+    processor_proxy->proxy_port = PortPool::get_port();
+    if (processor_proxy->proxy_port == 0) {
+        RAISE_ERROR("No port is available to start HTTP processor proxy");
+    }
+    processor_proxy->requestor_id = http_requestor_id;
+    processor_proxy->serial = serial;
+    const string requestor_host = http_requestor_id.substr(0, http_requestor_id.find(':'));
+    const string processor_proxy_node_id = requestor_host + ":" + to_string(processor_proxy->proxy_port);
+    processor_proxy->setup_proxy_node(processor_proxy_node_id, caller_proxy->my_id());
+    processor_proxy->command = std::move(caller_proxy->command);
+    processor_proxy->args = std::move(caller_proxy->args);
+
+    this->run_command(processor_proxy);
 }
 
 void BusCommandRouterProcessor::run_command(shared_ptr<BusCommandProxy> proxy) {

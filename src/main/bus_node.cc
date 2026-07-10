@@ -149,7 +149,7 @@ int main(int argc, char* argv[]) {
             mains::ProcessorType::COMMAND_ROUTER) {
             auto command_router_config =
                 json_config.at_path("agents.command_router").get_or<JsonConfig>(JsonConfig());
-            CommandRouterHttpAPISingleton::init(command_router_config);
+            CommandRouterHttpAPISingleton::init(command_router_config, service);
         }
 
         while (true) {

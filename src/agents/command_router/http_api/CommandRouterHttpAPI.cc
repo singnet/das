@@ -4,6 +4,10 @@
 #include <cctype>
 #include <sstream>
 
+#include "BusCommandRouterProcessor.h"
+#include "BusCommandRouterProxy.h"
+#include "BusCommandRouterProxyStreamPoller.h"
+
 #define LOG_LEVEL INFO_LEVEL
 #include "Logger.h"
 #include "Utils.h"
@@ -12,6 +16,7 @@
 using namespace command_router;
 using namespace commons;
 using namespace processor;
+using namespace agents;
 
 using json = nlohmann::json;
 
@@ -24,12 +29,16 @@ const unordered_set<string> CommandRouterHttpAPI::VALID_COMMAND_TYPES = {
 CommandRouterHttpAPI::CommandRouterHttpAPI(const string& host,
                                            int port,
                                            shared_ptr<processor::ThreadPool> thread_pool,
-                                           HttpAPISettings settings)
+                                           shared_ptr<BusCommandRouterProcessor> router_processor,
+                                           HttpAPISettings settings,
+                                           const string& bus_host)
     : Processor("command_router_http_api"),
       host(host),
       port(port),
       thread_pool(thread_pool),
-      settings(std::move(settings)) {
+      router_processor(router_processor),
+      settings(settings),
+      bus_host(bus_host) {
     if (this->thread_pool == nullptr) {
         RAISE_ERROR("CommandRouterHttpAPI requires a non-null thread pool");
     }
@@ -280,71 +289,95 @@ shared_ptr<CommandExecution> CommandRouterHttpAPI::find_execution(const string& 
 }
 
 void CommandRouterHttpAPI::run_execution_inner(const shared_ptr<CommandExecution>& exec) {
-    // POC code to simulate event streaming.
+    if (this->router_processor == nullptr) {
+        exec->mark_error("Command router processor is not configured for HTTP execution");
+        return;
+    }
 
-    const int TOTAL = 1000;
-    const int CHUNK_SIZE = 10;
-    auto started_at = Utils::get_current_time_millis();
+    StopWatch timer;
+    timer.start();
+
     int seq = 0;
 
-    for (int i = 0; i < TOTAL; i += CHUNK_SIZE) {
-        if (exec->is_cancel_requested() || this->shutting_down.load()) {
-            exec->mark_aborted();
-            LOG_INFO("CommandRouter HTTP API execution aborted id=" << exec->execution_id);
+    auto should_abort = [&]() { return exec->is_cancel_requested() || this->shutting_down.load(); };
+    auto on_chunk = [&](const vector<string>& chunk) { exec->publish_chunk(++seq, chunk); };
+    auto on_error = [&](const string& message) { exec->mark_error(message); };
+    auto on_aborted = [&]() {
+        exec->mark_aborted();
+        LOG_INFO("CommandRouter HTTP API execution aborted id=" << exec->execution_id);
+    };
+    auto on_complete = [&](unsigned long duration_ms, int total_items) {
+        exec->mark_completed(duration_ms, total_items);
+        LOG_INFO("CommandRouter HTTP API execution completed id="
+                 << exec->execution_id << " duration_ms=" << duration_ms << " items=" << total_items);
+    };
+
+    try {
+        string router_arg = exec->command_text;
+        Utils::replace_all(router_arg, "%", "$");
+        auto router_proxy = make_shared<BusCommandRouterProxy>(exec->command_type, router_arg);
+
+        string http_requestor_id = this->bus_host + ":http-" + exec->execution_id;
+        this->router_processor->dispatch_http_command(router_proxy, http_requestor_id);
+
+        if (!BusCommandRouterProxyStreamPoller::poll_stream(router_proxy,
+                                                            exec->command_type,
+                                                            this->settings.stream_items_per_chunk,
+                                                            should_abort,
+                                                            on_chunk,
+                                                            on_error,
+                                                            on_aborted)) {
             return;
         }
 
-        Utils::sleep(200);
+        timer.stop();
 
-        vector<string> chunk_data;
-        for (int k = i; k < min(i + CHUNK_SIZE, TOTAL); ++k) {
-            chunk_data.push_back("result-" + std::to_string(k));
-        }
-
-        exec->publish_chunk(++seq, chunk_data);
+        on_complete(timer.milliseconds(), exec->received_count());
+    } catch (const exception& e) {
+        on_error(e.what());
     }
-
-    const auto duration_ms = Utils::get_current_time_millis() - started_at;
-    exec->mark_completed(duration_ms, exec->received_count());
-
-    LOG_INFO("CommandRouter HTTP API execution completed id=" << exec->execution_id
-                                                              << " duration_ms=" << duration_ms
-                                                              << " items=" << exec->received_count());
 }
 
 void CommandRouterHttpAPI::run_execution(const shared_ptr<CommandExecution>& exec) {
+    bool acquired_running_slot = false;
+
     {
-        unique_lock<mutex> semaphore(this->executions_mtx);
-        this->execution_slots_cv.wait(semaphore, [&] {
+        unique_lock<mutex> lock(this->executions_mtx);
+
+        // Block until a concurrent slot is free or the server is shutting down.
+        this->execution_slots_cv.wait(lock, [&] {
             return this->shutting_down.load() ||
                    this->running_executions < this->settings.max_concurrent_executions;
         });
 
-        if (this->shutting_down.load()) {
-            exec->mark_error_unless_terminal("Server is shutting down");
-            this->pending_executions--;
-            return;
-        }
-
-        exec->mark_running();
         this->pending_executions--;
-        this->running_executions++;
+
+        if (!this->shutting_down.load()) {
+            if (!exec->is_cancel_requested()) {
+                this->running_executions++;
+                acquired_running_slot = true;
+            }
+        }
     }
 
-    try {
-        this->run_execution_inner(exec);
-    } catch (const exception& e) {
-        LOG_ERROR("CommandRouter HTTP API execution failed id=" << exec->execution_id << ": "
-                                                                << e.what());
-        exec->mark_error_unless_terminal(string("Execution failed: ") + e.what());
-    } catch (...) {
-        LOG_ERROR("CommandRouter HTTP API execution failed id=" << exec->execution_id
-                                                                << ": unknown error");
-        exec->mark_error_unless_terminal("Execution failed: unknown error");
+    if (this->shutting_down.load()) {
+        exec->mark_error_unless_terminal("Server is shutting down");
+        return;
     }
 
-    lock_guard<mutex> semaphore(this->executions_mtx);
-    this->running_executions--;
+    if (!acquired_running_slot) {
+        exec->mark_aborted_unless_terminal();
+        return;
+    }
+
+    exec->mark_running();
+
+    this->run_execution_inner(exec);
+
+    {
+        lock_guard<mutex> lock(this->executions_mtx);
+        this->running_executions--;
+    }
     this->execution_slots_cv.notify_one();
 }
 
