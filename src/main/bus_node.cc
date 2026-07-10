@@ -1,5 +1,9 @@
 #include <signal.h>
 
+#if defined(__GLIBC__)
+#include <malloc.h>
+#endif
+
 #include "AttentionBrokerClient.h"
 #include "CommandRouterHttpAPISingleton.h"
 #include "FitnessFunctionRegistry.h"
@@ -25,6 +29,23 @@ void ctrl_c_handler(int) {
 
 int main(int argc, char* argv[]) {
     try {
+#if defined(__GLIBC__)
+        // Cap the number of malloc arenas. The bus node spawns many short-lived worker threads
+        // (one per query plus per query-element). With the glibc default (8 * nproc arenas) the
+        // large transient allocations done while fetching/matching atoms get scattered across
+        // dozens of arenas that are never given back to the OS, so RSS stays pinned at the
+        // high-water mark long after the queries are done. A small, fixed arena count keeps
+        // fragmentation/retention under control while still allowing concurrency. Honor an
+        // explicit MALLOC_ARENA_MAX from the environment if the operator set one.
+        if (getenv("MALLOC_ARENA_MAX") == nullptr) {
+            mallopt(M_ARENA_MAX, 4);
+        }
+        // Return free heap pages to the OS instead of caching unbounded amounts in the arenas.
+        // Honor an explicit MALLOC_TRIM_THRESHOLD_ from the environment if the operator set one.
+        if (getenv("MALLOC_TRIM_THRESHOLD_") == nullptr) {
+            mallopt(M_TRIM_THRESHOLD, 128 * 1024);
+        }
+#endif
         auto required_cmd_args = {Helper::SERVICE, Helper::CONFIG};
         auto cmd_args = Utils::parse_command_line(argc, argv);
 

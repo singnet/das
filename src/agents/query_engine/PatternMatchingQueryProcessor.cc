@@ -3,6 +3,10 @@
 
 #include "Logger.h"
 
+#if defined(__GLIBC__)
+#include <malloc.h>
+#endif
+
 #include <map>
 
 #include "And.h"
@@ -246,8 +250,21 @@ void PatternMatchingQueryProcessor::thread_process_one_query(
     } catch (const std::exception& exception) {
         proxy->raise_error_on_peer(exception.what());
     }
+    // At this point the query tree (root_query_element, query_sink) declared inside the try block
+    // above has already been destroyed, so every QueryAnswer/HandleSet allocated for this query is
+    // freed. Return that freed heap to the OS so RSS does not stay pinned at the peak.
+#if defined(__GLIBC__)
+    malloc_trim(0);
+#endif
+    // Self-reap: detach this finished thread and drop it from query_threads immediately, so a
+    // burst of queries that finishes while the node is idle returns to baseline without waiting
+    // for the next command. A thread cannot join itself, hence detach instead of join.
+    {
+        lock_guard<mutex> semaphore(this->query_threads_mutex);
+        this->query_threads.erase(monitor->get_id());
+        monitor->detach();
+    }
     LOG_DEBUG("Command finished: <" << proxy->get_command() << ">");
-    // TODO add a call to remove_query_thread(monitor->get_id());
 }
 
 void PatternMatchingQueryProcessor::remove_query_thread(const string& stoppable_thread_id) {
