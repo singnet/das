@@ -60,10 +60,8 @@ RemoteAtomDB::RemoteAtomDB(const JsonConfig& peers_config) {
         if (!local_persistence_config.empty()) {
             local_persistence = create_atomdb_from_config(local_persistence_config);
         }
-        bool readonly = peer_config.at_path("readonly").get_or<bool>(false);
-        bool cache = peer_config.at_path("cache").get_or<bool>(true);
         remote_db_[uid] = make_shared<RemoteAtomDBPeer>(
-            create_atomdb_from_config(peer_config), local_persistence, readonly, cache, uid);
+            create_atomdb_from_config(peer_config), local_persistence, uid);
     }
 
     LOG_INFO("RemoteAtomDB initialized with " << remote_db_.size() << " remote peers");

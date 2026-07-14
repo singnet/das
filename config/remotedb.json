@@ -5,7 +5,6 @@
             {
                 "uid": "peer1",
                 "type": "redismongodb",
-                "readonly": true,
                 "context": "",
                 "mongodb": {
                     "endpoint": "localhost:40021",
@@ -23,7 +22,6 @@
             {
                 "uid": "peer2",
                 "type": "redismongodb",
-                "readonly": true,
                 "context": "",
                 "mongodb": {
                     "endpoint": "localhost:40031",
@@ -41,7 +39,6 @@
             {
                 "uid": "peer3",
                 "type": "inmemorydb",
-                "cache": false,
                 "context": "",
                 "local_persistence": {
                     "type": "redismongodb",

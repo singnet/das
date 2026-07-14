@@ -26,9 +26,7 @@ namespace atomdb {
 class RemoteAtomDBPeer : public AtomDB, public processor::ThreadMethod {
    public:
     RemoteAtomDBPeer(shared_ptr<AtomDB> remote_atomdb,
-                     shared_ptr<AtomDB> local_persistence,
-                     bool readonly = false,
-                     bool cache = true,
+                     shared_ptr<AtomDB> local_persistence = nullptr,
                      const string& uid = "");
     ~RemoteAtomDBPeer();
 
@@ -100,7 +98,7 @@ class RemoteAtomDBPeer : public AtomDB, public processor::ThreadMethod {
     bool thread_one_step() override;
 
     const string& get_uid() const { return uid_; }
-    bool is_readonly() const { return readonly_; }
+    bool is_readonly() const { return local_persistence_ == nullptr; }
 
    private:
     void feed_cache_from_handle_set(shared_ptr<atomdb_api_types::HandleSet> handle_set);
@@ -113,7 +111,6 @@ class RemoteAtomDBPeer : public AtomDB, public processor::ThreadMethod {
     void persist_atoms_to_local(const vector<shared_ptr<atoms::Atom>>& atoms);
 
     string uid_;
-    bool readonly_;
     shared_ptr<InMemoryDB> cache_;
     shared_ptr<AtomDB> atomdb_;
     shared_ptr<AtomDB> local_persistence_;
