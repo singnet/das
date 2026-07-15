@@ -69,14 +69,14 @@ RemoteAtomDB::RemoteAtomDB(const JsonConfig& peers_config) {
 
     LOG_INFO("RemoteAtomDB initialized with " << remote_db_.size() << " remote peers");
     derive_nested_indexing();
-    wire_atom_resolvers();
+    set_atom_resolvers();
 }
 
 RemoteAtomDB::RemoteAtomDB(map<string, shared_ptr<RemoteAtomDBPeer>> peers)
     : remote_db_(std::move(peers)) {
     LOG_INFO("RemoteAtomDB initialized with " << remote_db_.size() << " pre-built peers");
     derive_nested_indexing();
-    wire_atom_resolvers();
+    set_atom_resolvers();
 }
 
 RemoteAtomDB::~RemoteAtomDB() = default;
@@ -106,7 +106,7 @@ void RemoteAtomDB::derive_nested_indexing() {
 
 bool RemoteAtomDB::allow_nested_indexing() { return nested_indexing_; }
 
-void RemoteAtomDB::wire_atom_resolvers() {
+void RemoteAtomDB::set_atom_resolvers() {
     for (auto& [uid, peer] : remote_db_) {
         if (peer->is_readonly()) continue;
         RemoteAtomDBPeer* self = peer.get();

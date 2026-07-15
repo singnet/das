@@ -383,37 +383,21 @@ set<string> RemoteAtomDBPeer::links_exist(const vector<string>& handles) {
 }
 
 string RemoteAtomDBPeer::add_atom(const atoms::Atom* atom, bool throw_if_exists) {
-    if (is_readonly()) return "";
-
-    lock_guard<recursive_mutex> lock(cache_mutex_);
-    invalidate_fetched_templates_locked();
-    // Replace any cached copy: handles omit custom attributes (e.g. strength).
-    cache_->delete_atom(atom->handle(), false);
-    string handle = cache_->add_atom(atom, throw_if_exists);
-    staged_handles_.insert(handle);
-    return handle;
+    vector<Atom*> atoms = {const_cast<atoms::Atom*>(atom)};
+    auto handles = add_atoms(atoms, throw_if_exists);
+    return handles.empty() ? "" : handles[0];
 }
 
 string RemoteAtomDBPeer::add_node(const atoms::Node* node, bool throw_if_exists) {
-    if (is_readonly()) return "";
-
-    lock_guard<recursive_mutex> lock(cache_mutex_);
-    invalidate_fetched_templates_locked();
-    cache_->delete_node(node->handle(), false);
-    string handle = cache_->add_node(node, throw_if_exists);
-    staged_handles_.insert(handle);
-    return handle;
+    vector<Node*> nodes = {const_cast<atoms::Node*>(node)};
+    auto handles = add_nodes(nodes, throw_if_exists);
+    return handles.empty() ? "" : handles[0];
 }
 
 string RemoteAtomDBPeer::add_link(const atoms::Link* link, bool throw_if_exists) {
-    if (is_readonly()) return "";
-
-    lock_guard<recursive_mutex> lock(cache_mutex_);
-    invalidate_fetched_templates_locked();
-    cache_->delete_link(link->handle(), false);
-    string handle = cache_->add_link(link, throw_if_exists);
-    staged_handles_.insert(handle);
-    return handle;
+    vector<Link*> links = {const_cast<atoms::Link*>(link)};
+    auto handles = add_links(links, throw_if_exists);
+    return handles.empty() ? "" : handles[0];
 }
 
 vector<string> RemoteAtomDBPeer::add_atoms(const vector<atoms::Atom*>& atoms,
@@ -423,9 +407,12 @@ vector<string> RemoteAtomDBPeer::add_atoms(const vector<atoms::Atom*>& atoms,
 
     lock_guard<recursive_mutex> lock(cache_mutex_);
     invalidate_fetched_templates_locked();
+
+    // We need to delete existing atoms in order to update them.
     for (const auto* atom : atoms) {
         if (atom) cache_->delete_atom(atom->handle(), false);
     }
+
     auto handles = cache_->add_atoms(atoms, throw_if_exists, is_transactional);
     staged_handles_.insert(handles.begin(), handles.end());
     return handles;
@@ -438,9 +425,12 @@ vector<string> RemoteAtomDBPeer::add_nodes(const vector<atoms::Node*>& nodes,
 
     lock_guard<recursive_mutex> lock(cache_mutex_);
     invalidate_fetched_templates_locked();
+
+    // We need to delete existing nodes in order to update them.
     for (const auto* node : nodes) {
         if (node) cache_->delete_node(node->handle(), false);
     }
+
     auto handles = cache_->add_nodes(nodes, throw_if_exists, is_transactional);
     staged_handles_.insert(handles.begin(), handles.end());
     return handles;
@@ -453,9 +443,12 @@ vector<string> RemoteAtomDBPeer::add_links(const vector<atoms::Link*>& links,
 
     lock_guard<recursive_mutex> lock(cache_mutex_);
     invalidate_fetched_templates_locked();
+
+    // We need to delete existing links in order to update them.
     for (const auto* link : links) {
         if (link) cache_->delete_link(link->handle(), false);
     }
+
     auto handles = cache_->add_links(links, throw_if_exists, is_transactional);
     staged_handles_.insert(handles.begin(), handles.end());
     return handles;
