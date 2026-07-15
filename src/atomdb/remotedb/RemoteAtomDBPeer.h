@@ -1,5 +1,6 @@
 #pragma once
 
+#include <functional>
 #include <map>
 #include <memory>
 #include <mutex>
@@ -19,18 +20,26 @@ namespace atomdb {
 
 /**
  * RemoteAtomDBPeer represents a connection to a remote AtomDB with optional layers.
- * It may combine an in-memory cache, a read-only remote AtomDB backend, and optional
- * local persistence for newly added atoms. If readonly is true, the peer doest not allow any
- * mutations to the remote backend.
+ * It may combine an in-memory cache, a remote AtomDB backend, and optional local persistence
+ * for newly added atoms. Peers without local_persistence are readonly for mutations; get_atom
+ * prefers local_persistence over cache so updated custom attributes (e.g. strength) are visible.
  */
 class RemoteAtomDBPeer : public AtomDB, public processor::ThreadMethod {
    public:
+    using AtomResolver = function<shared_ptr<Atom>(const string& handle)>;
+
     RemoteAtomDBPeer(shared_ptr<AtomDB> remote_atomdb,
                      shared_ptr<AtomDB> local_persistence = nullptr,
                      const string& uid = "");
     ~RemoteAtomDBPeer();
 
     bool allow_nested_indexing() override;
+
+    /**
+     * Optional federation resolver used when persisting staged links whose targets live on
+     * other peers (this peer's atomdb_ may be empty and cannot resolve them alone).
+     */
+    void set_atom_resolver(AtomResolver resolver);
 
     shared_ptr<Atom> get_atom(const string& handle) override;
     shared_ptr<Node> get_node(const string& handle) override;
@@ -109,11 +118,13 @@ class RemoteAtomDBPeer : public AtomDB, public processor::ThreadMethod {
     bool schema_already_fetched(const LinkSchema& link_schema);
     void invalidate_fetched_templates_locked();
     void persist_atoms_to_local(const vector<shared_ptr<atoms::Atom>>& atoms);
+    void refresh_cache_locked(const shared_ptr<Atom>& atom);
 
     string uid_;
     shared_ptr<InMemoryDB> cache_;
     shared_ptr<AtomDB> atomdb_;
     shared_ptr<AtomDB> local_persistence_;
+    AtomResolver atom_resolver_;
     unique_ptr<HandleTrie> fetched_link_templates_;
     set<string> staged_handles_;
 

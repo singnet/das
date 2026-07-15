@@ -1,6 +1,16 @@
-## Split the KB into 2 parts:
+## Topology
+- peer1 (readonly, base KB part1)  -> RedisMongoDB at 40021+40020
+- peer2 (readonly, base KB part2)  -> RedisMongoDB at 40031+40030
+- peer3 (writable, starts empty)   -> InMemoryDB + local_persistence RedisMongoDB at 40041+40040
+
+peer1/peer2 serve federated reads of the base KB. peer3 is the only writable peer and starts empty.
+On flush, peer3 lazily pulls the dependency closure of staged writes from peer1/peer2 into its
+local_persistence (lazy closure replication), then upserts the new/updated links. Evolution's
+strength updates and new links land there and are read back writable-peer-first.
+
+## Split the KB into 2 parts (for the readonly base peers):
 ```
-KB=/tmp/inference_toy_10000_5_3_abcde_500_400.metta                                                                                                  
+KB=/tmp/inference_toy_10000_5_3_abcde_500_400.metta
 
 HALF=$(( $(wc -l < "$KB") / 2 ))
 
@@ -26,6 +36,8 @@ make run-db-loader OPTIONS="--config=config/peer1_loader.json --file=/tmp/infere
 
 # Part2 to Peer2 at 40031+40030
 make run-db-loader OPTIONS="--config=config/peer2_loader.json --file=/tmp/inference_toy_10000_5_3_abcde_500_400_part2.metta --threads=8 --chunk=5000"
+
+# Peer3 stays empty; its local_persistence accumulates only the working set at flush time.
 ```
 
 ## Run Toy (`evaluation_evolution.cc`):

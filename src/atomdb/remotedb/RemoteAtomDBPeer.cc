@@ -35,33 +35,41 @@ RemoteAtomDBPeer::~RemoteAtomDBPeer() { stop_cleanup_thread(); }
 
 bool RemoteAtomDBPeer::allow_nested_indexing() { return atomdb_->allow_nested_indexing(); }
 
+void RemoteAtomDBPeer::set_atom_resolver(AtomResolver resolver) { atom_resolver_ = std::move(resolver); }
+
+void RemoteAtomDBPeer::refresh_cache_locked(const shared_ptr<Atom>& atom) {
+    if (!atom) return;
+    // Handle is content-addressed without custom attributes; replace any stale cached copy.
+    cache_->delete_atom(atom->handle(), false);
+    cache_->add_atom(atom.get());
+}
+
 shared_ptr<Atom> RemoteAtomDBPeer::get_atom(const string& handle) {
+    // local_persistence is authoritative for written/updated atoms (including strength changes
+    // that keep the same content-addressed handle). Prefer it over a possibly stale cache.
+    if (local_persistence_) {
+        auto atom = local_persistence_->get_atom(handle);
+        if (atom) {
+            LOG_DEBUG("[RemoteDB(" << uid_ << ")] get_atom(" << handle
+                                   << ") <- local_persistence (cached)");
+            lock_guard<recursive_mutex> lock(cache_mutex_);
+            refresh_cache_locked(atom);
+            return atom;
+        }
+    }
+
     {
         lock_guard<recursive_mutex> lock(cache_mutex_);
         auto atom = cache_->get_atom(handle);
         if (atom) return atom;
     }
 
-    shared_ptr<Atom> atom;
-    if (local_persistence_) {
-        atom = local_persistence_->get_atom(handle);
-        if (atom) {
-            LOG_DEBUG("[RemoteDB(" << uid_ << ")] get_atom(" << handle
-                                   << ") <- local_persistence (cached)");
-            lock_guard<recursive_mutex> lock(cache_mutex_);
-            cache_->add_atom(atom.get());
-            return atom;
-        }
-    }
-
-    if (atomdb_) {
-        atom = atomdb_->get_atom(handle);
-        if (atom) {
-            LOG_DEBUG("[RemoteDB(" << uid_ << ")] get_atom(" << handle << ") <- remote atomdb (cached)");
-            lock_guard<recursive_mutex> lock(cache_mutex_);
-            cache_->add_atom(atom.get());
-            return atom;
-        }
+    auto atom = atomdb_->get_atom(handle);
+    if (atom) {
+        LOG_DEBUG("[RemoteDB(" << uid_ << ")] get_atom(" << handle << ") <- remote atomdb (cached)");
+        lock_guard<recursive_mutex> lock(cache_mutex_);
+        refresh_cache_locked(atom);
+        return atom;
     }
 
     LOG_DEBUG("[RemoteDB(" << uid_ << ")] get_atom(" << handle << ") miss");
@@ -205,10 +213,8 @@ shared_ptr<HandleSet> RemoteAtomDBPeer::query_for_pattern(const LinkSchema& link
 
     LOG_DEBUG("[RemoteDB(" << uid_ << ")] query_for_pattern(" << link_schema.handle()
                            << ") cache-miss, fetching from remote atomdb");
-    shared_ptr<HandleSet> remote_handle_set;
-    if (atomdb_) {
-        remote_handle_set = atomdb_->query_for_pattern(link_schema);
-    }
+
+    shared_ptr<HandleSet> remote_handle_set = atomdb_->query_for_pattern(link_schema);
 
     lock_guard<recursive_mutex> lock(cache_mutex_);
     if (schema_already_fetched(link_schema)) {
@@ -245,10 +251,8 @@ shared_ptr<HandleList> RemoteAtomDBPeer::query_for_targets(const string& handle)
         }
     }
 
-    if (atomdb_) {
-        LOG_DEBUG("[RemoteDB(" << uid_ << ")] query_for_targets(" << handle << ") <- remote atomdb");
-        return atomdb_->query_for_targets(handle);
-    }
+    LOG_DEBUG("[RemoteDB(" << uid_ << ")] query_for_targets(" << handle << ") <- remote atomdb");
+    return atomdb_->query_for_targets(handle);
 
     return nullptr;
 }
@@ -264,9 +268,8 @@ shared_ptr<HandleSet> RemoteAtomDBPeer::query_for_incoming_set(const string& han
     if (local_persistence_) {
         merge_handle_set(local_persistence_->query_for_incoming_set(handle), result, seen);
     }
-    if (atomdb_) {
-        merge_handle_set(atomdb_->query_for_incoming_set(handle), result, seen);
-    }
+
+    merge_handle_set(atomdb_->query_for_incoming_set(handle), result, seen);
 
     LOG_DEBUG("[RemoteDB(" << uid_ << ")] query_for_incoming_set(" << handle << ") -> " << result->size()
                            << " handles");
@@ -384,6 +387,8 @@ string RemoteAtomDBPeer::add_atom(const atoms::Atom* atom, bool throw_if_exists)
 
     lock_guard<recursive_mutex> lock(cache_mutex_);
     invalidate_fetched_templates_locked();
+    // Replace any cached copy: handles omit custom attributes (e.g. strength).
+    cache_->delete_atom(atom->handle(), false);
     string handle = cache_->add_atom(atom, throw_if_exists);
     staged_handles_.insert(handle);
     return handle;
@@ -394,6 +399,7 @@ string RemoteAtomDBPeer::add_node(const atoms::Node* node, bool throw_if_exists)
 
     lock_guard<recursive_mutex> lock(cache_mutex_);
     invalidate_fetched_templates_locked();
+    cache_->delete_node(node->handle(), false);
     string handle = cache_->add_node(node, throw_if_exists);
     staged_handles_.insert(handle);
     return handle;
@@ -404,6 +410,7 @@ string RemoteAtomDBPeer::add_link(const atoms::Link* link, bool throw_if_exists)
 
     lock_guard<recursive_mutex> lock(cache_mutex_);
     invalidate_fetched_templates_locked();
+    cache_->delete_link(link->handle(), false);
     string handle = cache_->add_link(link, throw_if_exists);
     staged_handles_.insert(handle);
     return handle;
@@ -416,6 +423,9 @@ vector<string> RemoteAtomDBPeer::add_atoms(const vector<atoms::Atom*>& atoms,
 
     lock_guard<recursive_mutex> lock(cache_mutex_);
     invalidate_fetched_templates_locked();
+    for (const auto* atom : atoms) {
+        if (atom) cache_->delete_atom(atom->handle(), false);
+    }
     auto handles = cache_->add_atoms(atoms, throw_if_exists, is_transactional);
     staged_handles_.insert(handles.begin(), handles.end());
     return handles;
@@ -428,6 +438,9 @@ vector<string> RemoteAtomDBPeer::add_nodes(const vector<atoms::Node*>& nodes,
 
     lock_guard<recursive_mutex> lock(cache_mutex_);
     invalidate_fetched_templates_locked();
+    for (const auto* node : nodes) {
+        if (node) cache_->delete_node(node->handle(), false);
+    }
     auto handles = cache_->add_nodes(nodes, throw_if_exists, is_transactional);
     staged_handles_.insert(handles.begin(), handles.end());
     return handles;
@@ -440,6 +453,9 @@ vector<string> RemoteAtomDBPeer::add_links(const vector<atoms::Link*>& links,
 
     lock_guard<recursive_mutex> lock(cache_mutex_);
     invalidate_fetched_templates_locked();
+    for (const auto* link : links) {
+        if (link) cache_->delete_link(link->handle(), false);
+    }
     auto handles = cache_->add_links(links, throw_if_exists, is_transactional);
     staged_handles_.insert(handles.begin(), handles.end());
     return handles;
@@ -700,7 +716,15 @@ void RemoteAtomDBPeer::persist_atoms_to_local(const vector<shared_ptr<Atom>>& at
         }
 
         auto fetched_atom = atomdb_->get_atom(target_handle);
-        if (!fetched_atom) continue;
+        if (!fetched_atom && atom_resolver_) {
+            fetched_atom = atom_resolver_(target_handle);
+        }
+        if (!fetched_atom) {
+            LOG_ERROR("[RemoteDB(" << uid_ << ")] persist_atoms_to_local: unresolved target handle "
+                                   << target_handle
+                                   << " (not in local_persistence, peer atomdb, or federation)");
+            continue;
+        }
         atoms_by_handle[target_handle] = fetched_atom;
         enqueue_missing_targets(fetched_atom);
     }
@@ -720,6 +744,9 @@ void RemoteAtomDBPeer::persist_atoms_to_local(const vector<shared_ptr<Atom>>& at
         }
     }
 
+    // Overwrite in place via the backend's upsert semantics (RedisMongoDB replace_one upsert=true).
+    // Do NOT delete first: RedisMongoDB::delete_atom cascades over the atom's incoming set, which
+    // would wipe large parts of the base KB when a staged handle is a shared node.
     if (!nodes.empty()) {
         local_persistence_->add_nodes(nodes, false, false);
     }
@@ -744,8 +771,9 @@ void RemoteAtomDBPeer::persist_atoms_to_local(const vector<shared_ptr<Atom>>& at
             }
         }
         if (batch.empty()) {
-            LOG_DEBUG("[RemoteDB(" << uid_ << ")] persist_atoms_to_local: skipping " << pending.size()
-                                   << " links with unresolved targets");
+            LOG_ERROR("[RemoteDB(" << uid_ << ")] persist_atoms_to_local: dropping " << pending.size()
+                                   << " links with unresolved targets (writes will be lost after "
+                                      "cache release)");
             break;
         }
         local_persistence_->add_links(batch, false, false);

@@ -85,6 +85,11 @@ class RemoteAtomDB : public AtomDB {
     // constructors so the config and DI paths stay consistent.
     void derive_nested_indexing();
 
+    // Wire a federation atom resolver into each writable peer so persist-time target closure
+    // can pull missing atoms from other peers (lazy replication of the working set).
+    void wire_atom_resolvers();
+    shared_ptr<Atom> resolve_atom_from_other_peers(const string& handle, const RemoteAtomDBPeer* self);
+
     map<string, shared_ptr<RemoteAtomDBPeer>> remote_db_;
     // Aggregated nested-indexing capability, derived from peers at construction. True only when
     // every peer supports nested indexing; mixed configurations are normalized to false.

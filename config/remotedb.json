@@ -33,7 +33,7 @@
                     "cluster": false
                 },
                 "morkdb": {
-                    "endpoint": "localhost:40042"
+                    "endpoint": "localhost:40032"
                 }
             },
             {

@@ -3,7 +3,7 @@
         "type": "redismongodb",
         "redis": {
             "image": "redis:7.2.3-alpine",
-            "endpoint": "localhost:40020",
+            "endpoint": "localhost:40050",
             "cluster": false,
             "nodes": [
                 {
@@ -15,7 +15,7 @@
         },
         "mongodb": {
             "image": "mongodb/mongodb-community-server:8.2-ubuntu2204",
-            "endpoint": "localhost:40021",
+            "endpoint": "localhost:40051",
             "username": "admin",
             "password": "admin",
             "cluster": false,
