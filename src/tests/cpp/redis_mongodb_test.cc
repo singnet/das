@@ -4,8 +4,11 @@
 #include <cstring>
 #include <iostream>
 #include <memory>
+#include <stdexcept>
 #include <thread>
 #include <vector>
+
+#include <nlohmann/json.hpp>
 
 #include "Atom.h"
 #include "AtomDBSingleton.h"
@@ -991,6 +994,43 @@ TEST_F(RedisMongoDBTest, AddLinksWithDuplicateTargets) {
                           nodes[2]->handle()});
     EXPECT_EQ(db->add_link(link), link->handle());
     EXPECT_EQ(db->delete_link(link->handle(), true), true);
+}
+
+TEST_F(RedisMongoDBTest, CompositeHashDisabledSkipsTargetChecks) {
+    // Default (composite_hash=true) rejects links whose targets are missing locally.
+    auto missing_a = new Node("Symbol", "MissingCompositeTargetA");
+    auto missing_b = new Node("Symbol", "MissingCompositeTargetB");
+    auto implication = new Node("Symbol", "ImplicationMissingComposite");
+    auto link = new Link("Expression",
+                         {implication->handle(), missing_a->handle(), missing_b->handle()},
+                         true,
+                         Properties{{"strength", 0.833333}});
+    EXPECT_THROW(db->add_links({link}, false, false), runtime_error);
+
+    // Same Redis/Mongo namespace, composite_hash=false: skip checks and persist the link.
+    auto json = nlohmann::json();
+    json["type"] = "redismongodb";
+    json["composite_hash"] = false;
+    json["redis"] = {{"endpoint", "localhost:40020"}, {"cluster", false}};
+    json["mongodb"] = {{"endpoint", "localhost:40021"}, {"username", "admin"}, {"password", "admin"}};
+    auto local_db = make_shared<RedisMongoDB>("test_", false, commons::JsonConfig(json));
+
+    auto handles = local_db->add_links({link}, false, false);
+    ASSERT_EQ(handles.size(), 1);
+    EXPECT_EQ(handles[0], link->handle());
+    ASSERT_TRUE(local_db->link_exists(link->handle()));
+    EXPECT_FALSE(local_db->atom_exists(missing_a->handle()));
+    EXPECT_FALSE(local_db->atom_exists(missing_b->handle()));
+
+    auto got = local_db->get_atom(link->handle());
+    ASSERT_NE(got, nullptr);
+    EXPECT_DOUBLE_EQ(got->custom_attributes.get_or<double>("strength", -1.0), 0.833333);
+
+    EXPECT_TRUE(local_db->delete_link(link->handle(), false));
+    delete link;
+    delete missing_a;
+    delete missing_b;
+    delete implication;
 }
 
 TEST_F(RedisMongoDBTest, AtomsCount) {

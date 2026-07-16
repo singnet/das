@@ -148,6 +148,10 @@ class RedisMongoDB : public AtomDB {
     string context;
     bool skip_redis_;
     bool cluster_flag;
+    // When false, add_links skips check_existing_targets / composite_type computation and
+    // stores stub composite fields. Needed for empty writable RemoteDB peers whose link
+    // targets live only on other peers. Default true preserves legacy loader semantics.
+    bool composite_hash_;
     RedisContextPool* redis_pool;
     mongocxx::pool* mongodb_pool;
     atomic<uint> patterns_next_score{0};

@@ -33,13 +33,20 @@ string RedisMongoDB::MONGODB_FIELD_NAME[MONGODB_FIELD::size];
 uint RedisMongoDB::MONGODB_CHUNK_SIZE;
 
 RedisMongoDB::RedisMongoDB(const string& context, bool skip_redis, const JsonConfig& config)
-    : context(context), skip_redis_(skip_redis), cluster_flag(false) {
+    : context(context),
+      skip_redis_(skip_redis),
+      cluster_flag(false),
+      composite_hash_(config.at_path("composite_hash").get_or<bool>(true)) {
     initialize_statics(context);
     mongodb_setup(config);
     load_pattern_index_schema();
     redis_setup(config);
     this->patterns_next_score.store(get_next_score(REDIS_PATTERNS_PREFIX + ":next_score"));
     this->incoming_set_next_score.store(get_next_score(REDIS_INCOMING_PREFIX + ":next_score"));
+    if (!composite_hash_) {
+        LOG_INFO("RedisMongoDB composite_hash=false: skipping composite_type / target existence "
+                 "checks on link insert");
+    }
 }
 
 RedisMongoDB::~RedisMongoDB() {
@@ -855,7 +862,7 @@ vector<string> RedisMongoDB::add_nodes(const vector<atoms::Node*>& nodes,
         auto mongodb_doc = atomdb_api_types::MongodbDocument(node);
         documents.push_back(mongodb_doc.value());
         handles.push_back(node->handle());
-        if (is_transactional) {
+        if (is_transactional && composite_hash_) {
             lock_guard<mutex> composite_type_hashes_map_lock(this->composite_type_hashes_map_mutex);
             this->composite_type_hashes_map[node->handle()] = node->named_type_hash();
         }
@@ -880,7 +887,7 @@ vector<string> RedisMongoDB::add_links(const vector<atoms::Link*>& links,
                                        bool throw_if_exists,
                                        bool is_transactional) {
     if (links.empty()) {
-        if (is_transactional) {
+        if (is_transactional && composite_hash_) {
             lock_guard<mutex> composite_type_hashes_map_lock(this->composite_type_hashes_map_mutex);
             this->composite_type_hashes_map.clear();
         }
@@ -902,10 +909,12 @@ vector<string> RedisMongoDB::add_links(const vector<atoms::Link*>& links,
     }
 
     map<string, vector<string>> composite_type_entries_map;
-    if (is_transactional) {
-        this->build_composite_type_entries_map(links, composite_type_entries_map);
-    } else {
-        this->check_existing_targets(links);
+    if (composite_hash_) {
+        if (is_transactional) {
+            this->build_composite_type_entries_map(links, composite_type_entries_map);
+        } else {
+            this->check_existing_targets(links);
+        }
     }
 
     vector<string> handles;
@@ -940,7 +949,13 @@ vector<string> RedisMongoDB::add_links(const vector<atoms::Link*>& links,
         }
 
         shared_ptr<atomdb_api_types::MongodbDocument> mongodb_doc;
-        if (is_transactional) {
+        if (!composite_hash_) {
+            // Stub composite fields: unused by get_atom / evolution; avoids per-target get_atom.
+            string stub_type_hash = link->named_type_hash();
+            vector<string> stub_composite_type = {stub_type_hash};
+            mongodb_doc = make_shared<atomdb_api_types::MongodbDocument>(
+                link, stub_type_hash, stub_composite_type);
+        } else if (is_transactional) {
             string composite_type_hash =
                 Hasher::composite_handle(composite_type_entries_map[link_handle]);
             mongodb_doc = make_shared<atomdb_api_types::MongodbDocument>(
@@ -978,7 +993,7 @@ vector<string> RedisMongoDB::add_links(const vector<atoms::Link*>& links,
     set_next_score_with_context(
         ctx, REDIS_INCOMING_PREFIX + ":next_score", this->incoming_set_next_score.load());
 
-    if (is_transactional) {
+    if (is_transactional && composite_hash_) {
         lock_guard<mutex> composite_type_hashes_map_lock(this->composite_type_hashes_map_mutex);
         this->composite_type_hashes_map.clear();
     }

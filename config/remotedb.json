@@ -1,6 +1,6 @@
 {
     "atomdb": {
-        "type": "remotedb",
+        "type": "redismongodb",
         "remote_peers": [
             {
                 "uid": "peer1",
@@ -43,6 +43,7 @@
                 "local_persistence": {
                     "type": "redismongodb",
                     "context": "",
+                    "composite_hash": false,
                     "mongodb": {
                         "endpoint": "localhost:40041",
                         "username": "admin",
@@ -57,7 +58,34 @@
                     }
                 }
             }
-        ]
+        ],
+        "redis": {
+            "image": "redis:7.2.3-alpine",
+            "endpoint": "localhost:40050",
+            "cluster": false,
+            "nodes": [
+                {
+                    "context": "default",
+                    "ip": "localhost",
+                    "username": "arturgontijo"
+                }
+            ]
+        },
+        "mongodb": {
+            "image": "mongodb/mongodb-community-server:8.2-ubuntu2204",
+            "endpoint": "localhost:40051",
+            "username": "admin",
+            "password": "admin",
+            "cluster": false,
+            "cluster_secret_key": "8UDJSgpUCaVOTQG",
+            "nodes": [
+                {
+                    "context": "default",
+                    "ip": "localhost",
+                    "username": "arturgontijo"
+                }
+            ]
+        }
     },
     "loaders": {
         "metta": {
