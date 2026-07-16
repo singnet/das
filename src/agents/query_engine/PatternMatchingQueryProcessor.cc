@@ -286,10 +286,12 @@ shared_ptr<QueryElement> PatternMatchingQueryProcessor::parse_metta_query(
     MettaParser parser(proxy->get_query_tokens()[0], parser_actions);
     parser.parse(true);
     if (parser_actions->element_stack.size() == 0) {
-        RAISE_ERROR("Invalid MeTTa query. Parser returned an empty stack.");
+        RAISE_ERROR("Invalid MeTTa query. Parser returned an empty stack. Query: " +
+                    proxy->get_query_tokens()[0]);
         return nullptr;
     } else if (parser_actions->element_stack.size() > 1) {
-        RAISE_ERROR("Invalid MeTTa query with more than 1 toplevel expressions");
+        RAISE_ERROR("Invalid MeTTa query with more than 1 toplevel expressions. Query: " +
+                    proxy->get_query_tokens()[0]);
         return nullptr;
     } else {
         return parser_actions->element_stack.top();
@@ -317,12 +319,15 @@ shared_ptr<QueryElement> PatternMatchingQueryProcessor::setup_query_tree(
         } else if (query_tokens[cursor] == CHAIN) {
             cursor += 4;
         } else {
-            RAISE_ERROR("Invalid token in query: " + query_tokens[cursor]);
+            RAISE_ERROR("Invalid token <" + query_tokens[cursor] +
+                        "> in query: " + Utils::join(query_tokens) +
+                        " near token at position: " + std::to_string(cursor));
         }
     }
 
     if (cursor != tokens_count) {
-        RAISE_ERROR("Parse error in query tokens");
+        RAISE_ERROR("Parse error in query tokens. Query: " + Utils::join(query_tokens) +
+                    " near token at position: " + std::to_string(cursor));
         return shared_ptr<QueryElement>(NULL);
     }
 
@@ -359,13 +364,16 @@ shared_ptr<QueryElement> PatternMatchingQueryProcessor::setup_query_tree(
         } else if (query_tokens[cursor] == CHAIN) {
             element_stack.push(build_chain(proxy, cursor, element_stack));
         } else {
-            RAISE_ERROR("Invalid token " + query_tokens[cursor] + " in PATTERN_MATCHING_QUERY message");
+            RAISE_ERROR("Invalid token <" + query_tokens[cursor] +
+                        "> in PATTERN_MATCHING_QUERY message. Query: " + Utils::join(query_tokens) +
+                        " near token at position: " + std::to_string(cursor));
         }
         execution_stack.pop();
     }
 
     if (element_stack.size() != 1) {
-        RAISE_ERROR("Parse error in query tokens (trailing elements)");
+        RAISE_ERROR("Parse error in query tokens (trailing elements). Query: " +
+                    Utils::join(query_tokens) + " near token at position: " + std::to_string(cursor));
         return shared_ptr<QueryElement>(NULL);
     }
     return element_stack.top();
@@ -381,7 +389,8 @@ shared_ptr<QueryElement> PatternMatchingQueryProcessor::build_link_template(
     if (element_stack.size() < arity) {
         RAISE_ERROR(
             "PATTERN_MATCHING_QUERY message: parse error in tokens - too few arguments for "
-            "LINK_TEMPLATE");
+            "LINK_TEMPLATE. Query: " +
+            Utils::join(query_tokens) + " near token at position: " + std::to_string(cursor));
     }
     vector<shared_ptr<QueryElement>> targets;
     for (unsigned int i = 0; i < arity; i++) {
@@ -432,7 +441,10 @@ shared_ptr<QueryElement> PatternMatchingQueryProcessor::build_and(
     const vector<string> query_tokens = proxy->get_query_tokens();
     unsigned int num_clauses = std::stoi(query_tokens[cursor + 1]);
     if (element_stack.size() < num_clauses) {
-        RAISE_ERROR("PATTERN_MATCHING_QUERY message: parse error in tokens - too few arguments for AND");
+        RAISE_ERROR(
+            "PATTERN_MATCHING_QUERY message: parse error in tokens - too few arguments for AND. "
+            "Query: " +
+            Utils::join(query_tokens) + " near token at position: " + std::to_string(cursor));
     }
     // clang-format off
     switch (num_clauses) {
@@ -486,7 +498,9 @@ shared_ptr<QueryElement> PatternMatchingQueryProcessor::build_or(
     const vector<string> query_tokens = proxy->get_query_tokens();
     unsigned int num_clauses = std::stoi(query_tokens[cursor + 1]);
     if (element_stack.size() < num_clauses) {
-        RAISE_ERROR("PATTERN_MATCHING_QUERY message: parse error in tokens - too few arguments for OR");
+        RAISE_ERROR(
+            "PATTERN_MATCHING_QUERY message: parse error in tokens - too few arguments for OR. Query: " +
+            Utils::join(query_tokens) + " near token at position: " + std::to_string(cursor));
     }
     // clang-format off
     switch (num_clauses) {
@@ -530,7 +544,8 @@ shared_ptr<QueryElement> PatternMatchingQueryProcessor::build_chain(
     if (element_stack.size() < 3) {
         RAISE_ERROR(
             "PATTERN_MATCHING_QUERY message: parse error in tokens - too few arguments for "
-            "CHAIN");
+            "CHAIN. Query: " +
+            Utils::join(query_tokens) + " near token at position: " + std::to_string(cursor));
     }
 
     shared_ptr<Terminal> source = dynamic_pointer_cast<Terminal>(element_stack.top());
@@ -546,7 +561,9 @@ shared_ptr<QueryElement> PatternMatchingQueryProcessor::build_chain(
     Chain::SearchDirection search_direction;
     if (target->is_variable) {
         if (source->is_variable) {
-            RAISE_ERROR("Invalid CHAIN arguments. source and target are variables.");
+            RAISE_ERROR("Invalid CHAIN arguments: source and target can't be both variables. Query: " +
+                        Utils::join(query_tokens) +
+                        " near token at position: " + std::to_string(cursor));
         } else {
             search_direction = Chain::FORWARD;
             incomplete_flag = true;
@@ -597,7 +614,9 @@ shared_ptr<QueryElement> PatternMatchingQueryProcessor::build_link(
     unsigned int arity = std::stoi(query_tokens[cursor + 2]);
     if (element_stack.size() < arity) {
         RAISE_ERROR(
-            "PATTERN_MATCHING_QUERY message: parse error in tokens - too few arguments for LINK");
+            "PATTERN_MATCHING_QUERY message: parse error in tokens - too few arguments for LINK. "
+            "Query: " +
+            Utils::join(query_tokens) + " near token at position: " + std::to_string(cursor));
     }
     vector<shared_ptr<QueryElement>> targets;
     for (unsigned int i = 0; i < arity; i++) {
@@ -613,8 +632,10 @@ shared_ptr<QueryElement> PatternMatchingQueryProcessor::build_unique_assignment_
     stack<shared_ptr<QueryElement>>& element_stack) {
     if (element_stack.size() < 1) {
         RAISE_ERROR(
-            "PATTERN_MATCHING_QUERY message: parse error in tokens - too few arguments for "
-            "UniqueAssignmentFilter");
+            ("PATTERN_MATCHING_QUERY message: parse error in tokens - too few arguments for "
+             "UniqueAssignmentFilter. Query: " +
+             Utils::join(proxy->get_query_tokens()) +
+             " near token at position: " + std::to_string(cursor)));
     }
 
     shared_ptr<QueryElement> input = element_stack.top();
