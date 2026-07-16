@@ -1,6 +1,6 @@
 {
     "atomdb": {
-        "type": "redismongodb",
+        "type": "remotedb",
         "remote_peers": [
             {
                 "uid": "peer1",
