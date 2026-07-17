@@ -6,6 +6,7 @@
 #include <bsoncxx/builder/stream/helpers.hpp>
 #include <iostream>
 #include <memory>
+#include <optional>
 #include <string>
 
 #include "HandleDecoder.h"
@@ -269,18 +270,16 @@ vector<string> MorkDB::add_links(const vector<atoms::Link*>& links,
             count = 0;
         }
 
-        shared_ptr<atomdb_api_types::MongodbDocument> mongodb_doc;
+        optional<atomdb_api_types::MongodbDocument> mongodb_doc;
         if (!this->composite_type_enabled()) {
             static const vector<string> empty_composite_type;
-            mongodb_doc =
-                make_shared<atomdb_api_types::MongodbDocument>(link, "", empty_composite_type, false);
+            mongodb_doc.emplace(link, "", empty_composite_type, false);
         } else if (is_transactional) {
-            mongodb_doc = make_shared<atomdb_api_types::MongodbDocument>(
-                link,
-                composite_type_hashes_map_copy[link_handle],
-                composite_type_entries_map[link_handle]);
+            mongodb_doc.emplace(link,
+                                composite_type_hashes_map_copy[link_handle],
+                                composite_type_entries_map[link_handle]);
         } else {
-            mongodb_doc = make_shared<atomdb_api_types::MongodbDocument>(link, *this);
+            mongodb_doc.emplace(link, *this);
         }
 
         documents.push_back(mongodb_doc->value());

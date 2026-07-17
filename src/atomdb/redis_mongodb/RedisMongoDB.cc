@@ -7,6 +7,7 @@
 #include <cmath>
 #include <iostream>
 #include <memory>
+#include <optional>
 #include <string>
 
 #include "Hasher.h"
@@ -942,18 +943,16 @@ vector<string> RedisMongoDB::add_links(const vector<atoms::Link*>& links,
             this->patterns_next_score.fetch_add(1);
         }
 
-        shared_ptr<atomdb_api_types::MongodbDocument> mongodb_doc;
+        optional<atomdb_api_types::MongodbDocument> mongodb_doc;
         if (!this->composite_type_enabled_) {
             static const vector<string> empty_composite_type;
-            mongodb_doc =
-                make_shared<atomdb_api_types::MongodbDocument>(link, "", empty_composite_type, false);
+            mongodb_doc.emplace(link, "", empty_composite_type, false);
         } else if (is_transactional) {
             string composite_type_hash =
                 Hasher::composite_handle(composite_type_entries_map[link_handle]);
-            mongodb_doc = make_shared<atomdb_api_types::MongodbDocument>(
-                link, composite_type_hash, composite_type_entries_map[link_handle]);
+            mongodb_doc.emplace(link, composite_type_hash, composite_type_entries_map[link_handle]);
         } else {
-            mongodb_doc = make_shared<atomdb_api_types::MongodbDocument>(link, *this);
+            mongodb_doc.emplace(link, *this);
         }
 
         if (ctx->get_pending_commands_count() >= REDIS_CHUNK_SIZE) {

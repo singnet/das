@@ -56,6 +56,10 @@ class AdapterDB : public AtomDB {
     // ------------------------------------------------------------------
 
     bool allow_nested_indexing() override;
+
+    /**
+     * @brief Whether the backend computes and stores composite type fields when adding atoms.
+     */
     bool composite_type_enabled() const override;
 
     shared_ptr<Atom> get_atom(const string& handle) override;
