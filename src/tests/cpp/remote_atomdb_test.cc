@@ -531,6 +531,14 @@ class NestedInMemoryDB : public InMemoryDB {
     }
 };
 
+// Local persistence backend that advertises composite_type_enabled.
+class CompositeTypeEnabledInMemoryDB : public InMemoryDB {
+   public:
+    explicit CompositeTypeEnabledInMemoryDB(const string& context) : InMemoryDB(context) {}
+
+    bool composite_type_enabled() const override { return true; }
+};
+
 // Builds an Inheritance(x, "mammal") pattern that matches two links in the
 // helper-populated backends below.
 static LinkSchema inheritance_mammal_schema() {
@@ -620,6 +628,53 @@ TEST(RemoteAtomDBFederationTest, MixedPeersDowngradeAndDeduplicate) {
     ASSERT_NE(result, nullptr);
     // Same two handles from both peers, deduplicated to a unique count of 2.
     EXPECT_EQ(result->size(), 2u);
+}
+
+TEST(RemoteAtomDBFederationTest, CompositeTypeEnabledAggregation) {
+    // No peers -> false.
+    {
+        map<string, shared_ptr<RemoteAtomDBPeer>> peers;
+        auto db = make_shared<RemoteAtomDB>(peers);
+        EXPECT_FALSE(db->composite_type_enabled());
+    }
+
+    // All disabled (no local persistence, or local persistence with flag off) -> false.
+    {
+        auto remote1 = make_shared<InMemoryDB>("cte_all_off_remote1_");
+        auto remote2 = make_shared<InMemoryDB>("cte_all_off_remote2_");
+        auto local_off = make_shared<InMemoryDB>("cte_all_off_local_");
+        map<string, shared_ptr<RemoteAtomDBPeer>> peers;
+        peers["peer1"] = make_shared<RemoteAtomDBPeer>(remote1, nullptr, "peer1");
+        peers["peer2"] = make_shared<RemoteAtomDBPeer>(remote2, local_off, "peer2");
+        auto db = make_shared<RemoteAtomDB>(peers);
+        EXPECT_FALSE(db->composite_type_enabled());
+    }
+
+    // Mixed: one enabled + one disabled -> true.
+    {
+        auto remote1 = make_shared<InMemoryDB>("cte_mixed_remote1_");
+        auto remote2 = make_shared<InMemoryDB>("cte_mixed_remote2_");
+        auto local_on = make_shared<CompositeTypeEnabledInMemoryDB>("cte_mixed_local_on_");
+        auto local_off = make_shared<InMemoryDB>("cte_mixed_local_off_");
+        map<string, shared_ptr<RemoteAtomDBPeer>> peers;
+        peers["enabled"] = make_shared<RemoteAtomDBPeer>(remote1, local_on, "enabled");
+        peers["disabled"] = make_shared<RemoteAtomDBPeer>(remote2, local_off, "disabled");
+        auto db = make_shared<RemoteAtomDB>(peers);
+        EXPECT_TRUE(db->composite_type_enabled());
+    }
+
+    // All enabled -> true.
+    {
+        auto remote1 = make_shared<InMemoryDB>("cte_all_on_remote1_");
+        auto remote2 = make_shared<InMemoryDB>("cte_all_on_remote2_");
+        auto local1 = make_shared<CompositeTypeEnabledInMemoryDB>("cte_all_on_local1_");
+        auto local2 = make_shared<CompositeTypeEnabledInMemoryDB>("cte_all_on_local2_");
+        map<string, shared_ptr<RemoteAtomDBPeer>> peers;
+        peers["peer1"] = make_shared<RemoteAtomDBPeer>(remote1, local1, "peer1");
+        peers["peer2"] = make_shared<RemoteAtomDBPeer>(remote2, local2, "peer2");
+        auto db = make_shared<RemoteAtomDB>(peers);
+        EXPECT_TRUE(db->composite_type_enabled());
+    }
 }
 
 TEST(RemoteAtomDBFederationTest, CacheFirstProbingAcrossPeers) {
