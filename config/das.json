@@ -1,6 +1,7 @@
 {
     "atomdb": {
         "type": "redismongodb",
+        "composite_type_enabled": true,
         "redis": {
             "image": "redis:7.2.3-alpine",
             "endpoint": "localhost:40020",
@@ -51,6 +52,7 @@
             },
             "atomdb_backend": {
                 "type": "morkdb",
+                "composite_type_enabled": true,
                 "mongodb": {
                     "endpoint": "localhost:40021",
                     "username": "admin",
@@ -78,6 +80,7 @@
             {
                 "uid": "peer1",
                 "type": "redismongodb",
+                "composite_type_enabled": true,
                 "context": "remotedb_test_peer1_",
                 "mongodb": {
                     "endpoint": "localhost:40021",
@@ -90,6 +93,7 @@
                 },
                 "local_persistence": {
                     "type": "morkdb",
+                    "composite_type_enabled": true,
                     "context": "remotedb_test_peer1_local_",
                     "mongodb": {
                         "endpoint": "localhost:40021",

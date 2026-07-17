@@ -14,6 +14,7 @@ namespace {
 const char* kValidConfigV1 = R"({
   "atomdb": {
     "type": "redismongodb",
+    "composite_type_enabled": true,
     "redis": {
       "port": 40020,
       "hostname": "localhost",
@@ -50,6 +51,8 @@ TEST(ConfigParserTest, GetNestedStructure) {
     auto atomdb = config.at_path("atomdb").get_or<JsonConfig>(JsonConfig());
     string type = atomdb.at_path("type").get_or<string>("");
     EXPECT_EQ(type, "redismongodb");
+    bool composite_type_enabled = atomdb.at_path("composite_type_enabled").get_or<bool>(false);
+    EXPECT_TRUE(composite_type_enabled);
 
     auto redis = atomdb.at_path("redis").get_or<JsonConfig>(JsonConfig());
     long port = redis.at_path("port").get_or<long>(0);

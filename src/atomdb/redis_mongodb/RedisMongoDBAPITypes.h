@@ -80,7 +80,8 @@ class MongodbDocument : public AtomDocument {
     MongodbDocument(const atoms::Link* link, HandleDecoder& db);
     MongodbDocument(const atoms::Link* link,
                     const string& composite_type_hash,
-                    const vector<string>& composite_type);
+                    const vector<string>& composite_type,
+                    bool include_composite_type = true);
     ~MongodbDocument();
 
     const char* get(const string& key);
