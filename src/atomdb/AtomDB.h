@@ -21,6 +21,7 @@ class AtomDB : public HandleDecoder {
     virtual ~AtomDB() = default;
 
     virtual bool allow_nested_indexing() = 0;
+    virtual bool composite_type_enabled() const = 0;
 
     virtual shared_ptr<Atom> get_atom(const string& handle) = 0;  // HandleDecoder interface
     virtual shared_ptr<Node> get_node(const string& handle) = 0;

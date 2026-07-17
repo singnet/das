@@ -76,6 +76,11 @@ RemoteAtomDB::RemoteAtomDB(map<string, shared_ptr<RemoteAtomDBPeer>> peers)
 
 RemoteAtomDB::~RemoteAtomDB() = default;
 
+bool RemoteAtomDB::composite_type_enabled() const {
+    RAISE_ERROR("composite_type_enabled() is not supported in RemoteAtomDB");
+    return true;
+}
+
 void RemoteAtomDB::derive_nested_indexing() {
     // Derive the aggregated nested-indexing capability from the peers. A single global boolean
     // cannot describe a heterogeneous result set, so mixed configurations are normalized to the

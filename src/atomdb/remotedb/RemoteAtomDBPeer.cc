@@ -36,6 +36,10 @@ bool RemoteAtomDBPeer::allow_nested_indexing() {
     return atomdb_ ? atomdb_->allow_nested_indexing() : false;
 }
 
+bool RemoteAtomDBPeer::composite_type_enabled() const {
+    return local_persistence_ && local_persistence_->composite_type_enabled();
+}
+
 shared_ptr<Atom> RemoteAtomDBPeer::get_atom(const string& handle) {
     auto atom = cache_.get_atom(handle);
     if (atom) return atom;
