@@ -38,7 +38,8 @@ CommandRouterHttpAPI::CommandRouterHttpAPI(const string& host,
       thread_pool(thread_pool),
       router_processor(router_processor),
       settings(settings),
-      bus_host(bus_host) {
+      bus_host(bus_host),
+      http_requestor_id(bus_host + ":http-api:" + std::to_string(port)) {
     if (this->thread_pool == nullptr) {
         RAISE_ERROR("CommandRouterHttpAPI requires a non-null thread pool");
     }
@@ -146,6 +147,38 @@ void CommandRouterHttpAPI::setup_routes() {
                     response,
                     400,
                     {{"error", "Invalid command_type. Allowed values: query, evolution, get, set"}});
+                return;
+            }
+
+            if (this->is_sync_command_type(command_type)) {
+                LOG_INFO("CommandRouter HTTP API sync execution type=" << command_type);
+
+                vector<string> chunks;
+                string error_message;
+                if (!this->execute_router_command(
+                        command_type,
+                        command_text,
+                        nullptr,
+                        [&](const vector<string>& chunk) {
+                            chunks.insert(chunks.end(), chunk.begin(), chunk.end());
+                        },
+                        [&](const string& message) { error_message = message; },
+                        nullptr)) {
+                    if (error_message.empty()) {
+                        error_message = "Command failed";
+                    }
+                    this->set_json_response(response, 500, {{"error", error_message}});
+                    return;
+                }
+
+                if (chunks.empty()) {
+                    this->set_json_response(
+                        response, 500, {{"error", "Command finished without a response"}});
+                    return;
+                }
+
+                this->set_json_response(
+                    response, 200, {{"command_type", command_type}, {"result", chunks.front()}});
                 return;
             }
 
@@ -312,29 +345,54 @@ void CommandRouterHttpAPI::run_execution_inner(const shared_ptr<CommandExecution
                  << exec->execution_id << " duration_ms=" << duration_ms << " items=" << total_items);
     };
 
-    try {
-        string router_arg = exec->command_text;
-        Utils::replace_all(router_arg, "%", "$");
-        auto router_proxy = make_shared<BusCommandRouterProxy>(exec->command_type, router_arg);
+    if (!this->execute_router_command(
+            exec->command_type, exec->command_text, should_abort, on_chunk, on_error, on_aborted)) {
+        return;
+    }
 
-        string http_requestor_id = this->bus_host + ":http-" + exec->execution_id;
-        this->router_processor->dispatch_http_command(router_proxy, http_requestor_id);
+    timer.stop();
 
-        if (!BusCommandRouterProxyStreamPoller::poll_stream(router_proxy,
-                                                            exec->command_type,
-                                                            this->settings.stream_items_per_chunk,
-                                                            should_abort,
-                                                            on_chunk,
-                                                            on_error,
-                                                            on_aborted)) {
-            return;
+    on_complete(timer.milliseconds(), exec->received_count());
+}
+
+bool CommandRouterHttpAPI::is_sync_command_type(const string& command_type) {
+    return command_type == "get" || command_type == "set";
+}
+
+bool CommandRouterHttpAPI::execute_router_command(
+    const string& command_type,
+    const string& command_text,
+    const function<bool()>& should_abort,
+    const function<void(const vector<string>& chunk)>& on_chunk,
+    const function<void(const string& error)>& on_error,
+    const function<void()>& on_aborted) {
+    if (this->router_processor == nullptr) {
+        if (on_error) {
+            on_error("Command router processor is not configured for HTTP execution");
         }
+        return false;
+    }
 
-        timer.stop();
+    try {
+        string router_arg = command_text;
+        Utils::replace_all(router_arg, "%", "$");
+        auto router_proxy = make_shared<BusCommandRouterProxy>(command_type, router_arg);
 
-        on_complete(timer.milliseconds(), exec->received_count());
+        this->router_processor->dispatch_http_command(router_proxy, this->http_requestor_id);
+
+        return BusCommandRouterProxyStreamPoller::poll_stream(router_proxy,
+                                                              command_type,
+                                                              this->settings.stream_items_per_chunk,
+                                                              should_abort,
+                                                              on_chunk,
+                                                              on_error,
+                                                              on_aborted);
+
     } catch (const exception& e) {
-        on_error(e.what());
+        if (on_error) {
+            on_error(e.what());
+        }
+        return false;
     }
 }
 

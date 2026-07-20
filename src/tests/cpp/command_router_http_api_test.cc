@@ -448,6 +448,65 @@ TEST_F(CommandRouterHttpAPITest, create_execution_returns_202) {
     EXPECT_EQ(payload["status"], "pending");
 }
 
+TEST_F(CommandRouterHttpAPITest, get_params_returns_sync_result) {
+    auto res = client().Post(
+        "/command-router/executions", make_execution_body("get", "params").dump(), "application/json");
+    ASSERT_TRUE(res);
+    EXPECT_EQ(res->status, 200);
+
+    auto payload = json::parse(res->body);
+    EXPECT_EQ(payload["command_type"], "get");
+    EXPECT_TRUE(payload.contains("result"));
+    EXPECT_NE(payload["result"].get<string>().find("use_cache"), string::npos);
+}
+
+TEST_F(CommandRouterHttpAPITest, set_param_returns_sync_ack) {
+    auto res = client().Post("/command-router/executions",
+                             make_execution_body("set", "param context test-context").dump(),
+                             "application/json");
+    ASSERT_TRUE(res);
+    EXPECT_EQ(res->status, 200);
+
+    auto payload = json::parse(res->body);
+    EXPECT_EQ(payload["command_type"], "set");
+    EXPECT_NE(payload["result"].get<string>().find("context"), string::npos);
+
+    auto get_res = client().Post(
+        "/command-router/executions", make_execution_body("get", "params").dump(), "application/json");
+    ASSERT_TRUE(get_res);
+    ASSERT_EQ(get_res->status, 200);
+    EXPECT_NE(json::parse(get_res->body)["result"].get<string>().find("context: test-context"),
+              string::npos);
+}
+
+TEST_F(CommandRouterHttpAPITest, set_param_persists_for_later_get) {
+    auto set_res = client().Post("/command-router/executions",
+                                 make_execution_body("set", "param populate_metta_mapping true").dump(),
+                                 "application/json");
+    ASSERT_TRUE(set_res);
+    ASSERT_EQ(set_res->status, 200);
+
+    auto get_res = client().Post(
+        "/command-router/executions", make_execution_body("get", "params").dump(), "application/json");
+    ASSERT_TRUE(get_res);
+    ASSERT_EQ(get_res->status, 200);
+
+    const string params = json::parse(get_res->body)["result"].get<string>();
+    EXPECT_NE(params.find("populate_metta_mapping: true"), string::npos);
+}
+
+TEST_F(CommandRouterHttpAPITest, set_param_rejects_unknown_key) {
+    auto res = client().Post("/command-router/executions",
+                             make_execution_body("set", "param unknown_key value").dump(),
+                             "application/json");
+    ASSERT_TRUE(res);
+    EXPECT_EQ(res->status, 500);
+
+    auto payload = json::parse(res->body);
+    EXPECT_TRUE(payload.contains("error"));
+    EXPECT_NE(payload["error"].get<string>().find("Unknown parameter"), string::npos);
+}
+
 TEST_F(CommandRouterHttpAPITest, create_execution_rejects_invalid_requests) {
     auto bad_json = client().Post("/command-router/executions", "{bad", "application/json");
     ASSERT_TRUE(bad_json);
