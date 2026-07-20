@@ -11,6 +11,7 @@ namespace atomdb {
 inline commons::JsonConfig test_atomdb_json_config(const string& atomdb_type = "redismongodb") {
     auto json = nlohmann::json();
     json["type"] = atomdb_type;
+    json["composite_type_enabled"] = true;
     json["redis"] = {{"endpoint", "localhost:40020"}, {"cluster", false}};
     json["mongodb"] = {{"endpoint", "localhost:40021"}, {"username", "admin"}, {"password", "admin"}};
     json["morkdb"] = {{"endpoint", "localhost:40022"}};

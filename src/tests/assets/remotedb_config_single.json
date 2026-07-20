@@ -3,6 +3,7 @@
         {
             "uid": "single_peer",
             "type": "redismongodb",
+            "composite_type_enabled": true,
             "context": "remotedb_test_single_peer_",
             "redis": {
                 "endpoint": "localhost:40020",

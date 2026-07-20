@@ -29,6 +29,7 @@ class RemoteAtomDBPeer : public AtomDB, public processor::ThreadMethod {
     ~RemoteAtomDBPeer();
 
     bool allow_nested_indexing() override;
+    bool composite_type_enabled() const override;
 
     shared_ptr<Atom> get_atom(const string& handle) override;
     shared_ptr<Node> get_node(const string& handle) override;
@@ -95,6 +96,8 @@ class RemoteAtomDBPeer : public AtomDB, public processor::ThreadMethod {
     bool thread_one_step() override;
 
     const string& get_uid() const { return uid_; }
+
+    bool is_readonly() const { return local_persistence_ == nullptr; }
 
    private:
     void feed_cache_from_handle_set(shared_ptr<atomdb_api_types::HandleSet> handle_set);

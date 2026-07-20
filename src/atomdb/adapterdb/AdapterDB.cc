@@ -67,6 +67,11 @@ bool AdapterDB::allow_nested_indexing() {
     return this->atomdb_backend->allow_nested_indexing();
 }
 
+bool AdapterDB::composite_type_enabled() const {
+    this->ensure_backend_ready();
+    return this->atomdb_backend->composite_type_enabled();
+}
+
 shared_ptr<Atom> AdapterDB::get_atom(const string& handle) {
     this->ensure_backend_ready();
     return this->atomdb_backend->get_atom(handle);

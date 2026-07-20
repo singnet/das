@@ -1023,6 +1023,71 @@ TEST_F(RedisMongoDBTest, AtomsCount) {
     EXPECT_EQ(db->empty(), false);
 }
 
+TEST_F(RedisMongoDBTest, CompositeTypeEnabledFlag) {
+    EXPECT_TRUE(db->composite_type_enabled());
+
+    auto config_default = test_atomdb_json_config();
+    config_default.erase("composite_type_enabled");
+    auto db_default = make_shared<RedisMongoDB>("test_", false, config_default);
+    EXPECT_TRUE(db_default->composite_type_enabled());
+
+    vector<Node*> enabled_nodes = {new Node("Symbol", "CompositeTypeEnabled-A"),
+                                   new Node("Symbol", "CompositeTypeEnabled-B"),
+                                   new Node("Symbol", "CompositeTypeEnabled-C")};
+    ASSERT_EQ(db->add_nodes(enabled_nodes).size(), 3);
+    auto enabled_link =
+        new Link("Expression",
+                 {enabled_nodes[0]->handle(), enabled_nodes[1]->handle(), enabled_nodes[2]->handle()});
+    string enabled_link_handle = db->add_link(enabled_link);
+    ASSERT_FALSE(enabled_link_handle.empty());
+
+    auto enabled_doc = db->get_atom_document(enabled_link_handle);
+    ASSERT_NE(enabled_doc, nullptr);
+    EXPECT_TRUE(enabled_doc->contains("composite_type_hash"));
+    EXPECT_TRUE(enabled_doc->contains("composite_type"));
+    EXPECT_EQ(string(enabled_doc->get("composite_type_hash")), enabled_link->composite_type_hash(*db));
+    EXPECT_EQ(enabled_doc->get_size("composite_type"), 4);
+
+    auto config_disabled = test_atomdb_json_config();
+    config_disabled["composite_type_enabled"] = false;
+    auto db_disabled = make_shared<RedisMongoDB>("test_", false, config_disabled);
+    EXPECT_FALSE(db_disabled->composite_type_enabled());
+
+    vector<Node*> disabled_nodes = {new Node("Symbol", "CompositeTypeDisabled-A"),
+                                    new Node("Symbol", "CompositeTypeDisabled-B"),
+                                    new Node("Symbol", "CompositeTypeDisabled-C")};
+    ASSERT_EQ(db_disabled->add_nodes(disabled_nodes).size(), 3);
+    auto disabled_link = new Link(
+        "Expression",
+        {disabled_nodes[0]->handle(), disabled_nodes[1]->handle(), disabled_nodes[2]->handle()});
+    string disabled_link_handle = db_disabled->add_link(disabled_link);
+    ASSERT_FALSE(disabled_link_handle.empty());
+
+    auto disabled_doc = db_disabled->get_atom_document(disabled_link_handle);
+    ASSERT_NE(disabled_doc, nullptr);
+    EXPECT_FALSE(disabled_doc->contains("composite_type_hash"));
+    EXPECT_FALSE(disabled_doc->contains("composite_type"));
+
+    vector<Node*> transactional_nodes = {new Node("Symbol", "CompositeTypeDisabledTx-A"),
+                                         new Node("Symbol", "CompositeTypeDisabledTx-B"),
+                                         new Node("Symbol", "CompositeTypeDisabledTx-C")};
+    auto transactional_link = new Link("Expression",
+                                       {transactional_nodes[0]->handle(),
+                                        transactional_nodes[1]->handle(),
+                                        transactional_nodes[2]->handle()});
+    ASSERT_EQ(db_disabled->add_nodes(transactional_nodes, false, true).size(), 3);
+    ASSERT_EQ(db_disabled->add_links({transactional_link}, false, true).size(), 1);
+
+    auto transactional_doc = db_disabled->get_atom_document(transactional_link->handle());
+    ASSERT_NE(transactional_doc, nullptr);
+    EXPECT_FALSE(transactional_doc->contains("composite_type_hash"));
+    EXPECT_FALSE(transactional_doc->contains("composite_type"));
+
+    EXPECT_TRUE(db->delete_atom(enabled_link_handle, true));
+    EXPECT_TRUE(db_disabled->delete_atom(disabled_link_handle, true));
+    EXPECT_TRUE(db_disabled->delete_atom(transactional_link->handle(), true));
+}
+
 int main(int argc, char** argv) {
     ::testing::InitGoogleTest(&argc, argv);
     ::testing::AddGlobalTestEnvironment(new RedisMongoDBTestEnvironment());
