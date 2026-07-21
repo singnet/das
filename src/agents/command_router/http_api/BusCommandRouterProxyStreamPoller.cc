@@ -32,9 +32,13 @@ void append_answer_chunk(const shared_ptr<BusCommandRouterProxy>& router_proxy,
     emit_chunk(on_chunk, chunk_data);
 }
 
+PollStreamResult poll_succeeded(bool is_count_only = false, int count_only_total = 0) {
+    return {true, is_count_only, count_only_total};
+}
+
 }  // namespace
 
-bool BusCommandRouterProxyStreamPoller::poll_stream(
+PollStreamResult BusCommandRouterProxyStreamPoller::poll_stream(
     const shared_ptr<BusCommandRouterProxy>& router_proxy,
     const string& command_type,
     size_t items_per_chunk,
@@ -46,14 +50,14 @@ bool BusCommandRouterProxyStreamPoller::poll_stream(
         if (on_error) {
             on_error("items_per_chunk must be at least 1");
         }
-        return false;
+        return {};
     }
 
     if (!router_proxy) {
         if (on_error) {
             on_error("router_proxy must not be null");
         }
-        return false;
+        return {};
     }
 
     auto finished_or_error = [&]() { return router_proxy->finished() || router_proxy->error_flag; };
@@ -72,7 +76,7 @@ bool BusCommandRouterProxyStreamPoller::poll_stream(
     if (command_type == "get") {
         while (router_proxy->params_response.empty() && !finished_or_error()) {
             if (handle_abort()) {
-                return false;
+                return {};
             }
             Utils::sleep(100);
         }
@@ -80,24 +84,24 @@ bool BusCommandRouterProxyStreamPoller::poll_stream(
             if (on_error) {
                 on_error(router_proxy->error_message);
             }
-            return false;
+            return {};
         }
         if (router_proxy->params_response.empty()) {
             if (on_error) {
                 on_error("GET command finished without params response");
             }
-            return false;
+            return {};
         }
         if (on_chunk) {
             on_chunk({router_proxy->params_response});
         }
-        return true;
+        return poll_succeeded();
     }
 
     if (command_type == "set") {
         while (router_proxy->set_param_ack.empty() && !finished_or_error()) {
             if (handle_abort()) {
-                return false;
+                return {};
             }
             Utils::sleep(100);
         }
@@ -105,24 +109,24 @@ bool BusCommandRouterProxyStreamPoller::poll_stream(
             if (on_error) {
                 on_error(router_proxy->error_message);
             }
-            return false;
+            return {};
         }
         if (router_proxy->set_param_ack.empty()) {
             if (on_error) {
                 on_error("SET command finished without parameter ack");
             }
-            return false;
+            return {};
         }
         if (on_chunk) {
             on_chunk({router_proxy->set_param_ack});
         }
-        return true;
+        return poll_succeeded();
     }
 
     if (command_type == "query" || command_type == "evolution") {
         while (!router_proxy->routed_flag && !finished_or_error()) {
             if (handle_abort()) {
-                return false;
+                return {};
             }
             Utils::sleep(100);
         }
@@ -130,42 +134,60 @@ bool BusCommandRouterProxyStreamPoller::poll_stream(
             if (on_error) {
                 on_error(router_proxy->error_message);
             }
-            return false;
+            return {};
         }
         if (!router_proxy->routed_flag) {
             if (on_error) {
                 on_error("Command finished without being routed to a downstream service");
             }
-            return false;
+            return {};
         }
 
         const bool use_metta_as_query_tokens =
             router_proxy->parameters.get_or<bool>(BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS, true);
 
         vector<string> chunk_data;
+        size_t streamed_item_count = 0;
+        auto emit_answer_chunk = [&](const vector<string>& chunk) {
+            streamed_item_count += chunk.size();
+            if (on_chunk) {
+                on_chunk(chunk);
+            }
+        };
+
         while (!finished_or_error()) {
             if (handle_abort()) {
-                return false;
+                return {};
             }
 
             append_answer_chunk(
-                router_proxy, use_metta_as_query_tokens, items_per_chunk, on_chunk, chunk_data);
+                router_proxy, use_metta_as_query_tokens, items_per_chunk, emit_answer_chunk, chunk_data);
             Utils::sleep(100);
         }
+
         append_answer_chunk(
-            router_proxy, use_metta_as_query_tokens, items_per_chunk, on_chunk, chunk_data);
+            router_proxy, use_metta_as_query_tokens, items_per_chunk, emit_answer_chunk, chunk_data);
 
         if (router_proxy->error_flag) {
             if (on_error) {
                 on_error(router_proxy->error_message);
             }
-            return false;
+            return {};
         }
-        return true;
+
+        if (router_proxy->count_received && streamed_item_count == 0) {
+            const int count = static_cast<int>(router_proxy->get_count());
+            if (on_chunk) {
+                on_chunk({std::to_string(count)});
+            }
+            return poll_succeeded(true, count);
+        }
+
+        return poll_succeeded();
     }
 
     if (on_error) {
         on_error("Unknown command_type: " + command_type);
     }
-    return false;
+    return {};
 }

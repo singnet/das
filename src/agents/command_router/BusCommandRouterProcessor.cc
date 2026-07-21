@@ -63,6 +63,7 @@ void BusCommandRouterProcessor::dispatch_http_command(
 
     caller_proxy->issued = true;
     caller_proxy->requestor_id = http_requestor_id;
+    caller_proxy->parameters = parameters_for_peer(http_requestor_id);
     caller_proxy->serial = serial;
     caller_proxy->proxy_port = PortPool::get_port();
     if (caller_proxy->proxy_port == 0) {

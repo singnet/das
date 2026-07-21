@@ -11,6 +11,12 @@ using namespace std;
 
 namespace command_router {
 
+struct PollStreamResult {
+    bool ok = false;
+    bool is_count_only = false;
+    int count_only_total = 0;
+};
+
 /**
  * Polls a BusCommandRouterProxy and delivers results in HTTP-friendly chunks.
  *
@@ -36,15 +42,15 @@ class BusCommandRouterProxyStreamPoller {
      * @param on_error Called with an error message on validation, proxy, or unknown
      *                 command failures.
      * @param on_aborted Called when polling stops because should_abort returned true.
-     * @return true when the command completed without error; false otherwise.
+     * @return Result status; count-only totals are returned when is_count_only is true.
      */
-    static bool poll_stream(const shared_ptr<BusCommandRouterProxy>& router_proxy,
-                            const string& command_type,
-                            size_t items_per_chunk,
-                            const function<bool()>& should_abort,
-                            const function<void(const vector<string>& chunk)>& on_chunk,
-                            const function<void(const string& error)>& on_error,
-                            const function<void()>& on_aborted);
+    static PollStreamResult poll_stream(const shared_ptr<BusCommandRouterProxy>& router_proxy,
+                                        const string& command_type,
+                                        size_t items_per_chunk,
+                                        const function<bool()>& should_abort,
+                                        const function<void(const vector<string>& chunk)>& on_chunk,
+                                        const function<void(const string& error)>& on_error,
+                                        const function<void()>& on_aborted);
 
    private:
     BusCommandRouterProxyStreamPoller() = delete;

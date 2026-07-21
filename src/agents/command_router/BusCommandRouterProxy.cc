@@ -1,6 +1,7 @@
 #include "BusCommandRouterProxy.h"
 
 #include "BaseQueryProxy.h"
+#include "PatternMatchingQueryProxy.h"
 #include "ServiceBus.h"
 #include "SystemParametersSingleton.h"
 
@@ -54,6 +55,20 @@ bool BusCommandRouterProxy::from_remote_peer(const string& command, const vector
     } else if (command == ROUTED) {
         this->routed_flag = true;
         return true;
+    } else if (command == PatternMatchingQueryProxy::COUNT) {
+        count_answer(args);
+        return true;
     }
     return BaseQueryProxy::from_remote_peer(command, args);
+}
+
+void BusCommandRouterProxy::count_answer(const vector<string>& args) {
+    if (this->is_aborting()) {
+        return;
+    }
+    if (args.size() != 1) {
+        RAISE_ERROR("Invalid args for count command");
+    }
+    this->set_count(stoi(args[0]));
+    this->count_received = true;
 }
