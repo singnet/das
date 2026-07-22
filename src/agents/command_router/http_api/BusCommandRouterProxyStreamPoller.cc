@@ -9,10 +9,6 @@ using namespace agents;
 
 namespace {
 
-bool should_use_metta_output(const QueryAnswer& answer, bool populate_metta_mapping) {
-    return populate_metta_mapping || !answer.metta_expression.empty();
-}
-
 void emit_chunk(const function<void(const vector<string>& chunk)>& on_chunk,
                 vector<string>& chunk_data) {
     if (!chunk_data.empty() && on_chunk) {
@@ -28,8 +24,8 @@ void append_answer_chunk(const shared_ptr<BusCommandRouterProxy>& router_proxy,
                          vector<string>& chunk_data) {
     shared_ptr<QueryAnswer> answer;
     while ((answer = router_proxy->pop()) != nullptr) {
-        chunk_data.push_back(
-            answer->to_string(should_use_metta_output(*answer, populate_metta_mapping)));
+        bool use_metta_output = !answer->metta_expression.empty() || populate_metta_mapping;
+        chunk_data.push_back(answer->to_string(use_metta_output));
         if (chunk_data.size() >= items_per_chunk) {
             emit_chunk(on_chunk, chunk_data);
         }
