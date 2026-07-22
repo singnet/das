@@ -13,6 +13,10 @@
                 "endpoint": "localhost:40021",
                 "username": "admin",
                 "password": "admin"
+            },
+            "local_persistence": {
+                "type": "inmemorydb",
+                "context": "remotedb_test_single_peer_local_"
             }
         }
     ]

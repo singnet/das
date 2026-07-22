@@ -80,8 +80,7 @@
             {
                 "uid": "peer1",
                 "type": "redismongodb",
-                "composite_type_enabled": true,
-                "context": "remotedb_test_peer1_",
+                "context": "",
                 "mongodb": {
                     "endpoint": "localhost:40021",
                     "username": "admin",
@@ -91,27 +90,47 @@
                     "endpoint": "localhost:40020",
                     "cluster": false
                 },
-                "local_persistence": {
-                    "type": "morkdb",
-                    "composite_type_enabled": true,
-                    "context": "remotedb_test_peer1_local_",
-                    "mongodb": {
-                        "endpoint": "localhost:40021",
-                        "username": "admin",
-                        "password": "admin"
-                    },
-                    "morkdb": {
-                        "endpoint": "localhost:40022"
-                    }
+                "morkdb": {
+                    "endpoint": "localhost:40022"
                 }
             },
             {
                 "uid": "peer2",
+                "type": "redismongodb",
+                "context": "",
+                "mongodb": {
+                    "endpoint": "localhost:40031",
+                    "username": "admin",
+                    "password": "admin"
+                },
+                "redis": {
+                    "endpoint": "localhost:40030",
+                    "cluster": false
+                },
+                "morkdb": {
+                    "endpoint": "localhost:40032"
+                }
+            },
+            {
+                "uid": "peer3",
                 "type": "inmemorydb",
-                "context": "remotedb_test_peer2_",
+                "context": "",
                 "local_persistence": {
-                    "type": "inmemorydb",
-                    "context": "remotedb_test_peer2_local_"
+                    "type": "redismongodb",
+                    "context": "",
+                    "composite_type_enabled": false,
+                    "mongodb": {
+                        "endpoint": "localhost:40041",
+                        "username": "admin",
+                        "password": "admin"
+                    },
+                    "redis": {
+                        "endpoint": "localhost:40040",
+                        "cluster": false
+                    },
+                    "morkdb": {
+                        "endpoint": "localhost:40042"
+                    }
                 }
             }
         ]

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <map>
+#include <mutex>
 #include <set>
 #include <string>
 #include <vector>
@@ -16,6 +17,14 @@ using namespace atoms;
 
 namespace atomdb {
 
+/**
+ * In-memory AtomDB backed by HandleTries.
+ *
+ * Thread-safety: all public methods are serialized by an internal recursive mutex, so an
+ * InMemoryDB instance can be shared across threads without external locking. The mutex is
+ * recursive because public methods call each other (e.g. delete_link -> delete_atom, and
+ * re_index_patterns' visitor calls back into add_pattern / match_pattern_index_schema).
+ */
 class InMemoryDB : public AtomDB {
    public:
     InMemoryDB(const string& context = "");
@@ -72,8 +81,14 @@ class InMemoryDB : public AtomDB {
 
     void re_index_patterns(bool flush_patterns = true) override;
 
+    vector<shared_ptr<Atom>> get_all_atoms();
+    void drop_all();
+
    private:
     string context_;
+    // Serializes all public methods (see class comment). Recursive: public methods re-enter
+    // each other and LinkSchema::match may call back into this AtomDB on the same thread.
+    mutable recursive_mutex api_mutex_;
     HandleTrie* atoms_trie_;          // Stores handle -> Atom*
     HandleTrie* pattern_index_trie_;  // Stores pattern_handle -> set of atom handles
     HandleTrie* incoming_sets_trie_;  // Stores target_handle -> set of link handles that reference it
