@@ -10,6 +10,7 @@
 #include <unordered_set>
 #include <vector>
 
+#include "BusCommandRouterProxyStreamPoller.h"
 #include "CommandExecution.h"
 #include "CommandRouterHttpAPIConfig.h"
 #include "DedicatedThread.h"
@@ -109,12 +110,12 @@ class CommandRouterHttpAPI : public processor::Processor, public processor::Thre
     void run_execution_inner(const shared_ptr<CommandExecution>& exec);
 
     /** @brief Dispatch a router command and poll its response stream. */
-    bool execute_router_command(const string& command_type,
-                                const string& command_text,
-                                const function<bool()>& should_abort,
-                                const function<void(const vector<string>& chunk)>& on_chunk,
-                                const function<void(const string& error)>& on_error,
-                                const function<void()>& on_aborted);
+    PollStreamResult execute_router_command(const string& command_type,
+                                            const string& command_text,
+                                            const function<bool()>& should_abort,
+                                            const function<void(const vector<string>& chunk)>& on_chunk,
+                                            const function<void(const string& error)>& on_error,
+                                            const function<void()>& on_aborted);
 
     static bool is_sync_command_type(const string& command_type);
 

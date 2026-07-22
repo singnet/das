@@ -155,15 +155,16 @@ void CommandRouterHttpAPI::setup_routes() {
 
                 vector<string> chunks;
                 string error_message;
-                if (!this->execute_router_command(
-                        command_type,
-                        command_text,
-                        nullptr,
-                        [&](const vector<string>& chunk) {
-                            chunks.insert(chunks.end(), chunk.begin(), chunk.end());
-                        },
-                        [&](const string& message) { error_message = message; },
-                        nullptr)) {
+                const PollStreamResult poll_result = this->execute_router_command(
+                    command_type,
+                    command_text,
+                    nullptr,
+                    [&](const vector<string>& chunk) {
+                        chunks.insert(chunks.end(), chunk.begin(), chunk.end());
+                    },
+                    [&](const string& message) { error_message = message; },
+                    nullptr);
+                if (!poll_result.ok) {
                     if (error_message.empty()) {
                         error_message = "Command failed";
                     }
@@ -345,21 +346,24 @@ void CommandRouterHttpAPI::run_execution_inner(const shared_ptr<CommandExecution
                  << exec->execution_id << " duration_ms=" << duration_ms << " items=" << total_items);
     };
 
-    if (!this->execute_router_command(
-            exec->command_type, exec->command_text, should_abort, on_chunk, on_error, on_aborted)) {
+    const PollStreamResult poll_result = this->execute_router_command(
+        exec->command_type, exec->command_text, should_abort, on_chunk, on_error, on_aborted);
+    if (!poll_result.ok) {
         return;
     }
 
     timer.stop();
 
-    on_complete(timer.milliseconds(), exec->received_count());
+    const int total_items =
+        poll_result.is_count_only ? poll_result.count_only_total : exec->received_count();
+    on_complete(timer.milliseconds(), total_items);
 }
 
 bool CommandRouterHttpAPI::is_sync_command_type(const string& command_type) {
     return command_type == "get" || command_type == "set";
 }
 
-bool CommandRouterHttpAPI::execute_router_command(
+PollStreamResult CommandRouterHttpAPI::execute_router_command(
     const string& command_type,
     const string& command_text,
     const function<bool()>& should_abort,
@@ -370,7 +374,7 @@ bool CommandRouterHttpAPI::execute_router_command(
         if (on_error) {
             on_error("Command router processor is not configured for HTTP execution");
         }
-        return false;
+        return {};
     }
 
     try {
@@ -392,7 +396,7 @@ bool CommandRouterHttpAPI::execute_router_command(
         if (on_error) {
             on_error(e.what());
         }
-        return false;
+        return {};
     }
 }
 
