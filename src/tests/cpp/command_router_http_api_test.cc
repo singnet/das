@@ -377,6 +377,16 @@ TEST(BusCommandRouterProxyTest, count_command_sets_total_and_marks_count_receive
     EXPECT_TRUE(proxy->count_received);
 }
 
+TEST(BusCommandRouterProxyTest, count_command_rejects_negative_and_invalid_count) {
+    auto negative_proxy = make_shared<BusCommandRouterProxy>("query", "(Similarity $P $C)");
+    EXPECT_THROW(negative_proxy->from_remote_peer(PatternMatchingQueryProxy::COUNT, {"-1"}),
+                 runtime_error);
+
+    auto invalid_proxy = make_shared<BusCommandRouterProxy>("query", "(Similarity $P $C)");
+    EXPECT_THROW(invalid_proxy->from_remote_peer(PatternMatchingQueryProxy::COUNT, {"abc"}),
+                 invalid_argument);
+}
+
 TEST(BusCommandRouterProxyStreamPollerTest, count_only_emits_total) {
     auto proxy = make_shared<StreamTestProxy>();
     proxy->mark_routed();

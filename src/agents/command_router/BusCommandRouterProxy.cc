@@ -69,6 +69,10 @@ void BusCommandRouterProxy::count_answer(const vector<string>& args) {
     if (args.size() != 1) {
         RAISE_ERROR("Invalid args for count command");
     }
-    this->set_count(stoi(args[0]));
+    const int parsed = stoi(args[0]);
+    if (parsed < 0) {
+        RAISE_ERROR("Invalid count value");
+    }
+    this->set_count(static_cast<unsigned int>(parsed));
     this->count_received = true;
 }
