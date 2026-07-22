@@ -9,6 +9,10 @@ using namespace agents;
 
 namespace {
 
+bool should_use_metta_output(const QueryAnswer& answer, bool populate_metta_mapping) {
+    return populate_metta_mapping || !answer.metta_expression.empty();
+}
+
 void emit_chunk(const function<void(const vector<string>& chunk)>& on_chunk,
                 vector<string>& chunk_data) {
     if (!chunk_data.empty() && on_chunk) {
@@ -18,13 +22,14 @@ void emit_chunk(const function<void(const vector<string>& chunk)>& on_chunk,
 }
 
 void append_answer_chunk(const shared_ptr<BusCommandRouterProxy>& router_proxy,
-                         bool use_metta_as_query_tokens,
+                         bool populate_metta_mapping,
                          size_t items_per_chunk,
                          const function<void(const vector<string>& chunk)>& on_chunk,
                          vector<string>& chunk_data) {
     shared_ptr<QueryAnswer> answer;
     while ((answer = router_proxy->pop()) != nullptr) {
-        chunk_data.push_back(answer->to_string(use_metta_as_query_tokens));
+        chunk_data.push_back(
+            answer->to_string(should_use_metta_output(*answer, populate_metta_mapping)));
         if (chunk_data.size() >= items_per_chunk) {
             emit_chunk(on_chunk, chunk_data);
         }
@@ -143,8 +148,8 @@ PollStreamResult BusCommandRouterProxyStreamPoller::poll_stream(
             return {};
         }
 
-        const bool use_metta_as_query_tokens =
-            router_proxy->parameters.get_or<bool>(BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS, true);
+        const bool populate_metta_mapping =
+            router_proxy->parameters.get_or<bool>(BaseQueryProxy::POPULATE_METTA_MAPPING, false);
 
         vector<string> chunk_data;
         size_t streamed_item_count = 0;
@@ -161,12 +166,12 @@ PollStreamResult BusCommandRouterProxyStreamPoller::poll_stream(
             }
 
             append_answer_chunk(
-                router_proxy, use_metta_as_query_tokens, items_per_chunk, emit_answer_chunk, chunk_data);
+                router_proxy, populate_metta_mapping, items_per_chunk, emit_answer_chunk, chunk_data);
             Utils::sleep(100);
         }
 
         append_answer_chunk(
-            router_proxy, use_metta_as_query_tokens, items_per_chunk, emit_answer_chunk, chunk_data);
+            router_proxy, populate_metta_mapping, items_per_chunk, emit_answer_chunk, chunk_data);
 
         if (router_proxy->error_flag) {
             if (on_error) {

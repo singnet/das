@@ -369,6 +369,35 @@ TEST(BusCommandRouterProxyStreamPollerTest, stream_emits_one_item_per_chunk_by_d
     EXPECT_NE(chunks.front().front().find("answer-0"), string::npos);
 }
 
+TEST(BusCommandRouterProxyStreamPollerTest,
+     streams_handles_when_use_metta_true_but_populate_metta_mapping_false) {
+    auto proxy = make_shared<StreamTestProxy>();
+    proxy->parameters[BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS] = true;
+    proxy->parameters[BaseQueryProxy::POPULATE_METTA_MAPPING] = false;
+    proxy->mark_routed();
+
+    QueryAnswer answer("7ec8526b8c8f15a6ac55273fedbf694f", 0.0);
+    answer.assignment.assign("C", "181a19436acef495c8039a610be59603");
+    vector<string> bundle = {answer.tokenize()};
+    proxy->from_remote_peer(BaseQueryProxy::ANSWER_BUNDLE, bundle);
+    proxy->mark_finished();
+
+    vector<vector<string>> chunks;
+    const auto poll_result = BusCommandRouterProxyStreamPoller::poll_stream(
+        proxy,
+        "query",
+        1,
+        nullptr,
+        [&](const vector<string>& chunk) { chunks.push_back(chunk); },
+        nullptr,
+        nullptr);
+    ASSERT_TRUE(poll_result.ok);
+    ASSERT_EQ(chunks.size(), 1u);
+    EXPECT_NE(chunks[0].front().find("7ec8526b8c8f15a6ac55273fedbf694f"), string::npos);
+    EXPECT_NE(chunks[0].front().find("181a19436acef495c8039a610be59603"), string::npos);
+    EXPECT_EQ(chunks[0].front().find("[[]]"), string::npos);
+}
+
 TEST(BusCommandRouterProxyTest, count_command_sets_total_and_marks_count_received) {
     auto proxy = make_shared<BusCommandRouterProxy>("query", "(Similarity $P $C)");
 
