@@ -450,9 +450,24 @@ class QueryAnswer {
     string to_string(bool metta_flag = false);
 
     /**
-     * Returns a json representation of this QueryAnswer
+     * Returns a json representation of this QueryAnswer.
+     *
+     * Always includes the full internal state so from_json() can rebuild the
+     * same QueryAnswer: handles, assignment, metta_expression (handle -> MeTTa
+     * map), importance and strength. When metta_flag is true, also fills
+     * metta_expressions and assignment_metta with MeTTa values substituted
+     * where available.
      */
     json to_json(bool metta_flag = false);
+
+    /**
+     * Rebuilds this QueryAnswer from a json representation produced by to_json().
+     * Resets the current object before loading. Uses handles, assignment,
+     * metta_expression, importance and strength.
+     *
+     * @param json_data A json object representing a QueryAnswer.
+     */
+    void from_json(const json& json_data);
 
     /**
      * Returns the element indicated by the passed QueryAnswerElement key, it can be either one

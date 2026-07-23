@@ -438,6 +438,104 @@ TEST(QueryAnswer, tokenization) {
     }
 }
 
+void query_answers_equal_including_metta(QueryAnswer* qa1, QueryAnswer* qa2) {
+    query_answers_equal(qa1, qa2);
+    EXPECT_EQ(qa1->metta_expression, qa2->metta_expression);
+}
+
+TEST(QueryAnswer, json_rebuild) {
+    QueryAnswer input(0.75);
+    input.strength = 0.25;
+    string h1 = random_handle();
+    string h2 = random_handle();
+    string h3 = random_handle();
+    string path_h1 = random_handle();
+    string path_h2 = random_handle();
+
+    input.add_handle(h1);
+    input.add_handle(h2);
+    input.assignment.assign("v1", h2);
+    input.assignment.assign("v2", h3);
+    unsigned int path_index = input.add_path();
+    input.add_path_element(path_index, path_h1);
+    input.add_path_element(path_index, path_h2);
+    input.metta_expression[h1] = "(Evaluation (Predicate \"p\") (Concept \"a\"))";
+    input.metta_expression[h2] = "\"human\"";
+    input.metta_expression[h3] = "(Concept \"x\")";
+
+    json dumped = input.to_json(false);
+    EXPECT_EQ(dumped["handles"][0][0], h1);
+    EXPECT_EQ(dumped["assignment"]["v1"], h2);
+    EXPECT_EQ(dumped["metta_expression"][h1], input.metta_expression[h1]);
+    EXPECT_TRUE(dumped["metta_expressions"].empty());
+    EXPECT_TRUE(dumped["assignment_metta"].empty());
+
+    QueryAnswer output(0.0);
+    output.add_handle("should-be-cleared");
+    output.assignment.assign("old", "value");
+    output.metta_expression["old"] = "expr";
+    output.from_json(dumped);
+    query_answers_equal_including_metta(&input, &output);
+
+    json dumped_metta = input.to_json(true);
+    EXPECT_EQ(dumped_metta["handles"][0][0], h1);
+    EXPECT_EQ(dumped_metta["assignment"]["v1"], h2);
+    EXPECT_EQ(dumped_metta["metta_expression"][h1], input.metta_expression[h1]);
+    EXPECT_EQ(dumped_metta["metta_expressions"][0][0], input.metta_expression[h1]);
+    EXPECT_EQ(dumped_metta["assignment_metta"]["v1"], input.metta_expression[h2]);
+
+    QueryAnswer output_from_metta_flag(0.0);
+    output_from_metta_flag.from_json(dumped_metta);
+    query_answers_equal_including_metta(&input, &output_from_metta_flag);
+}
+
+TEST(QueryAnswer, json_rebuild_empty) {
+    QueryAnswer input(0.0);
+    input.strength = 0.0;
+    json dumped = input.to_json();
+    QueryAnswer output(1.0);
+    output.strength = 1.0;
+    output.add_handle(random_handle());
+    output.from_json(dumped);
+    query_answers_equal_including_metta(&input, &output);
+    EXPECT_EQ(output.get_handles_size(), 0u);
+    EXPECT_EQ(output.get_paths_size(), 0u);
+    EXPECT_EQ(output.assignment.variable_count(), 0u);
+    EXPECT_TRUE(output.metta_expression.empty());
+}
+
+TEST(QueryAnswer, from_json_edge_cases) {
+    EXPECT_THROW(QueryAnswer().from_json(json::array()), runtime_error);
+    EXPECT_THROW(QueryAnswer().from_json(json::object()), runtime_error);
+
+    json missing_handles = {{"strength", 0.0},
+                            {"importance", 0.0},
+                            {"assignment", json::object()},
+                            {"metta_expression", json::object()}};
+    EXPECT_THROW(QueryAnswer().from_json(missing_handles), runtime_error);
+
+    json bad_handle_type = {{"strength", 0.0},
+                            {"importance", 0.0},
+                            {"handles", json::array({json::array({1})})},
+                            {"assignment", json::object()},
+                            {"metta_expression", json::object()}};
+    EXPECT_THROW(QueryAnswer().from_json(bad_handle_type), runtime_error);
+
+    json bad_assignment_value = {{"strength", 0.0},
+                                 {"importance", 0.0},
+                                 {"handles", json::array({json::array()})},
+                                 {"assignment", {{"v1", 123}}},
+                                 {"metta_expression", json::object()}};
+    EXPECT_THROW(QueryAnswer().from_json(bad_assignment_value), runtime_error);
+
+    json bad_metta_value = {{"strength", 0.0},
+                            {"importance", 0.0},
+                            {"handles", json::array({json::array()})},
+                            {"assignment", json::object()},
+                            {"metta_expression", {{"h1", true}}}};
+    EXPECT_THROW(QueryAnswer().from_json(bad_metta_value), runtime_error);
+}
+
 TEST(QueryAnswer, get_query_answer_element) {
     QueryAnswer answer;
     answer.get_handles_vector().push_back("h1");

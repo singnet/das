@@ -26,7 +26,10 @@ void append_answer_chunk(const shared_ptr<BusCommandRouterProxy>& router_proxy,
                          json& chunk_data) {
     shared_ptr<QueryAnswer> answer;
     while ((answer = router_proxy->pop()) != nullptr) {
-        bool use_metta_output = !answer->metta_expression.empty() || populate_metta_mapping;
+        if (populate_metta_mapping && answer->metta_expression.empty()) {
+            router_proxy->populate_metta_mapping(answer.get());
+        }
+        bool use_metta_output = populate_metta_mapping || !answer->metta_expression.empty();
         chunk_data.push_back(answer->to_json(use_metta_output));
         if (chunk_data.size() >= items_per_chunk) {
             emit_chunk(on_chunk, chunk_data);
