@@ -1,6 +1,7 @@
 #pragma once
 
 #include <map>
+#include <nlohmann/json.hpp>
 #include <string>
 #include <vector>
 
@@ -12,6 +13,8 @@
 using namespace std;
 using namespace atoms;
 using namespace commons;
+
+using nlohmann::json;
 
 // If this constant is set to numbers greater than 999, we need
 // to fix QueryAnswer.tokenize() properly
@@ -445,6 +448,11 @@ class QueryAnswer {
      * production environment).
      */
     string to_string(bool metta_flag = false);
+
+    /**
+     * Returns a json representation of this QueryAnswer
+     */
+    json to_json(bool metta_flag = false);
 
     /**
      * Returns the element indicated by the passed QueryAnswerElement key, it can be either one

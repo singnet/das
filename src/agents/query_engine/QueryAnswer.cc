@@ -140,6 +140,45 @@ string QueryAnswer::to_string(bool metta_flag) {
     return answer;
 }
 
+json QueryAnswer::to_json(bool metta_flag) {
+    json answer = json::object();
+
+    json handles_json = json::array();
+    string key = metta_flag ? "metta" : "handles";
+    for (const vector<string>& group : this->handles) {
+        json group_json = json::array();
+        for (const string& handle : group) {
+            if (metta_flag) {
+                auto it = this->metta_expression.find(handle);
+                group_json.push_back(
+                    (it != this->metta_expression.end() && !it->second.empty()) ? it->second : handle);
+            } else {
+                group_json.push_back(handle);
+            }
+        }
+        handles_json.push_back(group_json);
+    }
+    answer[key] = handles_json;
+
+    json assignment_json = json::object();
+    for (const auto& pair : this->assignment.table) {
+        const string& value = pair.second;
+        if (metta_flag) {
+            auto it = this->metta_expression.find(value);
+            assignment_json[pair.first] =
+                (it != this->metta_expression.end() && !it->second.empty()) ? it->second : value;
+        } else {
+            assignment_json[pair.first] = value;
+        }
+    }
+    answer["assignment"] = assignment_json;
+
+    answer["importance"] = this->importance;
+    answer["strength"] = this->strength;
+
+    return answer;
+}
+
 const string& QueryAnswer::tokenize() {
     // char_count is computed to be slightly larger than actually required by assuming
     // e.g. 3 digits to represent sizes
