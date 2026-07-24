@@ -201,17 +201,18 @@ void QueryAnswer::from_json(const json& json_data) {
         RAISE_ERROR("Invalid QueryAnswer JSON: missing or invalid assignment");
     }
 
-    const double strength = json_data["strength"].get<double>();
-    const double importance = json_data["importance"].get<double>();
+    this->strength = json_data["strength"].get<double>();
+    this->importance = json_data["importance"].get<double>();
 
     const json& handles_json = json_data["handles"];
     if (handles_json.size() >= MAX_NUMBER_OF_OPERATION_CLAUSES) {
         RAISE_ERROR("Invalid handles_size: " + std::to_string(handles_json.size()) +
                     " loading QueryAnswer from JSON");
     }
-    vector<vector<string>> handles;
+
+    this->handles.clear();
     if (handles_json.empty()) {
-        handles.push_back({});
+        this->handles.push_back({});
     } else {
         for (size_t i = 0; i < handles_json.size(); i++) {
             if (!handles_json[i].is_array()) {
@@ -228,7 +229,7 @@ void QueryAnswer::from_json(const json& json_data) {
                 }
                 group.push_back(handle_json.get<string>());
             }
-            handles.push_back(std::move(group));
+            this->handles.push_back(std::move(group));
         }
     }
 
@@ -237,21 +238,18 @@ void QueryAnswer::from_json(const json& json_data) {
         RAISE_ERROR("Invalid number of assignments: " + std::to_string(assignment_json.size()) +
                     " loading QueryAnswer from JSON");
     }
-    Assignment assignment;
+
+    this->assignment.clear();
     for (auto it = assignment_json.begin(); it != assignment_json.end(); ++it) {
         if (!it.value().is_string()) {
             RAISE_ERROR("Invalid QueryAnswer JSON: assignment value for '" + it.key() +
                         "' must be a string");
         }
-        if (!assignment.assign(it.key(), it.value().get<string>())) {
+        if (!this->assignment.assign(it.key(), it.value().get<string>())) {
             RAISE_ERROR("Invalid QueryAnswer JSON: conflicting assignment for '" + it.key() + "'");
         }
     }
 
-    this->strength = strength;
-    this->importance = importance;
-    this->handles = std::move(handles);
-    this->assignment = assignment;
     this->metta_expression.clear();
     this->token_representation.clear();
 }
