@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <map>
 #include <memory>
+#include <set>
 #include <string>
 #include <vector>
 
@@ -13,6 +14,7 @@
 #include "Link.h"
 #include "LinkSchema.h"
 #include "Node.h"
+#include "Properties.h"
 
 using namespace atomdb;
 using namespace atomdb::atomdb_api_types;
@@ -541,6 +543,96 @@ TEST_F(InMemoryDBTest, AtomsCount) {
     EXPECT_EQ(db->empty(), false);
 }
 
+TEST_F(InMemoryDBTest, GetAllAtoms) {
+    auto node1 = new Node("Symbol", "Node1");
+    auto node2 = new Node("Symbol", "Node2");
+    auto similarity = new Node("Symbol", "Similarity");
+
+    string node1_handle = db->add_node(node1, false);
+    string node2_handle = db->add_node(node2, false);
+    string similarity_handle = db->add_node(similarity, false);
+
+    auto link = new Link("Expression", {similarity_handle, node1_handle, node2_handle});
+    string link_handle = db->add_link(link, false);
+
+    auto atoms = db->get_all_atoms();
+    EXPECT_EQ(atoms.size(), 4u);
+
+    set<string> handles;
+    for (const auto& atom : atoms) {
+        handles.insert(atom->handle());
+    }
+    EXPECT_TRUE(handles.count(node1_handle) > 0);
+    EXPECT_TRUE(handles.count(node2_handle) > 0);
+    EXPECT_TRUE(handles.count(similarity_handle) > 0);
+    EXPECT_TRUE(handles.count(link_handle) > 0);
+}
+
+TEST_F(InMemoryDBTest, GetAllAtomsReturnsIndependentClones) {
+    auto node = new Node("Symbol", "Node1");
+    string handle = db->add_node(node, false);
+
+    auto atoms = db->get_all_atoms();
+    ASSERT_EQ(atoms.size(), 1u);
+    EXPECT_EQ(atoms[0]->handle(), handle);
+
+    db->drop_all();
+
+    // Clones returned earlier remain valid after the DB is cleared.
+    EXPECT_EQ(atoms[0]->handle(), handle);
+    EXPECT_EQ(db->get_atom(handle), nullptr);
+}
+
+TEST_F(InMemoryDBTest, DropAllClearsAtomsAndIndexes) {
+    auto human = new Node("Symbol", "\"human\"");
+    auto monkey = new Node("Symbol", "\"monkey\"");
+    auto mammal = new Node("Symbol", "\"mammal\"");
+    auto inheritance = new Node("Symbol", "Inheritance");
+
+    string human_handle = db->add_node(human, false);
+    string monkey_handle = db->add_node(monkey, false);
+    string mammal_handle = db->add_node(mammal, false);
+    string inheritance_handle = db->add_node(inheritance, false);
+
+    auto link1 = new Link("Expression", {inheritance_handle, human_handle, mammal_handle});
+    auto link2 = new Link("Expression", {inheritance_handle, monkey_handle, mammal_handle});
+    string link1_handle = db->add_link(link1, false);
+    string link2_handle = db->add_link(link2, false);
+
+    LinkSchema link_schema({"LINK_TEMPLATE",
+                            "Expression",
+                            "3",
+                            "NODE",
+                            "Symbol",
+                            "Inheritance",
+                            "VARIABLE",
+                            "x",
+                            "NODE",
+                            "Symbol",
+                            "\"mammal\""});
+
+    EXPECT_EQ(db->query_for_pattern(link_schema)->size(), 2);
+    EXPECT_EQ(db->query_for_incoming_set(human_handle)->size(), 1);
+    EXPECT_NE(db->query_for_targets(link1_handle), nullptr);
+
+    db->drop_all();
+
+    EXPECT_EQ(db->atom_count(), 0u);
+    EXPECT_EQ(db->empty(), true);
+    EXPECT_EQ(db->get_atom(human_handle), nullptr);
+    EXPECT_EQ(db->get_atom(link1_handle), nullptr);
+    EXPECT_EQ(db->query_for_pattern(link_schema)->size(), 0);
+    EXPECT_EQ(db->query_for_incoming_set(human_handle)->size(), 0);
+    EXPECT_EQ(db->query_for_targets(link1_handle), nullptr);
+}
+
+TEST_F(InMemoryDBTest, DropAllOnEmptyDatabase) {
+    EXPECT_EQ(db->atom_count(), 0u);
+    EXPECT_EQ(db->get_all_atoms().size(), 0u);
+    db->drop_all();
+    EXPECT_EQ(db->atom_count(), 0u);
+}
+
 // =============================================================================
 // HandleSetInMemory / HandleSetInMemoryIterator tests
 //
@@ -609,6 +701,38 @@ TEST(HandleSetInMemoryTest, AppendPreservesMetadataFromBothSets) {
     // Metadata merged in from the appended set survives.
     EXPECT_EQ(first->get_metta_expressions_by_handle(handle_b)["$b"], "(Symbol b)");
     EXPECT_EQ(first->get_assignments_by_handle(handle_b).get("$b"), "value_b");
+}
+
+TEST_F(InMemoryDBTest, UpsertReplacesCustomAttributes) {
+    auto a = new Node("Symbol", "\"a\"");
+    auto b = new Node("Symbol", "\"b\"");
+    auto similarity = new Node("Symbol", "Similarity");
+    string a_h = db->add_node(a, false);
+    string b_h = db->add_node(b, false);
+    string sim_h = db->add_node(similarity, false);
+
+    auto weak = new Link("Expression", {sim_h, a_h, b_h}, true, Properties{{"strength", 0.5}});
+    string handle = db->add_link(weak, false);
+    auto got_weak = db->get_atom(handle);
+    ASSERT_NE(got_weak, nullptr);
+    EXPECT_DOUBLE_EQ(got_weak->custom_attributes.get_or<double>("strength", -1.0), 0.5);
+
+    auto strong = new Link("Expression", {sim_h, a_h, b_h}, true, Properties{{"strength", 0.9}});
+    EXPECT_EQ(db->add_link(strong, false), handle);
+    auto got_strong = db->get_atom(handle);
+    ASSERT_NE(got_strong, nullptr);
+    EXPECT_DOUBLE_EQ(got_strong->custom_attributes.get_or<double>("strength", -1.0), 0.9);
+
+    // Incoming set must not grow from the upsert (same content-addressed handle/targets).
+    auto incoming = db->query_for_incoming_set(a_h);
+    ASSERT_NE(incoming, nullptr);
+    EXPECT_EQ(incoming->size(), 1u);
+
+    delete weak;
+    delete strong;
+    delete a;
+    delete b;
+    delete similarity;
 }
 
 TEST(HandleSetInMemoryTest, IteratorPointerOutlivesIterator) {

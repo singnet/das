@@ -1,6 +1,7 @@
 #define LOG_LEVEL INFO_LEVEL
 #include "RemoteAtomDB.h"
 
+#include <algorithm>
 #include <fstream>
 #include <nlohmann/json.hpp>
 #include <optional>
@@ -9,8 +10,10 @@
 
 #include "InMemoryDB.h"
 #include "InMemoryDBAPITypes.h"
+#include "Link.h"
 #include "Logger.h"
 #include "MorkDB.h"
+#include "Node.h"
 #include "RedisMongoDB.h"
 #include "Utils.h"
 
@@ -113,13 +116,25 @@ void RemoteAtomDB::derive_nested_indexing() {
 bool RemoteAtomDB::allow_nested_indexing() { return nested_indexing_; }
 
 shared_ptr<Atom> RemoteAtomDB::get_atom(const string& handle) {
-    // Phase 1: probe every peer's in-memory cache first (no network). Silent: this is the hot path.
+    // Writable peers first: local_persistence is the source of truth for updated custom
+    // attributes (strength) that share a content-addressed handle.
     for (auto& [uid, peer] : remote_db_) {
+        if (peer->is_readonly()) continue;
+        auto atom = peer->get_atom(handle);
+        if (atom) {
+            LOG_DEBUG("get_atom(" << handle << ") fetched from writable peer [" << uid << "]");
+            return atom;
+        }
+    }
+
+    // Readonly peers: cache probe then escalate to remote backends (base KB hot path).
+    for (auto& [uid, peer] : remote_db_) {
+        if (!peer->is_readonly()) continue;
         auto atom = peer->get_cached_atom(handle);
         if (atom) return atom;
     }
-    // Phase 2: escalate to peers (local_persistence + remote backend) only when no cache has it.
     for (auto& [uid, peer] : remote_db_) {
+        if (!peer->is_readonly()) continue;
         auto atom = peer->get_atom(handle);
         if (atom) {
             LOG_DEBUG("get_atom(" << handle << ") fetched from [" << uid << "]");
@@ -131,35 +146,13 @@ shared_ptr<Atom> RemoteAtomDB::get_atom(const string& handle) {
 }
 
 shared_ptr<Node> RemoteAtomDB::get_node(const string& handle) {
-    for (auto& [uid, peer] : remote_db_) {
-        auto node = peer->get_cached_node(handle);
-        if (node) return node;
-    }
-    for (auto& [uid, peer] : remote_db_) {
-        auto node = peer->get_node(handle);
-        if (node) {
-            LOG_DEBUG("get_node(" << handle << ") fetched from [" << uid << "]");
-            return node;
-        }
-    }
-    LOG_DEBUG("get_node(" << handle << ") not found in any peer");
-    return nullptr;
+    auto atom = get_atom(handle);
+    return dynamic_pointer_cast<Node>(atom);
 }
 
 shared_ptr<Link> RemoteAtomDB::get_link(const string& handle) {
-    for (auto& [uid, peer] : remote_db_) {
-        auto link = peer->get_cached_link(handle);
-        if (link) return link;
-    }
-    for (auto& [uid, peer] : remote_db_) {
-        auto link = peer->get_link(handle);
-        if (link) {
-            LOG_DEBUG("get_link(" << handle << ") fetched from [" << uid << "]");
-            return link;
-        }
-    }
-    LOG_DEBUG("get_link(" << handle << ") not found in any peer");
-    return nullptr;
+    auto atom = get_atom(handle);
+    return dynamic_pointer_cast<Link>(atom);
 }
 
 vector<shared_ptr<Atom>> RemoteAtomDB::get_matching_atoms(bool is_toplevel, Atom& key) {
@@ -326,10 +319,12 @@ set<string> RemoteAtomDB::links_exist(const vector<string>& handles) {
 }
 
 string RemoteAtomDB::add_atom(const atoms::Atom* atom, bool throw_if_exists) {
+    // Writes only land on writable peers (readonly peers gate the call internally).
     string handle;
     for (auto& [uid, peer] : remote_db_) {
         LOG_DEBUG("add_atom(" << atom->handle() << ") to peer [" << uid << "]");
-        handle = peer->add_atom(atom, throw_if_exists);
+        string peer_handle = peer->add_atom(atom, throw_if_exists);
+        if (!peer_handle.empty()) handle = peer_handle;
     }
     return handle;
 }
@@ -338,7 +333,8 @@ string RemoteAtomDB::add_node(const atoms::Node* node, bool throw_if_exists) {
     string handle;
     for (auto& [uid, peer] : remote_db_) {
         LOG_DEBUG("add_node(" << node->handle() << ") to peer [" << uid << "]");
-        handle = peer->add_node(node, throw_if_exists);
+        string peer_handle = peer->add_node(node, throw_if_exists);
+        if (!peer_handle.empty()) handle = peer_handle;
     }
     return handle;
 }
@@ -347,7 +343,8 @@ string RemoteAtomDB::add_link(const atoms::Link* link, bool throw_if_exists) {
     string handle;
     for (auto& [uid, peer] : remote_db_) {
         LOG_DEBUG("add_link(" << link->handle() << ") to peer [" << uid << "]");
-        handle = peer->add_link(link, throw_if_exists);
+        string peer_handle = peer->add_link(link, throw_if_exists);
+        if (!peer_handle.empty()) handle = peer_handle;
     }
     return handle;
 }
@@ -358,7 +355,8 @@ vector<string> RemoteAtomDB::add_atoms(const vector<atoms::Atom*>& atoms,
     vector<string> handles;
     for (auto& [uid, peer] : remote_db_) {
         LOG_DEBUG("add_atoms(" << atoms.size() << ") to peer [" << uid << "]");
-        handles = peer->add_atoms(atoms, throw_if_exists, is_transactional);
+        auto peer_handles = peer->add_atoms(atoms, throw_if_exists, is_transactional);
+        if (!peer_handles.empty()) handles = peer_handles;
     }
     return handles;
 }
@@ -369,7 +367,8 @@ vector<string> RemoteAtomDB::add_nodes(const vector<atoms::Node*>& nodes,
     vector<string> handles;
     for (auto& [uid, peer] : remote_db_) {
         LOG_DEBUG("add_nodes(" << nodes.size() << ") to peer [" << uid << "]");
-        handles = peer->add_nodes(nodes, throw_if_exists, is_transactional);
+        auto peer_handles = peer->add_nodes(nodes, throw_if_exists, is_transactional);
+        if (!peer_handles.empty()) handles = peer_handles;
     }
     return handles;
 }
@@ -380,34 +379,35 @@ vector<string> RemoteAtomDB::add_links(const vector<atoms::Link*>& links,
     vector<string> handles;
     for (auto& [uid, peer] : remote_db_) {
         LOG_DEBUG("add_links(" << links.size() << ") to peer [" << uid << "]");
-        handles = peer->add_links(links, throw_if_exists, is_transactional);
+        auto peer_handles = peer->add_links(links, throw_if_exists, is_transactional);
+        if (!peer_handles.empty()) handles = peer_handles;
     }
     return handles;
 }
 
 bool RemoteAtomDB::delete_atom(const string& handle, bool delete_link_targets) {
-    bool ok = true;
+    bool ok = false;
     for (auto& [uid, peer] : remote_db_) {
         LOG_DEBUG("delete_atom(" << handle << ") from peer [" << uid << "]");
-        ok = peer->delete_atom(handle, delete_link_targets) && ok;
+        ok = peer->delete_atom(handle, delete_link_targets) || ok;
     }
     return ok;
 }
 
 bool RemoteAtomDB::delete_node(const string& handle, bool delete_link_targets) {
-    bool ok = true;
+    bool ok = false;
     for (auto& [uid, peer] : remote_db_) {
         LOG_DEBUG("delete_node(" << handle << ") from peer [" << uid << "]");
-        ok = peer->delete_node(handle, delete_link_targets) && ok;
+        ok = peer->delete_node(handle, delete_link_targets) || ok;
     }
     return ok;
 }
 
 bool RemoteAtomDB::delete_link(const string& handle, bool delete_link_targets) {
-    bool ok = true;
+    bool ok = false;
     for (auto& [uid, peer] : remote_db_) {
         LOG_DEBUG("delete_link(" << handle << ") from peer [" << uid << "]");
-        ok = peer->delete_link(handle, delete_link_targets) && ok;
+        ok = peer->delete_link(handle, delete_link_targets) || ok;
     }
     return ok;
 }
@@ -416,7 +416,7 @@ uint RemoteAtomDB::delete_atoms(const vector<string>& handles, bool delete_link_
     uint count = 0;
     for (auto& [uid, peer] : remote_db_) {
         LOG_DEBUG("delete_atoms(" << handles.size() << ") from peer [" << uid << "]");
-        count = peer->delete_atoms(handles, delete_link_targets);
+        count = max(count, peer->delete_atoms(handles, delete_link_targets));
     }
     return count;
 }
@@ -425,7 +425,7 @@ uint RemoteAtomDB::delete_nodes(const vector<string>& handles, bool delete_link_
     uint count = 0;
     for (auto& [uid, peer] : remote_db_) {
         LOG_DEBUG("delete_nodes(" << handles.size() << ") from peer [" << uid << "]");
-        count = peer->delete_nodes(handles, delete_link_targets);
+        count = max(count, peer->delete_nodes(handles, delete_link_targets));
     }
     return count;
 }
@@ -434,7 +434,7 @@ uint RemoteAtomDB::delete_links(const vector<string>& handles, bool delete_link_
     uint count = 0;
     for (auto& [uid, peer] : remote_db_) {
         LOG_DEBUG("delete_links(" << handles.size() << ") from peer [" << uid << "]");
-        count = peer->delete_links(handles, delete_link_targets);
+        count = max(count, peer->delete_links(handles, delete_link_targets));
     }
     return count;
 }
@@ -473,4 +473,11 @@ size_t RemoteAtomDB::atom_count() const {
 RemoteAtomDBPeer* RemoteAtomDB::get_peer(const string& uid) {
     auto it = remote_db_.find(uid);
     return (it != remote_db_.end()) ? it->second.get() : nullptr;
+}
+
+void RemoteAtomDB::release_caches(const LinkSchema& link_schema, bool persist, bool force) {
+    for (auto& [uid, peer] : remote_db_) {
+        LOG_DEBUG("release_caches(" << link_schema.handle() << ") from peer [" << uid << "]");
+        peer->release(link_schema, persist, force);
+    }
 }

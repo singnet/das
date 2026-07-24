@@ -2,6 +2,7 @@
 
 #include <map>
 #include <memory>
+#include <mutex>
 #include <string>
 
 #include "AtomDB.h"
@@ -17,14 +18,19 @@ using namespace atoms;
 namespace atomdb {
 
 /**
- * RemoteAtomDBPeer represents a cached connection to a remote AtomDB.
- * It combines an in-memory cache, a read-only remote AtomDB, and local persistence
- * for newly added atoms.
+ * RemoteAtomDBPeer represents a connection to a remote AtomDB with optional layers.
+ * It may combine an in-memory cache, a remote AtomDB backend, and optional local persistence
+ * for newly added atoms. Peers without local_persistence are readonly for mutations; get_atom
+ * prefers local_persistence over cache so updated custom attributes (e.g. strength) are visible.
+ *
+ * Thread-safety: the cache (InMemoryDB) is internally thread-safe, so cache reads/writes need
+ * no locking here. peer_mutex_ only guards the peer's own bookkeeping: the cache_ pointer swap
+ * (release_cache), fetched_link_templates_ and staged_handles_.
  */
 class RemoteAtomDBPeer : public AtomDB, public processor::ThreadMethod {
    public:
     RemoteAtomDBPeer(shared_ptr<AtomDB> remote_atomdb,
-                     shared_ptr<AtomDB> local_persistence,
+                     shared_ptr<AtomDB> local_persistence = nullptr,
                      const string& uid = "");
     ~RemoteAtomDBPeer();
 
@@ -86,7 +92,8 @@ class RemoteAtomDBPeer : public AtomDB, public processor::ThreadMethod {
 
     // Cache policy API
     void fetch(const LinkSchema& link_schema);
-    void release(const LinkSchema& link_schema);
+    void release(const LinkSchema& link_schema, bool persist = true, bool force = false);
+    void release_cache(bool persist_to_local, bool persist_entire_cache);
     double available_ram();
     void auto_cleanup();
     void start_cleanup_thread();
@@ -96,25 +103,33 @@ class RemoteAtomDBPeer : public AtomDB, public processor::ThreadMethod {
     bool thread_one_step() override;
 
     const string& get_uid() const { return uid_; }
-
     bool is_readonly() const { return local_persistence_ == nullptr; }
 
    private:
+    // Snapshot of cache_. Safe to use outside peer_mutex_ because InMemoryDB is internally
+    // thread-safe; release_cache() swaps the pointer under the mutex, and old snapshots stay
+    // alive (shared_ptr) until their holders finish.
+    shared_ptr<InMemoryDB> cache() const;
+
     void feed_cache_from_handle_set(shared_ptr<atomdb_api_types::HandleSet> handle_set);
     void merge_handle_set(shared_ptr<atomdb_api_types::HandleSet> source,
                           shared_ptr<atomdb_api_types::HandleSetInMemory> dest,
                           set<string>& seen,
                           bool copy_metadata = false);
-    bool schema_already_fetched(const LinkSchema& link_schema);
+    void persist_atoms_to_local(const vector<shared_ptr<atoms::Atom>>& atoms);
 
     string uid_;
-    InMemoryDB cache_;
+    shared_ptr<InMemoryDB> cache_;
     shared_ptr<AtomDB> atomdb_;
     shared_ptr<AtomDB> local_persistence_;
-    HandleTrie fetched_link_templates_;
-    EmptyTrieValue* empty_trie_value_;
-
+    unique_ptr<HandleTrie> fetched_link_templates_;
+    set<string> staged_handles_;
     unique_ptr<processor::DedicatedThread> cleanup_thread_;
+
+    // Guards only the peer's bookkeeping: cache_ pointer swap, fetched_link_templates_ and
+    // staged_handles_. Atom data itself is protected inside InMemoryDB. Never held across
+    // atomdb_ / local_persistence_ I/O.
+    mutable mutex peer_mutex_;
 
     static constexpr double CRITICAL_RAM_THRESHOLD = 0.1;  // 10% - cleanup when below this
 };

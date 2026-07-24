@@ -906,10 +906,12 @@ vector<string> RedisMongoDB::add_links(const vector<atoms::Link*>& links,
     }
 
     map<string, vector<string>> composite_type_entries_map;
-    if (this->composite_type_enabled_ && is_transactional) {
-        this->build_composite_type_entries_map(links, composite_type_entries_map);
-    } else if (!is_transactional) {
-        this->check_existing_targets(links);
+    if (this->composite_type_enabled_) {
+        if (is_transactional) {
+            this->build_composite_type_entries_map(links, composite_type_entries_map);
+        } else {
+            this->check_existing_targets(links);
+        }
     }
 
     vector<string> handles;
