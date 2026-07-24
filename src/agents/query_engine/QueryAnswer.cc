@@ -144,7 +144,7 @@ json QueryAnswer::to_json(bool metta_flag) {
     json answer = json::object();
 
     json handles_json = json::array();
-    json metta_handles_json = json::array();
+    json metta_expressions_json = json::array();
     for (const vector<string>& group : this->handles) {
         json group_json = json::array();
         json metta_group_json = json::array();
@@ -152,14 +152,13 @@ json QueryAnswer::to_json(bool metta_flag) {
             group_json.push_back(handle);
             if (metta_flag) {
                 auto it = this->metta_expression.find(handle);
-                metta_group_json.push_back(
-                    (it != this->metta_expression.end() && !it->second.empty()) ? it->second : handle);
+                if (it != this->metta_expression.end() && !it->second.empty()) {
+                    metta_group_json.push_back(it->second);
+                }
             }
         }
         handles_json.push_back(group_json);
-        if (metta_flag) {
-            metta_handles_json.push_back(metta_group_json);
-        }
+        metta_expressions_json.push_back(metta_group_json);
     }
 
     json assignment_json = json::object();
@@ -168,23 +167,16 @@ json QueryAnswer::to_json(bool metta_flag) {
         assignment_json[pair.first] = pair.second;
         if (metta_flag) {
             auto it = this->metta_expression.find(pair.second);
-            assignment_metta_json[pair.first] =
-                (it != this->metta_expression.end() && !it->second.empty()) ? it->second : pair.second;
+            if (it != this->metta_expression.end() && !it->second.empty()) {
+                assignment_metta_json[pair.first] = it->second;
+            }
         }
     }
 
     answer["handles"] = handles_json;
     answer["assignment"] = assignment_json;
-    answer["handle_to_metta"] = this->metta_expression;
-
-    if (metta_flag) {
-        answer["handles_metta"] = metta_handles_json;
-        answer["assignment_metta"] = assignment_metta_json;
-    } else {
-        answer["handles_metta"] = json::array();
-        answer["assignment_metta"] = json::object();
-    }
-
+    answer["metta_expressions"] = metta_expressions_json;
+    answer["assignment_metta"] = assignment_metta_json;
     answer["importance"] = this->importance;
     answer["strength"] = this->strength;
 
@@ -207,9 +199,6 @@ void QueryAnswer::from_json(const json& json_data) {
     }
     if (!json_data.contains("assignment") || !json_data["assignment"].is_object()) {
         RAISE_ERROR("Invalid QueryAnswer JSON: missing or invalid assignment");
-    }
-    if (!json_data.contains("handle_to_metta") || !json_data["handle_to_metta"].is_object()) {
-        RAISE_ERROR("Invalid QueryAnswer JSON: missing or invalid handle_to_metta");
     }
 
     const double strength = json_data["strength"].get<double>();
@@ -259,21 +248,11 @@ void QueryAnswer::from_json(const json& json_data) {
         }
     }
 
-    const json& metta_json = json_data["handle_to_metta"];
-    map<string, string> metta_expression;
-    for (auto it = metta_json.begin(); it != metta_json.end(); ++it) {
-        if (!it.value().is_string()) {
-            RAISE_ERROR("Invalid QueryAnswer JSON: handle_to_metta value for '" + it.key() +
-                        "' must be a string");
-        }
-        metta_expression[it.key()] = it.value().get<string>();
-    }
-
     this->strength = strength;
     this->importance = importance;
     this->handles = std::move(handles);
     this->assignment = assignment;
-    this->metta_expression = std::move(metta_expression);
+    this->metta_expression.clear();
     this->token_representation.clear();
 }
 

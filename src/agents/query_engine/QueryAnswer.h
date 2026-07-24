@@ -452,18 +452,17 @@ class QueryAnswer {
     /**
      * Returns a json representation of this QueryAnswer.
      *
-     * Always includes the full internal state so from_json() can rebuild the
-     * same QueryAnswer: handles, assignment, handle_to_metta (handle -> MeTTa
-     * map), importance and strength. When metta_flag is true, also fills
-     * handles_metta and assignment_metta with MeTTa values substituted where
-     * available.
+     * Always includes handles, assignment, metta_expressions, assignment_metta,
+     * importance and strength. When metta_flag is true, metta_expressions and
+     * assignment_metta are filled with MeTTa values where available; otherwise
+     * they are present but empty.
      */
     json to_json(bool metta_flag = false);
 
     /**
      * Rebuilds this QueryAnswer from a json representation produced by to_json().
-     * Resets the current object before loading. Uses handles, assignment,
-     * handle_to_metta, importance and strength.
+     * Loads handles, assignment, importance and strength. Does not restore the
+     * internal metta_expression map. Clears metta_expression on success.
      *
      * @param json_data A json object representing a QueryAnswer.
      */
