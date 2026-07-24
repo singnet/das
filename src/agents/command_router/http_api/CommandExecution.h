@@ -75,8 +75,8 @@ class CommandExecution {
     /** @brief True when terminal and finished_at_ms is older than retention_ms. */
     bool is_retention_expired(unsigned long now_ms, unsigned long retention_ms) const;
 
-    /** @brief Append a chunk event and update received_count. */
-    void publish_chunk(int seq, const vector<string>& data);
+    /** @brief Append a chunk event and update received_count. @p data must be a JSON array. */
+    void publish_chunk(int seq, const json& data);
 
     /** @brief PENDING -> RUNNING; emits a lifecycle event. */
     void mark_running();
