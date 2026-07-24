@@ -466,8 +466,8 @@ TEST(QueryAnswer, json_rebuild) {
     json dumped = input.to_json(false);
     EXPECT_EQ(dumped["handles"][0][0], h1);
     EXPECT_EQ(dumped["assignment"]["v1"], h2);
-    EXPECT_EQ(dumped["metta_expression"][h1], input.metta_expression[h1]);
-    EXPECT_TRUE(dumped["metta_expressions"].empty());
+    EXPECT_EQ(dumped["handle_to_metta"][h1], input.metta_expression[h1]);
+    EXPECT_TRUE(dumped["handles_metta"].empty());
     EXPECT_TRUE(dumped["assignment_metta"].empty());
 
     QueryAnswer output(0.0);
@@ -480,8 +480,8 @@ TEST(QueryAnswer, json_rebuild) {
     json dumped_metta = input.to_json(true);
     EXPECT_EQ(dumped_metta["handles"][0][0], h1);
     EXPECT_EQ(dumped_metta["assignment"]["v1"], h2);
-    EXPECT_EQ(dumped_metta["metta_expression"][h1], input.metta_expression[h1]);
-    EXPECT_EQ(dumped_metta["metta_expressions"][0][0], input.metta_expression[h1]);
+    EXPECT_EQ(dumped_metta["handle_to_metta"][h1], input.metta_expression[h1]);
+    EXPECT_EQ(dumped_metta["handles_metta"][0][0], input.metta_expression[h1]);
     EXPECT_EQ(dumped_metta["assignment_metta"]["v1"], input.metta_expression[h2]);
 
     QueryAnswer output_from_metta_flag(0.0);
@@ -511,28 +511,28 @@ TEST(QueryAnswer, from_json_edge_cases) {
     json missing_handles = {{"strength", 0.0},
                             {"importance", 0.0},
                             {"assignment", json::object()},
-                            {"metta_expression", json::object()}};
+                            {"handle_to_metta", json::object()}};
     EXPECT_THROW(QueryAnswer().from_json(missing_handles), runtime_error);
 
     json bad_handle_type = {{"strength", 0.0},
                             {"importance", 0.0},
                             {"handles", json::array({json::array({1})})},
                             {"assignment", json::object()},
-                            {"metta_expression", json::object()}};
+                            {"handle_to_metta", json::object()}};
     EXPECT_THROW(QueryAnswer().from_json(bad_handle_type), runtime_error);
 
     json bad_assignment_value = {{"strength", 0.0},
                                  {"importance", 0.0},
                                  {"handles", json::array({json::array()})},
                                  {"assignment", {{"v1", 123}}},
-                                 {"metta_expression", json::object()}};
+                                 {"handle_to_metta", json::object()}};
     EXPECT_THROW(QueryAnswer().from_json(bad_assignment_value), runtime_error);
 
     json bad_metta_value = {{"strength", 0.0},
                             {"importance", 0.0},
                             {"handles", json::array({json::array()})},
                             {"assignment", json::object()},
-                            {"metta_expression", {{"h1", true}}}};
+                            {"handle_to_metta", {{"h1", true}}}};
     EXPECT_THROW(QueryAnswer().from_json(bad_metta_value), runtime_error);
 }
 

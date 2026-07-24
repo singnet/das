@@ -175,13 +175,13 @@ json QueryAnswer::to_json(bool metta_flag) {
 
     answer["handles"] = handles_json;
     answer["assignment"] = assignment_json;
-    answer["metta_expression"] = this->metta_expression;
+    answer["handle_to_metta"] = this->metta_expression;
 
     if (metta_flag) {
-        answer["metta_expressions"] = metta_handles_json;
+        answer["handles_metta"] = metta_handles_json;
         answer["assignment_metta"] = assignment_metta_json;
     } else {
-        answer["metta_expressions"] = json::array();
+        answer["handles_metta"] = json::array();
         answer["assignment_metta"] = json::object();
     }
 
@@ -262,13 +262,13 @@ void QueryAnswer::from_json(const json& json_data) {
         }
     }
 
-    if (!json_data.contains("metta_expression") || !json_data["metta_expression"].is_object()) {
-        RAISE_ERROR("Invalid QueryAnswer JSON: missing or invalid metta_expression");
+    if (!json_data.contains("handle_to_metta") || !json_data["handle_to_metta"].is_object()) {
+        RAISE_ERROR("Invalid QueryAnswer JSON: missing or invalid handle_to_metta");
     }
-    const json& metta_json = json_data["metta_expression"];
+    const json& metta_json = json_data["handle_to_metta"];
     for (auto it = metta_json.begin(); it != metta_json.end(); ++it) {
         if (!it.value().is_string()) {
-            RAISE_ERROR("Invalid QueryAnswer JSON: metta_expression value for '" + it.key() +
+            RAISE_ERROR("Invalid QueryAnswer JSON: handle_to_metta value for '" + it.key() +
                         "' must be a string");
         }
         this->metta_expression[it.key()] = it.value().get<string>();
