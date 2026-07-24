@@ -536,6 +536,27 @@ TEST(QueryAnswer, from_json_edge_cases) {
     EXPECT_THROW(QueryAnswer().from_json(bad_metta_value), runtime_error);
 }
 
+TEST(QueryAnswer, from_json_preserves_state_on_error) {
+    QueryAnswer answer(0.5);
+    answer.strength = 0.25;
+    answer.add_handle("h1");
+    answer.assignment.assign("v1", "h2");
+    answer.metta_expression["h1"] = "(Concept \"x\")";
+
+    json bad = {{"strength", 0.0},
+                {"importance", 0.0},
+                {"handles", json::array({json::array({1})})},
+                {"assignment", json::object()},
+                {"handle_to_metta", json::object()}};
+    EXPECT_THROW(answer.from_json(bad), runtime_error);
+
+    EXPECT_EQ(answer.strength, 0.25);
+    EXPECT_EQ(answer.importance, 0.5);
+    EXPECT_EQ(answer.get_handles_vector()[0], "h1");
+    EXPECT_EQ(answer.assignment.get("v1"), "h2");
+    EXPECT_EQ(answer.metta_expression["h1"], "(Concept \"x\")");
+}
+
 TEST(QueryAnswer, get_query_answer_element) {
     QueryAnswer answer;
     answer.get_handles_vector().push_back("h1");
