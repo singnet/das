@@ -173,7 +173,7 @@ void CommandRouterHttpAPI::setup_routes() {
                     string router_error;
                     const PollStreamResult poll_result = this->execute_router_command(
                         "set",
-                        *args,
+                        args.value(),
                         nullptr,
                         nullptr,
                         [&](const string& message) { router_error = message; },
