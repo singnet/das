@@ -3,7 +3,6 @@
 #include <iostream>
 #include <stack>
 
-#include "Utils.h"
 #include "expression_hasher.h"
 
 using namespace commons;
@@ -178,48 +177,8 @@ HandleTrie::TrieValue* HandleTrie::insert(const string& key, TrieValue* value) {
     }
 }
 
-HandleTrie::TrieValue* HandleTrie::lookup(const string& key) {
-    TrieNode* node = lookup_node(key);
-    return node != NULL ? node->value : NULL;
-}
-
-HandleTrie::TrieNode* HandleTrie::lookup_node(const string& key) {
-    if (key.size() != key_size) {
-        RAISE_ERROR("Invalid key size: " + to_string(key.size()) + " != " + to_string(key_size));
-    }
-
-    TrieNode* tree_cursor = root;
-    unsigned char key_cursor = 0;
-    tree_cursor->trie_node_mutex.lock();
-    while (tree_cursor != NULL) {
-        if (tree_cursor->suffix_start > 0) {
-            bool match = true;
-            unsigned int n = key.size();
-            for (unsigned int i = key_cursor; i < n; i++) {
-                if (key[i] != tree_cursor->suffix[i]) {
-                    match = false;
-                    break;
-                }
-            }
-            TrieNode* node = match ? tree_cursor : NULL;
-            tree_cursor->trie_node_mutex.unlock();
-            return node;
-        } else {
-            unsigned char c = TLB[(unsigned char) key[key_cursor]];
-            TrieNode* child = tree_cursor->children[c];
-            tree_cursor->trie_node_mutex.unlock();
-            tree_cursor = child;
-            key_cursor++;
-            if (tree_cursor != NULL) {
-                tree_cursor->trie_node_mutex.lock();
-            }
-        }
-    }
-    return NULL;
-}
-
 bool HandleTrie::remove(const string& key, bool delete_value) {
-    TrieNode* node = lookup_node(key);
+    TrieNode* node = fetch<TrieNode>(key);
     if (node == NULL) {
         return false;
     }
@@ -234,6 +193,15 @@ bool HandleTrie::remove(const string& key, bool delete_value) {
     this->size--;
     node->trie_node_mutex.unlock();
     return true;
+}
+
+void* HandleTrie::lookup_stored_object(const string& key, bool clone) {
+    TrieValue* trie_value = fetch<TrieValue>(key);
+    if (trie_value == NULL) {
+        return NULL;
+    } else {
+        return trie_value->get_stored_object(clone);
+    }
 }
 
 void HandleTrie::traverse(bool keep_root_locked,
@@ -275,6 +243,6 @@ void HandleTrie::traverse(bool keep_root_locked,
 }
 
 bool HandleTrie::exists(const string& key) {
-    TrieNode* node = lookup_node(key);
+    TrieNode* node = fetch<TrieNode>(key);
     return node != NULL ? true : false;
 }
