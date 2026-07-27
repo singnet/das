@@ -180,7 +180,7 @@ void CommandRouterHttpAPI::setup_routes() {
                         nullptr);
                     if (!poll_result.ok) {
                         LOG_ERROR("CommandRouter HTTP API setting parameter failed for command="
-                                  << command_text << " key=" << key << " args=" << *args
+                                  << command_text << " key=" << key << " args=" << args.value()
                                   << " error=" << router_error);
                         this->set_json_response(response, 500, {{"error", router_error}});
                         return;
@@ -633,7 +633,8 @@ optional<string> CommandRouterHttpAPI::build_set_param_arg(const string& key,
         }
 
         if (key == "attention_focus_strictness") {
-            const double strictness = value.is_number() ? value.get<double>() : stod(*formatted_value);
+            const double strictness =
+                value.is_number() ? value.get<double>() : stod(formatted_value.value());
             if (strictness < 0.0 || strictness > 1.0) {
                 return fail("Parameter '" + key + "' expects a value in range [0.0, 1.0]");
             }
@@ -651,5 +652,5 @@ optional<string> CommandRouterHttpAPI::build_set_param_arg(const string& key,
         return fail("Parameter '" + key + "' has unsupported type");
     }
 
-    return "param " + key + " " + *formatted_value;
+    return "param " + key + " " + formatted_value.value();
 }
