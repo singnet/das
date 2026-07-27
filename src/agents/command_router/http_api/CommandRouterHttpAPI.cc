@@ -7,6 +7,7 @@
 #include "BusCommandRouterProcessor.h"
 #include "BusCommandRouterProxy.h"
 #include "BusCommandRouterProxyStreamPoller.h"
+#include "SystemParametersSingleton.h"
 
 #define LOG_LEVEL INFO_LEVEL
 #include "Logger.h"
@@ -148,6 +149,44 @@ void CommandRouterHttpAPI::setup_routes() {
                     400,
                     {{"error", "Invalid command_type. Allowed values: query, evolution, get, set"}});
                 return;
+            }
+
+            if (body.contains("parameters")) {
+                if (!body["parameters"].is_object()) {
+                    this->set_json_response(
+                        response, 400, {{"error", "Invalid parameters: expected object"}});
+                    return;
+                }
+
+                LOG_INFO("CommandRouter HTTP API setting parameters for command=" << command_text);
+
+                for (const auto& [key, value] : body["parameters"].items()) {
+                    string validation_error;
+
+                    const optional<string> args =
+                        this->build_set_param_arg(key, value, validation_error);
+                    if (!args.has_value()) {
+                        this->set_json_response(response, 400, {{"error", validation_error}});
+                        return;
+                    }
+
+                    string router_error;
+                    const PollStreamResult poll_result = this->execute_router_command(
+                        "set",
+                        *args,
+                        nullptr,
+                        nullptr,
+                        [&](const string& message) { router_error = message; },
+                        nullptr);
+                    if (!poll_result.ok) {
+                        LOG_ERROR("CommandRouter HTTP API setting parameter failed for command="
+                                  << command_text << " key=" << key << " args=" << *args
+                                  << " error=" << router_error);
+                        this->set_json_response(response, 500, {{"error", router_error}});
+                        return;
+                    }
+                }
+                LOG_INFO("CommandRouter HTTP API parameters set for command=" << command_text);
             }
 
             if (this->is_sync_command_type(command_type)) {
@@ -494,4 +533,123 @@ void CommandRouterHttpAPI::set_json_response(httplib::Response& response, int st
     response.status = status;
     string content = body.dump();
     response.set_content(content, "application/json");
+}
+
+optional<string> CommandRouterHttpAPI::build_set_param_arg(const string& key,
+                                                           const json& value,
+                                                           string& error_message) const {
+    const Properties& known_params =
+        SystemParametersSingleton::get_instance()->get_command_router_params();
+
+    const auto param_it = known_params.find(key);
+    if (param_it == known_params.end()) {
+        error_message = "Unknown parameter: '" + key + "'";
+        return nullopt;
+    }
+
+    const auto fail = [&](string message) -> optional<string> {
+        error_message = std::move(message);
+        return nullopt;
+    };
+
+    optional<string> formatted_value;
+
+    if (holds_alternative<bool>(param_it->second)) {
+        if (value.is_boolean()) {
+            formatted_value = value.get<bool>() ? "true" : "false";
+        } else if (value.is_string()) {
+            const string& text = value.get<string>();
+            if (text == "true" || text == "false") {
+                formatted_value = text;
+            } else {
+                return fail("Parameter '" + key + "' expects bool (true, false, 1, or 0)");
+            }
+        } else if (value.is_number_integer()) {
+            const long long number = value.get<long long>();
+            if (number == 0) {
+                formatted_value = "false";
+            } else if (number == 1) {
+                formatted_value = "true";
+            } else {
+                return fail("Parameter '" + key + "' expects bool (true, false, 1, or 0)");
+            }
+        } else {
+            return fail("Parameter '" + key + "' expects bool (true, false, 1, or 0)");
+        }
+    } else if (holds_alternative<unsigned int>(param_it->second)) {
+        if (value.is_number_unsigned()) {
+            formatted_value = std::to_string(value.get<unsigned long long>());
+        } else if (value.is_number_integer()) {
+            const long long number = value.get<long long>();
+            if (number < 0) {
+                return fail("Parameter '" + key + "' expects unsigned integer");
+            }
+            formatted_value = std::to_string(number);
+        } else if (value.is_string()) {
+            const string& text = value.get<string>();
+            const bool all_digits =
+                !text.empty() &&
+                all_of(text.begin(), text.end(), [](unsigned char c) { return isdigit(c); });
+            if (!all_digits) {
+                return fail("Parameter '" + key + "' expects unsigned integer");
+            }
+            formatted_value = text;
+        } else {
+            return fail("Parameter '" + key + "' expects unsigned integer");
+        }
+    } else if (holds_alternative<long>(param_it->second)) {
+        if (value.is_number_integer()) {
+            formatted_value = std::to_string(value.get<long long>());
+        } else if (value.is_string()) {
+            try {
+                size_t consumed = 0;
+                const long parsed = stol(value.get<string>(), &consumed);
+                if (consumed != value.get<string>().size()) {
+                    return fail("Parameter '" + key + "' expects integer");
+                }
+                formatted_value = std::to_string(parsed);
+            } catch (const exception&) {
+                return fail("Parameter '" + key + "' expects integer");
+            }
+        } else {
+            return fail("Parameter '" + key + "' expects integer");
+        }
+    } else if (holds_alternative<double>(param_it->second)) {
+        if (value.is_number()) {
+            formatted_value = value.dump();
+        } else if (value.is_string()) {
+            try {
+                size_t consumed = 0;
+                stod(value.get<string>(), &consumed);
+                if (consumed != value.get<string>().size()) {
+                    return fail("Parameter '" + key + "' expects number");
+                }
+                formatted_value = value.get<string>();
+            } catch (const exception&) {
+                return fail("Parameter '" + key + "' expects number");
+            }
+        } else {
+            return fail("Parameter '" + key + "' expects number");
+        }
+
+        if (key == "attention_focus_strictness") {
+            const double strictness = value.is_number() ? value.get<double>() : stod(*formatted_value);
+            if (strictness < 0.0 || strictness > 1.0) {
+                return fail("Parameter '" + key + "' expects a value in range [0.0, 1.0]");
+            }
+        }
+    } else if (holds_alternative<string>(param_it->second)) {
+        if (!value.is_string()) {
+            return fail("Parameter '" + key + "' expects string");
+        }
+        const string& text = value.get<string>();
+        if (text.empty()) {
+            return fail("Parameter '" + key + "' expects non-empty string");
+        }
+        formatted_value = text;
+    } else {
+        return fail("Parameter '" + key + "' has unsupported type");
+    }
+
+    return "param " + key + " " + *formatted_value;
 }

@@ -44,6 +44,14 @@ json make_execution_body(const string& command_type = "query",
     return {{"command_type", command_type}, {"command_text", command_text}};
 }
 
+json make_execution_body_with_parameters(const json& parameters,
+                                         const string& command_type = "query",
+                                         const string& command_text = "(Similarity \"human\" %V)") {
+    return {{"command_type", command_type},
+            {"command_text", command_text},
+            {"parameters", parameters}};
+}
+
 class HangingQueryForwardProxy : public BusCommandProxy {
    public:
     void pack_command_line_args() override {}
@@ -629,6 +637,69 @@ TEST_F(CommandRouterHttpAPITest, set_param_rejects_unknown_key) {
     auto payload = json::parse(res->body);
     EXPECT_TRUE(payload.contains("error"));
     EXPECT_NE(payload["error"].get<string>().find("Unknown parameter"), string::npos);
+}
+
+TEST_F(CommandRouterHttpAPITest, execution_parameters_accepts_valid_scalar_values) {
+    auto create = client().Post(
+        "/command-router/executions",
+        make_execution_body_with_parameters({{"populate_metta_mapping", true},
+                                             {"use_metta_as_query_tokens", "true"},
+                                             {"max_answers", 1},
+                                             {"count_flag", 1}})
+            .dump(),
+        "application/json");
+    ASSERT_TRUE(create);
+    EXPECT_EQ(create->status, 202);
+
+    auto get_res = client().Post(
+        "/command-router/executions", make_execution_body("get", "params").dump(), "application/json");
+    ASSERT_TRUE(get_res);
+    ASSERT_EQ(get_res->status, 200);
+
+    const string params = json::parse(get_res->body)["result"].get<string>();
+    EXPECT_NE(params.find("populate_metta_mapping: true"), string::npos);
+    EXPECT_NE(params.find("use_metta_as_query_tokens: true"), string::npos);
+    EXPECT_NE(params.find("max_answers: 1"), string::npos);
+    EXPECT_NE(params.find("count_flag: true"), string::npos);
+}
+
+TEST_F(CommandRouterHttpAPITest, execution_parameters_rejects_invalid_values) {
+    auto unknown_key = client().Post(
+        "/command-router/executions",
+        make_execution_body_with_parameters({{"unknown_key", true}}).dump(),
+        "application/json");
+    ASSERT_TRUE(unknown_key);
+    EXPECT_EQ(unknown_key->status, 400);
+    EXPECT_NE(json::parse(unknown_key->body)["error"].get<string>().find("Unknown parameter"),
+              string::npos);
+
+    auto wrong_type = client().Post(
+        "/command-router/executions",
+        make_execution_body_with_parameters({{"max_answers", "not_a_number"}}).dump(),
+        "application/json");
+    ASSERT_TRUE(wrong_type);
+    EXPECT_EQ(wrong_type->status, 400);
+    EXPECT_NE(json::parse(wrong_type->body)["error"].get<string>().find("unsigned integer"),
+              string::npos);
+
+    auto out_of_range = client().Post(
+        "/command-router/executions",
+        make_execution_body_with_parameters({{"attention_focus_strictness", 2.0}}).dump(),
+        "application/json");
+    ASSERT_TRUE(out_of_range);
+    EXPECT_EQ(out_of_range->status, 400);
+    EXPECT_NE(json::parse(out_of_range->body)["error"].get<string>().find("[0.0, 1.0]"), string::npos);
+
+    auto not_object = client().Post(
+        "/command-router/executions",
+        json({{"command_type", "query"},
+              {"command_text", "(Similarity \"human\" %V)"},
+              {"parameters", json::array({1, 2, 3})}})
+            .dump(),
+        "application/json");
+    ASSERT_TRUE(not_object);
+    EXPECT_EQ(not_object->status, 400);
+    EXPECT_NE(json::parse(not_object->body)["error"].get<string>().find("expected object"), string::npos);
 }
 
 TEST_F(CommandRouterHttpAPITest, create_execution_rejects_invalid_requests) {

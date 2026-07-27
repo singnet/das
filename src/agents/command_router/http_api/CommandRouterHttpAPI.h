@@ -5,6 +5,7 @@
 #include <functional>
 #include <memory>
 #include <mutex>
+#include <optional>
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
@@ -133,6 +134,14 @@ class CommandRouterHttpAPI : public processor::Processor, public processor::Thre
 
     /** @brief Set response status and JSON body. */
     void set_json_response(httplib::Response& res, int status_code, const json& payload);
+
+    /**
+     * @brief Validate a router parameter value and build `param <key> <value>`.
+     * @return The set-command arg on success; nullopt with error_message on failure.
+     */
+    optional<string> build_set_param_arg(const string& key,
+                                         const json& value,
+                                         string& error_message) const;
 };
 
 }  // namespace command_router
