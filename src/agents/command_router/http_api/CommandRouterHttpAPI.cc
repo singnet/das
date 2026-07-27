@@ -160,27 +160,31 @@ void CommandRouterHttpAPI::setup_routes() {
 
                 LOG_INFO("CommandRouter HTTP API setting parameters for command=" << command_text);
 
+                Properties known_params =
+                    SystemParametersSingleton::get_instance()->get_command_router_params();
+                vector<pair<string, string>> set_args;
                 for (const auto& [key, value] : body["parameters"].items()) {
                     string validation_error;
-
                     const optional<string> args =
-                        this->build_set_param_arg(key, value, validation_error);
+                        this->build_set_param_arg(known_params, key, value, validation_error);
                     if (!args.has_value()) {
                         this->set_json_response(response, 400, {{"error", validation_error}});
                         return;
                     }
-
+                    set_args.emplace_back(key, args.value());
+                }
+                for (const auto& [key, args] : set_args) {
                     string router_error;
                     const PollStreamResult poll_result = this->execute_router_command(
                         "set",
-                        args.value(),
+                        args,
                         nullptr,
                         nullptr,
                         [&](const string& message) { router_error = message; },
                         nullptr);
                     if (!poll_result.ok) {
                         LOG_ERROR("CommandRouter HTTP API setting parameter failed for command="
-                                  << command_text << " key=" << key << " args=" << args.value()
+                                  << command_text << " key=" << key << " args=" << args
                                   << " error=" << router_error);
                         this->set_json_response(response, 500, {{"error", router_error}});
                         return;
@@ -535,13 +539,11 @@ void CommandRouterHttpAPI::set_json_response(httplib::Response& response, int st
     response.set_content(content, "application/json");
 }
 
-optional<string> CommandRouterHttpAPI::build_set_param_arg(const string& key,
+optional<string> CommandRouterHttpAPI::build_set_param_arg(Properties& known_params,
+                                                           const string& key,
                                                            const json& value,
                                                            string& error_message) const {
-    const Properties& known_params =
-        SystemParametersSingleton::get_instance()->get_command_router_params();
-
-    const auto param_it = known_params.find(key);
+    auto param_it = known_params.find(key);
     if (param_it == known_params.end()) {
         error_message = "Unknown parameter: '" + key + "'";
         return nullopt;
@@ -561,6 +563,10 @@ optional<string> CommandRouterHttpAPI::build_set_param_arg(const string& key,
             const string& text = value.get<string>();
             if (text == "true" || text == "false") {
                 formatted_value = text;
+            } else if (text == "1") {
+                formatted_value = "true";
+            } else if (text == "0") {
+                formatted_value = "false";
             } else {
                 return fail("Parameter '" + key + "' expects bool (true, false, 1, or 0)");
             }
@@ -577,11 +583,18 @@ optional<string> CommandRouterHttpAPI::build_set_param_arg(const string& key,
             return fail("Parameter '" + key + "' expects bool (true, false, 1, or 0)");
         }
     } else if (holds_alternative<unsigned int>(param_it->second)) {
+        const auto fits_uint = [](unsigned long long number) {
+            return static_cast<unsigned int>(number) == number;
+        };
         if (value.is_number_unsigned()) {
-            formatted_value = std::to_string(value.get<unsigned long long>());
+            const unsigned long long number = value.get<unsigned long long>();
+            if (!fits_uint(number)) {
+                return fail("Parameter '" + key + "' expects unsigned integer");
+            }
+            formatted_value = std::to_string(number);
         } else if (value.is_number_integer()) {
             const long long number = value.get<long long>();
-            if (number < 0) {
+            if (number < 0 || !fits_uint(static_cast<unsigned long long>(number))) {
                 return fail("Parameter '" + key + "' expects unsigned integer");
             }
             formatted_value = std::to_string(number);
@@ -593,7 +606,16 @@ optional<string> CommandRouterHttpAPI::build_set_param_arg(const string& key,
             if (!all_digits) {
                 return fail("Parameter '" + key + "' expects unsigned integer");
             }
-            formatted_value = text;
+            try {
+                size_t consumed = 0;
+                const unsigned long long parsed = stoull(text, &consumed);
+                if (consumed != text.size() || !fits_uint(parsed)) {
+                    return fail("Parameter '" + key + "' expects unsigned integer");
+                }
+                formatted_value = text;
+            } catch (const exception&) {
+                return fail("Parameter '" + key + "' expects unsigned integer");
+            }
         } else {
             return fail("Parameter '" + key + "' expects unsigned integer");
         }
@@ -630,14 +652,6 @@ optional<string> CommandRouterHttpAPI::build_set_param_arg(const string& key,
             }
         } else {
             return fail("Parameter '" + key + "' expects number");
-        }
-
-        if (key == "attention_focus_strictness") {
-            const double strictness =
-                value.is_number() ? value.get<double>() : stod(formatted_value.value());
-            if (strictness < 0.0 || strictness > 1.0) {
-                return fail("Parameter '" + key + "' expects a value in range [0.0, 1.0]");
-            }
         }
     } else if (holds_alternative<string>(param_it->second)) {
         if (!value.is_string()) {

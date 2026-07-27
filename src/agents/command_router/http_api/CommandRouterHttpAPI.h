@@ -139,7 +139,8 @@ class CommandRouterHttpAPI : public processor::Processor, public processor::Thre
      * @brief Validate a router parameter value and build `param <key> <value>`.
      * @return The set-command arg on success; nullopt with error_message on failure.
      */
-    optional<string> build_set_param_arg(const string& key,
+    optional<string> build_set_param_arg(Properties& known_params,
+                                         const string& key,
                                          const json& value,
                                          string& error_message) const;
 };

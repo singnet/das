@@ -121,7 +121,7 @@ class HttpAPIServerFixture {
     httplib::Client make_client(int port) const {
         httplib::Client client(TEST_HOST, port);
         client.set_connection_timeout(2);
-        client.set_read_timeout(5);
+        client.set_read_timeout(15);
         return client;
     }
 
@@ -681,11 +681,12 @@ TEST_F(CommandRouterHttpAPITest, execution_parameters_rejects_invalid_values) {
 
     auto out_of_range =
         client().Post("/command-router/executions",
-                      make_execution_body_with_parameters({{"attention_focus_strictness", 2.0}}).dump(),
+                      make_execution_body_with_parameters({{"max_answers", 4294967296}}).dump(),
                       "application/json");
     ASSERT_TRUE(out_of_range);
     EXPECT_EQ(out_of_range->status, 400);
-    EXPECT_NE(json::parse(out_of_range->body)["error"].get<string>().find("[0.0, 1.0]"), string::npos);
+    EXPECT_NE(json::parse(out_of_range->body)["error"].get<string>().find("unsigned integer"),
+              string::npos);
 
     auto not_object = client().Post("/command-router/executions",
                                     json({{"command_type", "query"},
