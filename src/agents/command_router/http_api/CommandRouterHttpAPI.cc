@@ -583,41 +583,36 @@ optional<string> CommandRouterHttpAPI::build_set_param_arg(Properties& known_par
             return fail("Parameter '" + key + "' expects bool (true, false, 1, or 0)");
         }
     } else if (holds_alternative<unsigned int>(param_it->second)) {
+        const string uint_error = "Parameter '" + key + "' expects unsigned integer";
         const auto fits_uint = [](unsigned long long number) {
             return static_cast<unsigned int>(number) == number;
         };
         if (value.is_number_unsigned()) {
             const unsigned long long number = value.get<unsigned long long>();
             if (!fits_uint(number)) {
-                return fail("Parameter '" + key + "' expects unsigned integer");
+                return fail(uint_error);
             }
             formatted_value = std::to_string(number);
         } else if (value.is_number_integer()) {
             const long long number = value.get<long long>();
             if (number < 0 || !fits_uint(static_cast<unsigned long long>(number))) {
-                return fail("Parameter '" + key + "' expects unsigned integer");
+                return fail(uint_error);
             }
             formatted_value = std::to_string(number);
         } else if (value.is_string()) {
             const string& text = value.get<string>();
-            const bool all_digits =
-                !text.empty() &&
-                all_of(text.begin(), text.end(), [](unsigned char c) { return isdigit(c); });
-            if (!all_digits) {
-                return fail("Parameter '" + key + "' expects unsigned integer");
-            }
             try {
                 size_t consumed = 0;
                 const unsigned long long parsed = stoull(text, &consumed);
                 if (consumed != text.size() || !fits_uint(parsed)) {
-                    return fail("Parameter '" + key + "' expects unsigned integer");
+                    return fail(uint_error);
                 }
                 formatted_value = text;
             } catch (const exception&) {
-                return fail("Parameter '" + key + "' expects unsigned integer");
+                return fail(uint_error);
             }
         } else {
-            return fail("Parameter '" + key + "' expects unsigned integer");
+            return fail(uint_error);
         }
     } else if (holds_alternative<long>(param_it->second)) {
         if (value.is_number_integer()) {
