@@ -9,23 +9,28 @@ using namespace agents;
 
 namespace {
 
-void emit_chunk(const function<void(const vector<string>& chunk)>& on_chunk,
-                vector<string>& chunk_data) {
-    if (!chunk_data.empty() && on_chunk) {
-        on_chunk(chunk_data);
-        chunk_data.clear();
+void emit_chunk(const function<void(const json& chunk)>& on_chunk, json& chunk_data) {
+    if (chunk_data.empty()) {
+        return;
     }
+    if (on_chunk) {
+        on_chunk(chunk_data);
+    }
+    chunk_data = json::array();
 }
 
 void append_answer_chunk(const shared_ptr<BusCommandRouterProxy>& router_proxy,
                          bool populate_metta_mapping,
                          size_t items_per_chunk,
-                         const function<void(const vector<string>& chunk)>& on_chunk,
-                         vector<string>& chunk_data) {
+                         const function<void(const json& chunk)>& on_chunk,
+                         json& chunk_data) {
     shared_ptr<QueryAnswer> answer;
     while ((answer = router_proxy->pop()) != nullptr) {
-        bool use_metta_output = !answer->metta_expression.empty() || populate_metta_mapping;
-        chunk_data.push_back(answer->to_string(use_metta_output));
+        if (populate_metta_mapping && answer->metta_expression.empty()) {
+            router_proxy->populate_metta_mapping(answer.get());
+        }
+        bool use_metta_output = populate_metta_mapping || !answer->metta_expression.empty();
+        chunk_data.push_back(answer->to_json(use_metta_output));
         if (chunk_data.size() >= items_per_chunk) {
             emit_chunk(on_chunk, chunk_data);
         }
@@ -44,7 +49,7 @@ PollStreamResult BusCommandRouterProxyStreamPoller::poll_stream(
     const string& command_type,
     size_t items_per_chunk,
     const function<bool()>& should_abort,
-    const function<void(const vector<string>& chunk)>& on_chunk,
+    const function<void(const json& chunk)>& on_chunk,
     const function<void(const string& error)>& on_error,
     const function<void()>& on_aborted) {
     if (items_per_chunk == 0) {
@@ -94,7 +99,7 @@ PollStreamResult BusCommandRouterProxyStreamPoller::poll_stream(
             return {};
         }
         if (on_chunk) {
-            on_chunk({router_proxy->params_response});
+            on_chunk(json::array({json(router_proxy->params_response)}));
         }
         return poll_succeeded();
     }
@@ -119,7 +124,7 @@ PollStreamResult BusCommandRouterProxyStreamPoller::poll_stream(
             return {};
         }
         if (on_chunk) {
-            on_chunk({router_proxy->set_param_ack});
+            on_chunk(json::array({json(router_proxy->set_param_ack)}));
         }
         return poll_succeeded();
     }
@@ -147,9 +152,9 @@ PollStreamResult BusCommandRouterProxyStreamPoller::poll_stream(
         const bool populate_metta_mapping =
             router_proxy->parameters.get_or<bool>(BaseQueryProxy::POPULATE_METTA_MAPPING, false);
 
-        vector<string> chunk_data;
+        json chunk_data = json::array();
         size_t streamed_item_count = 0;
-        auto emit_answer_chunk = [&](const vector<string>& chunk) {
+        auto emit_answer_chunk = [&](const json& chunk) {
             streamed_item_count += chunk.size();
             if (on_chunk) {
                 on_chunk(chunk);

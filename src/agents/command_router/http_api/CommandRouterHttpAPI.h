@@ -113,7 +113,7 @@ class CommandRouterHttpAPI : public processor::Processor, public processor::Thre
     PollStreamResult execute_router_command(const string& command_type,
                                             const string& command_text,
                                             const function<bool()>& should_abort,
-                                            const function<void(const vector<string>& chunk)>& on_chunk,
+                                            const function<void(const json& chunk)>& on_chunk,
                                             const function<void(const string& error)>& on_error,
                                             const function<void()>& on_aborted);
 

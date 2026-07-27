@@ -140,6 +140,120 @@ string QueryAnswer::to_string(bool metta_flag) {
     return answer;
 }
 
+json QueryAnswer::to_json(bool metta_flag) {
+    json answer = json::object();
+
+    json handles_json = json::array();
+    json metta_expressions_json = json::array();
+    for (const vector<string>& group : this->handles) {
+        json group_json = json::array();
+        json metta_group_json = json::array();
+        for (const string& handle : group) {
+            group_json.push_back(handle);
+            if (metta_flag) {
+                auto it = this->metta_expression.find(handle);
+                if (it != this->metta_expression.end() && !it->second.empty()) {
+                    metta_group_json.push_back(it->second);
+                }
+            }
+        }
+        handles_json.push_back(group_json);
+        metta_expressions_json.push_back(metta_group_json);
+    }
+
+    json assignment_json = json::object();
+    json assignment_metta_json = json::object();
+    for (const auto& pair : this->assignment.table) {
+        assignment_json[pair.first] = pair.second;
+        if (metta_flag) {
+            auto it = this->metta_expression.find(pair.second);
+            if (it != this->metta_expression.end() && !it->second.empty()) {
+                assignment_metta_json[pair.first] = it->second;
+            }
+        }
+    }
+
+    answer["handles"] = handles_json;
+    answer["assignment"] = assignment_json;
+    answer["metta_expressions"] = metta_expressions_json;
+    answer["assignment_metta"] = assignment_metta_json;
+    answer["importance"] = this->importance;
+    answer["strength"] = this->strength;
+
+    return answer;
+}
+
+void QueryAnswer::from_json(const json& json_data) {
+    if (!json_data.is_object()) {
+        RAISE_ERROR("Invalid QueryAnswer JSON: expected object");
+    }
+
+    if (!json_data.contains("strength") || !json_data["strength"].is_number()) {
+        RAISE_ERROR("Invalid QueryAnswer JSON: missing or invalid strength");
+    }
+    if (!json_data.contains("importance") || !json_data["importance"].is_number()) {
+        RAISE_ERROR("Invalid QueryAnswer JSON: missing or invalid importance");
+    }
+    if (!json_data.contains("handles") || !json_data["handles"].is_array()) {
+        RAISE_ERROR("Invalid QueryAnswer JSON: missing or invalid handles");
+    }
+    if (!json_data.contains("assignment") || !json_data["assignment"].is_object()) {
+        RAISE_ERROR("Invalid QueryAnswer JSON: missing or invalid assignment");
+    }
+
+    this->strength = json_data["strength"].get<double>();
+    this->importance = json_data["importance"].get<double>();
+
+    const json& handles_json = json_data["handles"];
+    if (handles_json.size() >= MAX_NUMBER_OF_OPERATION_CLAUSES) {
+        RAISE_ERROR("Invalid handles_size: " + std::to_string(handles_json.size()) +
+                    " loading QueryAnswer from JSON");
+    }
+
+    this->handles.clear();
+    if (handles_json.empty()) {
+        this->handles.push_back({});
+    } else {
+        for (size_t i = 0; i < handles_json.size(); i++) {
+            if (!handles_json[i].is_array()) {
+                RAISE_ERROR("Invalid QueryAnswer JSON: handles[" + std::to_string(i) +
+                            "] must be an array");
+            }
+            vector<string> group;
+            group.reserve(handles_json[i].size());
+            for (size_t j = 0; j < handles_json[i].size(); j++) {
+                const json& handle_json = handles_json[i][j];
+                if (!handle_json.is_string()) {
+                    RAISE_ERROR("Invalid QueryAnswer JSON: handle at [" + std::to_string(i) + "][" +
+                                std::to_string(j) + "] must be a string");
+                }
+                group.push_back(handle_json.get<string>());
+            }
+            this->handles.push_back(std::move(group));
+        }
+    }
+
+    const json& assignment_json = json_data["assignment"];
+    if (assignment_json.size() > MAX_NUMBER_OF_VARIABLES_IN_QUERY) {
+        RAISE_ERROR("Invalid number of assignments: " + std::to_string(assignment_json.size()) +
+                    " loading QueryAnswer from JSON");
+    }
+
+    this->assignment.clear();
+    for (auto it = assignment_json.begin(); it != assignment_json.end(); ++it) {
+        if (!it.value().is_string()) {
+            RAISE_ERROR("Invalid QueryAnswer JSON: assignment value for '" + it.key() +
+                        "' must be a string");
+        }
+        if (!this->assignment.assign(it.key(), it.value().get<string>())) {
+            RAISE_ERROR("Invalid QueryAnswer JSON: conflicting assignment for '" + it.key() + "'");
+        }
+    }
+
+    this->metta_expression.clear();
+    this->token_representation.clear();
+}
+
 const string& QueryAnswer::tokenize() {
     // char_count is computed to be slightly larger than actually required by assuming
     // e.g. 3 digits to represent sizes

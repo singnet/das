@@ -154,7 +154,7 @@ class StreamTestProxy : public BusCommandRouterProxy {
     void mark_finished() { this->from_remote_peer(BaseProxy::FINISHED, {}); }
 };
 
-size_t total_items(const vector<vector<string>>& chunks) {
+size_t total_items(const vector<json>& chunks) {
     size_t count = 0;
     for (const auto& chunk : chunks) {
         count += chunk.size();
@@ -162,7 +162,7 @@ size_t total_items(const vector<vector<string>>& chunks) {
     return count;
 }
 
-vector<size_t> chunk_sizes(const vector<vector<string>>& chunks) {
+vector<size_t> chunk_sizes(const vector<json>& chunks) {
     vector<size_t> sizes;
     for (const auto& chunk : chunks) {
         sizes.push_back(chunk.size());
@@ -258,8 +258,8 @@ TEST(CommandExecutionTest, event_buffer_overflow_raises) {
     CommandExecution exec("exec-abc", "query", "(Similarity %V1 %V2)", 2);
 
     exec.mark_running();
-    exec.publish_chunk(1, {"a"});
-    EXPECT_THROW(exec.publish_chunk(2, {"b", "c"}), runtime_error);
+    exec.publish_chunk(1, json::array({json("a")}));
+    EXPECT_THROW(exec.publish_chunk(2, json::array({json("b"), json("c")})), runtime_error);
 }
 
 // -----------------------------------------------------------------------------
@@ -356,8 +356,8 @@ TEST(BusCommandRouterProxyStreamPollerTest, stream_emits_one_item_per_chunk_by_d
     proxy->enqueue_answers(5);
     proxy->mark_finished();
 
-    vector<vector<string>> chunks;
-    auto on_chunk = [&](const vector<string>& chunk) { chunks.push_back(chunk); };
+    vector<json> chunks;
+    auto on_chunk = [&](const json& chunk) { chunks.push_back(chunk); };
 
     const auto poll_result = BusCommandRouterProxyStreamPoller::poll_stream(
         proxy, "query", 1, nullptr, on_chunk, nullptr, nullptr);
@@ -366,7 +366,7 @@ TEST(BusCommandRouterProxyStreamPollerTest, stream_emits_one_item_per_chunk_by_d
     EXPECT_EQ(chunks.size(), 5u);
     EXPECT_EQ(chunk_sizes(chunks), (vector<size_t>{1, 1, 1, 1, 1}));
     EXPECT_EQ(total_items(chunks), 5u);
-    EXPECT_NE(chunks.front().front().find("answer-0"), string::npos);
+    EXPECT_EQ(chunks.front()[0]["handles"][0][0], "answer-0");
 }
 
 TEST(BusCommandRouterProxyStreamPollerTest,
@@ -382,20 +382,19 @@ TEST(BusCommandRouterProxyStreamPollerTest,
     proxy->from_remote_peer(BaseQueryProxy::ANSWER_BUNDLE, bundle);
     proxy->mark_finished();
 
-    vector<vector<string>> chunks;
+    vector<json> chunks;
     const auto poll_result = BusCommandRouterProxyStreamPoller::poll_stream(
         proxy,
         "query",
         1,
         nullptr,
-        [&](const vector<string>& chunk) { chunks.push_back(chunk); },
+        [&](const json& chunk) { chunks.push_back(chunk); },
         nullptr,
         nullptr);
     ASSERT_TRUE(poll_result.ok);
     ASSERT_EQ(chunks.size(), 1u);
-    EXPECT_NE(chunks[0].front().find("7ec8526b8c8f15a6ac55273fedbf694f"), string::npos);
-    EXPECT_NE(chunks[0].front().find("181a19436acef495c8039a610be59603"), string::npos);
-    EXPECT_EQ(chunks[0].front().find("[[]]"), string::npos);
+    EXPECT_EQ(chunks[0][0]["handles"][0][0], "7ec8526b8c8f15a6ac55273fedbf694f");
+    EXPECT_EQ(chunks[0][0]["assignment"]["C"], "181a19436acef495c8039a610be59603");
 }
 
 TEST(BusCommandRouterProxyTest, count_command_sets_total_and_marks_count_received) {
@@ -422,20 +421,20 @@ TEST(BusCommandRouterProxyStreamPollerTest, count_only_emits_total) {
     proxy->from_remote_peer(PatternMatchingQueryProxy::COUNT, {"14"});
     proxy->mark_finished();
 
-    vector<vector<string>> chunks;
+    vector<json> chunks;
     const auto poll_result = BusCommandRouterProxyStreamPoller::poll_stream(
         proxy,
         "query",
         1,
         nullptr,
-        [&](const vector<string>& chunk) { chunks.push_back(chunk); },
+        [&](const json& chunk) { chunks.push_back(chunk); },
         nullptr,
         nullptr);
     ASSERT_TRUE(poll_result.ok);
     EXPECT_TRUE(poll_result.is_count_only);
     EXPECT_EQ(poll_result.count_only_total, 14);
     ASSERT_EQ(chunks.size(), 1u);
-    EXPECT_EQ(chunks[0], vector<string>{"14"});
+    EXPECT_EQ(chunks[0], json::array({json("14")}));
 }
 
 TEST(BusCommandRouterProxyStreamPollerTest, streams_answers_when_count_flag_true_but_answers_arrive) {
@@ -445,13 +444,13 @@ TEST(BusCommandRouterProxyStreamPollerTest, streams_answers_when_count_flag_true
     proxy->enqueue_answers(3);
     proxy->mark_finished();
 
-    vector<vector<string>> chunks;
+    vector<json> chunks;
     const auto poll_result = BusCommandRouterProxyStreamPoller::poll_stream(
         proxy,
         "query",
         1,
         nullptr,
-        [&](const vector<string>& chunk) { chunks.push_back(chunk); },
+        [&](const json& chunk) { chunks.push_back(chunk); },
         nullptr,
         nullptr);
     ASSERT_TRUE(poll_result.ok);
@@ -466,8 +465,8 @@ TEST(BusCommandRouterProxyStreamPollerTest, stream_groups_items_per_chunk) {
     proxy->enqueue_answers(7);
     proxy->mark_finished();
 
-    vector<vector<string>> chunks;
-    auto on_chunk = [&](const vector<string>& chunk) { chunks.push_back(chunk); };
+    vector<json> chunks;
+    auto on_chunk = [&](const json& chunk) { chunks.push_back(chunk); };
 
     const auto poll_result = BusCommandRouterProxyStreamPoller::poll_stream(
         proxy, "query", 3, nullptr, on_chunk, nullptr, nullptr);
@@ -497,36 +496,36 @@ TEST(BusCommandRouterProxyStreamPollerTest, get_and_set_emit_single_chunk) {
     auto get_proxy = make_shared<StreamTestProxy>();
     get_proxy->from_remote_peer(BusCommandRouterProxy::PARAMS_RESPONSE, {"params-body"});
 
-    vector<vector<string>> get_chunks;
+    vector<json> get_chunks;
     const auto get_result = BusCommandRouterProxyStreamPoller::poll_stream(
         get_proxy,
         "get",
         1,
         nullptr,
-        [&](const vector<string>& chunk) { get_chunks.push_back(chunk); },
+        [&](const json& chunk) { get_chunks.push_back(chunk); },
         nullptr,
         nullptr);
     ASSERT_TRUE(get_result.ok);
     EXPECT_FALSE(get_result.is_count_only);
     ASSERT_EQ(get_chunks.size(), 1u);
-    EXPECT_EQ(get_chunks[0], vector<string>{"params-body"});
+    EXPECT_EQ(get_chunks[0], json::array({json("params-body")}));
 
     auto set_proxy = make_shared<StreamTestProxy>();
     set_proxy->from_remote_peer(BusCommandRouterProxy::SET_PARAM_ACK, {"ack-body"});
 
-    vector<vector<string>> set_chunks;
+    vector<json> set_chunks;
     const auto set_result = BusCommandRouterProxyStreamPoller::poll_stream(
         set_proxy,
         "set",
         1,
         nullptr,
-        [&](const vector<string>& chunk) { set_chunks.push_back(chunk); },
+        [&](const json& chunk) { set_chunks.push_back(chunk); },
         nullptr,
         nullptr);
     ASSERT_TRUE(set_result.ok);
     EXPECT_FALSE(set_result.is_count_only);
     ASSERT_EQ(set_chunks.size(), 1u);
-    EXPECT_EQ(set_chunks[0], vector<string>{"ack-body"});
+    EXPECT_EQ(set_chunks[0], json::array({json("ack-body")}));
 }
 
 TEST(BusCommandRouterProxyStreamPollerTest, get_and_set_reject_empty_response) {

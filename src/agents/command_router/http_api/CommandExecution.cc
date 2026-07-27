@@ -141,8 +141,11 @@ void CommandExecution::mark_running() {
     this->publish_event_locked(this->lifecycle_event_locked());
 }
 
-void CommandExecution::publish_chunk(int seq, const vector<string>& data) {
+void CommandExecution::publish_chunk(int seq, const json& data) {
     lock_guard<mutex> lock(this->mtx_);
+    if (!data.is_array()) {
+        RAISE_ERROR("Chunk data must be a JSON array");
+    }
     this->received_count_ += static_cast<int>(data.size());
     this->publish_event_locked({{"execution_id", this->execution_id},
                                 {"type", "chunk"},

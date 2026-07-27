@@ -37,9 +37,9 @@ CommandRouterHttpAPI::CommandRouterHttpAPI(const string& host,
       port(port),
       thread_pool(thread_pool),
       router_processor(router_processor),
-      settings(settings),
       bus_host(bus_host),
-      http_requestor_id(bus_host + ":http-api:" + std::to_string(port)) {
+      http_requestor_id(bus_host + ":http-api:" + std::to_string(port)),
+      settings(settings) {
     if (this->thread_pool == nullptr) {
         RAISE_ERROR("CommandRouterHttpAPI requires a non-null thread pool");
     }
@@ -153,14 +153,16 @@ void CommandRouterHttpAPI::setup_routes() {
             if (this->is_sync_command_type(command_type)) {
                 LOG_INFO("CommandRouter HTTP API sync execution type=" << command_type);
 
-                vector<string> chunks;
+                json results = json::array();
                 string error_message;
                 const PollStreamResult poll_result = this->execute_router_command(
                     command_type,
                     command_text,
                     nullptr,
-                    [&](const vector<string>& chunk) {
-                        chunks.insert(chunks.end(), chunk.begin(), chunk.end());
+                    [&](const json& chunk) {
+                        for (const auto& item : chunk) {
+                            results.push_back(item);
+                        }
                     },
                     [&](const string& message) { error_message = message; },
                     nullptr);
@@ -172,14 +174,14 @@ void CommandRouterHttpAPI::setup_routes() {
                     return;
                 }
 
-                if (chunks.empty()) {
+                if (results.empty()) {
                     this->set_json_response(
                         response, 500, {{"error", "Command finished without a response"}});
                     return;
                 }
 
                 this->set_json_response(
-                    response, 200, {{"command_type", command_type}, {"result", chunks.front()}});
+                    response, 200, {{"command_type", command_type}, {"result", results.front()}});
                 return;
             }
 
@@ -334,7 +336,7 @@ void CommandRouterHttpAPI::run_execution_inner(const shared_ptr<CommandExecution
     int seq = 0;
 
     auto should_abort = [&]() { return exec->is_cancel_requested() || this->shutting_down.load(); };
-    auto on_chunk = [&](const vector<string>& chunk) { exec->publish_chunk(++seq, chunk); };
+    auto on_chunk = [&](const json& chunk) { exec->publish_chunk(++seq, chunk); };
     auto on_error = [&](const string& message) { exec->mark_error(message); };
     auto on_aborted = [&]() {
         exec->mark_aborted();
@@ -367,7 +369,7 @@ PollStreamResult CommandRouterHttpAPI::execute_router_command(
     const string& command_type,
     const string& command_text,
     const function<bool()>& should_abort,
-    const function<void(const vector<string>& chunk)>& on_chunk,
+    const function<void(const json& chunk)>& on_chunk,
     const function<void(const string& error)>& on_error,
     const function<void()>& on_aborted) {
     if (this->router_processor == nullptr) {
