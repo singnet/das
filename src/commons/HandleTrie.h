@@ -86,13 +86,14 @@ class HandleTrie {
      * Lookup for a given handle and return the corresponding object stored in TrieValue.
      *
      * @param key Handle being searched.
-     * @param clone A flag indicating if a clone is supposed to be returned instead of the actual object
-     * being stored.
+     * @param clone A flag indicating if a clone is supposed to be returned instead of the actual
+     * object being stored. It's defaulted to "true". Use clone=false with caution as the actual
+     * raw pointer to the inner stored object inside the TrieValue is returned.
      *
      * @return The object actually being stored inside a HandleTrie::TrieValue object attached to the
      * passed key.
      */
-    inline void* lookup_stored_object(const string& key, bool clone = false) {
+    inline void* lookup_stored_object(const string& key, bool clone=true) {
         return fetch<void>(key, true, clone);
     }
 
@@ -149,20 +150,25 @@ class HandleTrie {
                 }
                 TrieNode* node = match ? tree_cursor : NULL;
                 T* answer = NULL;
+                bool forced_lock_release = false;
                 if (node != NULL) {
                     if constexpr (is_same_v<T, TrieNode>) {
                         answer = node;
                     } else if constexpr (is_same_v<T, TrieValue>) {
+                        forced_lock_release = true;
                         answer = node->value;
                     } else if constexpr (is_same_v<T, void>) {
+                        forced_lock_release = true;
                         if (node->value != NULL) {
                             answer = node->value->get_stored_object(clone_stored_object);
                         }
                     } else {
                         RAISE_ERROR("Invalid fetch() attempt with unexpected type");
                     }
+                } else {
+                    forced_lock_release = true;
                 }
-                if (unlock_node) {
+                if (unlock_node || forced_lock_release) {
                     tree_cursor->trie_node_mutex.unlock();
                 }
                 return answer;

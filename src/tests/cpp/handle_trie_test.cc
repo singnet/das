@@ -94,10 +94,10 @@ TEST(HandleTrieTest, basics) {
     // -- begin -- test lookup_stored_object() just in this first test case
     unsigned int* check_count = (unsigned int*) trie.lookup_stored_object("ABCD");
     EXPECT_TRUE(*check_count == 3);
-    EXPECT_TRUE(check_count == &(((AccumulatorValue*) value)->count));
+    EXPECT_TRUE(check_count == &(((TestValue*) value)->count));
     check_count = (unsigned int*) trie.lookup_stored_object("ABCD", true);
     EXPECT_TRUE(*check_count == 3);
-    EXPECT_TRUE(check_count != &(((AccumulatorValue*) value)->count));
+    EXPECT_TRUE(check_count != &(((TestValue*) value)->count));
     delete[] check_count;
     // -- end --
     value = (TestValue*) trie.lookup("ABCF");
