@@ -21,11 +21,11 @@ class TestValue : public HandleTrie::TrieValue {
     void merge(TrieValue* other) {}
     void* get_stored_object(bool clone) {
         if (clone) {
-            unsigned int *cloned_count = new unsigned int[1];
+            unsigned int* cloned_count = new unsigned int[1];
             cloned_count[0] = this->count;
-            return (void *) cloned_count;
+            return (void*) cloned_count;
         } else {
-            return (void *) &(this->count);
+            return (void*) &(this->count);
         }
     }
 };
@@ -37,11 +37,11 @@ class AccumulatorValue : public HandleTrie::TrieValue {
     void merge(TrieValue* other) { this->count += ((AccumulatorValue*) other)->count; }
     void* get_stored_object(bool clone) {
         if (clone) {
-            unsigned int *cloned_count = new unsigned int[1];
+            unsigned int* cloned_count = new unsigned int[1];
             cloned_count[0] = this->count;
-            return (void *) cloned_count;
+            return (void*) cloned_count;
         } else {
-            return (void *) &(this->count);
+            return (void*) &(this->count);
         }
     }
 };
@@ -92,13 +92,13 @@ TEST(HandleTrieTest, basics) {
     EXPECT_TRUE(value != NULL);
     EXPECT_TRUE(value->count == 3);
     // -- begin -- test lookup_stored_object() just in this first test case
-    unsigned int *check_count = (unsigned int *) trie.lookup_stored_object("ABCD");
+    unsigned int* check_count = (unsigned int*) trie.lookup_stored_object("ABCD");
     EXPECT_TRUE(*check_count == 3);
-    EXPECT_TRUE(check_count == &(((AccumulatorValue *) value)->count));
-    check_count = (unsigned int *) trie.lookup_stored_object("ABCD", true);
+    EXPECT_TRUE(check_count == &(((AccumulatorValue*) value)->count));
+    check_count = (unsigned int*) trie.lookup_stored_object("ABCD", true);
     EXPECT_TRUE(*check_count == 3);
-    EXPECT_TRUE(check_count != &(((AccumulatorValue *) value)->count));
-    delete [] check_count;
+    EXPECT_TRUE(check_count != &(((AccumulatorValue*) value)->count));
+    delete[] check_count;
     // -- end --
     value = (TestValue*) trie.lookup("ABCF");
     EXPECT_TRUE(value == NULL);
@@ -507,11 +507,11 @@ void visitor_stored_object(HandleTrie* trie, unsigned int n_visits, string* hand
     for (unsigned int i = 0; i < n_visits; i++) {
         string s = handles[rand() % HANDLE_SPACE_SIZE];
         LOG_DEBUG("Trying to visit: " + s);
-        unsigned int *check_count = (unsigned int *) trie->lookup_stored_object(s, true);
+        unsigned int* check_count = (unsigned int*) trie->lookup_stored_object(s, true);
         if (check_count != NULL) {
             LOG_DEBUG("Visiting: " + s);
             EXPECT_TRUE(*check_count < 1000000);
-            delete [] check_count;
+            delete[] check_count;
         }
     }
 }
