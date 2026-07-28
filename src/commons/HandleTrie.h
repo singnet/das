@@ -135,19 +135,18 @@ class HandleTrie {
                     }
                 }
                 TrieNode* node = match ? tree_cursor : NULL;
-                tree_cursor->trie_node_mutex.unlock();
-                if (node == NULL) {
-                    return NULL;
-                }
+                T* answer = NULL;
                 if constexpr (is_same_v<T, TrieNode>) {
-                    return node;
+                    answer = node;
                 } else if constexpr (is_same_v<T, TrieValue>) {
-                    return node->value;
+                    answer = node->value;
                 } else if constexpr (is_same_v<T, void>) {
-                    return node->value->get_stored_object(clone_stored_object);
+                    answer = node->value->get_stored_object(clone_stored_object);
                 } else {
                     RAISE_ERROR("Invalid fetch() attempt with unexpected type");
                 }
+                tree_cursor->trie_node_mutex.unlock();
+                return answer;
             } else {
                 unsigned char c = TLB[(unsigned char) key[key_cursor]];
                 TrieNode* child = tree_cursor->children[c];
