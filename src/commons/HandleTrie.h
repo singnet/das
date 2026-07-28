@@ -86,7 +86,7 @@ class HandleTrie {
      *
      * @return The object actually being stored inside a HandleTrie::TrieValue object attached to the passed key.
      */
-    void* lookup_stored_object(const string& key, bool clone = false);
+    void* lookup_stored_object(const string& key, bool clone = false) { return fetch<void>(key, clone); }
 
     bool exists(const string& key);
 
@@ -116,7 +116,7 @@ class HandleTrie {
    private:
 
     template <typename T>
-    T* fetch(const string& key) {
+    T* fetch(const string& key, bool clone_stored_object = false) {
         if (key.size() != key_size) {
             RAISE_ERROR("Invalid key size: " + to_string(key.size()) + " != " + to_string(key_size));
         }
@@ -143,6 +143,8 @@ class HandleTrie {
                     return node;
                 } else if constexpr (is_same_v<T, TrieValue>) {
                     return node->value;
+                } else if constexpr (is_same_v<T, void>) {
+                    return node->value->get_stored_object(clone_stored_object);
                 } else {
                     RAISE_ERROR("Invalid fetch() attempt with unexpected type");
                 }

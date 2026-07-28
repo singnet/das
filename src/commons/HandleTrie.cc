@@ -195,15 +195,6 @@ bool HandleTrie::remove(const string& key, bool delete_value) {
     return true;
 }
 
-void* HandleTrie::lookup_stored_object(const string& key, bool clone) {
-    TrieValue* trie_value = fetch<TrieValue>(key);
-    if (trie_value == NULL) {
-        return NULL;
-    } else {
-        return trie_value->get_stored_object(clone);
-    }
-}
-
 void HandleTrie::traverse(bool keep_root_locked,
                           bool (*visit_function)(TrieNode* node, void* data),
                           void* data) {
