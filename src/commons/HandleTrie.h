@@ -1,7 +1,10 @@
 #pragma once
 
+#include <atomic>
 #include <mutex>
 #include <string>
+
+#include "Utils.h"
 
 #define TRIE_ALPHABET_SIZE ((unsigned int) 16)
 
@@ -30,6 +33,11 @@ class HandleTrie {
         virtual ~TrieValue();                      /// Destructor.
         virtual void merge(TrieValue* other) = 0;  /// Called when a repeated handle is inserted.
         virtual string to_string();  /// Returns a string representation of the value object.
+        virtual void* get_stored_object(
+            bool clone) {            /// Return the actual object being stored (or a clone of it).
+            RAISE_ERROR("get_stored_object() is not implemented for this TrieValue subclass.");
+            return NULL;             // Just to avoid warnings
+        }
     };
 
     /**
@@ -72,7 +80,22 @@ class HandleTrie {
      *
      * @return The HandleTrie::TrieValue object attached to the passed key or NULL if none.
      */
-    TrieValue* lookup(const string& key);
+    inline TrieValue* lookup(const string& key) { return fetch<TrieValue>(key, true, false); }
+
+    /**
+     * Lookup for a given handle and return the corresponding object stored in TrieValue.
+     *
+     * @param key Handle being searched.
+     * @param clone A flag indicating if a clone is supposed to be returned instead of the actual
+     * object being stored. It's defaulted to "true". Use clone=false with caution as the actual
+     * raw pointer to the inner stored object inside the TrieValue is returned.
+     *
+     * @return The object actually being stored inside a HandleTrie::TrieValue object attached to the
+     * passed key.
+     */
+    inline void* lookup_stored_object(const string& key, bool clone = true) {
+        return fetch<void>(key, true, clone);
+    }
 
     bool exists(const string& key);
 
@@ -96,19 +119,72 @@ class HandleTrie {
      */
     void traverse(bool keep_root_locked, bool (*visit_function)(TrieNode* node, void* data), void* data);
 
+    /**
+     * Return the number of elements stored in this HandleTrie.
+     *
+     * @return The number of elements stored in this HandleTrie.
+     */
+    inline unsigned int size() { return (unsigned int) this->_size; }
+
     TrieNode* root;
-    unsigned int size;
 
    private:
-    /**
-     * Lookup for a node containing a given handle.
-     * Similar to lookup() but returns the node pointer instead of the value.
-     *
-     * @param key Handle being searched.
-     *
-     * @return The HandleTrie::TrieNode containing the key or NULL if none.
-     */
-    TrieNode* lookup_node(const string& key);
+    template <typename T>
+    T* fetch(const string& key, bool unlock_node, bool clone_stored_object) {
+        if (key.size() != key_size) {
+            RAISE_ERROR("Invalid key size: " + to_string(key.size()) + " != " + to_string(key_size));
+        }
+
+        TrieNode* tree_cursor = root;
+        unsigned char key_cursor = 0;
+        tree_cursor->trie_node_mutex.lock();
+        while (tree_cursor != NULL) {
+            if (tree_cursor->suffix_start > 0) {
+                bool match = true;
+                unsigned int n = key.size();
+                for (unsigned int i = key_cursor; i < n; i++) {
+                    if (key[i] != tree_cursor->suffix[i]) {
+                        match = false;
+                        break;
+                    }
+                }
+                TrieNode* node = match ? tree_cursor : NULL;
+                T* answer = NULL;
+                bool forced_lock_release = false;
+                if (node != NULL) {
+                    if constexpr (is_same_v<T, TrieNode>) {
+                        answer = node;
+                    } else if constexpr (is_same_v<T, TrieValue>) {
+                        forced_lock_release = true;
+                        answer = node->value;
+                    } else if constexpr (is_same_v<T, void>) {
+                        forced_lock_release = true;
+                        if (node->value != NULL) {
+                            answer = node->value->get_stored_object(clone_stored_object);
+                        }
+                    } else {
+                        RAISE_ERROR("Invalid fetch() attempt with unexpected type");
+                    }
+                } else {
+                    forced_lock_release = true;
+                }
+                if (unlock_node || forced_lock_release) {
+                    tree_cursor->trie_node_mutex.unlock();
+                }
+                return answer;
+            } else {
+                unsigned char c = TLB[(unsigned char) key[key_cursor]];
+                TrieNode* child = tree_cursor->children[c];
+                tree_cursor->trie_node_mutex.unlock();
+                tree_cursor = child;
+                key_cursor++;
+                if (tree_cursor != NULL) {
+                    tree_cursor->trie_node_mutex.lock();
+                }
+            }
+        }
+        return NULL;
+    }
 
     static unsigned char TLB[256];
     static bool TLB_INITIALIZED;
@@ -133,6 +209,7 @@ class HandleTrie {
     }
 
     unsigned int key_size;
+    atomic<unsigned int> _size;
 };
 
 /**

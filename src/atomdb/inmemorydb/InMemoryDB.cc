@@ -566,7 +566,7 @@ size_t InMemoryDB::node_count() const { RAISE_ERROR("node_count() is not impleme
 size_t InMemoryDB::link_count() const { RAISE_ERROR("link_count() is not implemented yet"); }
 
 size_t InMemoryDB::atom_count() const {
-    auto size = this->atoms_trie_->size;
+    auto size = this->atoms_trie_->size();
     return static_cast<size_t>(size);
 }
 
