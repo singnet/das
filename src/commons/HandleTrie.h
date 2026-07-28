@@ -86,7 +86,7 @@ class HandleTrie {
      *
      * @return The object actually being stored inside a HandleTrie::TrieValue object attached to the passed key.
      */
-    void* lookup_stored_object(const string& key, bool clone = false) { return fetch<void>(key, clone); }
+    inline void* lookup_stored_object(const string& key, bool clone = false) { return fetch<void>(key, clone); }
 
     bool exists(const string& key);
 
