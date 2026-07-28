@@ -601,6 +601,12 @@ optional<string> CommandRouterHttpAPI::build_set_param_arg(Properties& known_par
             formatted_value = std::to_string(number);
         } else if (value.is_string()) {
             const string& text = value.get<string>();
+            const bool all_digits =
+                !text.empty() &&
+                all_of(text.begin(), text.end(), [](unsigned char c) { return isdigit(c); });
+            if (!all_digits) {
+                return fail(uint_error);
+            }
             try {
                 size_t consumed = 0;
                 const unsigned long long parsed = stoull(text, &consumed);
