@@ -233,6 +233,4 @@ void HandleTrie::traverse(bool keep_root_locked,
     }
 }
 
-bool HandleTrie::exists(const string& key) {
-    return (fetch<TrieNode>(key, true, false) != NULL);
-}
+bool HandleTrie::exists(const string& key) { return (fetch<TrieNode>(key, true, false) != NULL); }
