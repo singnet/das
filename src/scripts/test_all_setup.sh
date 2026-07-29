@@ -129,10 +129,17 @@ start_mork_server() {
         -e MORK_SERVER_PORT=${port} \
         "${MORK_SERVER_IMAGE}"
 
-    until curl --silent http://localhost:${port}/status/-; do
-    echo "[SETUP-INFO] Waiting for MORK ${name}..."
-    sleep 1
+    for _ in {1..60}; do
+        if curl --fail --silent --show-error \
+            --connect-timeout 1 --max-time 2 \
+            "http://localhost:${port}/status/-" >/dev/null; then
+            return 0
+        fi
+        echo "[SETUP-INFO] Waiting for MORK ${name}..."
+        sleep 1
     done
+    echo "[SETUP-ERROR] MORK ${name} did not become ready." >&2
+    return 1
 }
 
 start_postgres_server(){
