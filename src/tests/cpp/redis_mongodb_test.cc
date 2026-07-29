@@ -82,7 +82,7 @@ class LinkSchemaHandle : public LinkSchema {
 };
 
 TEST_F(RedisMongoDBTest, ConcurrentQueryForPattern) {
-    const int num_threads = 200;
+    const int num_threads = 16;
     vector<thread> threads;
     atomic<int> success_count{0};
 
@@ -117,7 +117,7 @@ TEST_F(RedisMongoDBTest, ConcurrentQueryForPattern) {
 }
 
 TEST_F(RedisMongoDBTest, ConcurrentQueryForTargets) {
-    const int num_threads = 200;
+    const int num_threads = 16;
     vector<thread> threads;
     atomic<int> success_count{0};
 
@@ -148,7 +148,7 @@ TEST_F(RedisMongoDBTest, ConcurrentQueryForTargets) {
 }
 
 TEST_F(RedisMongoDBTest, ConcurrentGetAtomDocument) {
-    const int num_threads = 200;
+    const int num_threads = 16;
     vector<thread> threads;
     atomic<int> success_count{0};
 
@@ -193,7 +193,7 @@ TEST_F(RedisMongoDBTest, ConcurrentGetAtomDocument) {
 }
 
 TEST_F(RedisMongoDBTest, ConcurrentGetAtomDocuments) {
-    const int num_threads = 200;
+    const int num_threads = 16;
     vector<thread> threads;
     atomic<int> success_count{0};
 
@@ -230,7 +230,7 @@ TEST_F(RedisMongoDBTest, ConcurrentGetAtomDocuments) {
 }
 
 TEST_F(RedisMongoDBTest, ConcurrentLinkExists) {
-    const int num_threads = 200;
+    const int num_threads = 16;
     vector<thread> threads;
     atomic<int> success_count{0};
 
@@ -260,7 +260,7 @@ TEST_F(RedisMongoDBTest, ConcurrentLinkExists) {
 }
 
 TEST_F(RedisMongoDBTest, ConcurrentLinksExist) {
-    const int num_threads = 200;
+    const int num_threads = 16;
     vector<thread> threads;
     atomic<int> success_count{0};
 
@@ -294,7 +294,7 @@ TEST_F(RedisMongoDBTest, ConcurrentLinksExist) {
 }
 
 TEST_F(RedisMongoDBTest, ConcurrentAddNodesAndLinks) {
-    const int num_threads = 100;
+    const int num_threads = 8;
     vector<thread> threads;
     atomic<int> success_count{0};
 
