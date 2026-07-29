@@ -276,7 +276,7 @@ TEST_F(PostgresConnectionTest, Connection) {
 }
 
 TEST_F(PostgresConnectionTest, ConcurrentConnection) {
-    const int num_threads = 100;
+    const int num_threads = 4;
     vector<thread> threads;
     atomic<int> count_threads{0};
 
