@@ -53,14 +53,14 @@ class AtomDB : public HandleDecoder {
     virtual string add_link(const atoms::Link* link, const atoms::Merger* merger = nullptr) = 0;
 
     virtual vector<string> add_atoms(const vector<atoms::Atom*>& atom_list,
-                                     const atoms::Merger* merger = nullptr,
-                                     bool is_transactional = false) = 0;
+                                     bool is_transactional = false,
+                                     const atoms::Merger* merger = nullptr) = 0;
     virtual vector<string> add_nodes(const vector<atoms::Node*>& nodes,
-                                     const atoms::Merger* merger = nullptr,
-                                     bool is_transactional = false) = 0;
+                                     bool is_transactional = false,
+                                     const atoms::Merger* merger = nullptr) = 0;
     virtual vector<string> add_links(const vector<atoms::Link*>& links,
-                                     const atoms::Merger* merger = nullptr,
-                                     bool is_transactional = false) = 0;
+                                     bool is_transactional = false,
+                                     const atoms::Merger* merger = nullptr) = 0;
 
     virtual bool delete_atom(const string& handle, bool delete_link_targets = false) = 0;
     virtual bool delete_node(const string& handle, bool delete_link_targets = false) = 0;

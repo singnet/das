@@ -282,7 +282,7 @@ TEST_F(MorkDBTest, AddLinksWithDuplicateTargets) {
     nodes.push_back(new Node("Symbol", "DuplicateTargets1"));
     nodes.push_back(new Node("Symbol", "DuplicateTargets2"));
     nodes.push_back(new Node("Symbol", "DuplicateTargets3"));
-    EXPECT_EQ(db->add_nodes(nodes, &ThrowIfExistsMerger::instance()).size(), 3);
+    EXPECT_EQ(db->add_nodes(nodes, false, &ThrowIfExistsMerger::instance()).size(), 3);
 
     auto link = new Link("Expression",
                          {nodes[0]->handle(),
@@ -341,15 +341,15 @@ TEST_F(MorkDBTest, ConcurrentAddLinks) {
                 links.push_back(link_with_nested);
 
                 if (i % chunck_size == 0) {
-                    db->add_nodes(nodes, nullptr, true);
-                    db->add_links(links, nullptr, true);
+                    db->add_nodes(nodes, true);
+                    db->add_links(links, true);
                     nodes.clear();
                     links.clear();
                 }
             }
 
-            if (!nodes.empty()) db->add_nodes(nodes, nullptr, true);
-            if (!links.empty()) db->add_links(links, nullptr, true);
+            if (!nodes.empty()) db->add_nodes(nodes, true);
+            if (!links.empty()) db->add_links(links, true);
 
             success_count++;
         } catch (const exception& e) {

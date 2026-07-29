@@ -958,14 +958,14 @@ TEST_F(RedisMongoDBTest, AddNodesWithThrowIfExists) {
     nodes.push_back(new Node("Symbol", "ThrowIfExists2"));
     nodes.push_back(new Node("Symbol", "ThrowIfExists3"));
 
-    EXPECT_EQ(db->add_nodes(nodes, &ThrowIfExistsMerger::instance()).size(), 2);
+    EXPECT_EQ(db->add_nodes(nodes, false, &ThrowIfExistsMerger::instance()).size(), 2);
 
     auto link = new Link("Expression", {node1->handle(), nodes[0]->handle(), nodes[1]->handle()});
     EXPECT_EQ(db->add_link(link, &ThrowIfExistsMerger::instance()), link->handle());
 
     // Try to add the same node again
     EXPECT_THROW(db->add_node(node1, &ThrowIfExistsMerger::instance()), runtime_error);
-    EXPECT_THROW(db->add_nodes(nodes, &ThrowIfExistsMerger::instance()), runtime_error);
+    EXPECT_THROW(db->add_nodes(nodes, false, &ThrowIfExistsMerger::instance()), runtime_error);
     EXPECT_THROW(db->add_link(link, &ThrowIfExistsMerger::instance()), runtime_error);
 
     EXPECT_EQ(db->delete_link(link->handle(), true), true);
@@ -1081,7 +1081,7 @@ TEST_F(RedisMongoDBTest, AddNodesBatchReplaceAndCustomMerger) {
     auto merge_a1 = new Node("Symbol", "BatchNodeA", attrs3);
     auto merge_a2 = new Node("Symbol", "BatchNodeA", attrs3);
     SumStrengthMerger merger;
-    EXPECT_EQ(db->add_nodes({merge_a1, merge_a2}, &merger).size(), 2u);
+    EXPECT_EQ(db->add_nodes({merge_a1, merge_a2}, false, &merger).size(), 2u);
     // 0.4 + 0.5 + 0.5 from in-batch repeated handle
     EXPECT_DOUBLE_EQ(
         db->get_node(merge_a1->handle())->custom_attributes.get_or<double>("strength", -1.0), 1.4);
@@ -1122,7 +1122,7 @@ TEST_F(RedisMongoDBTest, AddLinksBatchReplaceAndCustomMerger) {
     auto link3a = new Link("Expression", {h1, h2}, attrs3);
     auto link3b = new Link("Expression", {h1, h2}, attrs3);
     SumStrengthMerger merger;
-    EXPECT_EQ(db->add_links({link3a, link3b}, &merger).size(), 2u);
+    EXPECT_EQ(db->add_links({link3a, link3b}, false, &merger).size(), 2u);
     EXPECT_DOUBLE_EQ(db->get_link(link3a->handle())->custom_attributes.get_or<double>("strength", -1.0),
                      1.4);
 
@@ -1140,7 +1140,7 @@ TEST_F(RedisMongoDBTest, AddLinksWithDuplicateTargets) {
     nodes.push_back(new Node("Symbol", "DuplicateTargets1"));
     nodes.push_back(new Node("Symbol", "DuplicateTargets2"));
     nodes.push_back(new Node("Symbol", "DuplicateTargets3"));
-    EXPECT_EQ(db->add_nodes(nodes, &ThrowIfExistsMerger::instance()).size(), 3);
+    EXPECT_EQ(db->add_nodes(nodes, false, &ThrowIfExistsMerger::instance()).size(), 3);
 
     auto link = new Link("Expression",
                          {nodes[0]->handle(),
@@ -1236,8 +1236,8 @@ TEST_F(RedisMongoDBTest, CompositeTypeEnabledFlag) {
                                        {transactional_nodes[0]->handle(),
                                         transactional_nodes[1]->handle(),
                                         transactional_nodes[2]->handle()});
-    ASSERT_EQ(db_disabled->add_nodes(transactional_nodes, nullptr, true).size(), 3);
-    ASSERT_EQ(db_disabled->add_links({transactional_link}, nullptr, true).size(), 1);
+    ASSERT_EQ(db_disabled->add_nodes(transactional_nodes, true).size(), 3);
+    ASSERT_EQ(db_disabled->add_links({transactional_link}, true).size(), 1);
 
     auto transactional_doc = db_disabled->get_atom_document(transactional_link->handle());
     ASSERT_NE(transactional_doc, nullptr);

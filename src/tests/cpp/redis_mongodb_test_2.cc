@@ -241,15 +241,15 @@ TEST_F(RedisMongoDBTest, ConcurrentAddLinks) {
                 links.push_back(link_with_nested);
 
                 if (i % chunck_size == 0) {
-                    db2->add_nodes(nodes, nullptr, true);
-                    db2->add_links(links, nullptr, true);
+                    db2->add_nodes(nodes, true);
+                    db2->add_links(links, true);
                     nodes.clear();
                     links.clear();
                 }
             }
 
-            if (!nodes.empty()) db2->add_nodes(nodes, nullptr, true);
-            if (!links.empty()) db2->add_links(links, nullptr, true);
+            if (!nodes.empty()) db2->add_nodes(nodes, true);
+            if (!links.empty()) db2->add_links(links, true);
 
             success_count++;
         } catch (const exception& e) {

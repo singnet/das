@@ -217,8 +217,8 @@ shared_ptr<atomdb_api_types::HandleList> MorkDB::query_for_targets(const string&
 }
 
 vector<string> MorkDB::add_links(const vector<atoms::Link*>& links,
-                                 const atoms::Merger* merger,
-                                 bool is_transactional) {
+                                 bool is_transactional,
+                                 const atoms::Merger* merger) {
     if (links.empty()) {
         if (this->composite_type_enabled() && is_transactional) {
             lock_guard<mutex> composite_type_hashes_map_lock(this->composite_type_hashes_map_mutex);
@@ -361,7 +361,7 @@ void MorkDB::re_index_patterns(bool flush_patterns) {
         }
     }
 
-    this->add_links(links, nullptr, true);
+    this->add_links(links, true);
 }
 
 // <--

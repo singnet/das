@@ -331,13 +331,13 @@ string InMemoryDB::add_node(const atoms::Node* node, const atoms::Merger* merger
 
 string InMemoryDB::add_link(const atoms::Link* link, const atoms::Merger* merger) {
     vector<Link*> links = {const_cast<atoms::Link*>(link)};
-    auto handles = this->add_links(links, merger, false);
+    auto handles = this->add_links(links, false, merger);
     return handles.empty() ? "" : handles[0];
 }
 
 vector<string> InMemoryDB::add_atoms(const vector<atoms::Atom*>& atom_list,
-                                     const atoms::Merger* merger,
-                                     bool is_transactional) {
+                                     bool is_transactional,
+                                     const atoms::Merger* merger) {
     if (atom_list.empty()) {
         return {};
     }
@@ -352,16 +352,16 @@ vector<string> InMemoryDB::add_atoms(const vector<atoms::Atom*>& atom_list,
             links.push_back(dynamic_cast<atoms::Link*>(atom));
         }
     }
-    auto node_handles = this->add_nodes(nodes, merger, is_transactional);
-    auto link_handles = this->add_links(links, merger, is_transactional);
+    auto node_handles = this->add_nodes(nodes, is_transactional, merger);
+    auto link_handles = this->add_links(links, is_transactional, merger);
 
     node_handles.insert(node_handles.end(), link_handles.begin(), link_handles.end());
     return node_handles;
 }
 
 vector<string> InMemoryDB::add_nodes(const vector<atoms::Node*>& nodes,
-                                     const atoms::Merger* merger,
-                                     bool is_transactional) {
+                                     bool is_transactional,
+                                     const atoms::Merger* merger) {
     if (nodes.empty()) {
         return {};
     }
@@ -375,8 +375,8 @@ vector<string> InMemoryDB::add_nodes(const vector<atoms::Node*>& nodes,
 }
 
 vector<string> InMemoryDB::add_links(const vector<atoms::Link*>& links,
-                                     const atoms::Merger* merger,
-                                     bool is_transactional) {
+                                     bool is_transactional,
+                                     const atoms::Merger* merger) {
     if (links.empty()) {
         return {};
     }

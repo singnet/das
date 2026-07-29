@@ -49,14 +49,14 @@ class InMemoryDB : public AtomDB {
     string add_link(const atoms::Link* link, const atoms::Merger* merger = nullptr) override;
 
     vector<string> add_atoms(const vector<atoms::Atom*>& atom_list,
-                             const atoms::Merger* merger = nullptr,
-                             bool is_transactional = false) override;
+                             bool is_transactional = false,
+                             const atoms::Merger* merger = nullptr) override;
     vector<string> add_nodes(const vector<atoms::Node*>& nodes,
-                             const atoms::Merger* merger = nullptr,
-                             bool is_transactional = false) override;
+                             bool is_transactional = false,
+                             const atoms::Merger* merger = nullptr) override;
     vector<string> add_links(const vector<atoms::Link*>& links,
-                             const atoms::Merger* merger = nullptr,
-                             bool is_transactional = false) override;
+                             bool is_transactional = false,
+                             const atoms::Merger* merger = nullptr) override;
 
     bool delete_atom(const string& handle, bool delete_link_targets = false) override;
     bool delete_node(const string& handle, bool delete_link_targets = false) override;

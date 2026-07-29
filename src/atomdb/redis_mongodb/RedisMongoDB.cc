@@ -826,12 +826,12 @@ string RedisMongoDB::add_node(const atoms::Node* node, const atoms::Merger* merg
 
 string RedisMongoDB::add_link(const atoms::Link* link, const atoms::Merger* merger) {
     vector<Link*> links = {const_cast<atoms::Link*>(link)};
-    return add_links(links, merger)[0];
+    return add_links(links, false, merger)[0];
 }
 
 vector<string> RedisMongoDB::add_atoms(const vector<atoms::Atom*>& atom_list,
-                                       const atoms::Merger* merger,
-                                       bool is_transactional) {
+                                       bool is_transactional,
+                                       const atoms::Merger* merger) {
     if (atom_list.empty()) {
         return {};
     }
@@ -846,16 +846,16 @@ vector<string> RedisMongoDB::add_atoms(const vector<atoms::Atom*>& atom_list,
             links.push_back(dynamic_cast<atoms::Link*>(atom));
         }
     }
-    auto node_handles = add_nodes(nodes, merger, is_transactional);
-    auto link_handles = add_links(links, merger, is_transactional);
+    auto node_handles = add_nodes(nodes, is_transactional, merger);
+    auto link_handles = add_links(links, is_transactional, merger);
 
     node_handles.insert(node_handles.end(), link_handles.begin(), link_handles.end());
     return node_handles;
 }
 
 vector<string> RedisMongoDB::add_nodes(const vector<atoms::Node*>& nodes,
-                                       const atoms::Merger* merger,
-                                       bool is_transactional) {
+                                       bool is_transactional,
+                                       const atoms::Merger* merger) {
     if (nodes.empty()) {
         return {};
     }
@@ -905,8 +905,8 @@ vector<string> RedisMongoDB::add_nodes(const vector<atoms::Node*>& nodes,
 }
 
 vector<string> RedisMongoDB::add_links(const vector<atoms::Link*>& links,
-                                       const atoms::Merger* merger,
-                                       bool is_transactional) {
+                                       bool is_transactional,
+                                       const atoms::Merger* merger) {
     if (links.empty()) {
         if (this->composite_type_enabled_ && is_transactional) {
             lock_guard<mutex> composite_type_hashes_map_lock(this->composite_type_hashes_map_mutex);

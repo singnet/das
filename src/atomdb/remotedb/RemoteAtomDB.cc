@@ -353,34 +353,34 @@ string RemoteAtomDB::add_link(const atoms::Link* link, const atoms::Merger* merg
 }
 
 vector<string> RemoteAtomDB::add_atoms(const vector<atoms::Atom*>& atom_list,
-                                       const atoms::Merger* merger,
-                                       bool is_transactional) {
+                                       bool is_transactional,
+                                       const atoms::Merger* merger) {
     vector<string> handles;
     for (auto& [uid, peer] : remote_db_) {
         LOG_DEBUG("add_atoms(" << atom_list.size() << ") to peer [" << uid << "]");
-        handles = peer->add_atoms(atom_list, merger, is_transactional);
+        handles = peer->add_atoms(atom_list, is_transactional, merger);
     }
     return handles;
 }
 
 vector<string> RemoteAtomDB::add_nodes(const vector<atoms::Node*>& nodes,
-                                       const atoms::Merger* merger,
-                                       bool is_transactional) {
+                                       bool is_transactional,
+                                       const atoms::Merger* merger) {
     vector<string> handles;
     for (auto& [uid, peer] : remote_db_) {
         LOG_DEBUG("add_nodes(" << nodes.size() << ") to peer [" << uid << "]");
-        handles = peer->add_nodes(nodes, merger, is_transactional);
+        handles = peer->add_nodes(nodes, is_transactional, merger);
     }
     return handles;
 }
 
 vector<string> RemoteAtomDB::add_links(const vector<atoms::Link*>& links,
-                                       const atoms::Merger* merger,
-                                       bool is_transactional) {
+                                       bool is_transactional,
+                                       const atoms::Merger* merger) {
     vector<string> handles;
     for (auto& [uid, peer] : remote_db_) {
         LOG_DEBUG("add_links(" << links.size() << ") to peer [" << uid << "]");
-        handles = peer->add_links(links, merger, is_transactional);
+        handles = peer->add_links(links, is_transactional, merger);
     }
     return handles;
 }

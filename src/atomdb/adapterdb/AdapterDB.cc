@@ -153,24 +153,24 @@ string AdapterDB::add_link(const atoms::Link* link, const atoms::Merger* merger)
 }
 
 vector<string> AdapterDB::add_atoms(const vector<atoms::Atom*>& atom_list,
-                                    const atoms::Merger* merger,
-                                    bool is_transactional) {
+                                    bool is_transactional,
+                                    const atoms::Merger* merger) {
     this->ensure_backend_ready();
-    return this->atomdb_backend->add_atoms(atom_list, merger, is_transactional);
+    return this->atomdb_backend->add_atoms(atom_list, is_transactional, merger);
 }
 
 vector<string> AdapterDB::add_nodes(const vector<atoms::Node*>& nodes,
-                                    const atoms::Merger* merger,
-                                    bool is_transactional) {
+                                    bool is_transactional,
+                                    const atoms::Merger* merger) {
     this->ensure_backend_ready();
-    return this->atomdb_backend->add_nodes(nodes, merger, is_transactional);
+    return this->atomdb_backend->add_nodes(nodes, is_transactional, merger);
 }
 
 vector<string> AdapterDB::add_links(const vector<atoms::Link*>& links,
-                                    const atoms::Merger* merger,
-                                    bool is_transactional) {
+                                    bool is_transactional,
+                                    const atoms::Merger* merger) {
     this->ensure_backend_ready();
-    return this->atomdb_backend->add_links(links, merger, is_transactional);
+    return this->atomdb_backend->add_links(links, is_transactional, merger);
 }
 
 bool AdapterDB::delete_atom(const string& handle, bool delete_link_targets) {

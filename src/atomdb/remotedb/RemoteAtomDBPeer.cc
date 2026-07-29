@@ -379,21 +379,21 @@ string RemoteAtomDBPeer::add_link(const atoms::Link* link, const atoms::Merger* 
 }
 
 vector<string> RemoteAtomDBPeer::add_atoms(const vector<atoms::Atom*>& atom_list,
-                                           const atoms::Merger* merger,
-                                           bool is_transactional) {
-    return cache_.add_atoms(atom_list, merger, is_transactional);
+                                           bool is_transactional,
+                                           const atoms::Merger* merger) {
+    return cache_.add_atoms(atom_list, is_transactional, merger);
 }
 
 vector<string> RemoteAtomDBPeer::add_nodes(const vector<atoms::Node*>& nodes,
-                                           const atoms::Merger* merger,
-                                           bool is_transactional) {
-    return cache_.add_nodes(nodes, merger, is_transactional);
+                                           bool is_transactional,
+                                           const atoms::Merger* merger) {
+    return cache_.add_nodes(nodes, is_transactional, merger);
 }
 
 vector<string> RemoteAtomDBPeer::add_links(const vector<atoms::Link*>& links,
-                                           const atoms::Merger* merger,
-                                           bool is_transactional) {
-    return cache_.add_links(links, merger, is_transactional);
+                                           bool is_transactional,
+                                           const atoms::Merger* merger) {
+    return cache_.add_links(links, is_transactional, merger);
 }
 
 bool RemoteAtomDBPeer::delete_atom(const string& handle, bool delete_link_targets) {
