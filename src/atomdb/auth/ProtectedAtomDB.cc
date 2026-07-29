@@ -29,8 +29,8 @@ vector<shared_ptr<Atom>> ProtectedAtomDB::get_matching_atoms(bool is_toplevel,
     return {};
 }
 
-shared_ptr<atomdb_api_types::HandleSet> ProtectedAtomDB::query_for_pattern(
-    const LinkSchema& link_schema, const string& public_key) {
+shared_ptr<atomdb_api_types::HandleSet> ProtectedAtomDB::query_for_pattern(const LinkSchema& link_schema,
+                                                                           const string& public_key) {
     return nullptr;
 }
 
