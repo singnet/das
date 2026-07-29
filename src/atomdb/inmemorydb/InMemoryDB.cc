@@ -587,7 +587,7 @@ size_t InMemoryDB::link_count(const string& public_key) const {
 }
 
 size_t InMemoryDB::atom_count(const string& public_key) const {
-    auto size = this->atoms_trie_->size;
+    auto size = this->atoms_trie_->size();
     return static_cast<size_t>(size);
 }
 
