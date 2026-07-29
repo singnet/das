@@ -1,14 +1,12 @@
 #pragma once
 
-#include <map>
 #include <memory>
+#include <set>
 #include <string>
+#include <vector>
 
 #include "AtomDB.h"
-#include "DedicatedThread.h"
-#include "HandleTrie.h"
-#include "InMemoryDB.h"
-#include "LinkSchema.h"
+#include "JsonConfig.h"
 
 using namespace std;
 using namespace commons;
@@ -17,16 +15,19 @@ using namespace atoms;
 namespace atomdb {
 
 /**
- * RemoteAtomDBPeer represents a cached connection to a remote AtomDB.
- * It combines an in-memory cache, a read-only remote AtomDB, and local persistence
- * for newly added atoms.
+ * @brief Authorization wrapper around any AtomDB backend for protected databases.
+ *
+ * Delegates storage to backend. When public_key is non-empty, builds AuthorizationManagement for that
+ * key and filters read results. When public_key is empty, delegates without filtering
+ * filtering happens in this wrapper after the backend returns data.
  */
-class RemoteAtomDBPeer : public AtomDB, public processor::ThreadMethod {
+class ProtectedAtomDB : public AtomDB {
    public:
-    RemoteAtomDBPeer(shared_ptr<AtomDB> remote_atomdb,
-                     shared_ptr<AtomDB> local_persistence,
-                     const string& uid = "");
-    ~RemoteAtomDBPeer();
+    /**
+     * @param backend Shared concrete AtomDB.
+     * @param config Settings used to construct AuthorizationManagement per key.
+     */
+    ProtectedAtomDB(shared_ptr<AtomDB> backend, const JsonConfig& config);
 
     bool allow_nested_indexing(const string& public_key) override;
     bool composite_type_enabled() const override;
@@ -36,19 +37,9 @@ class RemoteAtomDBPeer : public AtomDB, public processor::ThreadMethod {
     shared_ptr<Node> get_node(const string& handle, const string& public_key) override;
     shared_ptr<Link> get_link(const string& handle, const string& public_key) override;
 
-    // Cache-only lookups (in-memory, no local_persistence / remote escalation). Used by the
-    // RemoteAtomDB facade to probe every peer's cache before escalating any peer to its backend.
-    shared_ptr<Atom> get_cached_atom(const string& handle);
-    shared_ptr<Node> get_cached_node(const string& handle);
-    shared_ptr<Link> get_cached_link(const string& handle);
-
     vector<shared_ptr<Atom>> get_matching_atoms(bool is_toplevel,
                                                 Atom& key,
                                                 const string& public_key) override;
-    vector<shared_ptr<Atom>> get_matching_atoms(bool is_toplevel,
-                                                Atom& key,
-                                                const string& public_key,
-                                                bool local_only);
 
     shared_ptr<atomdb_api_types::HandleSet> query_for_pattern(const LinkSchema& link_schema,
                                                               const string& public_key) override;
@@ -114,40 +105,47 @@ class RemoteAtomDBPeer : public AtomDB, public processor::ThreadMethod {
     size_t link_count(const string& public_key) const override;
     size_t atom_count(const string& public_key) const override;
 
-    // Cache policy API
-    void fetch(const LinkSchema& link_schema);
-    void release(const LinkSchema& link_schema);
-    double available_ram();
-    void auto_cleanup();
-    void start_cleanup_thread();
-    void stop_cleanup_thread();
-
-    // ThreadMethod interface
-    bool thread_one_step() override;
-
-    const string& get_uid() const { return uid_; }
-
-    bool is_readonly() const { return local_persistence_ == nullptr; }
-
    private:
-    void feed_cache_from_handle_set(shared_ptr<atomdb_api_types::HandleSet> handle_set,
-                                    const string& public_key);
-    void merge_handle_set(shared_ptr<atomdb_api_types::HandleSet> source,
-                          shared_ptr<atomdb_api_types::HandleSetInMemory> dest,
-                          set<string>& seen,
-                          bool copy_metadata = false);
-    bool schema_already_fetched(const LinkSchema& link_schema);
+    shared_ptr<AtomDB> backend;
+    JsonConfig config;
 
-    string uid_;
-    InMemoryDB cache_;
-    shared_ptr<AtomDB> atomdb_;
-    shared_ptr<AtomDB> local_persistence_;
-    HandleTrie fetched_link_templates_;
-    EmptyTrieValue* empty_trie_value_;
+    /**
+     * @brief Read check for public_key and handle on this wrapper.
+     *
+     * @param public_key key from the AtomDB API. Empty means allow (no filter).
+     * @param handle Handle to check.
+     * @return true if key is empty or AccessControl for that key allows read.
+     */
+    bool can_read(const string& public_key, const string& handle);
 
-    unique_ptr<processor::DedicatedThread> cleanup_thread_;
+    /**
+     * @brief Read check for public_key and atom on this wrapper.
+     *
+     * @param public_key key from the AtomDB API.
+     * @param atom Atom to check.
+     * @return true if key is empty or AccessControl for that key allows read.
+     */
+    bool can_read(const string& public_key, const atoms::Atom& atom);
 
-    static constexpr double CRITICAL_RAM_THRESHOLD = 0.1;  // 10% - cleanup when below this
+    /**
+     * @brief Builds a filtered HandleSet from a backend result.
+     *
+     * @param raw Unfiltered result from backend.
+     * @param public_key key used for each handle check.
+     * @return HandleSet containing only authorized handles.
+     */
+    shared_ptr<atomdb_api_types::HandleSet> filter_handle_set(
+        shared_ptr<atomdb_api_types::HandleSet> raw, const string& public_key);
+
+    /**
+     * @brief Builds a filtered HandleList from a backend result.
+     *
+     * @param raw Unfiltered result from backend.
+     * @param public_key key used for each handle check.
+     * @return HandleList containing only authorized handles.
+     */
+    shared_ptr<atomdb_api_types::HandleList> filter_handle_list(
+        shared_ptr<atomdb_api_types::HandleList> raw, const string& public_key);
 };
 
 }  // namespace atomdb

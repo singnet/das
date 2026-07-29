@@ -182,7 +182,7 @@ void LinkTemplate::processor_method(shared_ptr<StoppableThread> monitor) {
         handles = LinkTemplate::fetched_links_cache().get(link_schema_handle);
     } else {
         LOG_INFO("Fetching " + link_schema_handle + " from AtomDB");
-        handles = db->query_for_pattern(this->link_schema);
+        handles = db->query_for_pattern(this->link_schema, "");
         if (this->use_cache) {
             LinkTemplate::fetched_links_cache().set(link_schema_handle, handles);
         }
@@ -220,7 +220,7 @@ void LinkTemplate::processor_method(shared_ptr<StoppableThread> monitor) {
             pending = 0;
         } else {
             if (tagged_handle.second > 0 || !this->positive_importance_flag) {
-                if (db->allow_nested_indexing()) {
+                if (db->allow_nested_indexing("")) {
                     if ((this->attention_focus_strictness == 0.0) ||
                         (this->attention_focus_strictness == 1.0)) {
                         this->source_element->add_handle(

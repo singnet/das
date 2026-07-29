@@ -57,7 +57,7 @@ string highlight(const string& s, const set<string>& highlighted) {
 
 string handle_to_atom(const string& handle) {
     shared_ptr<AtomDB> db = AtomDBSingleton::get_instance();
-    shared_ptr<Atom> atom = db->get_atom(handle);
+    shared_ptr<Atom> atom = db->get_atom(handle, "");
     string answer;
 
     if (atom->arity() > 0) {
@@ -146,9 +146,9 @@ void run(const string& client_id,
             Utils::sleep();
         } else {
             string handle = query_answer->assignment.get(sentence1.c_str());
-            sentence_link = db->get_link(handle);
+            sentence_link = db->get_link(handle, "");
             handle = sentence_link->targets[1];
-            sentence_name_node = db->get_node(handle);
+            sentence_name_node = db->get_node(handle, "");
             set<string> to_highlight;
             to_highlight.insert(word_tag);
             string sentence_name = sentence_name_node->name;

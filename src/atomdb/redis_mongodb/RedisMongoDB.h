@@ -31,8 +31,10 @@ class RedisMongoDB : public AtomDB {
     RedisMongoDB(const string& context, bool skip_redis, const JsonConfig& config);
     ~RedisMongoDB();
 
-    bool allow_nested_indexing() override;
+    bool allow_nested_indexing(const string& public_key) override;
+
     bool composite_type_enabled() const override { return this->composite_type_enabled_; }
+    bool is_protected() const override;
 
     static string REDIS_PATTERNS_PREFIX;
     static string REDIS_OUTGOING_PREFIX;
@@ -41,9 +43,12 @@ class RedisMongoDB : public AtomDB {
     static string MONGODB_DB_NAME;
     static string MONGODB_NODES_COLLECTION_NAME;
     static string MONGODB_LINKS_COLLECTION_NAME;
+    static string MONGODB_CONFIG_COLLECTION_NAME;
     static string MONGODB_PATTERN_INDEX_SCHEMA_COLLECTION_NAME;
     static string MONGODB_FIELD_NAME[MONGODB_FIELD::size];
     static uint MONGODB_CHUNK_SIZE;
+
+    static const string MONGODB_CONFIG_DOCUMENT_HANDLE;
 
     static void initialize_statics(const string& context = "") {
         REDIS_PATTERNS_PREFIX = context + "patterns";
@@ -53,6 +58,7 @@ class RedisMongoDB : public AtomDB {
         MONGODB_DB_NAME = context + "das";
         MONGODB_NODES_COLLECTION_NAME = context + "nodes";
         MONGODB_LINKS_COLLECTION_NAME = context + "links";
+        MONGODB_CONFIG_COLLECTION_NAME = context + "config";
         MONGODB_PATTERN_INDEX_SCHEMA_COLLECTION_NAME = context + "pattern_index_schema";
         MONGODB_FIELD_NAME[MONGODB_FIELD::ID] = "_id";
         MONGODB_FIELD_NAME[MONGODB_FIELD::TARGETS] = "targets";
@@ -61,18 +67,78 @@ class RedisMongoDB : public AtomDB {
         MONGODB_CHUNK_SIZE = 1000;
     }
 
-    // HandleDecoder interface
-    shared_ptr<Atom> get_atom(const string& handle);
-    shared_ptr<Node> get_node(const string& handle);
-    shared_ptr<Link> get_link(const string& handle);
+    // AtomDB interface
+    shared_ptr<Atom> get_atom(const string& handle, const string& public_key) override;
+    shared_ptr<Node> get_node(const string& handle, const string& public_key) override;
+    shared_ptr<Link> get_link(const string& handle, const string& public_key) override;
 
-    vector<shared_ptr<Atom>> get_matching_atoms(bool is_toplevel, Atom& key);
+    vector<shared_ptr<Atom>> get_matching_atoms(bool is_toplevel,
+                                                Atom& key,
+                                                const string& public_key) override;
 
-    shared_ptr<atomdb_api_types::HandleSet> query_for_pattern(const LinkSchema& link_schema);
+    shared_ptr<atomdb_api_types::HandleSet> query_for_pattern(const LinkSchema& link_schema,
+                                                              const string& public_key) override;
+    shared_ptr<atomdb_api_types::HandleList> query_for_targets(const string& handle,
+                                                               const string& public_key) override;
+    shared_ptr<atomdb_api_types::HandleSet> query_for_incoming_set(const string& handle,
+                                                                   const string& public_key) override;
 
-    shared_ptr<atomdb_api_types::HandleList> query_for_targets(const string& handle);
+    bool atom_exists(const string& handle, const string& public_key) override;
+    bool node_exists(const string& handle, const string& public_key) override;
+    bool link_exists(const string& handle, const string& public_key) override;
 
-    shared_ptr<atomdb_api_types::HandleSet> query_for_incoming_set(const string& handle);
+    set<string> atoms_exist(const vector<string>& handles, const string& public_key) override;
+    set<string> nodes_exist(const vector<string>& handles, const string& public_key) override;
+    set<string> links_exist(const vector<string>& handles, const string& public_key) override;
+
+    string add_atom(const atoms::Atom* atom,
+                    const string& public_key,
+                    bool throw_if_exists = false) override;
+    string add_node(const atoms::Node* node,
+                    const string& public_key,
+                    bool throw_if_exists = false) override;
+    string add_link(const atoms::Link* link,
+                    const string& public_key,
+                    bool throw_if_exists = false) override;
+
+    vector<string> add_atoms(const vector<atoms::Atom*>& atoms,
+                             const string& public_key,
+                             bool throw_if_exists = false,
+                             bool is_transactional = false) override;
+    vector<string> add_nodes(const vector<atoms::Node*>& nodes,
+                             const string& public_key,
+                             bool throw_if_exists = false,
+                             bool is_transactional = false) override;
+    vector<string> add_links(const vector<atoms::Link*>& links,
+                             const string& public_key,
+                             bool throw_if_exists = false,
+                             bool is_transactional = false) override;
+
+    bool delete_atom(const string& handle,
+                     const string& public_key,
+                     bool delete_link_targets = false) override;
+    bool delete_node(const string& handle,
+                     const string& public_key,
+                     bool delete_link_targets = false) override;
+    bool delete_link(const string& handle,
+                     const string& public_key,
+                     bool delete_link_targets = false) override;
+
+    uint delete_atoms(const vector<string>& handles,
+                      const string& public_key,
+                      bool delete_link_targets = false) override;
+    uint delete_nodes(const vector<string>& handles,
+                      const string& public_key,
+                      bool delete_link_targets = false) override;
+    uint delete_links(const vector<string>& handles,
+                      const string& public_key,
+                      bool delete_link_targets = false) override;
+
+    void re_index_patterns(const string& public_key, bool flush_patterns = true) override;
+
+    size_t node_count(const string& public_key) const override;
+    size_t link_count(const string& public_key) const override;
+    size_t atom_count(const string& public_key) const override;
 
     shared_ptr<atomdb_api_types::AtomDocument> get_atom_document(const string& handle);
     shared_ptr<atomdb_api_types::AtomDocument> get_node_document(const string& handle);
@@ -84,52 +150,10 @@ class RedisMongoDB : public AtomDB {
                                                                           const vector<string>& fields);
     vector<shared_ptr<atomdb_api_types::AtomDocument>> get_link_documents(const vector<string>& handles,
                                                                           const vector<string>& fields);
-
-    bool atom_exists(const string& handle);
-    bool node_exists(const string& handle);
-    bool link_exists(const string& handle);
-
-    set<string> atoms_exist(const vector<string>& handles);
-    set<string> nodes_exist(const vector<string>& handles);
-    set<string> links_exist(const vector<string>& handles);
-
-    string add_atom(const atoms::Atom* atom, bool throw_if_exists = false);
-    string add_node(const atoms::Node* node, bool throw_if_exists = false);
-    string add_link(const atoms::Link* link, bool throw_if_exists = false);
-
-    vector<string> add_atoms(const vector<atoms::Atom*>& atoms,
-                             bool throw_if_exists = false,
-                             bool is_transactional = false);
-    vector<string> add_nodes(const vector<atoms::Node*>& nodes,
-                             bool throw_if_exists = false,
-                             bool is_transactional = false);
-    vector<string> add_links(const vector<atoms::Link*>& links,
-                             bool throw_if_exists = false,
-                             bool is_transactional = false);
-
-    bool delete_atom(const string& handle, bool delete_link_targets = false);
-    bool delete_node(const string& handle, bool delete_link_targets = false);
-    bool delete_link(const string& handle, bool delete_link_targets = false);
-
-    uint delete_atoms(const vector<string>& handles, bool delete_link_targets = false);
-    uint delete_nodes(const vector<string>& handles, bool delete_link_targets = false);
-    uint delete_links(const vector<string>& handles, bool delete_link_targets = false);
-
-    size_t node_count() const;
-    size_t link_count() const;
-    size_t atom_count() const override;
-
-    bool upsert_document(const bsoncxx::v_noabi::document::value& document,
-                         const string& collection_name);
-    uint upsert_documents(const vector<bsoncxx::document::value>& documents,
-                          const string& collection_name);
-
     vector<shared_ptr<atomdb_api_types::AtomDocument>> get_filtered_documents(
         const string& collection_name,
         const bsoncxx::builder::stream::document& filter_builder,
         const vector<string>& fields);
-
-    void re_index_patterns(bool flush_patterns = true);
 
     void add_pattern_index_schema(const string& tokens, const vector<vector<string>>& index_entries);
     void flush_redis_by_prefix(const string& prefix);
@@ -139,6 +163,11 @@ class RedisMongoDB : public AtomDB {
     mongocxx::pool* get_mongo_pool() const { return mongodb_pool; }
 
     void check_existing_targets(const vector<atoms::Link*>& links);
+
+    bool upsert_document(const bsoncxx::v_noabi::document::value& document,
+                         const string& collection_name);
+    uint upsert_documents(const vector<bsoncxx::document::value>& documents,
+                          const string& collection_name);
 
     mutex composite_type_hashes_map_mutex;
     map<string, string> composite_type_hashes_map;

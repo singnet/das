@@ -130,9 +130,11 @@ InMemoryDB::~InMemoryDB() {
     delete this->incoming_sets_trie_;
 }
 
-bool InMemoryDB::allow_nested_indexing() { return false; }
+bool InMemoryDB::allow_nested_indexing(const string& public_key) { return false; }
 
-shared_ptr<Atom> InMemoryDB::get_atom(const string& handle) {
+bool InMemoryDB::is_protected() const { return false; }
+
+shared_ptr<Atom> InMemoryDB::get_atom(const string& handle, const string& /*public_key*/) {
     auto trie_value = this->atoms_trie_->lookup(handle);
     if (trie_value == NULL) {
         return nullptr;
@@ -152,23 +154,24 @@ shared_ptr<Atom> InMemoryDB::get_atom(const string& handle) {
     }
 }
 
-shared_ptr<Node> InMemoryDB::get_node(const string& handle) {
-    auto atom = get_atom(handle);
+shared_ptr<Node> InMemoryDB::get_node(const string& handle, const string& public_key) {
+    auto atom = get_atom(handle, public_key);
     if (atom != nullptr) {
         return make_shared<Node>(*dynamic_cast<Node*>(atom.get()));
     }
     return nullptr;
 }
 
-shared_ptr<Link> InMemoryDB::get_link(const string& handle) {
-    auto atom = get_atom(handle);
+shared_ptr<Link> InMemoryDB::get_link(const string& handle, const string& public_key) {
+    auto atom = get_atom(handle, public_key);
     if (atom != nullptr) {
         return make_shared<Link>(*dynamic_cast<Link*>(atom.get()));
     }
     return nullptr;
 }
 
-shared_ptr<HandleSet> InMemoryDB::query_for_pattern(const LinkSchema& link_schema) {
+shared_ptr<HandleSet> InMemoryDB::query_for_pattern(const LinkSchema& link_schema,
+                                                    const string& public_key) {
     auto handle_set = make_shared<HandleSetInMemory>();
 
     // Check if we have this pattern indexed in the HandleTrie
@@ -183,7 +186,7 @@ shared_ptr<HandleSet> InMemoryDB::query_for_pattern(const LinkSchema& link_schem
     return handle_set;
 }
 
-shared_ptr<HandleList> InMemoryDB::query_for_targets(const string& handle) {
+shared_ptr<HandleList> InMemoryDB::query_for_targets(const string& handle, const string& public_key) {
     auto trie_value = atoms_trie_->lookup(handle);
     if (trie_value == NULL) {
         return nullptr;
@@ -200,7 +203,8 @@ shared_ptr<HandleList> InMemoryDB::query_for_targets(const string& handle) {
     return make_shared<HandleListInMemory>(link->targets);
 }
 
-shared_ptr<HandleSet> InMemoryDB::query_for_incoming_set(const string& handle) {
+shared_ptr<HandleSet> InMemoryDB::query_for_incoming_set(const string& handle,
+                                                         const string& public_key) {
     auto handle_set = make_shared<HandleSetInMemory>();
     auto incoming_set_trie_value =
         dynamic_cast<HandleSetTrieValue*>(this->incoming_sets_trie_->lookup(handle));
@@ -212,7 +216,9 @@ shared_ptr<HandleSet> InMemoryDB::query_for_incoming_set(const string& handle) {
     return handle_set;
 }
 
-vector<shared_ptr<Atom>> InMemoryDB::get_matching_atoms(bool is_toplevel, Atom& key) {
+vector<shared_ptr<Atom>> InMemoryDB::get_matching_atoms(bool is_toplevel,
+                                                        Atom& key,
+                                                        const string& public_key) {
     vector<shared_ptr<Atom>> matching_atoms;
     auto trie_value = atoms_trie_->lookup(key.handle());
     if (trie_value == NULL) {
@@ -231,9 +237,11 @@ vector<shared_ptr<Atom>> InMemoryDB::get_matching_atoms(bool is_toplevel, Atom& 
     return matching_atoms;
 }
 
-bool InMemoryDB::atom_exists(const string& handle) { return atoms_trie_->lookup(handle) != NULL; }
+bool InMemoryDB::atom_exists(const string& handle, const string& /*public_key*/) {
+    return atoms_trie_->lookup(handle) != NULL;
+}
 
-bool InMemoryDB::node_exists(const string& handle) {
+bool InMemoryDB::node_exists(const string& handle, const string& /*public_key*/) {
     auto trie_value = atoms_trie_->lookup(handle);
     if (trie_value == NULL) {
         return false;
@@ -246,7 +254,7 @@ bool InMemoryDB::node_exists(const string& handle) {
     return Atom::is_node(*atom);
 }
 
-bool InMemoryDB::link_exists(const string& handle) {
+bool InMemoryDB::link_exists(const string& handle, const string& /*public_key*/) {
     auto trie_value = atoms_trie_->lookup(handle);
     if (trie_value == NULL) {
         return false;
@@ -259,7 +267,7 @@ bool InMemoryDB::link_exists(const string& handle) {
     return Atom::is_link(*atom);
 }
 
-set<string> InMemoryDB::atoms_exist(const vector<string>& handles) {
+set<string> InMemoryDB::atoms_exist(const vector<string>& handles, const string& public_key) {
     set<string> existing;
     for (const auto& handle : handles) {
         if (atoms_trie_->lookup(handle) != NULL) {
@@ -269,38 +277,38 @@ set<string> InMemoryDB::atoms_exist(const vector<string>& handles) {
     return existing;
 }
 
-set<string> InMemoryDB::nodes_exist(const vector<string>& handles) {
+set<string> InMemoryDB::nodes_exist(const vector<string>& handles, const string& public_key) {
     set<string> existing;
     for (const auto& handle : handles) {
-        if (this->node_exists(handle)) {
+        if (this->node_exists(handle, public_key)) {
             existing.insert(handle);
         }
     }
     return existing;
 }
 
-set<string> InMemoryDB::links_exist(const vector<string>& handles) {
+set<string> InMemoryDB::links_exist(const vector<string>& handles, const string& public_key) {
     set<string> existing;
     for (const auto& handle : handles) {
-        if (this->link_exists(handle)) {
+        if (this->link_exists(handle, public_key)) {
             existing.insert(handle);
         }
     }
     return existing;
 }
 
-string InMemoryDB::add_atom(const atoms::Atom* atom, bool throw_if_exists) {
+string InMemoryDB::add_atom(const atoms::Atom* atom, const string& public_key, bool throw_if_exists) {
     if (atom->arity() == 0) {
-        return add_node(dynamic_cast<const atoms::Node*>(atom), throw_if_exists);
+        return add_node(dynamic_cast<const atoms::Node*>(atom), public_key, throw_if_exists);
     } else {
-        return add_link(dynamic_cast<const atoms::Link*>(atom), throw_if_exists);
+        return add_link(dynamic_cast<const atoms::Link*>(atom), public_key, throw_if_exists);
     }
 }
 
-string InMemoryDB::add_node(const atoms::Node* node, bool throw_if_exists) {
+string InMemoryDB::add_node(const atoms::Node* node, const string& public_key, bool throw_if_exists) {
     string handle = node->handle();
 
-    if (throw_if_exists && this->node_exists(handle)) {
+    if (throw_if_exists && this->node_exists(handle, public_key)) {
         RAISE_ERROR("Node already exists: " + handle);
         return "";
     }
@@ -319,13 +327,14 @@ string InMemoryDB::add_node(const atoms::Node* node, bool throw_if_exists) {
     return handle;
 }
 
-string InMemoryDB::add_link(const atoms::Link* link, bool throw_if_exists) {
+string InMemoryDB::add_link(const atoms::Link* link, const string& public_key, bool throw_if_exists) {
     vector<Link*> links = {const_cast<atoms::Link*>(link)};
-    auto handles = this->add_links(links, throw_if_exists, false);
+    auto handles = this->add_links(links, public_key, throw_if_exists, false);
     return handles.empty() ? "" : handles[0];
 }
 
 vector<string> InMemoryDB::add_atoms(const vector<atoms::Atom*>& atoms,
+                                     const string& public_key,
                                      bool throw_if_exists,
                                      bool is_transactional) {
     if (atoms.empty()) {
@@ -342,14 +351,15 @@ vector<string> InMemoryDB::add_atoms(const vector<atoms::Atom*>& atoms,
             links.push_back(dynamic_cast<atoms::Link*>(atom));
         }
     }
-    auto node_handles = this->add_nodes(nodes, throw_if_exists, is_transactional);
-    auto link_handles = this->add_links(links, throw_if_exists, is_transactional);
+    auto node_handles = this->add_nodes(nodes, public_key, throw_if_exists, is_transactional);
+    auto link_handles = this->add_links(links, public_key, throw_if_exists, is_transactional);
 
     node_handles.insert(node_handles.end(), link_handles.begin(), link_handles.end());
     return node_handles;
 }
 
 vector<string> InMemoryDB::add_nodes(const vector<atoms::Node*>& nodes,
+                                     const string& public_key,
                                      bool throw_if_exists,
                                      bool is_transactional) {
     if (nodes.empty()) {
@@ -362,7 +372,7 @@ vector<string> InMemoryDB::add_nodes(const vector<atoms::Node*>& nodes,
     }
 
     if (throw_if_exists) {
-        auto existing_handles = this->nodes_exist(handles);
+        auto existing_handles = this->nodes_exist(handles, public_key);
         if (!existing_handles.empty()) {
             vector<string> existing_handles_vector(existing_handles.begin(), existing_handles.end());
             RAISE_ERROR("Failed to insert nodes, some nodes already exist: " +
@@ -372,13 +382,14 @@ vector<string> InMemoryDB::add_nodes(const vector<atoms::Node*>& nodes,
     }
 
     for (const auto& node : nodes) {
-        handles.push_back(this->add_node(node, throw_if_exists));
+        handles.push_back(this->add_node(node, public_key, throw_if_exists));
     }
 
     return handles;
 }
 
 vector<string> InMemoryDB::add_links(const vector<atoms::Link*>& links,
+                                     const string& public_key,
                                      bool throw_if_exists,
                                      bool is_transactional) {
     if (links.empty()) {
@@ -390,7 +401,7 @@ vector<string> InMemoryDB::add_links(const vector<atoms::Link*>& links,
         for (const auto& link : links) {
             handles.push_back(link->handle());
         }
-        auto existing_handles = this->links_exist(handles);
+        auto existing_handles = this->links_exist(handles, public_key);
         if (!existing_handles.empty()) {
             vector<string> existing_handles_vector(existing_handles.begin(), existing_handles.end());
             RAISE_ERROR("Failed to insert links, some links already exist: " +
@@ -430,14 +441,14 @@ vector<string> InMemoryDB::add_links(const vector<atoms::Link*>& links,
     return handles;
 }
 
-bool InMemoryDB::delete_atom(const string& handle, bool delete_link_targets) {
-    if (this->delete_node(handle, delete_link_targets)) {
+bool InMemoryDB::delete_atom(const string& handle, const string& public_key, bool delete_link_targets) {
+    if (this->delete_node(handle, public_key, delete_link_targets)) {
         return true;
     }
-    return this->delete_link(handle, delete_link_targets);
+    return this->delete_link(handle, public_key, delete_link_targets);
 }
 
-bool InMemoryDB::delete_node(const string& handle, bool delete_link_targets) {
+bool InMemoryDB::delete_node(const string& handle, const string& public_key, bool delete_link_targets) {
     auto trie_value = this->atoms_trie_->lookup(handle);
     if (trie_value == NULL) {
         return false;
@@ -469,7 +480,7 @@ bool InMemoryDB::delete_node(const string& handle, bool delete_link_targets) {
 
     // Delete all links that reference this node
     for (const auto& link_handle : link_handles_to_delete) {
-        this->delete_link(link_handle, delete_link_targets);
+        this->delete_link(link_handle, public_key, delete_link_targets);
     }
 
     // Clear the value in the trie (set to NULL)
@@ -479,7 +490,7 @@ bool InMemoryDB::delete_node(const string& handle, bool delete_link_targets) {
     return true;
 }
 
-bool InMemoryDB::delete_link(const string& handle, bool delete_link_targets) {
+bool InMemoryDB::delete_link(const string& handle, const string& public_key, bool delete_link_targets) {
     auto trie_value = atoms_trie_->lookup(handle);
     if (trie_value == NULL) {
         return false;
@@ -525,52 +536,62 @@ bool InMemoryDB::delete_link(const string& handle, bool delete_link_targets) {
     // Release locks before calling delete_atom to avoid deadlock
     // Delete targets that have no other incoming links
     for (const auto& target_handle : targets_to_delete) {
-        this->delete_atom(target_handle, delete_link_targets);
+        this->delete_atom(target_handle, public_key, delete_link_targets);
     }
 
     return true;
 }
 
-uint InMemoryDB::delete_atoms(const vector<string>& handles, bool delete_link_targets) {
+uint InMemoryDB::delete_atoms(const vector<string>& handles,
+                              const string& public_key,
+                              bool delete_link_targets) {
     uint deleted_count = 0;
     for (const auto& handle : handles) {
-        if (this->delete_atom(handle, delete_link_targets)) {
+        if (this->delete_atom(handle, public_key, delete_link_targets)) {
             deleted_count++;
         }
     }
     return deleted_count;
 }
 
-uint InMemoryDB::delete_nodes(const vector<string>& handles, bool delete_link_targets) {
+uint InMemoryDB::delete_nodes(const vector<string>& handles,
+                              const string& public_key,
+                              bool delete_link_targets) {
     uint deleted_count = 0;
     for (const auto& handle : handles) {
-        if (this->delete_node(handle, delete_link_targets)) {
+        if (this->delete_node(handle, public_key, delete_link_targets)) {
             deleted_count++;
         }
     }
     return deleted_count;
 }
 
-uint InMemoryDB::delete_links(const vector<string>& handles, bool delete_link_targets) {
+uint InMemoryDB::delete_links(const vector<string>& handles,
+                              const string& public_key,
+                              bool delete_link_targets) {
     uint deleted_count = 0;
     for (const auto& handle : handles) {
-        if (this->delete_link(handle, delete_link_targets)) {
+        if (this->delete_link(handle, public_key, delete_link_targets)) {
             deleted_count++;
         }
     }
     return deleted_count;
 }
 
-size_t InMemoryDB::node_count() const { RAISE_ERROR("node_count() is not implemented yet"); }
+size_t InMemoryDB::node_count(const string& public_key) const {
+    RAISE_ERROR("node_count() is not implemented yet");
+}
 
-size_t InMemoryDB::link_count() const { RAISE_ERROR("link_count() is not implemented yet"); }
+size_t InMemoryDB::link_count(const string& public_key) const {
+    RAISE_ERROR("link_count() is not implemented yet");
+}
 
-size_t InMemoryDB::atom_count() const {
+size_t InMemoryDB::atom_count(const string& public_key) const {
     auto size = this->atoms_trie_->size;
     return static_cast<size_t>(size);
 }
 
-void InMemoryDB::re_index_patterns(bool flush_patterns) {
+void InMemoryDB::re_index_patterns(const string& public_key, bool flush_patterns) {
     if (flush_patterns) {
         // Clear all pattern index entries by deleting and recreating the trie
         this->pattern_index_trie_->traverse(

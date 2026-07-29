@@ -497,12 +497,12 @@ string QueryEvolutionProcessor::answer_to_string_2(shared_ptr<QueryAnswer> answe
         vector<string> path_link = {" -> ", " -> "};
         bool first = true;
         for (string& handle : answer->get_path_vector(i)) {
-            auto link = db->get_link(handle);
+            auto link = db->get_link(handle, "");
             if ((link == nullptr) || (link->arity() != 3)) {
                 return "Invalid link: " + handle;
             }
-            auto target1 = db->get_link(link->targets[1]);
-            auto target2 = db->get_link(link->targets[2]);
+            auto target1 = db->get_link(link->targets[1], "");
+            auto target2 = db->get_link(link->targets[2], "");
             if ((target1 == nullptr) || (target2 == nullptr)) {
                 return "Invalid link: " + link->to_string();
             }
@@ -533,9 +533,9 @@ string QueryEvolutionProcessor::answer_to_string_1(shared_ptr<QueryAnswer> answe
     string path_link = " -> ";
     bool first = true;
     for (string& handle : answer->get_path_vector(0)) {
-        auto link = db->get_link(handle);
-        auto target1 = db->get_link(link->targets[1]);
-        auto target2 = db->get_link(link->targets[2]);
+        auto link = db->get_link(handle, "");
+        auto target1 = db->get_link(link->targets[1], "");
+        auto target2 = db->get_link(link->targets[2], "");
         if (first) {
             first = false;
             path = target1->metta_representation(*(this->decoder)) + path_link;

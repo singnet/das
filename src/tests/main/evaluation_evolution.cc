@@ -145,7 +145,7 @@ static string hard_wired_metta_expression(const string& handle) {
 
 static double get_strength(const string& handle) {
     STACK_TRACE();
-    auto atom = db->get_atom(handle);
+    auto atom = db->get_atom(handle, "");
     return atom->custom_attributes.get_or<double>(STRENGTH_TAG, 1.0);
 }
 
@@ -173,9 +173,9 @@ static string answer_to_string_2(shared_ptr<QueryAnswer> answer) {
         vector<string> path_link = {" -> ", " -> "};
         bool first = true;
         for (string& handle : answer->get_path_vector(i)) {
-            auto link = db->get_link(handle);
-            auto target1 = db->get_link(link->targets[1]);
-            auto target2 = db->get_link(link->targets[2]);
+            auto link = db->get_link(handle, "");
+            auto target1 = db->get_link(link->targets[1], "");
+            auto target2 = db->get_link(link->targets[2], "");
             if (first) {
                 first = false;
                 path = target1->metta_representation(*DECODER) + path_link[i];
@@ -203,9 +203,9 @@ static string answer_to_string_1(shared_ptr<QueryAnswer> answer) {
     string path_link = " -> ";
     bool first = true;
     for (string& handle : answer->get_path_vector(0)) {
-        auto link = db->get_link(handle);
-        auto target1 = db->get_link(link->targets[1]);
-        auto target2 = db->get_link(link->targets[2]);
+        auto link = db->get_link(handle, "");
+        auto target1 = db->get_link(link->targets[1], "");
+        auto target2 = db->get_link(link->targets[2], "");
         if (first) {
             first = false;
             path = target1->metta_representation(*DECODER) + path_link;
@@ -393,14 +393,14 @@ static shared_ptr<Link> add_or_update_link(const string& type_handle,
         new Link(EXPRESSION, {type_handle, target1, target2}, true, {{STRENGTH_TAG, strength}}));
     LOG_DEBUG("Add or update: " + new_link->to_string());
     string handle = new_link->handle();
-    if (db->link_exists(handle)) {
-        auto old_link = db->get_atom(handle);
+    if (db->link_exists(handle, "")) {
+        auto old_link = db->get_atom(handle, "");
         LOG_DEBUG("Link already exists: " + old_link->to_string());
         if (strength != old_link->custom_attributes.get_or<double>(STRENGTH_TAG, 1)) {
             if (WRITE_CREATED_LINKS_TO_DB) {
                 LOG_DEBUG("Updating Link in AtomDB");
-                db->delete_link(handle, false);
-                db->add_link(new_link.get());
+                db->delete_link(handle, "", false);
+                db->add_link(new_link.get(), "");
             }
             if (WRITE_CREATED_LINKS_TO_FILE) {
                 LOG_DEBUG("Writing Link to file: " + PRESET_LINKS_FILE);
@@ -415,7 +415,7 @@ static shared_ptr<Link> add_or_update_link(const string& type_handle,
                 LOG_INFO("ADD LINK: [" + std::to_string(strength) + "] " +
                          new_link->metta_representation(*DECODER));
             }
-            db->add_link(new_link.get());
+            db->add_link(new_link.get(), "");
             buffer_determiners.push_back({handle, target1, target2});
             AttentionBrokerClient::correlate(set<string>({target1, target2}), context);
         }
@@ -431,10 +431,10 @@ static shared_ptr<Link> add_or_update_link(const string& type_handle,
 static void extract_mentioned_predicates(set<string>& mentioned, const string& handle) {
     STACK_TRACE();
     shared_ptr<Node> node;
-    shared_ptr<Link> link = db->get_link(handle);
+    shared_ptr<Link> link = db->get_link(handle, "");
     if (link != nullptr) {
         for (string& target_handle : link->targets) {
-            if ((node = db->get_node(target_handle)) != nullptr) {
+            if ((node = db->get_node(target_handle, "")) != nullptr) {
                 if ((node->name != PREDICATE) && (node->name != LOGICAL_AND)) {
                     mentioned.insert(node->name);
                 }
@@ -457,8 +457,9 @@ static shared_ptr<Link> add_and_predicate(const string& handle1,
     extract_mentioned_predicates(mentioned_predicates1, handle1);
     extract_mentioned_predicates(mentioned_predicates2, handle2);
     if (Utils::intersects(mentioned_predicates1, mentioned_predicates2)) {
-        LOG_DEBUG("Disregarded AND predicate: " + db->get_atom(handle1)->metta_representation(*DECODER) +
-                  " AND " + db->get_atom(handle2)->metta_representation(*DECODER));
+        LOG_DEBUG(
+            "Disregarded AND predicate: " + db->get_atom(handle1, "")->metta_representation(*DECODER) +
+            " AND " + db->get_atom(handle2, "")->metta_representation(*DECODER));
         return nullptr;
     }
 
@@ -540,8 +541,8 @@ static bool build_implication_link(shared_ptr<QueryAnswer> query_answer,
     extract_mentioned_predicates(mentioned_predicates2, predicates[1]);
     if (Utils::intersects(mentioned_predicates1, mentioned_predicates2)) {
         LOG_DEBUG("Disregarded IMPLICATION predicates: " +
-                  db->get_atom(predicates[0])->metta_representation(*DECODER) + " <=> " +
-                  db->get_atom(predicates[1])->metta_representation(*DECODER));
+                  db->get_atom(predicates[0], "")->metta_representation(*DECODER) + " <=> " +
+                  db->get_atom(predicates[1], "")->metta_representation(*DECODER));
         return false;
     }
 
@@ -992,7 +993,7 @@ static void add_preset_links(const vector<string>& implication_to_target_predica
             auto link = std::dynamic_pointer_cast<Link>(parser_handler->element_stack.top());
             link->custom_attributes["strength"] = (double) Utils::string_to_float(line[0]);
             LOG_DEBUG("Adding Link: [" + line[0] + "] " + line[1]);
-            db->add_link(link.get(), false);
+            db->add_link(link.get(), "", false);
             count++;
             line.clear();
             buffer_determiners.push_back({link->handle(), link->targets[1], link->targets[2]});
@@ -1390,7 +1391,7 @@ static void insert_type_symbols() {
     Node* node;
     for (string node_name : to_insert) {
         node = new Node(SYMBOL, node_name);
-        db->add_node(node, false);
+        db->add_node(node, "", false);
         delete (node);
     }
 }

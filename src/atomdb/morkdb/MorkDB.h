@@ -43,21 +43,26 @@ class MorkDB : public RedisMongoDB {
     MorkDB(const string& context, const JsonConfig& config);
     ~MorkDB();
 
-    bool allow_nested_indexing() override;
+    bool allow_nested_indexing(const string& public_key) override;
 
-    shared_ptr<atomdb_api_types::HandleSet> query_for_pattern(const LinkSchema& link_schema) override;
-    shared_ptr<atomdb_api_types::HandleList> query_for_targets(const string& handle) override;
+    shared_ptr<atomdb_api_types::HandleSet> query_for_pattern(const LinkSchema& link_schema,
+                                                              const string& public_key) override;
+    shared_ptr<atomdb_api_types::HandleList> query_for_targets(const string& handle,
+                                                               const string& public_key) override;
 
     vector<string> add_links(const vector<atoms::Link*>& links,
+                             const string& public_key,
                              bool throw_if_exists = false,
                              bool is_transactional = false) override;
 
     // TODO: Implement this once MORK supports deleting links (S-Expressions)
-    bool delete_link(const string& handle, bool delete_targets) override;
+    bool delete_link(const string& handle,
+                     const string& public_key,
+                     bool delete_targets = false) override;
 
     string flush_pattern(const string& pattern);
 
-    void re_index_patterns(bool flush_patterns = true) override;
+    void re_index_patterns(const string& public_key, bool flush_patterns = true) override;
 
    private:
     shared_ptr<MorkClient> mork_client;

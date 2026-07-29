@@ -175,7 +175,7 @@ int main(int argc, char* argv[]) {
                             thread_atoms_count++;
 
                             if (batch_atoms.size() >= static_cast<size_t>(chunk_size)) {
-                                thread_atomdb->add_atoms(batch_atoms, false, true);
+                                thread_atomdb->add_atoms(batch_atoms, "", false, true);
                                 batch_atoms.clear();
                                 if (parser_actions_list.size() > 10) {
                                     parser_actions_list.erase(parser_actions_list.begin(),
@@ -190,7 +190,7 @@ int main(int argc, char* argv[]) {
                 }
 
                 if (!batch_atoms.empty()) {
-                    thread_atomdb->add_atoms(batch_atoms, false, true);
+                    thread_atomdb->add_atoms(batch_atoms, "", false, true);
                 }
 
                 total_atoms_processed += thread_atoms_count;
@@ -280,8 +280,8 @@ int main(int argc, char* argv[]) {
                     links.push_back(link_with_nested);
 
                     if (j % chunk_size == 0) {
-                        thread_db->add_nodes(nodes, false, true);
-                        thread_db->add_links(links, false, true);
+                        thread_db->add_nodes(nodes, "", false, true);
+                        thread_db->add_links(links, "", false, true);
                         nodes.clear();
                         links.clear();
                     }
@@ -290,12 +290,12 @@ int main(int argc, char* argv[]) {
                 if (!nodes.empty()) {
                     LOG_INFO("[" + to_string(thread_id) + "] Final - Adding " + to_string(nodes.size()) +
                              " nodes");
-                    thread_db->add_nodes(nodes, false, true);
+                    thread_db->add_nodes(nodes, "", false, true);
                 }
                 if (!links.empty()) {
                     LOG_INFO("[" + to_string(thread_id) + "] Final - Adding " + to_string(links.size()) +
                              " links");
-                    thread_db->add_links(links, false, true);
+                    thread_db->add_links(links, "", false, true);
                 }
 
                 // clang-format off
@@ -307,7 +307,7 @@ int main(int argc, char* argv[]) {
                 });
                 // clang-format on
 
-                auto result = thread_db->query_for_pattern(link_schema);
+                auto result = thread_db->query_for_pattern(link_schema, "");
                 if (result->size() != 2) {
                     RAISE_ERROR("[" + to_string(thread_id) + "] Expected 2 results, got " +
                                 to_string(result->size()));

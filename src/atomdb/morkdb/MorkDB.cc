@@ -135,7 +135,7 @@ MorkDB::MorkDB(const string& context, const JsonConfig& config) : RedisMongoDB(c
 
 MorkDB::~MorkDB() {}
 
-bool MorkDB::allow_nested_indexing() { return true; }
+bool MorkDB::allow_nested_indexing(const string& public_key) { return true; }
 
 void MorkDB::mork_setup(const JsonConfig& config) {
     string address = Utils::trim(config.at_path("morkdb.endpoint").get_or<string>(""));
@@ -174,7 +174,8 @@ class MorkDBDecoder : public HandleDecoder {
     shared_ptr<MettaParserActions> parser_actions;
 };
 
-shared_ptr<atomdb_api_types::HandleSet> MorkDB::query_for_pattern(const LinkSchema& link_schema) {
+shared_ptr<atomdb_api_types::HandleSet> MorkDB::query_for_pattern(const LinkSchema& link_schema,
+                                                                  const string& public_key) {
     string pattern_metta = link_schema.metta_representation(*this);
     // template should equals to pattern_metta
     LOG_DEBUG("Fetching data...");
@@ -206,7 +207,8 @@ shared_ptr<atomdb_api_types::HandleSet> MorkDB::query_for_pattern(const LinkSche
     return handle_set;
 }
 
-shared_ptr<atomdb_api_types::HandleList> MorkDB::query_for_targets(const string& handle) {
+shared_ptr<atomdb_api_types::HandleList> MorkDB::query_for_targets(const string& handle,
+                                                                   const string& public_key) {
     auto document = this->get_atom_document(handle);
     if (document == nullptr || !document->contains(MONGODB_FIELD_NAME[MONGODB_FIELD::TARGETS])) {
         return nullptr;
@@ -215,6 +217,7 @@ shared_ptr<atomdb_api_types::HandleList> MorkDB::query_for_targets(const string&
 }
 
 vector<string> MorkDB::add_links(const vector<atoms::Link*>& links,
+                                 const string& public_key,
                                  bool throw_if_exists,
                                  bool is_transactional) {
     if (links.empty()) {
@@ -230,7 +233,7 @@ vector<string> MorkDB::add_links(const vector<atoms::Link*>& links,
         for (const auto& link : links) {
             handles.push_back(link->handle());
         }
-        auto existing_handles = this->links_exist(handles);
+        auto existing_handles = this->links_exist(handles, public_key);
         if (!existing_handles.empty()) {
             vector<string> existing_handles_vector(existing_handles.begin(), existing_handles.end());
             RAISE_ERROR("Failed to insert links, some links already exist: " +
@@ -303,14 +306,14 @@ vector<string> MorkDB::add_links(const vector<atoms::Link*>& links,
     return handles;
 }
 
-bool MorkDB::delete_link(const string& handle, bool delete_targets) {
+bool MorkDB::delete_link(const string& handle, const string& /*public_key*/, bool delete_targets) {
     Utils::error("MORKDB does not support deleting links.", false);
     return false;
 }
 
 string MorkDB::flush_pattern(const string& pattern) { return this->mork_client->clear(pattern); }
 
-void MorkDB::re_index_patterns(bool flush_patterns) {
+void MorkDB::re_index_patterns(const string& public_key, bool flush_patterns) {
     vector<Link*> links;
     uint max_arity = 0;
 
@@ -350,7 +353,7 @@ void MorkDB::re_index_patterns(bool flush_patterns) {
         }
     }
 
-    this->add_links(links, false, true);
+    this->add_links(links, "", false, true);
 }
 
 // <--

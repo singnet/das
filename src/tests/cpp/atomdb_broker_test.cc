@@ -127,10 +127,10 @@ TEST_F(AtomDBTest, AddAtoms) {
     EXPECT_TRUE(atoms[2]->handle() == node3);
     EXPECT_TRUE(atoms[3]->handle() == link_handle);
 
-    EXPECT_FALSE(db->node_exists(node1));
-    EXPECT_FALSE(db->node_exists(node2));
-    EXPECT_FALSE(db->node_exists(node3));
-    EXPECT_FALSE(db->link_exists(link_handle));
+    EXPECT_FALSE(db->node_exists(node1, ""));
+    EXPECT_FALSE(db->node_exists(node2, ""));
+    EXPECT_FALSE(db->node_exists(node3, ""));
+    EXPECT_FALSE(db->link_exists(link_handle, ""));
 
     vector<string> handles = proxy->add_atoms(atoms);
     added_atom_handles.insert(added_atom_handles.end(), handles.begin(), handles.end());
@@ -142,10 +142,10 @@ TEST_F(AtomDBTest, AddAtoms) {
 
     Utils::sleep(2000);
 
-    EXPECT_TRUE(db->node_exists(node1));
-    EXPECT_TRUE(db->node_exists(node2));
-    EXPECT_TRUE(db->node_exists(node3));
-    EXPECT_TRUE(db->link_exists(link_handle));
+    EXPECT_TRUE(db->node_exists(node1, ""));
+    EXPECT_TRUE(db->node_exists(node2, ""));
+    EXPECT_TRUE(db->node_exists(node3, ""));
+    EXPECT_TRUE(db->link_exists(link_handle, ""));
 }
 
 TEST_F(AtomDBTest, AddAtomsStreaming) {
@@ -176,10 +176,10 @@ TEST_F(AtomDBTest, AddAtomsStreaming) {
     EXPECT_TRUE(atoms[2]->handle() == node3);
     EXPECT_TRUE(atoms[3]->handle() == link_handle);
 
-    EXPECT_FALSE(db->node_exists(node1));
-    EXPECT_FALSE(db->node_exists(node2));
-    EXPECT_FALSE(db->node_exists(node3));
-    EXPECT_FALSE(db->link_exists(link_handle));
+    EXPECT_FALSE(db->node_exists(node1, ""));
+    EXPECT_FALSE(db->node_exists(node2, ""));
+    EXPECT_FALSE(db->node_exists(node3, ""));
+    EXPECT_FALSE(db->link_exists(link_handle, ""));
 
     vector<string> handles = proxy->add_atoms(atoms, true);
     added_atom_handles.insert(added_atom_handles.end(), handles.begin(), handles.end());
@@ -191,10 +191,10 @@ TEST_F(AtomDBTest, AddAtomsStreaming) {
 
     Utils::sleep(2000);
 
-    EXPECT_TRUE(db->node_exists(node1));
-    EXPECT_TRUE(db->node_exists(node2));
-    EXPECT_TRUE(db->node_exists(node3));
-    EXPECT_TRUE(db->link_exists(link_handle));
+    EXPECT_TRUE(db->node_exists(node1, ""));
+    EXPECT_TRUE(db->node_exists(node2, ""));
+    EXPECT_TRUE(db->node_exists(node3, ""));
+    EXPECT_TRUE(db->link_exists(link_handle, ""));
 }
 
 TEST_F(AtomDBTest, DeleteAtoms) {
@@ -207,7 +207,7 @@ TEST_F(AtomDBTest, DeleteAtoms) {
     Utils::sleep(2000);
 
     for (const auto& handle : added_atom_handles) {
-        EXPECT_FALSE(db->node_exists(handle));
+        EXPECT_FALSE(db->node_exists(handle, ""));
     }
 }
 
@@ -239,27 +239,27 @@ TEST_F(AtomDBTest, DeleteLinkTargetsTop) {
     EXPECT_TRUE(atoms[2]->handle() == node3);
     EXPECT_TRUE(atoms[3]->handle() == link_handle);
 
-    EXPECT_FALSE(db->node_exists(node1));
-    EXPECT_FALSE(db->node_exists(node2));
-    EXPECT_FALSE(db->node_exists(node3));
-    EXPECT_FALSE(db->link_exists(link_handle));
+    EXPECT_FALSE(db->node_exists(node1, ""));
+    EXPECT_FALSE(db->node_exists(node2, ""));
+    EXPECT_FALSE(db->node_exists(node3, ""));
+    EXPECT_FALSE(db->link_exists(link_handle, ""));
 
     vector<string> handles = proxy->add_atoms(atoms);
 
     Utils::sleep(2000);
 
-    EXPECT_TRUE(db->node_exists(node1));
-    EXPECT_TRUE(db->node_exists(node2));
-    EXPECT_TRUE(db->node_exists(node3));
-    EXPECT_TRUE(db->link_exists(link_handle));
+    EXPECT_TRUE(db->node_exists(node1, ""));
+    EXPECT_TRUE(db->node_exists(node2, ""));
+    EXPECT_TRUE(db->node_exists(node3, ""));
+    EXPECT_TRUE(db->link_exists(link_handle, ""));
 
     proxy->delete_atoms({link_handle}, true);
 
     Utils::sleep(2000);
-    EXPECT_FALSE(db->link_exists(link_handle));
-    EXPECT_FALSE(db->node_exists(node1));
-    EXPECT_FALSE(db->node_exists(node2));
-    EXPECT_FALSE(db->node_exists(node3));
+    EXPECT_FALSE(db->link_exists(link_handle, ""));
+    EXPECT_FALSE(db->node_exists(node1, ""));
+    EXPECT_FALSE(db->node_exists(node2, ""));
+    EXPECT_FALSE(db->node_exists(node3, ""));
 }
 
 TEST_F(AtomDBTest, DeleteLinkTargetsBottom) {
@@ -297,30 +297,30 @@ TEST_F(AtomDBTest, DeleteLinkTargetsBottom) {
     EXPECT_TRUE(atoms[3]->handle() == node4);
     EXPECT_TRUE(atoms[4]->handle() == link_handle);
 
-    EXPECT_FALSE(db->node_exists(node1));
-    EXPECT_FALSE(db->node_exists(node2));
-    EXPECT_FALSE(db->node_exists(node3));
-    EXPECT_FALSE(db->node_exists(node4));
-    EXPECT_FALSE(db->link_exists(link_handle));
+    EXPECT_FALSE(db->node_exists(node1, ""));
+    EXPECT_FALSE(db->node_exists(node2, ""));
+    EXPECT_FALSE(db->node_exists(node3, ""));
+    EXPECT_FALSE(db->node_exists(node4, ""));
+    EXPECT_FALSE(db->link_exists(link_handle, ""));
 
     vector<string> handles = proxy->add_atoms(atoms);
 
     Utils::sleep(2000);
 
-    EXPECT_TRUE(db->node_exists(node1));
-    EXPECT_TRUE(db->node_exists(node2));
-    EXPECT_TRUE(db->node_exists(node3));
-    EXPECT_TRUE(db->node_exists(node4));
-    EXPECT_TRUE(db->link_exists(link_handle));
+    EXPECT_TRUE(db->node_exists(node1, ""));
+    EXPECT_TRUE(db->node_exists(node2, ""));
+    EXPECT_TRUE(db->node_exists(node3, ""));
+    EXPECT_TRUE(db->node_exists(node4, ""));
+    EXPECT_TRUE(db->link_exists(link_handle, ""));
 
     proxy->delete_atoms({node3}, true);
 
     Utils::sleep(2000);
-    EXPECT_FALSE(db->link_exists(link_handle));
-    EXPECT_FALSE(db->node_exists(node1));
-    EXPECT_FALSE(db->node_exists(node2));
-    EXPECT_FALSE(db->node_exists(node3));
-    EXPECT_TRUE(db->node_exists(node4));
+    EXPECT_FALSE(db->link_exists(link_handle, ""));
+    EXPECT_FALSE(db->node_exists(node1, ""));
+    EXPECT_FALSE(db->node_exists(node2, ""));
+    EXPECT_FALSE(db->node_exists(node3, ""));
+    EXPECT_TRUE(db->node_exists(node4, ""));
 }
 
 int main(int argc, char** argv) {

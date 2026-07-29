@@ -18,9 +18,9 @@ float CountLetterFunction::eval(shared_ptr<QueryAnswer> query_answer) {
         shared_ptr<Link> sentence_link;
         shared_ptr<Node> sentence_name_node;
         string handle = query_answer->assignment.get(VARIABLE_NAME);
-        sentence_link = this->db->get_link(handle);
+        sentence_link = this->db->get_link(handle, "");
         handle = sentence_link->targets[1];
-        sentence_name_node = this->db->get_node(handle);
+        sentence_name_node = this->db->get_node(handle, "");
         string sentence_name = sentence_name_node->name;
         unsigned int count = 0;
         unsigned int sentence_length = 0;

@@ -167,7 +167,7 @@ void AtomDBProxy::add_atoms_callback(const vector<string>& tokens) {
         for (auto& atom : atoms) {
             buffer.push_back(atom.get());
         }
-        this->atomdb->add_atoms(buffer, false, true);
+        this->atomdb->add_atoms(buffer, "", false, true);
     } catch (const exception& e) {
         LOG_ERROR("Error processing batch: " << e.what());
     }
@@ -180,7 +180,7 @@ void AtomDBProxy::delete_atoms_callback(const vector<string>& args) {
         }
         vector<string> handles(args.begin(), args.end() - 1);
         bool delete_link_targets = args.back() == "1";
-        uint deleted_count = this->atomdb->delete_atoms(handles, delete_link_targets);
+        uint deleted_count = this->atomdb->delete_atoms(handles, "", delete_link_targets);
         LOG_INFO("Deleted " << deleted_count << " atoms");
     } catch (const exception& e) {
         LOG_ERROR("Error processing delete_atoms command: " << e.what());
@@ -215,7 +215,7 @@ void AtomDBProxy::process_atom_batches() {
             this->pending_atoms_count -= atoms.size();
             lock.unlock();
             auto job = [this, atoms = std::move(atoms)]() {
-                this->atomdb->add_atoms(atoms, false, true);
+                this->atomdb->add_atoms(atoms, "", false, true);
                 for (auto& atom : atoms) {
                     delete atom;
                 }

@@ -18,8 +18,8 @@ bool EquivalenceProcessor::link_exists(const string& handle1, const string& hand
     vector<string> targets_c2_c1 = {equivalence_node.handle(), handle2, handle1};
     shared_ptr<Link> link_c1_c2 = make_shared<Link>("Expression", targets_c1_c2);
     shared_ptr<Link> link_c2_c1 = make_shared<Link>("Expression", targets_c2_c1);
-    return AtomDBSingleton::get_instance()->link_exists(link_c1_c2->handle()) &&
-           AtomDBSingleton::get_instance()->link_exists(link_c2_c1->handle());
+    return AtomDBSingleton::get_instance()->link_exists(link_c1_c2->handle(), "") &&
+           AtomDBSingleton::get_instance()->link_exists(link_c2_c1->handle(), "");
 }
 
 static vector<string> build_equivalence_query(const string& handle) {
@@ -89,7 +89,7 @@ vector<shared_ptr<Link>> EquivalenceProcessor::process_query(shared_ptr<QueryAns
     vector<shared_ptr<Link>> result;
     Node equivalence_node("Symbol", "Equivalence");
     try {
-        AtomDBSingleton::get_instance()->add_node(&equivalence_node);
+        AtomDBSingleton::get_instance()->add_node(&equivalence_node, "");
     } catch (const std::exception& e) {
         LOG_ERROR("Failed to add node to AtomDB: " << e.what());
     }

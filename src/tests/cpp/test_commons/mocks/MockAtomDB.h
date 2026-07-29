@@ -23,82 +23,132 @@ class MockAtomDocument : public atomdb_api_types::AtomDocument {
 
 class AtomDBMock : public AtomDB {
    public:
-    MOCK_METHOD(bool, allow_nested_indexing, (), (override));
+    MOCK_METHOD(bool, allow_nested_indexing, (const string& public_key), (override));
     MOCK_METHOD(bool, composite_type_enabled, (), (const, override));
-    MOCK_METHOD(shared_ptr<Atom>, get_atom, (const string& handle), (override));
-    MOCK_METHOD(shared_ptr<Node>, get_node, (const string& handle), (override));
-    MOCK_METHOD(shared_ptr<Link>, get_link, (const string& handle), (override));
+    MOCK_METHOD(bool, is_protected, (), (const, override));
+    MOCK_METHOD(shared_ptr<Atom>,
+                get_atom,
+                (const string& handle, const string& public_key),
+                (override));
+    MOCK_METHOD(shared_ptr<Node>,
+                get_node,
+                (const string& handle, const string& public_key),
+                (override));
+    MOCK_METHOD(shared_ptr<Link>,
+                get_link,
+                (const string& handle, const string& public_key),
+                (override));
     MOCK_METHOD(shared_ptr<atomdb_api_types::HandleSet>,
                 query_for_pattern,
-                (const LinkSchema& link_template),
+                (const LinkSchema& link_template, const string& public_key),
                 (override));
     MOCK_METHOD(shared_ptr<atomdb_api_types::HandleList>,
                 query_for_targets,
-                (const string& handle),
+                (const string& handle, const string& public_key),
                 (override));
 
     MOCK_METHOD(shared_ptr<atomdb_api_types::HandleSet>,
                 query_for_incoming_set,
-                (const string& handle),
+                (const string& handle, const string& public_key),
                 (override));
 
-    MOCK_METHOD(vector<shared_ptr<Atom>>, get_matching_atoms, (bool is_toplevel, Atom& key), (override));
+    MOCK_METHOD(vector<shared_ptr<Atom>>,
+                get_matching_atoms,
+                (bool is_toplevel, Atom& key, const string& public_key),
+                (override));
 
-    MOCK_METHOD(bool, atom_exists, (const string& handle), (override));
-    MOCK_METHOD(bool, node_exists, (const string& handle), (override));
-    MOCK_METHOD(bool, link_exists, (const string& handle), (override));
+    MOCK_METHOD(bool, atom_exists, (const string& handle, const string& public_key), (override));
+    MOCK_METHOD(bool, node_exists, (const string& handle, const string& public_key), (override));
+    MOCK_METHOD(bool, link_exists, (const string& handle, const string& public_key), (override));
 
-    MOCK_METHOD(set<string>, atoms_exist, (const vector<string>& handles), (override));
-    MOCK_METHOD(set<string>, nodes_exist, (const vector<string>& handles), (override));
-    MOCK_METHOD(set<string>, links_exist, (const vector<string>& link_handles), (override));
+    MOCK_METHOD(set<string>,
+                atoms_exist,
+                (const vector<string>& handles, const string& public_key),
+                (override));
+    MOCK_METHOD(set<string>,
+                nodes_exist,
+                (const vector<string>& handles, const string& public_key),
+                (override));
+    MOCK_METHOD(set<string>,
+                links_exist,
+                (const vector<string>& link_handles, const string& public_key),
+                (override));
 
-    MOCK_METHOD(string, add_node, (const Node* node, bool throw_if_exists), (override));
-    MOCK_METHOD(string, add_link, (const Link* link, bool throw_if_exists), (override));
-    MOCK_METHOD(string, add_atom, (const Atom* atom, bool throw_if_exists), (override));
+    MOCK_METHOD(string,
+                add_node,
+                (const Node* node, const string& public_key, bool throw_if_exists),
+                (override));
+    MOCK_METHOD(string,
+                add_link,
+                (const Link* link, const string& public_key, bool throw_if_exists),
+                (override));
+    MOCK_METHOD(string,
+                add_atom,
+                (const Atom* atom, const string& public_key, bool throw_if_exists),
+                (override));
 
     MOCK_METHOD(vector<string>,
                 add_atoms,
-                (const vector<Atom*>& atoms, bool throw_if_exists, bool is_transactional),
+                (const vector<Atom*>& atoms,
+                 const string& public_key,
+                 bool throw_if_exists,
+                 bool is_transactional),
                 (override));
     MOCK_METHOD(vector<string>,
                 add_nodes,
-                (const vector<Node*>& nodes, bool throw_if_exists, bool is_transactional),
+                (const vector<Node*>& nodes,
+                 const string& public_key,
+                 bool throw_if_exists,
+                 bool is_transactional),
                 (override));
     MOCK_METHOD(vector<string>,
                 add_links,
-                (const vector<Link*>& links, bool throw_if_exists, bool is_transactional),
+                (const vector<Link*>& links,
+                 const string& public_key,
+                 bool throw_if_exists,
+                 bool is_transactional),
                 (override));
 
-    MOCK_METHOD(bool, delete_atom, (const string& handle, bool delete_link_targets), (override));
-    MOCK_METHOD(bool, delete_node, (const string& handle, bool delete_link_targets), (override));
-    MOCK_METHOD(bool, delete_link, (const string& handle, bool delete_link_targets), (override));
+    MOCK_METHOD(bool,
+                delete_atom,
+                (const string& handle, const string& public_key, bool delete_link_targets),
+                (override));
+    MOCK_METHOD(bool,
+                delete_node,
+                (const string& handle, const string& public_key, bool delete_link_targets),
+                (override));
+    MOCK_METHOD(bool,
+                delete_link,
+                (const string& handle, const string& public_key, bool delete_link_targets),
+                (override));
 
     MOCK_METHOD(uint,
                 delete_atoms,
-                (const vector<string>& handles, bool delete_link_targets),
+                (const vector<string>& handles, const string& public_key, bool delete_link_targets),
                 (override));
     MOCK_METHOD(uint,
                 delete_nodes,
-                (const vector<string>& handles, bool delete_link_targets),
+                (const vector<string>& handles, const string& public_key, bool delete_link_targets),
                 (override));
     MOCK_METHOD(uint,
                 delete_links,
-                (const vector<string>& handles, bool delete_link_targets),
+                (const vector<string>& handles, const string& public_key, bool delete_link_targets),
                 (override));
 
-    MOCK_METHOD(void, re_index_patterns, (bool flush_patterns), (override));
+    MOCK_METHOD(void, re_index_patterns, (const string& public_key, bool flush_patterns), (override));
 
-    MOCK_METHOD(size_t, node_count, (), (const override));
-    MOCK_METHOD(size_t, link_count, (), (const override));
-    MOCK_METHOD(size_t, atom_count, (), (const override));
+    MOCK_METHOD(size_t, node_count, (const string& public_key), (const, override));
+    MOCK_METHOD(size_t, link_count, (const string& public_key), (const, override));
+    MOCK_METHOD(size_t, atom_count, (const string& public_key), (const, override));
 
     AtomDBMock() {
         ON_CALL(*this, composite_type_enabled()).WillByDefault(::testing::Return(true));
-        ON_CALL(*this, get_atom(testing::_))
+        ON_CALL(*this, is_protected()).WillByDefault(::testing::Return(false));
+        ON_CALL(*this, get_atom(testing::_, testing::_))
             .WillByDefault(::testing::Return(make_shared<Node>("Node", "TestNode")));
-        ON_CALL(*this, get_node(testing::_))
+        ON_CALL(*this, get_node(testing::_, testing::_))
             .WillByDefault(::testing::Return(make_shared<Node>("Node", "TestNode")));
-        ON_CALL(*this, get_link(testing::_))
+        ON_CALL(*this, get_link(testing::_, testing::_))
             .WillByDefault(
                 ::testing::Return(make_shared<Link>("Link", vector<string>({"TestNode", "TestNode"}))));
     }

@@ -57,8 +57,8 @@ bool ImplicationProcessor::link_exists(const string& handle1, const string& hand
     vector<string> targets_p2_p1 = {implication_node.handle(), handle2, handle1};
     shared_ptr<Link> p1_link = make_shared<Link>("Expression", targets_p1_p2);
     shared_ptr<Link> p2_link = make_shared<Link>("Expression", targets_p2_p1);
-    return AtomDBSingleton::get_instance()->link_exists(p1_link->handle()) &&
-           AtomDBSingleton::get_instance()->link_exists(p2_link->handle());
+    return AtomDBSingleton::get_instance()->link_exists(p1_link->handle(), "") &&
+           AtomDBSingleton::get_instance()->link_exists(p2_link->handle(), "");
 }
 
 vector<shared_ptr<Link>> ImplicationProcessor::process_query(shared_ptr<QueryAnswer> query_answer,
@@ -113,7 +113,7 @@ vector<shared_ptr<Link>> ImplicationProcessor::process_query(shared_ptr<QueryAns
     vector<shared_ptr<Link>> result;
     Node implication_node("Symbol", "Implication");
     try {
-        AtomDBSingleton::get_instance()->add_node(&implication_node);
+        AtomDBSingleton::get_instance()->add_node(&implication_node, "");
     } catch (const std::exception& e) {
         LOG_ERROR("Failed to add node to AtomDB: " << e.what());
     }

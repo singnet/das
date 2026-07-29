@@ -1,6 +1,7 @@
 {
     "atomdb": {
         "type": "redismongodb",
+        "protected": true,
         "composite_type_enabled": true,
         "redis": {
             "image": "redis:7.2.3-alpine",

@@ -72,7 +72,7 @@ class RemoteFitnessFunction : public FitnessFunction {
 
 string handle_to_atom(const string& handle) {
     shared_ptr<AtomDB> db = AtomDBSingleton::get_instance();
-    shared_ptr<Atom> atom = db->get_atom(handle);
+    shared_ptr<Atom> atom = db->get_atom(handle, "");
     string answer;
 
     if (atom->arity() > 0) {
@@ -325,9 +325,9 @@ void run(const string& client_id,
         } else {
             string handle = query_answer->assignment.get(sentence1.c_str());
             float fitness = query_answer->strength;
-            shared_ptr<Link> sentence_link = db->get_link(handle);
+            shared_ptr<Link> sentence_link = db->get_link(handle, "");
             handle = sentence_link->targets[1];
-            shared_ptr<Node> sentence_name_node = db->get_node(handle);
+            shared_ptr<Node> sentence_name_node = db->get_node(handle, "");
             set<string> to_highlight = {word_tag1, word_tag2};
             string sentence_name = sentence_name_node->name;
             string highlighted_sentence_name = highlight(sentence_name, to_highlight);

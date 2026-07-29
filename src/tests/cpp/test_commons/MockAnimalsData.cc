@@ -86,7 +86,7 @@ void load_animals_data() {
     nodes.push_back(plant);
 
     LOG_INFO("Adding nodes to db...");
-    db->add_nodes(nodes);
+    db->add_nodes(nodes, "");
     nodes.clear();
 
     // Links
@@ -115,7 +115,7 @@ void load_animals_data() {
     links.push_back(inheritance_type);
 
     LOG_INFO("Adding Type links to db...");
-    db->add_links(links);
+    db->add_links(links, "");
     links.clear();
 
     // Concepts
@@ -206,7 +206,7 @@ void load_animals_data() {
     links.push_back(plant_concept);
 
     LOG_INFO("Adding Concept links to db...");
-    db->add_links(links);
+    db->add_links(links, "");
     links.clear();
 
     // Similarity
@@ -311,7 +311,7 @@ void load_animals_data() {
     links.push_back(similarity_ent_human);
 
     LOG_INFO("Adding similarity links to db...");
-    db->add_links(links);
+    db->add_links(links, "");
     links.clear();
 
     // Inheritance
@@ -403,7 +403,7 @@ void load_animals_data() {
     links.push_back(inheritance_ent_plant);
 
     LOG_INFO("Adding inheritance links to db...");
-    db->add_links(links);
+    db->add_links(links, "");
     links.clear();
 
     // OddLinks
@@ -482,5 +482,5 @@ void load_animals_data() {
     links.push_back(oddlink_ent_plant);
 
     LOG_INFO("Adding odd links to db...");
-    db->add_links(links);
+    db->add_links(links, "");
 }

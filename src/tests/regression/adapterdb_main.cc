@@ -87,9 +87,9 @@ int main(int argc, char* argv[]) {
 
     auto morkdb = make_shared<MorkDB>("", morkdb_json_config());
 
-    size_t nodes = morkdb->node_count();
-    size_t links = morkdb->link_count();
-    size_t atoms = morkdb->atom_count();
+    size_t nodes = morkdb->node_count("");
+    size_t links = morkdb->link_count("");
+    size_t atoms = morkdb->atom_count("");
 
     LOG_INFO("Node count: " << nodes);
     LOG_INFO("Link count: " << links);

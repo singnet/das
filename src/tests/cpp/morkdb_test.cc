@@ -81,7 +81,7 @@ TEST_F(MorkDBTest, QueryForPattern) {
             node, symbol, mammal});
     // clang-format on
 
-    auto result = db->query_for_pattern(link_schema);
+    auto result = db->query_for_pattern(link_schema, "");
 
     ASSERT_EQ(result->size(), 4);
 
@@ -102,21 +102,21 @@ TEST_F(MorkDBTest, QueryForPattern) {
 
 TEST_F(MorkDBTest, QueryForTargets) {
     auto node1 = new Node("Symbol", "QueryForTargetsNode1");
-    auto node1_handle = db->add_node(node1);
+    auto node1_handle = db->add_node(node1, "");
     auto node2 = new Node("Symbol", "QueryForTargetsNode2");
-    auto node2_handle = db->add_node(node2);
+    auto node2_handle = db->add_node(node2, "");
     auto node3 = new Node("Symbol", "QueryForTargetsNode3");
-    auto node3_handle = db->add_node(node3);
+    auto node3_handle = db->add_node(node3, "");
 
-    auto node1_targets = db->query_for_targets(node1_handle);
+    auto node1_targets = db->query_for_targets(node1_handle, "");
     EXPECT_EQ(node1_targets, nullptr);
 
     auto link1 = new Link("Expression", {node1_handle, node2_handle, node3_handle});
-    auto link1_handle = db->add_link(link1);
+    auto link1_handle = db->add_link(link1, "");
 
-    ASSERT_TRUE(db->link_exists(link1_handle));
+    ASSERT_TRUE(db->link_exists(link1_handle, ""));
 
-    auto link1_targets = db->query_for_targets(link1_handle);
+    auto link1_targets = db->query_for_targets(link1_handle, "");
     EXPECT_NE(link1_targets, nullptr);
     EXPECT_EQ(link1_targets->size(), 3);
     EXPECT_EQ(link1_targets->get_handle(0), node1_handle);
@@ -138,7 +138,7 @@ TEST_F(MorkDBTest, ConcurrentQueryForPattern) {
                     variable, "x",
                     variable, "y"});
             // clang-format on
-            auto handle_set = db->query_for_pattern(link_schema);
+            auto handle_set = db->query_for_pattern(link_schema, "");
             ASSERT_NE(handle_set, nullptr);
             ASSERT_EQ(handle_set->size(), 14);
             success_count++;
@@ -165,19 +165,19 @@ TEST_F(MorkDBTest, ConcurrentQueryForPattern) {
             variable, "x",
             variable, "y"});
     // clang-format on
-    auto handle_set = db->query_for_pattern(link_schema);
+    auto handle_set = db->query_for_pattern(link_schema, "");
     EXPECT_EQ(handle_set->size(), 0);
 }
 
 TEST_F(MorkDBTest, AddGetAndDeleteNode) {
     auto node = new Node("Symbol", "TestNode");
-    auto node_handle = db->add_node(node);
+    auto node_handle = db->add_node(node, "");
 
     auto node_document = db->get_atom_document(node_handle);
     EXPECT_EQ(string(node_document->get("named_type")), string("Symbol"));
     EXPECT_EQ(string(node_document->get("name")), string("TestNode"));
 
-    ASSERT_TRUE(db->delete_node(node_handle));
+    ASSERT_TRUE(db->delete_node(node_handle, ""));
 }
 
 TEST_F(MorkDBTest, AddGetAndDeleteNodes) {
@@ -186,40 +186,40 @@ TEST_F(MorkDBTest, AddGetAndDeleteNodes) {
         nodes.push_back(new Node("Symbol", "TestNode" + to_string(i)));
     }
 
-    auto nodes_handles = db->add_nodes(nodes);
+    auto nodes_handles = db->add_nodes(nodes, "");
     EXPECT_EQ(nodes.size(), nodes.size());
 
     auto nodes_documents = db->get_atom_documents(nodes_handles, {"_id"});
     EXPECT_EQ(nodes_documents.size(), nodes.size());
 
-    EXPECT_EQ(db->delete_nodes(nodes_handles), nodes.size());
+    EXPECT_EQ(db->delete_nodes(nodes_handles, ""), nodes.size());
 
-    ASSERT_EQ(db->nodes_exist(nodes_handles).size(), 0);
+    ASSERT_EQ(db->nodes_exist(nodes_handles, "").size(), 0);
 }
 
 TEST_F(MorkDBTest, AddGetAndDeleteLink) {
     auto similarity_node = new Node("Symbol", "Similarity");
-    auto similarity_node_handle = db->add_node(similarity_node);
+    auto similarity_node_handle = db->add_node(similarity_node, "");
 
     auto node1 = new Node("Symbol", "Node1");
-    auto node1_handle = db->add_node(node1);
+    auto node1_handle = db->add_node(node1, "");
     auto node2 = new Node("Symbol", "Node2");
-    auto node2_handle = db->add_node(node2);
+    auto node2_handle = db->add_node(node2, "");
     auto node3 = new Node("Symbol", "Node3");
-    auto node3_handle = db->add_node(node3);
+    auto node3_handle = db->add_node(node3, "");
     auto node4 = new Node("Symbol", "Node4");
-    auto node4_handle = db->add_node(node4);
+    auto node4_handle = db->add_node(node4, "");
 
-    ASSERT_TRUE(db->node_exists(similarity_node_handle));
-    ASSERT_TRUE(db->node_exists(node1_handle));
-    ASSERT_TRUE(db->node_exists(node2_handle));
-    ASSERT_TRUE(db->node_exists(node3_handle));
-    ASSERT_TRUE(db->node_exists(node4_handle));
+    ASSERT_TRUE(db->node_exists(similarity_node_handle, ""));
+    ASSERT_TRUE(db->node_exists(node1_handle, ""));
+    ASSERT_TRUE(db->node_exists(node2_handle, ""));
+    ASSERT_TRUE(db->node_exists(node3_handle, ""));
+    ASSERT_TRUE(db->node_exists(node4_handle, ""));
 
     auto link = new Link("Expression", {similarity_node_handle, node1_handle, node2_handle});
-    auto link_handle = db->add_link(link);
+    auto link_handle = db->add_link(link, "");
 
-    ASSERT_TRUE(db->link_exists(link_handle));
+    ASSERT_TRUE(db->link_exists(link_handle, ""));
 
     auto link_document = db->get_atom_document(link_handle);
     EXPECT_EQ(string(link_document->get("named_type")), string("Expression"));
@@ -235,45 +235,45 @@ TEST_F(MorkDBTest, AddGetAndDeleteLink) {
             variable, "S"});
     // clang-format on
 
-    auto handle_set = db->query_for_pattern(link_schema);
+    auto handle_set = db->query_for_pattern(link_schema, "");
     EXPECT_EQ(handle_set->size(), 1);
 
     auto link_13 = new Link("Expression", {similarity_node_handle, node1_handle, node3_handle});
     auto link_14 = new Link("Expression", {similarity_node_handle, node1_handle, node4_handle});
 
-    auto new_link_handles = db->add_links({link_13, link_14});
+    auto new_link_handles = db->add_links({link_13, link_14}, "");
     EXPECT_EQ(new_link_handles.size(), 2);
 
-    handle_set = db->query_for_pattern(link_schema);
+    handle_set = db->query_for_pattern(link_schema, "");
     EXPECT_EQ(handle_set->size(), 3);
 
     // MORKDB does not support deleting links, so it must always return false
-    EXPECT_FALSE(db->delete_link(link_handle, true));
+    EXPECT_FALSE(db->delete_link(link_handle, "", true));
 }
 
 TEST_F(MorkDBTest, AddGetAndDeleteLinks) {
     auto similarity_node = new Node("Symbol", "Similarity");
-    auto similarity_node_handle = db->add_node(similarity_node);
+    auto similarity_node_handle = db->add_node(similarity_node, "");
 
     auto from_node = new Node("Symbol", "From");
-    auto from_node_handle = db->add_node(from_node);
+    auto from_node_handle = db->add_node(from_node, "");
 
     vector<Link*> links;
     for (int i = 0; i < 10; i++) {
         auto to_node = new Node("Symbol", "To-" + to_string(i));
-        auto to_node_handle = db->add_node(to_node);
+        auto to_node_handle = db->add_node(to_node, "");
         links.push_back(
             new Link("Expression", {similarity_node_handle, from_node_handle, to_node_handle}));
     }
 
-    auto links_handles = db->add_links(links);
+    auto links_handles = db->add_links(links, "");
     EXPECT_EQ(links_handles.size(), links.size());
 
     auto links_documents = db->get_atom_documents(links_handles, {"_id"});
     EXPECT_EQ(links_documents.size(), links.size());
 
     // MORKDB does not support deleting links, so it must always return false
-    EXPECT_FALSE(db->delete_links(links_handles, true));
+    EXPECT_FALSE(db->delete_links(links_handles, "", true));
 }
 
 TEST_F(MorkDBTest, AddLinksWithDuplicateTargets) {
@@ -281,7 +281,7 @@ TEST_F(MorkDBTest, AddLinksWithDuplicateTargets) {
     nodes.push_back(new Node("Symbol", "DuplicateTargets1"));
     nodes.push_back(new Node("Symbol", "DuplicateTargets2"));
     nodes.push_back(new Node("Symbol", "DuplicateTargets3"));
-    EXPECT_EQ(db->add_nodes(nodes, true).size(), 3);
+    EXPECT_EQ(db->add_nodes(nodes, "", true).size(), 3);
 
     auto link = new Link("Expression",
                          {nodes[0]->handle(),
@@ -291,9 +291,9 @@ TEST_F(MorkDBTest, AddLinksWithDuplicateTargets) {
                           nodes[2]->handle(),
                           nodes[0]->handle(),
                           nodes[2]->handle()});
-    EXPECT_EQ(db->add_link(link), link->handle());
+    EXPECT_EQ(db->add_link(link, ""), link->handle());
     // MORKDB does not support deleting links, so it must always return false
-    EXPECT_FALSE(db->delete_link(link->handle(), true));
+    EXPECT_FALSE(db->delete_link(link->handle(), "", true));
 }
 
 TEST_F(MorkDBTest, ConcurrentAddLinks) {
@@ -340,15 +340,15 @@ TEST_F(MorkDBTest, ConcurrentAddLinks) {
                 links.push_back(link_with_nested);
 
                 if (i % chunck_size == 0) {
-                    db->add_nodes(nodes, false, true);
-                    db->add_links(links, false, true);
+                    db->add_nodes(nodes, "", false, true);
+                    db->add_links(links, "", false, true);
                     nodes.clear();
                     links.clear();
                 }
             }
 
-            if (!nodes.empty()) db->add_nodes(nodes, false, true);
-            if (!links.empty()) db->add_links(links, false, true);
+            if (!nodes.empty()) db->add_nodes(nodes, "", false, true);
+            if (!links.empty()) db->add_links(links, "", false, true);
 
             success_count++;
         } catch (const exception& e) {
@@ -375,7 +375,7 @@ TEST_F(MorkDBTest, ConcurrentAddLinks) {
     });
     // clang-format on
 
-    auto result = db->query_for_pattern(link_schema);
+    auto result = db->query_for_pattern(link_schema, "");
     EXPECT_EQ(result->size(), 2);
 }
 
@@ -384,14 +384,14 @@ TEST_F(MorkDBTest, AddLinkWithoutMettaExpressionMustPopulateIt) {
     auto human = new Node("Symbol", "\"human\"");
     auto robot = new Node("Symbol", "\"robot\"");
 
-    db->add_node(similarity, false);
-    db->add_node(human, false);
-    auto robot_handle = db->add_node(robot);
+    db->add_node(similarity, "", false);
+    db->add_node(human, "", false);
+    auto robot_handle = db->add_node(robot, "");
 
     auto link = new Link("Expression", {similarity->handle(), human->handle(), robot->handle()});
     EXPECT_EQ(link->custom_attributes.get_or<string>("metta_expression", ""), "");
 
-    auto link_handle = db->add_link(link);
+    auto link_handle = db->add_link(link, "");
 
     auto link_document =
         dynamic_pointer_cast<atomdb_api_types::MongodbDocument>(db->get_link_document(link_handle));
@@ -439,7 +439,7 @@ TEST_F(MorkDBTest, ReIndexPatterns) {
         "VARIABLE", "C"
     });
     // clang-format on
-    auto result = db->query_for_pattern(link_schema);
+    auto result = db->query_for_pattern(link_schema, "");
     EXPECT_EQ(result->size(), 0);
 
     // Resetting MongoDB database to animals data
@@ -451,15 +451,15 @@ TEST_F(MorkDBTest, ReIndexPatterns) {
                              RedisMongoDB::MONGODB_LINKS_COLLECTION_NAME);
     EXPECT_EQ(inserted_count, 3);
 
-    db->re_index_patterns();
+    db->re_index_patterns("");
 
-    result = db->query_for_pattern(link_schema);
+    result = db->query_for_pattern(link_schema, "");
     EXPECT_EQ(result->size(), 3);
 
     string pattern = "(EvaluationReIndex $P $C)";
     db->flush_pattern(pattern);
 
-    result = db->query_for_pattern(link_schema);
+    result = db->query_for_pattern(link_schema, "");
     EXPECT_EQ(result->size(), 0);
 
     // Confirm that patterns are re-indexed
@@ -472,7 +472,7 @@ TEST_F(MorkDBTest, ReIndexPatterns) {
             node, symbol, mammal});
     // clang-format on
 
-    result = db->query_for_pattern(link_schema);
+    result = db->query_for_pattern(link_schema, "");
     EXPECT_EQ(result->size(), 4);
 }
 

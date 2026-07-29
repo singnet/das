@@ -20,7 +20,7 @@ using das_test::init_test_system_parameters_singleton;
 
 string handle_to_atom(const string& handle) {
     shared_ptr<AtomDB> db = AtomDBSingleton::get_instance();
-    shared_ptr<Atom> atom = db->get_atom(handle);
+    shared_ptr<Atom> atom = db->get_atom(handle, "");
     string answer;
 
     if (atom->arity() > 0) {
@@ -51,7 +51,7 @@ string handle_to_atom(const string& handle) {
 
 string get_target(const string& handle, unsigned int index) {
     shared_ptr<AtomDB> db = AtomDBSingleton::get_instance();
-    shared_ptr<Atom> atom = db->get_atom(handle);
+    shared_ptr<Atom> atom = db->get_atom(handle, "");
     auto link = dynamic_cast<Link*>(atom.get());
     if ((link == nullptr) || (link == NULL)) {
         LOG_INFO("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX NULL link");

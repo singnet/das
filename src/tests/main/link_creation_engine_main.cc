@@ -175,7 +175,7 @@ void build_link(const string& link_type_tag,
 string handle_to_atom(const string& handle) {
     shared_ptr<AtomDB> db = AtomDBSingleton::get_instance();
     shared_ptr<atomdb_api_types::AtomDocument> document = db->get_atom_document(handle);
-    shared_ptr<atomdb_api_types::HandleList> targets = db->query_for_targets(handle);
+    shared_ptr<atomdb_api_types::HandleList> targets = db->query_for_targets(handle, "");
     string answer;
 
     if (targets != nullptr) {

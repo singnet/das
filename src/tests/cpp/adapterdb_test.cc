@@ -209,24 +209,24 @@ INSTANTIATE_TEST_SUITE_P(AdapterTypes,
 TEST_P(AdapterDBTest, ConstructorSucceedsWithValidConfig) {
     auto db = create_current_adapter();
     ASSERT_NE(db, nullptr);
-    EXPECT_GT(db->atom_count(), 0);
+    EXPECT_GT(db->atom_count(""), 0);
 }
 
 TEST_P(AdapterDBTest, ConstructorLoadsDataIntoBackendOnFirstRun) {
     auto db = create_current_adapter();
     ASSERT_NE(db, nullptr);
-    EXPECT_GT(db->atom_count(), 0);
+    EXPECT_GT(db->atom_count(""), 0);
 }
 
 TEST_P(AdapterDBTest, CanBeConstructedTwiceWithSameContext) {
     auto db1 = create_current_adapter();
     ASSERT_NE(db1, nullptr);
-    EXPECT_GT(db1->atom_count(), 0);
+    EXPECT_GT(db1->atom_count(""), 0);
 
     EXPECT_NO_THROW({
         auto db2 = create_current_adapter();
         ASSERT_NE(db2, nullptr);
-        EXPECT_GT(db2->atom_count(), 0);
+        EXPECT_GT(db2->atom_count(""), 0);
     });
 }
 
@@ -237,12 +237,12 @@ TEST_P(AdapterDBTest, ReloadDoesNotThrowAndKeepsBackendUsable) {
     EXPECT_NO_THROW({ db->reload(); });
 
     EXPECT_NO_THROW({
-        auto count = db->atom_count();
+        auto count = db->atom_count("");
         (void) count;
     });
 
     EXPECT_NO_THROW({
-        bool nested = db->allow_nested_indexing();
+        bool nested = db->allow_nested_indexing("");
         (void) nested;
     });
 }
@@ -258,22 +258,22 @@ TEST_P(AdapterDBTest, AddGetAndDeleteNode) {
     ASSERT_NE(db, nullptr);
 
     auto node = new Node("Symbol", "AdapterDBTestNode");
-    string handle = db->add_node(node);
+    string handle = db->add_node(node, "");
 
     EXPECT_NE(handle, "");
-    EXPECT_TRUE(db->node_exists(handle));
-    EXPECT_TRUE(db->atom_exists(handle));
+    EXPECT_TRUE(db->node_exists(handle, ""));
+    EXPECT_TRUE(db->atom_exists(handle, ""));
 
-    auto fetched_atom = db->get_atom(handle);
-    auto fetched_node = db->get_node(handle);
-    auto fetched_link = db->get_link(handle);
+    auto fetched_atom = db->get_atom(handle, "");
+    auto fetched_node = db->get_node(handle, "");
+    auto fetched_link = db->get_link(handle, "");
 
     ASSERT_NE(fetched_atom, nullptr);
     ASSERT_NE(fetched_node, nullptr);
     EXPECT_EQ(fetched_link, nullptr);
 
-    EXPECT_TRUE(db->delete_node(handle));
-    EXPECT_FALSE(db->node_exists(handle));
+    EXPECT_TRUE(db->delete_node(handle, ""));
+    EXPECT_FALSE(db->node_exists(handle, ""));
 
     delete node;
 }
@@ -287,12 +287,12 @@ TEST_P(AdapterDBTest, AddAndDeleteNodes) {
     nodes.push_back(new Node("Symbol", "AdapterDBNode2"));
     nodes.push_back(new Node("Symbol", "AdapterDBNode3"));
 
-    auto handles = db->add_nodes(nodes);
+    auto handles = db->add_nodes(nodes, "");
     EXPECT_EQ(handles.size(), 3);
-    EXPECT_EQ(db->nodes_exist(handles).size(), 3);
+    EXPECT_EQ(db->nodes_exist(handles, "").size(), 3);
 
-    EXPECT_EQ(db->delete_nodes(handles), 3);
-    EXPECT_EQ(db->nodes_exist(handles).size(), 0);
+    EXPECT_EQ(db->delete_nodes(handles, ""), 3);
+    EXPECT_EQ(db->nodes_exist(handles, "").size(), 0);
 
     for (auto* n : nodes) delete n;
 }
@@ -305,33 +305,33 @@ TEST_P(AdapterDBTest, AddGetAndQueryTargetsLink) {
     auto n2 = new Node("Symbol", "AdapterLinkNode2");
     auto n3 = new Node("Symbol", "AdapterLinkNode3");
 
-    auto h1 = db->add_node(n1);
-    auto h2 = db->add_node(n2);
-    auto h3 = db->add_node(n3);
+    auto h1 = db->add_node(n1, "");
+    auto h2 = db->add_node(n2, "");
+    auto h3 = db->add_node(n3, "");
 
     auto link = new Link("Expression", {h1, h2, h3});
-    auto link_handle = db->add_link(link);
+    auto link_handle = db->add_link(link, "");
 
     EXPECT_NE(link_handle, "");
-    EXPECT_TRUE(db->link_exists(link_handle));
-    EXPECT_TRUE(db->atom_exists(link_handle));
+    EXPECT_TRUE(db->link_exists(link_handle, ""));
+    EXPECT_TRUE(db->atom_exists(link_handle, ""));
 
-    auto fetched_atom = db->get_atom(link_handle);
-    auto fetched_link = db->get_link(link_handle);
-    auto fetched_node = db->get_node(link_handle);
+    auto fetched_atom = db->get_atom(link_handle, "");
+    auto fetched_link = db->get_link(link_handle, "");
+    auto fetched_node = db->get_node(link_handle, "");
 
     ASSERT_NE(fetched_atom, nullptr);
     ASSERT_NE(fetched_link, nullptr);
     EXPECT_EQ(fetched_node, nullptr);
 
-    auto targets = db->query_for_targets(link_handle);
+    auto targets = db->query_for_targets(link_handle, "");
     ASSERT_NE(targets, nullptr);
     EXPECT_EQ(targets->size(), 3);
 
-    EXPECT_TRUE(db->delete_link(link_handle));
-    EXPECT_TRUE(db->delete_node(h1));
-    EXPECT_TRUE(db->delete_node(h2));
-    EXPECT_TRUE(db->delete_node(h3));
+    EXPECT_TRUE(db->delete_link(link_handle, ""));
+    EXPECT_TRUE(db->delete_node(h1, ""));
+    EXPECT_TRUE(db->delete_node(h2, ""));
+    EXPECT_TRUE(db->delete_node(h3, ""));
 
     delete n1;
     delete n2;
@@ -349,7 +349,7 @@ TEST_P(AdapterDBTest, AddLinkFailsWhenTargetsDoNotExist) {
 
     auto link = new Link("Expression", {fake1->handle(), fake2->handle(), fake3->handle()});
 
-    EXPECT_THROW({ db->add_link(link); }, runtime_error);
+    EXPECT_THROW({ db->add_link(link, ""); }, runtime_error);
 
     delete fake1;
     delete fake2;
@@ -361,18 +361,18 @@ TEST_P(AdapterDBTest, DeleteNonExistingAtomReturnsFalse) {
     auto db = create_current_adapter();
     ASSERT_NE(db, nullptr);
 
-    EXPECT_FALSE(db->delete_atom("NonExistingHandle"));
-    EXPECT_FALSE(db->delete_node("NonExistingHandle"));
-    EXPECT_FALSE(db->delete_link("NonExistingHandle"));
+    EXPECT_FALSE(db->delete_atom("NonExistingHandle", ""));
+    EXPECT_FALSE(db->delete_node("NonExistingHandle", ""));
+    EXPECT_FALSE(db->delete_link("NonExistingHandle", ""));
 }
 
 TEST_P(AdapterDBTest, DeleteEmptyCollectionsReturnsZero) {
     auto db = create_current_adapter();
     ASSERT_NE(db, nullptr);
 
-    EXPECT_EQ(db->delete_atoms({}), 0);
-    EXPECT_EQ(db->delete_nodes({}), 0);
-    EXPECT_EQ(db->delete_links({}), 0);
+    EXPECT_EQ(db->delete_atoms({}, ""), 0);
+    EXPECT_EQ(db->delete_nodes({}, ""), 0);
+    EXPECT_EQ(db->delete_links({}, ""), 0);
 }
 
 TEST_P(AdapterDBTest, ExistsQueriesReturnEmptyForUnknownHandles) {
@@ -385,15 +385,15 @@ TEST_P(AdapterDBTest, ExistsQueriesReturnEmptyForUnknownHandles) {
         "NonExistingHandle3",
     };
 
-    EXPECT_EQ(db->atoms_exist(handles).size(), 0);
-    EXPECT_EQ(db->nodes_exist(handles).size(), 0);
-    EXPECT_EQ(db->links_exist(handles).size(), 0);
+    EXPECT_EQ(db->atoms_exist(handles, "").size(), 0);
+    EXPECT_EQ(db->nodes_exist(handles, "").size(), 0);
+    EXPECT_EQ(db->links_exist(handles, "").size(), 0);
 }
 
 TEST_P(AdapterDBTest, ReIndexPatternsDoesNotThrow) {
     auto db = create_current_adapter();
     ASSERT_NE(db, nullptr);
-    EXPECT_NO_THROW({ db->re_index_patterns(); });
+    EXPECT_NO_THROW({ db->re_index_patterns(""); });
 }
 
 TEST_P(AdapterDBTest, AddNodeWithThrowIfExists) {
@@ -402,10 +402,10 @@ TEST_P(AdapterDBTest, AddNodeWithThrowIfExists) {
 
     auto node = new Node("Symbol", "AdapterThrowIfExistsNode");
 
-    EXPECT_EQ(db->add_node(node, true), node->handle());
-    EXPECT_THROW({ db->add_node(node, true); }, runtime_error);
+    EXPECT_EQ(db->add_node(node, "", true), node->handle());
+    EXPECT_THROW({ db->add_node(node, "", true); }, runtime_error);
 
-    EXPECT_TRUE(db->delete_node(node->handle()));
+    EXPECT_TRUE(db->delete_node(node->handle(), ""));
     delete node;
 }
 
@@ -417,19 +417,19 @@ TEST_P(AdapterDBTest, AddLinkWithThrowIfExists) {
     auto n2 = new Node("Symbol", "AdapterThrowIfExistsLink2");
     auto n3 = new Node("Symbol", "AdapterThrowIfExistsLink3");
 
-    auto h1 = db->add_node(n1);
-    auto h2 = db->add_node(n2);
-    auto h3 = db->add_node(n3);
+    auto h1 = db->add_node(n1, "");
+    auto h2 = db->add_node(n2, "");
+    auto h3 = db->add_node(n3, "");
 
     auto link = new Link("Expression", {h1, h2, h3});
 
-    EXPECT_EQ(db->add_link(link), link->handle());
-    EXPECT_THROW({ db->add_link(link, true); }, runtime_error);
+    EXPECT_EQ(db->add_link(link, ""), link->handle());
+    EXPECT_THROW({ db->add_link(link, "", true); }, runtime_error);
 
-    EXPECT_TRUE(db->delete_link(link->handle()));
-    EXPECT_TRUE(db->delete_node(h1));
-    EXPECT_TRUE(db->delete_node(h2));
-    EXPECT_TRUE(db->delete_node(h3));
+    EXPECT_TRUE(db->delete_link(link->handle(), ""));
+    EXPECT_TRUE(db->delete_node(h1, ""));
+    EXPECT_TRUE(db->delete_node(h2, ""));
+    EXPECT_TRUE(db->delete_node(h3, ""));
 
     delete n1;
     delete n2;
@@ -443,12 +443,12 @@ TEST_P(AdapterDBTest, AddSameNodeWithoutThrowIfExistsIsAccepted) {
 
     auto node = new Node("Symbol", "AdapterSameNode");
 
-    EXPECT_EQ(db->add_node(node), node->handle());
-    EXPECT_EQ(db->add_node(node), node->handle());
+    EXPECT_EQ(db->add_node(node, ""), node->handle());
+    EXPECT_EQ(db->add_node(node, ""), node->handle());
 
-    EXPECT_TRUE(db->node_exists(node->handle()));
-    EXPECT_TRUE(db->delete_node(node->handle()));
-    EXPECT_FALSE(db->node_exists(node->handle()));
+    EXPECT_TRUE(db->node_exists(node->handle(), ""));
+    EXPECT_TRUE(db->delete_node(node->handle(), ""));
+    EXPECT_FALSE(db->node_exists(node->handle(), ""));
 
     delete node;
 }
@@ -461,19 +461,19 @@ TEST_P(AdapterDBTest, AddSameLinkWithoutThrowIfExistsIsAccepted) {
     auto n2 = new Node("Symbol", "AdapterSameLink2");
     auto n3 = new Node("Symbol", "AdapterSameLink3");
 
-    auto h1 = db->add_node(n1);
-    auto h2 = db->add_node(n2);
-    auto h3 = db->add_node(n3);
+    auto h1 = db->add_node(n1, "");
+    auto h2 = db->add_node(n2, "");
+    auto h3 = db->add_node(n3, "");
 
     auto link = new Link("Expression", {h1, h2, h3});
 
-    EXPECT_EQ(db->add_link(link), link->handle());
-    EXPECT_EQ(db->add_link(link), link->handle());
+    EXPECT_EQ(db->add_link(link, ""), link->handle());
+    EXPECT_EQ(db->add_link(link, ""), link->handle());
 
-    EXPECT_TRUE(db->delete_link(link->handle()));
-    EXPECT_TRUE(db->delete_node(h1));
-    EXPECT_TRUE(db->delete_node(h2));
-    EXPECT_TRUE(db->delete_node(h3));
+    EXPECT_TRUE(db->delete_link(link->handle(), ""));
+    EXPECT_TRUE(db->delete_node(h1, ""));
+    EXPECT_TRUE(db->delete_node(h2, ""));
+    EXPECT_TRUE(db->delete_node(h3, ""));
 
     delete n1;
     delete n2;

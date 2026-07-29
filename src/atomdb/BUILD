@@ -11,6 +11,7 @@ cc_library(
         ":atomdb_singleton",
         ":atomdbutils",
         "//atomdb/adapterdb:adapterdb_lib",
+        "//atomdb/auth:protected_atomdb_lib",
         "//atomdb/inmemorydb:inmemorydb_lib",
         "//atomdb/morkdb:morkdb_lib",
         "//atomdb/redis_mongodb:redis_mongodb_lib",
@@ -57,6 +58,7 @@ cc_library(
     deps = [
         "//atomdb:atomdb_api_types",
         "//atomdb/adapterdb",
+        "//atomdb/auth:protected_atomdb_lib",
         "//atomdb/morkdb",
         "//atomdb/redis_mongodb",
         "//atomdb/remotedb:remotedb_lib",

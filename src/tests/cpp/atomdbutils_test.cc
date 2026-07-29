@@ -27,30 +27,30 @@ TEST(AtomDBTest, reachable_terminal_set) {
     auto K = new Node("Symbol", "K");
     auto NOT_ADDED = new Node("Symbol", "NOT_ADDED");
     cout << "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX 1" << endl;
-    db->add_nodes({A, B, C, D, E, F, G, H, I, J, K});
+    db->add_nodes({A, B, C, D, E, F, G, H, I, J, K}, "");
     cout << "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX 2" << endl;
 
     auto L6 = new Link("Expression", {I->handle(), J->handle(), K->handle()}, true);
     cout << "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX 3" << endl;
-    db->add_link(L6);
+    db->add_link(L6, "");
     auto L5 = new Link("Expression", {C->handle(), D->handle()}, true);
     cout << "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX 4" << endl;
-    db->add_link(L5);
+    db->add_link(L5, "");
     auto L4 = new Link("Expression", {L5->handle(), E->handle()}, true);
     cout << "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX 5" << endl;
-    db->add_link(L4);
+    db->add_link(L4, "");
     auto L3 = new Link("Expression", {L4->handle(), F->handle()}, true);
     cout << "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX 6" << endl;
-    db->add_link(L3);
+    db->add_link(L3, "");
     auto L2 = new Link("Expression", {G->handle(), L6->handle(), H->handle()}, true);
     cout << "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX 7" << endl;
-    db->add_link(L2);
+    db->add_link(L2, "");
     auto L1 = new Link("Expression", {A->handle(), B->handle(), L3->handle()}, true);
     cout << "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX 8" << endl;
-    db->add_link(L1);
+    db->add_link(L1, "");
     auto L0 = new Link("Expression", {L1->handle(), L2->handle()}, true);
     cout << "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX 9" << endl;
-    db->add_link(L0);
+    db->add_link(L0, "");
 
     string a = A->handle();
     string b = B->handle();
@@ -125,5 +125,6 @@ TEST(AtomDBTest, reachable_terminal_set) {
                       L4->handle(),
                       L5->handle(),
                       L6->handle()},
+                     "",
                      true);
 }

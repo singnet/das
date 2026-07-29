@@ -29,9 +29,12 @@ uint RedisMongoDB::REDIS_CHUNK_SIZE;
 string RedisMongoDB::MONGODB_DB_NAME;
 string RedisMongoDB::MONGODB_NODES_COLLECTION_NAME;
 string RedisMongoDB::MONGODB_LINKS_COLLECTION_NAME;
+string RedisMongoDB::MONGODB_CONFIG_COLLECTION_NAME;
 string RedisMongoDB::MONGODB_PATTERN_INDEX_SCHEMA_COLLECTION_NAME;
 string RedisMongoDB::MONGODB_FIELD_NAME[MONGODB_FIELD::size];
 uint RedisMongoDB::MONGODB_CHUNK_SIZE;
+
+const string RedisMongoDB::MONGODB_CONFIG_DOCUMENT_HANDLE = Hasher::plain_string_hash("config");
 
 RedisMongoDB::RedisMongoDB(const string& context, bool skip_redis, const JsonConfig& config)
     : context(context),
@@ -51,7 +54,20 @@ RedisMongoDB::~RedisMongoDB() {
     if (!skip_redis_) delete this->redis_pool;
 }
 
-bool RedisMongoDB::allow_nested_indexing() { return false; }
+bool RedisMongoDB::allow_nested_indexing(const string& public_key) { return false; }
+
+bool RedisMongoDB::is_protected() const {
+    auto conn = this->mongodb_pool->acquire();
+    auto config_collection = (*conn)[MONGODB_DB_NAME][MONGODB_CONFIG_COLLECTION_NAME];
+    auto filter = bsoncxx::builder::basic::make_document(bsoncxx::builder::basic::kvp(
+        MONGODB_FIELD_NAME[MONGODB_FIELD::ID], MONGODB_CONFIG_DOCUMENT_HANDLE));
+    auto result = config_collection.find_one(filter.view());
+    if (!result) {
+        LOG_DEBUG("MongoDB config document not found; assuming unprotected database");
+        return false;
+    }
+    return (*result)["protected"].get_bool().value;
+}
 
 void RedisMongoDB::redis_setup(const JsonConfig& config) {
     if (skip_redis_) return;
@@ -81,6 +97,8 @@ void RedisMongoDB::mongodb_setup(const JsonConfig& config) {
     string user = config.at_path("mongodb.username").get<string>();
     string password = config.at_path("mongodb.password").get<string>();
     uint chunk_size = config.at_path("mongodb.chunk_size").get_or<uint>(0);
+    bool is_protected = config.at_path("mongodb.protected").get_or<bool>(false);
+
     if (chunk_size > 0) {
         MONGODB_CHUNK_SIZE = chunk_size;
     }
@@ -103,12 +121,32 @@ void RedisMongoDB::mongodb_setup(const JsonConfig& config) {
             bsoncxx::builder::basic::make_document(bsoncxx::builder::basic::kvp("ping", 1));
         mongodb.run_command(ping_cmd.view());
         LOG_INFO("Connected to MongoDB at " << address);
+
+        if (is_protected) {
+            auto config_collection = (*conn)[MONGODB_DB_NAME][MONGODB_CONFIG_COLLECTION_NAME];
+            auto filter = bsoncxx::builder::basic::make_document(bsoncxx::builder::basic::kvp(
+                MONGODB_FIELD_NAME[MONGODB_FIELD::ID], MONGODB_CONFIG_DOCUMENT_HANDLE));
+            auto result = config_collection.find_one(filter.view());
+
+            if (!result) {
+                bsoncxx::builder::stream::document protected_doc;
+                protected_doc << MONGODB_FIELD_NAME[MONGODB_FIELD::ID] << MONGODB_CONFIG_DOCUMENT_HANDLE
+                              << "protected" << true;
+                config_collection.insert_one(protected_doc.view());
+                LOG_INFO("MongoDB config: set protected=true (handle=" << MONGODB_CONFIG_DOCUMENT_HANDLE
+                                                                       << ")");
+            } else {
+                LOG_INFO("MongoDB config: already protected (handle=" << MONGODB_CONFIG_DOCUMENT_HANDLE
+                                                                      << ")");
+            }
+        }
+
     } catch (const std::exception& e) {
         RAISE_ERROR(e.what());
     }
 }
 
-shared_ptr<Atom> RedisMongoDB::get_atom(const string& handle) {
+shared_ptr<Atom> RedisMongoDB::get_atom(const string& handle, const string& /*public_key*/) {
     auto atom_document =
         dynamic_pointer_cast<atomdb_api_types::MongodbDocument>(get_atom_document(handle));
     if (atom_document != NULL) {
@@ -141,15 +179,16 @@ shared_ptr<Atom> RedisMongoDB::get_atom(const string& handle) {
     }
 }
 
-shared_ptr<Node> RedisMongoDB::get_node(const string& handle) {
-    return dynamic_pointer_cast<Node>(get_atom(handle));
+shared_ptr<Node> RedisMongoDB::get_node(const string& handle, const string& public_key) {
+    return dynamic_pointer_cast<Node>(get_atom(handle, public_key));
 }
 
-shared_ptr<Link> RedisMongoDB::get_link(const string& handle) {
-    return dynamic_pointer_cast<Link>(get_atom(handle));
+shared_ptr<Link> RedisMongoDB::get_link(const string& handle, const string& public_key) {
+    return dynamic_pointer_cast<Link>(get_atom(handle, public_key));
 }
 
-shared_ptr<atomdb_api_types::HandleSet> RedisMongoDB::query_for_pattern(const LinkSchema& link_schema) {
+shared_ptr<atomdb_api_types::HandleSet> RedisMongoDB::query_for_pattern(const LinkSchema& link_schema,
+                                                                        const string& public_key) {
     if (skip_redis_) return nullptr;
 
     auto pattern_handle = link_schema.handle();
@@ -190,7 +229,8 @@ shared_ptr<atomdb_api_types::HandleSet> RedisMongoDB::query_for_pattern(const Li
     return handle_set;
 }
 
-shared_ptr<atomdb_api_types::HandleList> RedisMongoDB::query_for_targets(const string& handle) {
+shared_ptr<atomdb_api_types::HandleList> RedisMongoDB::query_for_targets(const string& handle,
+                                                                         const string& public_key) {
     if (skip_redis_) return nullptr;
 
     redisReply* reply;
@@ -221,7 +261,8 @@ shared_ptr<atomdb_api_types::HandleList> RedisMongoDB::query_for_targets(const s
     return handle_list;
 }
 
-shared_ptr<atomdb_api_types::HandleSet> RedisMongoDB::query_for_incoming_set(const string& handle) {
+shared_ptr<atomdb_api_types::HandleSet> RedisMongoDB::query_for_incoming_set(const string& handle,
+                                                                             const string& public_key) {
     if (skip_redis_) return nullptr;
 
     unsigned int redis_cursor = 0;
@@ -603,7 +644,9 @@ vector<shared_ptr<atomdb_api_types::AtomDocument>> RedisMongoDB::get_link_docume
     return get_documents(handles, fields, MONGODB_LINKS_COLLECTION_NAME);
 }
 
-vector<shared_ptr<Atom>> RedisMongoDB::get_matching_atoms(bool is_toplevel, Atom& key) {
+vector<shared_ptr<Atom>> RedisMongoDB::get_matching_atoms(bool is_toplevel,
+                                                          Atom& key,
+                                                          const string& public_key) {
     vector<shared_ptr<Atom>> matching_atoms;
 
     vector<string> collection_names = {MONGODB_NODES_COLLECTION_NAME, MONGODB_LINKS_COLLECTION_NAME};
@@ -632,7 +675,8 @@ vector<shared_ptr<Atom>> RedisMongoDB::get_matching_atoms(bool is_toplevel, Atom
         for (const auto& document : documents) {
             Assignment assignment;
             if (key.match(document->get(MONGODB_FIELD_NAME[MONGODB_FIELD::ID]), assignment, *this)) {
-                auto atom = this->get_atom(document->get(MONGODB_FIELD_NAME[MONGODB_FIELD::ID]));
+                auto atom =
+                    this->get_atom(document->get(MONGODB_FIELD_NAME[MONGODB_FIELD::ID]), public_key);
                 if (atom != nullptr) {
                     matching_atoms.push_back(atom);
                 }
@@ -651,15 +695,15 @@ bool RedisMongoDB::document_exists(const string& handle, const string& collectio
     return reply != bsoncxx::v_noabi::stdx::nullopt;
 }
 
-bool RedisMongoDB::atom_exists(const string& atom_handle) {
-    return node_exists(atom_handle) || link_exists(atom_handle);
+bool RedisMongoDB::atom_exists(const string& atom_handle, const string& /*public_key*/) {
+    return node_exists(atom_handle, "") || link_exists(atom_handle, "");
 }
 
-bool RedisMongoDB::node_exists(const string& node_handle) {
+bool RedisMongoDB::node_exists(const string& node_handle, const string& /*public_key*/) {
     return document_exists(node_handle, MONGODB_NODES_COLLECTION_NAME);
 }
 
-bool RedisMongoDB::link_exists(const string& link_handle) {
+bool RedisMongoDB::link_exists(const string& link_handle, const string& /*public_key*/) {
     return document_exists(link_handle, MONGODB_LINKS_COLLECTION_NAME);
 }
 
@@ -699,27 +743,27 @@ set<string> RedisMongoDB::documents_exist(const vector<string>& handles, const s
     return existing_handles;
 }
 
-set<string> RedisMongoDB::atoms_exist(const vector<string>& handles) {
-    auto nodes = nodes_exist(handles);
+set<string> RedisMongoDB::atoms_exist(const vector<string>& handles, const string& public_key) {
+    auto nodes = nodes_exist(handles, public_key);
     if (nodes.size() == handles.size()) return nodes;
-    auto links = links_exist(handles);
+    auto links = links_exist(handles, public_key);
     nodes.insert(links.begin(), links.end());
     return nodes;
 }
 
-set<string> RedisMongoDB::nodes_exist(const vector<string>& node_handles) {
+set<string> RedisMongoDB::nodes_exist(const vector<string>& node_handles, const string& public_key) {
     return documents_exist(node_handles, MONGODB_NODES_COLLECTION_NAME);
 }
 
-set<string> RedisMongoDB::links_exist(const vector<string>& link_handles) {
+set<string> RedisMongoDB::links_exist(const vector<string>& link_handles, const string& public_key) {
     return documents_exist(link_handles, MONGODB_LINKS_COLLECTION_NAME);
 }
 
-string RedisMongoDB::add_atom(const atoms::Atom* atom, bool throw_if_exists) {
+string RedisMongoDB::add_atom(const atoms::Atom* atom, const string& public_key, bool throw_if_exists) {
     if (atom->arity() == 0) {
-        return add_node(dynamic_cast<const atoms::Node*>(atom), throw_if_exists);
+        return add_node(dynamic_cast<const atoms::Node*>(atom), public_key, throw_if_exists);
     } else {
-        return add_link(dynamic_cast<const atoms::Link*>(atom), throw_if_exists);
+        return add_link(dynamic_cast<const atoms::Link*>(atom), public_key, throw_if_exists);
     }
 }
 
@@ -802,8 +846,8 @@ uint RedisMongoDB::upsert_documents(const std::vector<bsoncxx::document::value>&
     return total_modified;
 }
 
-string RedisMongoDB::add_node(const atoms::Node* node, bool throw_if_exists) {
-    if (throw_if_exists && node_exists(node->handle())) {
+string RedisMongoDB::add_node(const atoms::Node* node, const string& public_key, bool throw_if_exists) {
+    if (throw_if_exists && node_exists(node->handle(), public_key)) {
         RAISE_ERROR("Node already exists: " + node->handle());
         return "";
     }
@@ -816,12 +860,13 @@ string RedisMongoDB::add_node(const atoms::Node* node, bool throw_if_exists) {
     return node->handle();
 }
 
-string RedisMongoDB::add_link(const atoms::Link* link, bool throw_if_exists) {
+string RedisMongoDB::add_link(const atoms::Link* link, const string& public_key, bool throw_if_exists) {
     vector<Link*> links = {const_cast<atoms::Link*>(link)};
-    return add_links(links, throw_if_exists)[0];
+    return add_links(links, public_key, throw_if_exists)[0];
 }
 
 vector<string> RedisMongoDB::add_atoms(const vector<atoms::Atom*>& atoms,
+                                       const string& public_key,
                                        bool throw_if_exists,
                                        bool is_transactional) {
     if (atoms.empty()) {
@@ -838,14 +883,15 @@ vector<string> RedisMongoDB::add_atoms(const vector<atoms::Atom*>& atoms,
             links.push_back(dynamic_cast<atoms::Link*>(atom));
         }
     }
-    auto node_handles = add_nodes(nodes, throw_if_exists, is_transactional);
-    auto link_handles = add_links(links, throw_if_exists, is_transactional);
+    auto node_handles = add_nodes(nodes, public_key, throw_if_exists, is_transactional);
+    auto link_handles = add_links(links, public_key, throw_if_exists, is_transactional);
 
     node_handles.insert(node_handles.end(), link_handles.begin(), link_handles.end());
     return node_handles;
 }
 
 vector<string> RedisMongoDB::add_nodes(const vector<atoms::Node*>& nodes,
+                                       const string& public_key,
                                        bool throw_if_exists,
                                        bool is_transactional) {
     if (nodes.empty()) {
@@ -866,7 +912,7 @@ vector<string> RedisMongoDB::add_nodes(const vector<atoms::Node*>& nodes,
     }
 
     if (throw_if_exists) {
-        auto existing_handles = this->nodes_exist(handles);
+        auto existing_handles = this->nodes_exist(handles, public_key);
         if (existing_handles.size() > 0) {
             RAISE_ERROR("Failed to insert nodes, some nodes already exist.");
             return {};
@@ -881,6 +927,7 @@ vector<string> RedisMongoDB::add_nodes(const vector<atoms::Node*>& nodes,
 }
 
 vector<string> RedisMongoDB::add_links(const vector<atoms::Link*>& links,
+                                       const string& public_key,
                                        bool throw_if_exists,
                                        bool is_transactional) {
     if (links.empty()) {
@@ -896,7 +943,7 @@ vector<string> RedisMongoDB::add_links(const vector<atoms::Link*>& links,
         for (const auto& link : links) {
             handles.push_back(link->handle());
         }
-        auto existing_handles = this->links_exist(handles);
+        auto existing_handles = this->links_exist(handles, public_key);
         if (!existing_handles.empty()) {
             vector<string> existing_handles_vector(existing_handles.begin(), existing_handles.end());
             RAISE_ERROR("Failed to insert links, some links already exist: " +
@@ -1000,11 +1047,11 @@ bool RedisMongoDB::delete_document(const string& handle,
         bsoncxx::v_noabi::builder::basic::kvp(MONGODB_FIELD_NAME[MONGODB_FIELD::ID], handle)));
 
     if (!skip_redis_) {
-        auto incoming_set = query_for_incoming_set(handle);
+        auto incoming_set = query_for_incoming_set(handle, "");
         auto it = incoming_set->get_iterator();
         char* incoming_handle;
         while ((incoming_handle = it->next()) != nullptr) {
-            delete_atom(incoming_handle, delete_targets);
+            delete_atom(incoming_handle, "", delete_targets);
         }
 
         delete_incoming_set(handle);
@@ -1016,18 +1063,18 @@ bool RedisMongoDB::delete_document(const string& handle,
     return reply->deleted_count() > 0 || !document_exists(handle, collection_name);
 }
 
-bool RedisMongoDB::delete_atom(const string& handle, bool delete_targets) {
-    if (delete_node(handle, delete_targets)) return true;
-    return delete_link(handle, delete_targets);
+bool RedisMongoDB::delete_atom(const string& handle, const string& /*public_key*/, bool delete_targets) {
+    if (delete_node(handle, "", delete_targets)) return true;
+    return delete_link(handle, "", delete_targets);
 }
 
-bool RedisMongoDB::delete_node(const string& handle, bool delete_targets) {
+bool RedisMongoDB::delete_node(const string& handle, const string& /*public_key*/, bool delete_targets) {
     auto node_document = get_node_document(handle);
     if (node_document == nullptr) return false;
     return delete_document(handle, MONGODB_NODES_COLLECTION_NAME, delete_targets);
 }
 
-bool RedisMongoDB::delete_link(const string& handle, bool delete_targets) {
+bool RedisMongoDB::delete_link(const string& handle, const string& /*public_key*/, bool delete_targets) {
     auto link_document = get_link_document(handle);
     if (link_document == nullptr) return false;
 
@@ -1037,10 +1084,10 @@ bool RedisMongoDB::delete_link(const string& handle, bool delete_targets) {
         auto target_handle = link_document->get(MONGODB_FIELD_NAME[MONGODB_FIELD::TARGETS], i);
         // If target is referenced more than once, we need to update incoming_set or delete target
         // otherwise
-        if (!skip_redis_ && query_for_incoming_set(target_handle)->size() > 1) {
+        if (!skip_redis_ && query_for_incoming_set(target_handle, "")->size() > 1) {
             update_incoming_set(target_handle, handle);
         } else if (delete_targets) {
-            delete_atom(target_handle, delete_targets);
+            delete_atom(target_handle, "", delete_targets);
         }
         targets.push_back(target_handle);
     }
@@ -1066,40 +1113,48 @@ uint RedisMongoDB::delete_documents(const vector<string>& handles,
     return deleted_count;
 }
 
-uint RedisMongoDB::delete_atoms(const vector<string>& handles, bool delete_targets) {
+uint RedisMongoDB::delete_atoms(const vector<string>& handles,
+                                const string& /*public_key*/,
+                                bool delete_targets) {
     uint deleted_count = 0;
     for (const auto& handle : handles) {
-        if (delete_atom(handle, delete_targets)) {
+        if (delete_atom(handle, "", delete_targets)) {
             deleted_count++;
         }
     }
     return deleted_count;
 }
 
-uint RedisMongoDB::delete_nodes(const vector<string>& handles, bool delete_targets) {
+uint RedisMongoDB::delete_nodes(const vector<string>& handles,
+                                const string& /*public_key*/,
+                                bool delete_targets) {
     return delete_documents(handles, MONGODB_NODES_COLLECTION_NAME, delete_targets);
 }
 
-uint RedisMongoDB::delete_links(const vector<string>& handles, bool delete_targets) {
+uint RedisMongoDB::delete_links(const vector<string>& handles,
+                                const string& /*public_key*/,
+                                bool delete_targets) {
     uint deleted_count = 0;
     for (const auto& handle : handles) {
-        if (delete_link(handle, delete_targets)) {
+        if (delete_link(handle, "", delete_targets)) {
             deleted_count++;
         }
     }
     return deleted_count;
 }
 
-size_t RedisMongoDB::atom_count() const { return node_count() + link_count(); }
+size_t RedisMongoDB::atom_count(const string& public_key) const {
+    return node_count(public_key) + link_count(public_key);
+}
 
-size_t RedisMongoDB::node_count() const {
+size_t RedisMongoDB::node_count(const string& public_key) const {
     auto conn = this->mongodb_pool->acquire();
     auto mongodb_collection = (*conn)[MONGODB_DB_NAME][MONGODB_NODES_COLLECTION_NAME];
     auto count = mongodb_collection.estimated_document_count();
     return static_cast<size_t>(count);
 }
 
-size_t RedisMongoDB::link_count() const {
+size_t RedisMongoDB::link_count(const string& public_key) const {
     auto conn = this->mongodb_pool->acquire();
     auto mongodb_collection = (*conn)[MONGODB_DB_NAME][MONGODB_LINKS_COLLECTION_NAME];
     auto count = mongodb_collection.estimated_document_count();
@@ -1247,7 +1302,7 @@ vector<vector<string>> RedisMongoDB::index_entries_combinations(unsigned int ari
     return index_entries;
 }
 
-void RedisMongoDB::re_index_patterns(bool flush_patterns) {
+void RedisMongoDB::re_index_patterns(const string& public_key, bool flush_patterns) {
     vector<Link*> links;
     auto conn = this->mongodb_pool->acquire();
     auto mongodb_collection = (*conn)[MONGODB_DB_NAME][MONGODB_LINKS_COLLECTION_NAME];

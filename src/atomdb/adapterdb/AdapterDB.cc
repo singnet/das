@@ -62,9 +62,9 @@ bool AdapterDB::needs_sync() const {
     return false;
 }
 
-bool AdapterDB::allow_nested_indexing() {
+bool AdapterDB::allow_nested_indexing(const string& public_key) {
     this->ensure_backend_ready();
-    return this->atomdb_backend->allow_nested_indexing();
+    return this->atomdb_backend->allow_nested_indexing(public_key);
 }
 
 bool AdapterDB::composite_type_enabled() const {
@@ -72,155 +72,174 @@ bool AdapterDB::composite_type_enabled() const {
     return this->atomdb_backend->composite_type_enabled();
 }
 
-shared_ptr<Atom> AdapterDB::get_atom(const string& handle) {
+bool AdapterDB::is_protected() const {
     this->ensure_backend_ready();
-    return this->atomdb_backend->get_atom(handle);
+    return this->atomdb_backend->is_protected();
 }
 
-shared_ptr<Node> AdapterDB::get_node(const string& handle) {
+shared_ptr<Atom> AdapterDB::get_atom(const string& handle, const string& public_key) {
     this->ensure_backend_ready();
-    return this->atomdb_backend->get_node(handle);
+    return this->atomdb_backend->get_atom(handle, public_key);
 }
 
-shared_ptr<Link> AdapterDB::get_link(const string& handle) {
+shared_ptr<Node> AdapterDB::get_node(const string& handle, const string& public_key) {
     this->ensure_backend_ready();
-    return this->atomdb_backend->get_link(handle);
+    return this->atomdb_backend->get_node(handle, public_key);
 }
 
-vector<shared_ptr<Atom>> AdapterDB::get_matching_atoms(bool is_toplevel, Atom& key) {
+shared_ptr<Link> AdapterDB::get_link(const string& handle, const string& public_key) {
     this->ensure_backend_ready();
-    return this->atomdb_backend->get_matching_atoms(is_toplevel, key);
+    return this->atomdb_backend->get_link(handle, public_key);
 }
 
-shared_ptr<atomdb_api_types::HandleSet> AdapterDB::query_for_pattern(const LinkSchema& link_schema) {
+vector<shared_ptr<Atom>> AdapterDB::get_matching_atoms(bool is_toplevel,
+                                                       Atom& key,
+                                                       const string& public_key) {
     this->ensure_backend_ready();
-    return this->atomdb_backend->query_for_pattern(link_schema);
+    return this->atomdb_backend->get_matching_atoms(is_toplevel, key, public_key);
 }
 
-shared_ptr<atomdb_api_types::HandleList> AdapterDB::query_for_targets(const string& handle) {
+shared_ptr<atomdb_api_types::HandleSet> AdapterDB::query_for_pattern(const LinkSchema& link_schema,
+                                                                     const string& public_key) {
     this->ensure_backend_ready();
-    return this->atomdb_backend->query_for_targets(handle);
+    return this->atomdb_backend->query_for_pattern(link_schema, public_key);
 }
 
-shared_ptr<atomdb_api_types::HandleSet> AdapterDB::query_for_incoming_set(const string& handle) {
+shared_ptr<atomdb_api_types::HandleList> AdapterDB::query_for_targets(const string& handle,
+                                                                      const string& public_key) {
     this->ensure_backend_ready();
-    return this->atomdb_backend->query_for_incoming_set(handle);
+    return this->atomdb_backend->query_for_targets(handle, public_key);
 }
 
-bool AdapterDB::atom_exists(const string& handle) {
+shared_ptr<atomdb_api_types::HandleSet> AdapterDB::query_for_incoming_set(const string& handle,
+                                                                          const string& public_key) {
     this->ensure_backend_ready();
-    return this->atomdb_backend->atom_exists(handle);
+    return this->atomdb_backend->query_for_incoming_set(handle, public_key);
 }
 
-bool AdapterDB::node_exists(const string& handle) {
+bool AdapterDB::atom_exists(const string& handle, const string& public_key) {
     this->ensure_backend_ready();
-    return this->atomdb_backend->node_exists(handle);
+    return this->atomdb_backend->atom_exists(handle, public_key);
 }
 
-bool AdapterDB::link_exists(const string& handle) {
+bool AdapterDB::node_exists(const string& handle, const string& public_key) {
     this->ensure_backend_ready();
-    return this->atomdb_backend->link_exists(handle);
+    return this->atomdb_backend->node_exists(handle, public_key);
 }
 
-set<string> AdapterDB::atoms_exist(const vector<string>& handles) {
+bool AdapterDB::link_exists(const string& handle, const string& public_key) {
     this->ensure_backend_ready();
-    return this->atomdb_backend->atoms_exist(handles);
+    return this->atomdb_backend->link_exists(handle, public_key);
 }
 
-set<string> AdapterDB::nodes_exist(const vector<string>& handles) {
+set<string> AdapterDB::atoms_exist(const vector<string>& handles, const string& public_key) {
     this->ensure_backend_ready();
-    return this->atomdb_backend->nodes_exist(handles);
+    return this->atomdb_backend->atoms_exist(handles, public_key);
 }
 
-set<string> AdapterDB::links_exist(const vector<string>& handles) {
+set<string> AdapterDB::nodes_exist(const vector<string>& handles, const string& public_key) {
     this->ensure_backend_ready();
-    return this->atomdb_backend->links_exist(handles);
+    return this->atomdb_backend->nodes_exist(handles, public_key);
 }
 
-string AdapterDB::add_atom(const atoms::Atom* atom, bool throw_if_exists) {
+set<string> AdapterDB::links_exist(const vector<string>& handles, const string& public_key) {
     this->ensure_backend_ready();
-    return this->atomdb_backend->add_atom(atom, throw_if_exists);
+    return this->atomdb_backend->links_exist(handles, public_key);
 }
 
-string AdapterDB::add_node(const atoms::Node* node, bool throw_if_exists) {
+string AdapterDB::add_atom(const atoms::Atom* atom, const string& public_key, bool throw_if_exists) {
     this->ensure_backend_ready();
-    return this->atomdb_backend->add_node(node, throw_if_exists);
+    return this->atomdb_backend->add_atom(atom, public_key, throw_if_exists);
 }
 
-string AdapterDB::add_link(const atoms::Link* link, bool throw_if_exists) {
+string AdapterDB::add_node(const atoms::Node* node, const string& public_key, bool throw_if_exists) {
     this->ensure_backend_ready();
-    return this->atomdb_backend->add_link(link, throw_if_exists);
+    return this->atomdb_backend->add_node(node, public_key, throw_if_exists);
+}
+
+string AdapterDB::add_link(const atoms::Link* link, const string& public_key, bool throw_if_exists) {
+    this->ensure_backend_ready();
+    return this->atomdb_backend->add_link(link, public_key, throw_if_exists);
 }
 
 vector<string> AdapterDB::add_atoms(const vector<atoms::Atom*>& atoms,
+                                    const string& public_key,
                                     bool throw_if_exists,
                                     bool is_transactional) {
     this->ensure_backend_ready();
-    return this->atomdb_backend->add_atoms(atoms, throw_if_exists, is_transactional);
+    return this->atomdb_backend->add_atoms(atoms, public_key, throw_if_exists, is_transactional);
 }
 
 vector<string> AdapterDB::add_nodes(const vector<atoms::Node*>& nodes,
+                                    const string& public_key,
                                     bool throw_if_exists,
                                     bool is_transactional) {
     this->ensure_backend_ready();
-    return this->atomdb_backend->add_nodes(nodes, throw_if_exists, is_transactional);
+    return this->atomdb_backend->add_nodes(nodes, public_key, throw_if_exists, is_transactional);
 }
 
 vector<string> AdapterDB::add_links(const vector<atoms::Link*>& links,
+                                    const string& public_key,
                                     bool throw_if_exists,
                                     bool is_transactional) {
     this->ensure_backend_ready();
-    return this->atomdb_backend->add_links(links, throw_if_exists, is_transactional);
+    return this->atomdb_backend->add_links(links, public_key, throw_if_exists, is_transactional);
 }
 
-bool AdapterDB::delete_atom(const string& handle, bool delete_link_targets) {
+bool AdapterDB::delete_atom(const string& handle, const string& public_key, bool delete_link_targets) {
     this->ensure_backend_ready();
-    return this->atomdb_backend->delete_atom(handle, delete_link_targets);
+    return this->atomdb_backend->delete_atom(handle, public_key, delete_link_targets);
 }
 
-bool AdapterDB::delete_node(const string& handle, bool delete_link_targets) {
+bool AdapterDB::delete_node(const string& handle, const string& public_key, bool delete_link_targets) {
     this->ensure_backend_ready();
-    return this->atomdb_backend->delete_node(handle, delete_link_targets);
+    return this->atomdb_backend->delete_node(handle, public_key, delete_link_targets);
 }
 
-bool AdapterDB::delete_link(const string& handle, bool delete_link_targets) {
+bool AdapterDB::delete_link(const string& handle, const string& public_key, bool delete_link_targets) {
     this->ensure_backend_ready();
-    return this->atomdb_backend->delete_link(handle, delete_link_targets);
+    return this->atomdb_backend->delete_link(handle, public_key, delete_link_targets);
 }
 
-uint AdapterDB::delete_atoms(const vector<string>& handles, bool delete_link_targets) {
+uint AdapterDB::delete_atoms(const vector<string>& handles,
+                             const string& public_key,
+                             bool delete_link_targets) {
     this->ensure_backend_ready();
-    return this->atomdb_backend->delete_atoms(handles, delete_link_targets);
+    return this->atomdb_backend->delete_atoms(handles, public_key, delete_link_targets);
 }
 
-uint AdapterDB::delete_nodes(const vector<string>& handles, bool delete_link_targets) {
+uint AdapterDB::delete_nodes(const vector<string>& handles,
+                             const string& public_key,
+                             bool delete_link_targets) {
     this->ensure_backend_ready();
-    return this->atomdb_backend->delete_nodes(handles, delete_link_targets);
+    return this->atomdb_backend->delete_nodes(handles, public_key, delete_link_targets);
 }
 
-uint AdapterDB::delete_links(const vector<string>& handles, bool delete_link_targets) {
+uint AdapterDB::delete_links(const vector<string>& handles,
+                             const string& public_key,
+                             bool delete_link_targets) {
     this->ensure_backend_ready();
-    return this->atomdb_backend->delete_links(handles, delete_link_targets);
+    return this->atomdb_backend->delete_links(handles, public_key, delete_link_targets);
 }
 
-void AdapterDB::re_index_patterns(bool flush_patterns) {
+void AdapterDB::re_index_patterns(const string& public_key, bool flush_patterns) {
     this->ensure_backend_ready();
-    this->atomdb_backend->re_index_patterns(flush_patterns);
+    this->atomdb_backend->re_index_patterns(public_key, flush_patterns);
 }
 
-size_t AdapterDB::node_count() const {
+size_t AdapterDB::node_count(const string& public_key) const {
     this->ensure_backend_ready();
-    return this->atomdb_backend->node_count();
+    return this->atomdb_backend->node_count(public_key);
 }
 
-size_t AdapterDB::link_count() const {
+size_t AdapterDB::link_count(const string& public_key) const {
     this->ensure_backend_ready();
-    return this->atomdb_backend->link_count();
+    return this->atomdb_backend->link_count(public_key);
 }
 
-size_t AdapterDB::atom_count() const {
+size_t AdapterDB::atom_count(const string& public_key) const {
     this->ensure_backend_ready();
-    return this->atomdb_backend->atom_count();
+    return this->atomdb_backend->atom_count(public_key);
 }
 
 // ==============================
@@ -237,7 +256,7 @@ void AdapterDB::initialize(bool skip_atomdb_backend_empty) {
     if (!this->is_context_persisted(context_id)) {
         LOG_INFO("ContextID <" << context_id << "> NOT found.");
 
-        if (!skip_atomdb_backend_empty && !this->atomdb_backend->empty()) {
+        if (!skip_atomdb_backend_empty && !this->atomdb_backend->empty("")) {
             RAISE_ERROR("AtomDB backend already populated");
         }
 

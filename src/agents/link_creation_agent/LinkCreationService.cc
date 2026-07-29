@@ -126,14 +126,14 @@ void LinkCreationService::set_timeout(int timeout) { this->timeout = timeout; }
 
 static void add_or_update_link(shared_ptr<Link> link) {
     auto db_instance = AtomDBSingleton::get_instance();
-    if (!db_instance->link_exists(link->handle())) {
+    if (!db_instance->link_exists(link->handle(), "")) {
         LOG_INFO("Adding link to AtomDB: " << link->to_string());
-        db_instance->add_link(link.get());
+        db_instance->add_link(link.get(), "");
     } else {
         LOG_INFO("Updating link in AtomDB: " << link->to_string());
         auto old_link = db_instance->get_atom(link->handle());
-        db_instance->delete_link(link->handle(), false);
-        db_instance->add_link(link.get());
+        db_instance->delete_link(link->handle(), "", false);
+        db_instance->add_link(link.get(), "");
     }
 }
 

@@ -32,32 +32,34 @@ RemoteAtomDBPeer::RemoteAtomDBPeer(shared_ptr<AtomDB> remote_atomdb,
 
 RemoteAtomDBPeer::~RemoteAtomDBPeer() { stop_cleanup_thread(); }
 
-bool RemoteAtomDBPeer::allow_nested_indexing() {
-    return atomdb_ ? atomdb_->allow_nested_indexing() : false;
+bool RemoteAtomDBPeer::allow_nested_indexing(const string& public_key) {
+    return atomdb_ ? atomdb_->allow_nested_indexing(public_key) : false;
 }
 
 bool RemoteAtomDBPeer::composite_type_enabled() const {
     return local_persistence_ && local_persistence_->composite_type_enabled();
 }
 
-shared_ptr<Atom> RemoteAtomDBPeer::get_atom(const string& handle) {
-    auto atom = cache_.get_atom(handle);
+bool RemoteAtomDBPeer::is_protected() const { return atomdb_ ? atomdb_->is_protected() : false; }
+
+shared_ptr<Atom> RemoteAtomDBPeer::get_atom(const string& handle, const string& public_key) {
+    auto atom = cache_.get_atom(handle, public_key);
     if (atom) return atom;
 
     if (local_persistence_) {
-        atom = local_persistence_->get_atom(handle);
+        atom = local_persistence_->get_atom(handle, public_key);
         if (atom) {
             LOG_DEBUG("[" << uid_ << "] get_atom(" << handle << ") <- local_persistence (cached)");
-            cache_.add_atom(atom.get());
+            cache_.add_atom(atom.get(), public_key);
             return atom;
         }
     }
 
     if (atomdb_) {
-        atom = atomdb_->get_atom(handle);
+        atom = atomdb_->get_atom(handle, public_key);
         if (atom) {
             LOG_DEBUG("[" << uid_ << "] get_atom(" << handle << ") <- remote atomdb (cached)");
-            cache_.add_atom(atom.get());
+            cache_.add_atom(atom.get(), public_key);
             return atom;
         }
     }
@@ -66,24 +68,24 @@ shared_ptr<Atom> RemoteAtomDBPeer::get_atom(const string& handle) {
     return nullptr;
 }
 
-shared_ptr<Node> RemoteAtomDBPeer::get_node(const string& handle) {
-    auto node = cache_.get_node(handle);
+shared_ptr<Node> RemoteAtomDBPeer::get_node(const string& handle, const string& public_key) {
+    auto node = cache_.get_node(handle, public_key);
     if (node) return node;
 
     if (local_persistence_) {
-        node = local_persistence_->get_node(handle);
+        node = local_persistence_->get_node(handle, public_key);
         if (node) {
             LOG_DEBUG("[" << uid_ << "] get_node(" << handle << ") <- local_persistence (cached)");
-            cache_.add_node(node.get());
+            cache_.add_node(node.get(), public_key);
             return node;
         }
     }
 
     if (atomdb_) {
-        node = atomdb_->get_node(handle);
+        node = atomdb_->get_node(handle, public_key);
         if (node) {
             LOG_DEBUG("[" << uid_ << "] get_node(" << handle << ") <- remote atomdb (cached)");
-            cache_.add_node(node.get());
+            cache_.add_node(node.get(), public_key);
             return node;
         }
     }
@@ -92,24 +94,24 @@ shared_ptr<Node> RemoteAtomDBPeer::get_node(const string& handle) {
     return nullptr;
 }
 
-shared_ptr<Link> RemoteAtomDBPeer::get_link(const string& handle) {
-    auto link = cache_.get_link(handle);
+shared_ptr<Link> RemoteAtomDBPeer::get_link(const string& handle, const string& public_key) {
+    auto link = cache_.get_link(handle, public_key);
     if (link) return link;
 
     if (local_persistence_) {
-        link = local_persistence_->get_link(handle);
+        link = local_persistence_->get_link(handle, public_key);
         if (link) {
             LOG_DEBUG("[" << uid_ << "] get_link(" << handle << ") <- local_persistence (cached)");
-            cache_.add_link(link.get());
+            cache_.add_link(link.get(), public_key);
             return link;
         }
     }
 
     if (atomdb_) {
-        link = atomdb_->get_link(handle);
+        link = atomdb_->get_link(handle, public_key);
         if (link) {
             LOG_DEBUG("[" << uid_ << "] get_link(" << handle << ") <- remote atomdb (cached)");
-            cache_.add_link(link.get());
+            cache_.add_link(link.get(), public_key);
             return link;
         }
     }
@@ -119,23 +121,26 @@ shared_ptr<Link> RemoteAtomDBPeer::get_link(const string& handle) {
 }
 
 shared_ptr<Atom> RemoteAtomDBPeer::get_cached_atom(const string& handle) {
-    return cache_.get_atom(handle);
+    return cache_.get_atom(handle, "");
 }
 
 shared_ptr<Node> RemoteAtomDBPeer::get_cached_node(const string& handle) {
-    return cache_.get_node(handle);
+    return cache_.get_node(handle, "");
 }
 
 shared_ptr<Link> RemoteAtomDBPeer::get_cached_link(const string& handle) {
-    return cache_.get_link(handle);
-}
-
-vector<shared_ptr<Atom>> RemoteAtomDBPeer::get_matching_atoms(bool is_toplevel, Atom& key) {
-    return get_matching_atoms(is_toplevel, key, false);
+    return cache_.get_link(handle, "");
 }
 
 vector<shared_ptr<Atom>> RemoteAtomDBPeer::get_matching_atoms(bool is_toplevel,
                                                               Atom& key,
+                                                              const string& public_key) {
+    return get_matching_atoms(is_toplevel, key, public_key, false);
+}
+
+vector<shared_ptr<Atom>> RemoteAtomDBPeer::get_matching_atoms(bool is_toplevel,
+                                                              Atom& key,
+                                                              const string& public_key,
                                                               bool local_only) {
     vector<shared_ptr<Atom>> result;
     set<string> seen_handles;
@@ -150,13 +155,13 @@ vector<shared_ptr<Atom>> RemoteAtomDBPeer::get_matching_atoms(bool is_toplevel,
         }
     };
 
-    merge_results(cache_.get_matching_atoms(is_toplevel, key));
+    merge_results(cache_.get_matching_atoms(is_toplevel, key, public_key));
     if (local_persistence_) {
-        merge_results(local_persistence_->get_matching_atoms(is_toplevel, key));
+        merge_results(local_persistence_->get_matching_atoms(is_toplevel, key, public_key));
     }
 
     if (!local_only && atomdb_) {
-        merge_results(atomdb_->get_matching_atoms(is_toplevel, key));
+        merge_results(atomdb_->get_matching_atoms(is_toplevel, key, public_key));
     }
 
     return result;
@@ -166,7 +171,8 @@ bool RemoteAtomDBPeer::schema_already_fetched(const LinkSchema& link_schema) {
     return fetched_link_templates_.lookup(link_schema.handle()) != NULL;
 }
 
-void RemoteAtomDBPeer::feed_cache_from_handle_set(shared_ptr<HandleSet> handle_set) {
+void RemoteAtomDBPeer::feed_cache_from_handle_set(shared_ptr<HandleSet> handle_set,
+                                                  const string& public_key) {
     if (!handle_set) return;
 
     auto it = handle_set->get_iterator();
@@ -179,9 +185,9 @@ void RemoteAtomDBPeer::feed_cache_from_handle_set(shared_ptr<HandleSet> handle_s
         if (!handle_cstr) break;
 
         string handle(handle_cstr);
-        auto atom = get_atom(handle);
+        auto atom = get_atom(handle, public_key);
         if (atom) {
-            cache_.add_atom(atom.get());
+            cache_.add_atom(atom.get(), public_key);
         }
     }
 }
@@ -208,31 +214,34 @@ void RemoteAtomDBPeer::merge_handle_set(shared_ptr<HandleSet> source,
     }
 }
 
-shared_ptr<HandleSet> RemoteAtomDBPeer::query_for_pattern(const LinkSchema& link_schema) {
+shared_ptr<HandleSet> RemoteAtomDBPeer::query_for_pattern(const LinkSchema& link_schema,
+                                                          const string& public_key) {
     auto result = make_shared<HandleSetInMemory>();
     set<string> seen;
 
     if (schema_already_fetched(link_schema)) {
         LOG_DEBUG("[" << uid_ << "] query_for_pattern(" << link_schema.handle() << ") cache-hit"
                       << (local_persistence_ ? ", merging cache + local_persistence" : "."));
-        merge_handle_set(
-            cache_.query_for_pattern(link_schema), result, seen, cache_.allow_nested_indexing());
+        merge_handle_set(cache_.query_for_pattern(link_schema, public_key),
+                         result,
+                         seen,
+                         cache_.allow_nested_indexing(public_key));
         if (local_persistence_) {
-            merge_handle_set(local_persistence_->query_for_pattern(link_schema),
+            merge_handle_set(local_persistence_->query_for_pattern(link_schema, public_key),
                              result,
                              seen,
-                             local_persistence_->allow_nested_indexing());
+                             local_persistence_->allow_nested_indexing(public_key));
         }
     } else {
         LOG_DEBUG("[" << uid_ << "] query_for_pattern(" << link_schema.handle()
                       << ") cache-miss, fetching from remote atomdb");
         if (atomdb_) {
-            auto handle_set = atomdb_->query_for_pattern(link_schema);
+            auto handle_set = atomdb_->query_for_pattern(link_schema, public_key);
             if (handle_set) {
-                merge_handle_set(handle_set, result, seen, atomdb_->allow_nested_indexing());
+                merge_handle_set(handle_set, result, seen, atomdb_->allow_nested_indexing(public_key));
             }
         }
-        feed_cache_from_handle_set(result);
+        feed_cache_from_handle_set(result, public_key);
         fetched_link_templates_.insert(link_schema.handle(), empty_trie_value_);
     }
 
@@ -241,12 +250,13 @@ shared_ptr<HandleSet> RemoteAtomDBPeer::query_for_pattern(const LinkSchema& link
     return result;
 }
 
-shared_ptr<HandleList> RemoteAtomDBPeer::query_for_targets(const string& handle) {
-    auto result = cache_.query_for_targets(handle);
+shared_ptr<HandleList> RemoteAtomDBPeer::query_for_targets(const string& handle,
+                                                           const string& public_key) {
+    auto result = cache_.query_for_targets(handle, public_key);
     if (result) return result;
 
     if (local_persistence_) {
-        result = local_persistence_->query_for_targets(handle);
+        result = local_persistence_->query_for_targets(handle, public_key);
         if (result) {
             LOG_DEBUG("[" << uid_ << "] query_for_targets(" << handle << ") <- local_persistence");
             return result;
@@ -255,22 +265,23 @@ shared_ptr<HandleList> RemoteAtomDBPeer::query_for_targets(const string& handle)
 
     if (atomdb_) {
         LOG_DEBUG("[" << uid_ << "] query_for_targets(" << handle << ") <- remote atomdb");
-        return atomdb_->query_for_targets(handle);
+        return atomdb_->query_for_targets(handle, public_key);
     }
 
     return nullptr;
 }
 
-shared_ptr<HandleSet> RemoteAtomDBPeer::query_for_incoming_set(const string& handle) {
+shared_ptr<HandleSet> RemoteAtomDBPeer::query_for_incoming_set(const string& handle,
+                                                               const string& public_key) {
     auto result = make_shared<HandleSetInMemory>();
     set<string> seen;
 
-    merge_handle_set(cache_.query_for_incoming_set(handle), result, seen);
+    merge_handle_set(cache_.query_for_incoming_set(handle, public_key), result, seen);
     if (local_persistence_) {
-        merge_handle_set(local_persistence_->query_for_incoming_set(handle), result, seen);
+        merge_handle_set(local_persistence_->query_for_incoming_set(handle, public_key), result, seen);
     }
     if (atomdb_) {
-        merge_handle_set(atomdb_->query_for_incoming_set(handle), result, seen);
+        merge_handle_set(atomdb_->query_for_incoming_set(handle, public_key), result, seen);
     }
 
     LOG_DEBUG("[" << uid_ << "] query_for_incoming_set(" << handle << ") -> " << result->size()
@@ -278,35 +289,35 @@ shared_ptr<HandleSet> RemoteAtomDBPeer::query_for_incoming_set(const string& han
     return result;
 }
 
-bool RemoteAtomDBPeer::atom_exists(const string& handle) {
-    if (cache_.atom_exists(handle)) return true;
-    if (local_persistence_ && local_persistence_->atom_exists(handle)) return true;
-    if (atomdb_ && atomdb_->atom_exists(handle)) return true;
+bool RemoteAtomDBPeer::atom_exists(const string& handle, const string& public_key) {
+    if (cache_.atom_exists(handle, public_key)) return true;
+    if (local_persistence_ && local_persistence_->atom_exists(handle, public_key)) return true;
+    if (atomdb_ && atomdb_->atom_exists(handle, public_key)) return true;
     return false;
 }
 
-bool RemoteAtomDBPeer::node_exists(const string& handle) {
-    if (cache_.node_exists(handle)) return true;
-    if (local_persistence_ && local_persistence_->node_exists(handle)) return true;
-    if (atomdb_ && atomdb_->node_exists(handle)) return true;
+bool RemoteAtomDBPeer::node_exists(const string& handle, const string& public_key) {
+    if (cache_.node_exists(handle, public_key)) return true;
+    if (local_persistence_ && local_persistence_->node_exists(handle, public_key)) return true;
+    if (atomdb_ && atomdb_->node_exists(handle, public_key)) return true;
     return false;
 }
 
-bool RemoteAtomDBPeer::link_exists(const string& handle) {
-    if (cache_.link_exists(handle)) return true;
-    if (local_persistence_ && local_persistence_->link_exists(handle)) return true;
-    if (atomdb_ && atomdb_->link_exists(handle)) return true;
+bool RemoteAtomDBPeer::link_exists(const string& handle, const string& public_key) {
+    if (cache_.link_exists(handle, public_key)) return true;
+    if (local_persistence_ && local_persistence_->link_exists(handle, public_key)) return true;
+    if (atomdb_ && atomdb_->link_exists(handle, public_key)) return true;
     return false;
 }
 
-set<string> RemoteAtomDBPeer::atoms_exist(const vector<string>& handles) {
+set<string> RemoteAtomDBPeer::atoms_exist(const vector<string>& handles, const string& public_key) {
     set<string> result;
 
     set<string> remaining(handles.begin(), handles.end());
     auto from_source = [&](AtomDB& db) {
         vector<string> to_check(remaining.begin(), remaining.end());
         if (to_check.empty()) return;
-        auto found = db.atoms_exist(to_check);
+        auto found = db.atoms_exist(to_check, public_key);
         for (const auto& h : found) {
             result.insert(h);
             remaining.erase(h);
@@ -324,14 +335,14 @@ set<string> RemoteAtomDBPeer::atoms_exist(const vector<string>& handles) {
     return result;
 }
 
-set<string> RemoteAtomDBPeer::nodes_exist(const vector<string>& handles) {
+set<string> RemoteAtomDBPeer::nodes_exist(const vector<string>& handles, const string& public_key) {
     set<string> result;
     set<string> remaining(handles.begin(), handles.end());
 
     auto from_source = [&](AtomDB& db) {
         vector<string> to_check(remaining.begin(), remaining.end());
         if (to_check.empty()) return;
-        auto found = db.nodes_exist(to_check);
+        auto found = db.nodes_exist(to_check, public_key);
         for (const auto& h : found) {
             result.insert(h);
             remaining.erase(h);
@@ -345,14 +356,14 @@ set<string> RemoteAtomDBPeer::nodes_exist(const vector<string>& handles) {
     return result;
 }
 
-set<string> RemoteAtomDBPeer::links_exist(const vector<string>& handles) {
+set<string> RemoteAtomDBPeer::links_exist(const vector<string>& handles, const string& public_key) {
     set<string> result;
     set<string> remaining(handles.begin(), handles.end());
 
     auto from_source = [&](AtomDB& db) {
         vector<string> to_check(remaining.begin(), remaining.end());
         if (to_check.empty()) return;
-        auto found = db.links_exist(to_check);
+        auto found = db.links_exist(to_check, public_key);
         for (const auto& h : found) {
             result.insert(h);
             remaining.erase(h);
@@ -366,120 +377,141 @@ set<string> RemoteAtomDBPeer::links_exist(const vector<string>& handles) {
     return result;
 }
 
-string RemoteAtomDBPeer::add_atom(const atoms::Atom* atom, bool throw_if_exists) {
-    return cache_.add_atom(atom, throw_if_exists);
+string RemoteAtomDBPeer::add_atom(const atoms::Atom* atom,
+                                  const string& public_key,
+                                  bool throw_if_exists) {
+    return cache_.add_atom(atom, public_key, throw_if_exists);
 }
 
-string RemoteAtomDBPeer::add_node(const atoms::Node* node, bool throw_if_exists) {
-    return cache_.add_node(node, throw_if_exists);
+string RemoteAtomDBPeer::add_node(const atoms::Node* node,
+                                  const string& public_key,
+                                  bool throw_if_exists) {
+    return cache_.add_node(node, public_key, throw_if_exists);
 }
 
-string RemoteAtomDBPeer::add_link(const atoms::Link* link, bool throw_if_exists) {
-    return cache_.add_link(link, throw_if_exists);
+string RemoteAtomDBPeer::add_link(const atoms::Link* link,
+                                  const string& public_key,
+                                  bool throw_if_exists) {
+    return cache_.add_link(link, public_key, throw_if_exists);
 }
 
 vector<string> RemoteAtomDBPeer::add_atoms(const vector<atoms::Atom*>& atoms,
+                                           const string& public_key,
                                            bool throw_if_exists,
                                            bool is_transactional) {
-    return cache_.add_atoms(atoms, throw_if_exists, is_transactional);
+    return cache_.add_atoms(atoms, public_key, throw_if_exists, is_transactional);
 }
 
 vector<string> RemoteAtomDBPeer::add_nodes(const vector<atoms::Node*>& nodes,
+                                           const string& public_key,
                                            bool throw_if_exists,
                                            bool is_transactional) {
-    return cache_.add_nodes(nodes, throw_if_exists, is_transactional);
+    return cache_.add_nodes(nodes, public_key, throw_if_exists, is_transactional);
 }
 
 vector<string> RemoteAtomDBPeer::add_links(const vector<atoms::Link*>& links,
+                                           const string& public_key,
                                            bool throw_if_exists,
                                            bool is_transactional) {
-    return cache_.add_links(links, throw_if_exists, is_transactional);
+    return cache_.add_links(links, public_key, throw_if_exists, is_transactional);
 }
 
-bool RemoteAtomDBPeer::delete_atom(const string& handle, bool delete_link_targets) {
-    bool cache_ok = cache_.delete_atom(handle, delete_link_targets);
+bool RemoteAtomDBPeer::delete_atom(const string& handle,
+                                   const string& public_key,
+                                   bool delete_link_targets) {
+    bool cache_ok = cache_.delete_atom(handle, public_key, delete_link_targets);
     bool local_ok = true;
     if (local_persistence_) {
-        local_ok = local_persistence_->delete_atom(handle, delete_link_targets);
+        local_ok = local_persistence_->delete_atom(handle, public_key, delete_link_targets);
     }
     return cache_ok || local_ok;
 }
 
-bool RemoteAtomDBPeer::delete_node(const string& handle, bool delete_link_targets) {
-    bool cache_ok = cache_.delete_node(handle, delete_link_targets);
+bool RemoteAtomDBPeer::delete_node(const string& handle,
+                                   const string& public_key,
+                                   bool delete_link_targets) {
+    bool cache_ok = cache_.delete_node(handle, public_key, delete_link_targets);
     bool local_ok = true;
     if (local_persistence_) {
-        local_ok = local_persistence_->delete_node(handle, delete_link_targets);
+        local_ok = local_persistence_->delete_node(handle, public_key, delete_link_targets);
     }
     return cache_ok || local_ok;
 }
 
-bool RemoteAtomDBPeer::delete_link(const string& handle, bool delete_link_targets) {
-    bool cache_ok = cache_.delete_link(handle, delete_link_targets);
+bool RemoteAtomDBPeer::delete_link(const string& handle,
+                                   const string& public_key,
+                                   bool delete_link_targets) {
+    bool cache_ok = cache_.delete_link(handle, public_key, delete_link_targets);
     bool local_ok = true;
     if (local_persistence_) {
-        local_ok = local_persistence_->delete_link(handle, delete_link_targets);
+        local_ok = local_persistence_->delete_link(handle, public_key, delete_link_targets);
     }
     return cache_ok || local_ok;
 }
 
-uint RemoteAtomDBPeer::delete_atoms(const vector<string>& handles, bool delete_link_targets) {
-    uint cache_count = cache_.delete_atoms(handles, delete_link_targets);
+uint RemoteAtomDBPeer::delete_atoms(const vector<string>& handles,
+                                    const string& public_key,
+                                    bool delete_link_targets) {
+    uint cache_count = cache_.delete_atoms(handles, public_key, delete_link_targets);
     uint local_count = 0;
     if (local_persistence_) {
-        local_count = local_persistence_->delete_atoms(handles, delete_link_targets);
+        local_count = local_persistence_->delete_atoms(handles, public_key, delete_link_targets);
     }
     return cache_count + local_count;
 }
 
-uint RemoteAtomDBPeer::delete_nodes(const vector<string>& handles, bool delete_link_targets) {
-    uint cache_count = cache_.delete_nodes(handles, delete_link_targets);
+uint RemoteAtomDBPeer::delete_nodes(const vector<string>& handles,
+                                    const string& public_key,
+                                    bool delete_link_targets) {
+    uint cache_count = cache_.delete_nodes(handles, public_key, delete_link_targets);
     uint local_count = 0;
     if (local_persistence_) {
-        local_count = local_persistence_->delete_nodes(handles, delete_link_targets);
+        local_count = local_persistence_->delete_nodes(handles, public_key, delete_link_targets);
     }
     return cache_count + local_count;
 }
 
-uint RemoteAtomDBPeer::delete_links(const vector<string>& handles, bool delete_link_targets) {
-    uint cache_count = cache_.delete_links(handles, delete_link_targets);
+uint RemoteAtomDBPeer::delete_links(const vector<string>& handles,
+                                    const string& public_key,
+                                    bool delete_link_targets) {
+    uint cache_count = cache_.delete_links(handles, public_key, delete_link_targets);
     uint local_count = 0;
     if (local_persistence_) {
-        local_count = local_persistence_->delete_links(handles, delete_link_targets);
+        local_count = local_persistence_->delete_links(handles, public_key, delete_link_targets);
     }
     return cache_count + local_count;
 }
 
-void RemoteAtomDBPeer::re_index_patterns(bool flush_patterns) {
-    cache_.re_index_patterns(flush_patterns);
+void RemoteAtomDBPeer::re_index_patterns(const string& public_key, bool flush_patterns) {
+    cache_.re_index_patterns(public_key, flush_patterns);
     if (local_persistence_) {
-        local_persistence_->re_index_patterns(flush_patterns);
+        local_persistence_->re_index_patterns(public_key, flush_patterns);
     }
 }
 
-size_t RemoteAtomDBPeer::node_count() const {
+size_t RemoteAtomDBPeer::node_count(const string& public_key) const {
     size_t count = 0;
-    count += cache_.node_count();
+    count += cache_.node_count(public_key);
     if (local_persistence_) {
-        count += local_persistence_->node_count();
+        count += local_persistence_->node_count(public_key);
     }
     return count;
 }
 
-size_t RemoteAtomDBPeer::link_count() const {
+size_t RemoteAtomDBPeer::link_count(const string& public_key) const {
     size_t count = 0;
-    count += cache_.link_count();
+    count += cache_.link_count(public_key);
     if (local_persistence_) {
-        count += local_persistence_->link_count();
+        count += local_persistence_->link_count(public_key);
     }
     return count;
 }
 
-size_t RemoteAtomDBPeer::atom_count() const {
+size_t RemoteAtomDBPeer::atom_count(const string& public_key) const {
     size_t count = 0;
-    count += cache_.atom_count();
+    count += cache_.atom_count(public_key);
     if (local_persistence_) {
-        count += local_persistence_->atom_count();
+        count += local_persistence_->atom_count(public_key);
     }
     return count;
 }
@@ -488,9 +520,9 @@ void RemoteAtomDBPeer::fetch(const LinkSchema& link_schema) {
     if (!schema_already_fetched(link_schema) && atomdb_) {
         LOG_DEBUG("[" << uid_ << "] fetch(" << link_schema.handle()
                       << ") prefetching from remote atomdb");
-        auto result = atomdb_->query_for_pattern(link_schema);
+        auto result = atomdb_->query_for_pattern(link_schema, "");
         if (result) {
-            feed_cache_from_handle_set(result);
+            feed_cache_from_handle_set(result, "");
             fetched_link_templates_.insert(link_schema.handle(), empty_trie_value_);
         }
     }
@@ -502,16 +534,16 @@ void RemoteAtomDBPeer::release(const LinkSchema& link_schema) {
     // properly.
     LOG_DEBUG("[" << uid_ << "] release(" << link_schema.handle()
                   << ") evicting from cache to local_persistence");
-    auto handle_set = cache_.query_for_pattern(link_schema);
+    auto handle_set = cache_.query_for_pattern(link_schema, "");
     if (handle_set && local_persistence_) {
         auto it = handle_set->get_iterator();
         char* handle_cstr;
         while ((handle_cstr = it->next()) != nullptr) {
             string handle(handle_cstr);
-            auto atom = cache_.get_atom(handle);
+            auto atom = cache_.get_atom(handle, "");
             if (atom) {
-                local_persistence_->add_atom(atom.get(), false);
-                cache_.delete_atom(handle, false);
+                local_persistence_->add_atom(atom.get(), "", false);
+                cache_.delete_atom(handle, "", false);
             }
         }
     }

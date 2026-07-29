@@ -57,19 +57,19 @@ class ChainOperatorTestEnvironment : public ::testing::Environment {
         atoms::Link* link;
         node1 = new atoms::Node(NODE_TYPE, EVALUATION);
         LOG_DEBUG("Add node: " + node1->handle() + " " + node1->to_string());
-        db->add_node(node1, false);
+        db->add_node(node1, "", false);
         for (unsigned int i = 0; i <= (NODE_COUNT + 1); i++) {
             node1 = new atoms::Node(NODE_TYPE, node_name(i));
-            db->add_node(node1, false);
+            db->add_node(node1, "", false);
             LOG_DEBUG("Add node: " + node1->handle() + " " + node1->to_string());
             for (unsigned int j = 0; j <= (NODE_COUNT + 1); j++) {
                 node2 = new atoms::Node(NODE_TYPE, node_name(j));
                 LOG_DEBUG("Add node: " + node2->handle() + " " + node2->to_string());
-                db->add_node(node2, false);
+                db->add_node(node2, "", false);
                 link = new atoms::Link(
                     LINK_TYPE, {EVALUATION_HANDLE, node1->handle(), node2->handle()}, true);
                 LOG_DEBUG("Add link: " + link->handle() + " " + link->to_string());
-                db->add_link(link, false);
+                db->add_link(link, "", false);
             }
         }
     }
