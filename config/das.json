@@ -1,7 +1,6 @@
 {
     "atomdb": {
         "type": "redismongodb",
-        "protected": true,
         "composite_type_enabled": true,
         "redis": {
             "image": "redis:7.2.3-alpine",
@@ -20,6 +19,7 @@
             "endpoint": "localhost:40021",
             "username": "admin",
             "password": "admin",
+            "seed_protected": false,
             "cluster": false,
             "cluster_secret_key": "8UDJSgpUCaVOTQG",
             "nodes": [

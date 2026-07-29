@@ -97,7 +97,7 @@ void RedisMongoDB::mongodb_setup(const JsonConfig& config) {
     string user = config.at_path("mongodb.username").get<string>();
     string password = config.at_path("mongodb.password").get<string>();
     uint chunk_size = config.at_path("mongodb.chunk_size").get_or<uint>(0);
-    bool is_protected = config.at_path("mongodb.protected").get_or<bool>(false);
+    bool seed_protected = config.at_path("mongodb.seed_protected").get_or<bool>(false);
 
     if (chunk_size > 0) {
         MONGODB_CHUNK_SIZE = chunk_size;
@@ -122,7 +122,7 @@ void RedisMongoDB::mongodb_setup(const JsonConfig& config) {
         mongodb.run_command(ping_cmd.view());
         LOG_INFO("Connected to MongoDB at " << address);
 
-        if (is_protected) {
+        if (seed_protected) {
             auto config_collection = (*conn)[MONGODB_DB_NAME][MONGODB_CONFIG_COLLECTION_NAME];
             auto filter = bsoncxx::builder::basic::make_document(bsoncxx::builder::basic::kvp(
                 MONGODB_FIELD_NAME[MONGODB_FIELD::ID], MONGODB_CONFIG_DOCUMENT_HANDLE));
@@ -136,8 +136,8 @@ void RedisMongoDB::mongodb_setup(const JsonConfig& config) {
                 LOG_INFO("MongoDB config: set protected=true (handle=" << MONGODB_CONFIG_DOCUMENT_HANDLE
                                                                        << ")");
             } else {
-                LOG_INFO("MongoDB config: already protected (handle=" << MONGODB_CONFIG_DOCUMENT_HANDLE
-                                                                      << ")");
+                LOG_INFO("MongoDB config: document already exists; skipping seed (handle="
+                         << MONGODB_CONFIG_DOCUMENT_HANDLE << ")");
             }
         }
 
