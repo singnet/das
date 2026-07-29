@@ -14,6 +14,14 @@ namespace atoms {
  * existing one (upsert). When a Merger is provided and the Atom already exists,
  * backends merge into a working copy and commit only on success so a throwing merger
  * cannot leave partially updated stored state.
+ *
+ * Exception contract: if merge() throws, that exception propagates to the caller
+ * unchanged. Backends must not wrap or replace it (so callers can match messages
+ * such as ThrowIfExistsMerger's "Node already exists: <handle>").
+ *
+ * Concurrency: merge-enabled adds are a read-modify-write with no cross-thread
+ * atomicity. Concurrent merge-enabled adds for the same handle can lose updates.
+ * Callers must serialize merge-enabled adds per handle (single-writer assumption).
  */
 class Merger {
    public:
@@ -23,6 +31,7 @@ class Merger {
      * @brief Merge incoming into existing (in place), or throw.
      * @param existing Working copy of the Atom currently stored in the DB (mutated).
      * @param incoming Atom being added (read-only; must not be mutated).
+     * @throws Propagated unchanged by AtomDB backends on failure.
      */
     virtual void merge(Atom* existing, const Atom* incoming) const = 0;
 };

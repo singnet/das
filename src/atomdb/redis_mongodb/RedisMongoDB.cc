@@ -863,19 +863,18 @@ vector<string> RedisMongoDB::add_nodes(const vector<atoms::Node*>& nodes,
     vector<bsoncxx::document::value> documents;
     vector<string> handles;
     map<string, shared_ptr<Node>> batch_merged;
+    vector<string> unique_handles;
 
     for (const auto& node : nodes) {
         handles.push_back(node->handle());
     }
 
     for (const auto& node : nodes) {
-        const atoms::Node* to_store = node;
         if (merger != nullptr) {
             string handle = node->handle();
             auto it = batch_merged.find(handle);
             if (it != batch_merged.end()) {
                 merger->merge(it->second.get(), node);
-                to_store = it->second.get();
             } else {
                 shared_ptr<Node> working;
                 auto existing_node = get_node(handle);
@@ -886,14 +885,27 @@ vector<string> RedisMongoDB::add_nodes(const vector<atoms::Node*>& nodes,
                     working = make_shared<Node>(*node);
                 }
                 batch_merged[handle] = working;
-                to_store = working.get();
+                unique_handles.push_back(handle);
+            }
+        } else {
+            auto mongodb_doc = atomdb_api_types::MongodbDocument(node);
+            documents.push_back(mongodb_doc.value());
+            if (this->composite_type_enabled_ && is_transactional) {
+                lock_guard<mutex> composite_type_hashes_map_lock(this->composite_type_hashes_map_mutex);
+                this->composite_type_hashes_map[node->handle()] = node->named_type_hash();
             }
         }
-        auto mongodb_doc = atomdb_api_types::MongodbDocument(to_store);
-        documents.push_back(mongodb_doc.value());
-        if (this->composite_type_enabled_ && is_transactional) {
-            lock_guard<mutex> composite_type_hashes_map_lock(this->composite_type_hashes_map_mutex);
-            this->composite_type_hashes_map[node->handle()] = to_store->named_type_hash();
+    }
+
+    if (merger != nullptr) {
+        for (const auto& handle : unique_handles) {
+            const atoms::Node* to_store = batch_merged[handle].get();
+            auto mongodb_doc = atomdb_api_types::MongodbDocument(to_store);
+            documents.push_back(mongodb_doc.value());
+            if (this->composite_type_enabled_ && is_transactional) {
+                lock_guard<mutex> composite_type_hashes_map_lock(this->composite_type_hashes_map_mutex);
+                this->composite_type_hashes_map[handle] = to_store->named_type_hash();
+            }
         }
     }
 
@@ -925,18 +937,17 @@ vector<string> RedisMongoDB::add_links(const vector<atoms::Link*>& links,
     vector<string> handles;
     vector<bsoncxx::document::value> documents;
     map<string, shared_ptr<Link>> batch_merged;
-
-    shared_ptr<RedisContext> ctx = this->redis_pool->acquire();
+    vector<string> unique_handles;
+    vector<const atoms::Link*> links_to_persist;
 
     for (const auto& link : links) {
         auto link_handle = link->handle();
+        handles.push_back(link_handle);
 
-        const atoms::Link* to_store = link;
         if (merger != nullptr) {
             auto it = batch_merged.find(link_handle);
             if (it != batch_merged.end()) {
                 merger->merge(it->second.get(), link);
-                to_store = it->second.get();
             } else {
                 shared_ptr<Link> working;
                 auto existing_link = get_link(link_handle);
@@ -947,10 +958,23 @@ vector<string> RedisMongoDB::add_links(const vector<atoms::Link*>& links,
                     working = make_shared<Link>(*link);
                 }
                 batch_merged[link_handle] = working;
-                to_store = working.get();
+                unique_handles.push_back(link_handle);
             }
+        } else {
+            links_to_persist.push_back(link);
         }
+    }
 
+    if (merger != nullptr) {
+        for (const auto& link_handle : unique_handles) {
+            links_to_persist.push_back(batch_merged[link_handle].get());
+        }
+    }
+
+    shared_ptr<RedisContext> ctx = this->redis_pool->acquire();
+
+    for (const auto* to_store : links_to_persist) {
+        auto link_handle = to_store->handle();
         auto pattern_handles = match_pattern_index_schema(to_store);
 
         for (const auto& target : to_store->targets) {
@@ -993,8 +1017,6 @@ vector<string> RedisMongoDB::add_links(const vector<atoms::Link*>& links,
         }
 
         documents.push_back(mongodb_doc->value());
-
-        handles.push_back(link_handle);
     }
 
     if (!documents.empty()) {

@@ -54,11 +54,9 @@ class ChainOperatorTestEnvironment : public ::testing::Environment {
     void load_data() {
         auto db = AtomDBSingleton::get_instance();
 
-        // Insert each node once (duplicate-tolerant upsert is the default, but unique
-        // inserts avoid hundreds of redundant allocations).
+        // Insert each node once (duplicate-tolerant upsert is the default).
         auto evaluation = new atoms::Node(NODE_TYPE, EVALUATION);
         EXPECT_EQ(db->add_node(evaluation), evaluation->handle());
-        EXPECT_EQ(db->add_node(new atoms::Node(NODE_TYPE, EVALUATION)), evaluation->handle());
         delete evaluation;
 
         vector<atoms::Node*> nodes;

@@ -47,6 +47,8 @@ class AtomDB : public HandleDecoder {
      * - merger == nullptr: upsert (insert if missing, replace if present)
      * - merger != nullptr and atom exists: merge into a working copy, then persist on success
      * - Use &ThrowIfExistsMerger::instance() to reject duplicates (former throw_if_exists=true)
+     * - If merge() throws, that exception propagates unchanged (backends do not wrap it)
+     * - Merge-enabled adds assume a single writer per handle (no concurrent RMW atomicity)
      */
     virtual string add_atom(const atoms::Atom* atom, const atoms::Merger* merger = nullptr) = 0;
     virtual string add_node(const atoms::Node* node, const atoms::Merger* merger = nullptr) = 0;

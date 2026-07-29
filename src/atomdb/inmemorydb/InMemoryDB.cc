@@ -316,12 +316,13 @@ string InMemoryDB::add_node(const atoms::Node* node, const atoms::Merger* merger
         atoms_trie_->insert(handle, new AtomTrieValue(cloned_node));
     } else {
         // Merge a copy so a throwing merger cannot leave partial stored state.
+        // Propagate the merger's exception unchanged (see Merger exception contract).
         Node* working = new Node(*dynamic_cast<Node*>(atom_trie_value->get_atom()));
         try {
             merger->merge(working, node);
         } catch (...) {
             delete working;
-            RAISE_ERROR("Failed to merge node: " + node->handle());
+            throw;
         }
         atoms_trie_->insert(handle, new AtomTrieValue(working));
     }
@@ -401,7 +402,7 @@ vector<string> InMemoryDB::add_links(const vector<atoms::Link*>& links,
                 merger->merge(working, link);
             } catch (...) {
                 delete working;
-                RAISE_ERROR("Failed to merge link: " + link->handle());
+                throw;
             }
             atoms_trie_->insert(link_handle, new AtomTrieValue(working));
         }

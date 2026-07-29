@@ -241,17 +241,17 @@ vector<string> MorkDB::add_links(const vector<atoms::Link*>& links,
     string metta_expressions;
     vector<bsoncxx::document::value> documents;
     map<string, shared_ptr<Link>> batch_merged;
+    vector<string> unique_handles;
+    vector<const atoms::Link*> links_to_persist;
 
-    uint count = 0;
     for (const auto& link : links) {
         auto link_handle = link->handle();
+        handles.push_back(link_handle);
 
-        const atoms::Link* to_store = link;
         if (merger != nullptr) {
             auto it = batch_merged.find(link_handle);
             if (it != batch_merged.end()) {
                 merger->merge(it->second.get(), link);
-                to_store = it->second.get();
             } else {
                 shared_ptr<Link> working;
                 auto existing_link = get_link(link_handle);
@@ -262,9 +262,22 @@ vector<string> MorkDB::add_links(const vector<atoms::Link*>& links,
                     working = make_shared<Link>(*link);
                 }
                 batch_merged[link_handle] = working;
-                to_store = working.get();
+                unique_handles.push_back(link_handle);
             }
+        } else {
+            links_to_persist.push_back(link);
         }
+    }
+
+    if (merger != nullptr) {
+        for (const auto& link_handle : unique_handles) {
+            links_to_persist.push_back(batch_merged[link_handle].get());
+        }
+    }
+
+    uint count = 0;
+    for (const auto* to_store : links_to_persist) {
+        auto link_handle = to_store->handle();
 
         string metta_expression = to_store->custom_attributes.get_or<string>("metta_expression", "");
         if (metta_expression.empty()) {
@@ -294,8 +307,6 @@ vector<string> MorkDB::add_links(const vector<atoms::Link*>& links,
         }
 
         documents.push_back(mongodb_doc->value());
-
-        handles.push_back(link_handle);
     }
 
     if (!documents.empty()) {
