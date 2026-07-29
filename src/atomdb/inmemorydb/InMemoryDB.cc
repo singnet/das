@@ -7,6 +7,7 @@
 #include "InMemoryDBAPITypes.h"
 #include "Link.h"
 #include "LinkSchema.h"
+#include "Merger.h"
 #include "Node.h"
 #include "Utils.h"
 
@@ -289,52 +290,61 @@ set<string> InMemoryDB::links_exist(const vector<string>& handles) {
     return existing;
 }
 
-string InMemoryDB::add_atom(const atoms::Atom* atom, bool throw_if_exists) {
+string InMemoryDB::add_atom(const atoms::Atom* atom, const atoms::Merger* merger) {
     if (atom->arity() == 0) {
-        return add_node(dynamic_cast<const atoms::Node*>(atom), throw_if_exists);
+        return add_node(dynamic_cast<const atoms::Node*>(atom), merger);
     } else {
-        return add_link(dynamic_cast<const atoms::Link*>(atom), throw_if_exists);
+        return add_link(dynamic_cast<const atoms::Link*>(atom), merger);
     }
 }
 
-string InMemoryDB::add_node(const atoms::Node* node, bool throw_if_exists) {
+string InMemoryDB::add_node(const atoms::Node* node, const atoms::Merger* merger) {
     string handle = node->handle();
 
-    if (throw_if_exists && this->node_exists(handle)) {
-        RAISE_ERROR("Node already exists: " + handle);
-        return "";
-    }
-
-    // Check if already exists
     auto existing = atoms_trie_->lookup(handle);
-    if (existing != NULL && !throw_if_exists) {
-        return handle;  // Already exists, return handle
+    if (existing == NULL) {
+        Node* cloned_node = new Node(*node);
+        atoms_trie_->insert(handle, new AtomTrieValue(cloned_node));
+        return handle;
     }
 
-    // Clone the node to store in trie
-    Node* cloned_node = new Node(*node);
-    auto atom_trie_value = new AtomTrieValue(cloned_node);
-    atoms_trie_->insert(handle, atom_trie_value);
+    auto* atom_trie_value = dynamic_cast<AtomTrieValue*>(existing);
+    if (merger == nullptr) {
+        // Upsert/replace — HandleTrie insert calls AtomTrieValue::merge, which
+        // deletes the previous Atom and takes ownership of the new one.
+        Node* cloned_node = new Node(*node);
+        atoms_trie_->insert(handle, new AtomTrieValue(cloned_node));
+    } else {
+        // Merge a copy so a throwing merger cannot leave partial stored state.
+        Node* working = new Node(*dynamic_cast<Node*>(atom_trie_value->get_atom()));
+        try {
+            merger->merge(working, node);
+        } catch (...) {
+            delete working;
+            RAISE_ERROR("Failed to merge node: " + node->handle());
+        }
+        atoms_trie_->insert(handle, new AtomTrieValue(working));
+    }
 
     return handle;
 }
 
-string InMemoryDB::add_link(const atoms::Link* link, bool throw_if_exists) {
+string InMemoryDB::add_link(const atoms::Link* link, const atoms::Merger* merger) {
     vector<Link*> links = {const_cast<atoms::Link*>(link)};
-    auto handles = this->add_links(links, throw_if_exists, false);
+    auto handles = this->add_links(links, merger, false);
     return handles.empty() ? "" : handles[0];
 }
 
-vector<string> InMemoryDB::add_atoms(const vector<atoms::Atom*>& atoms,
-                                     bool throw_if_exists,
+vector<string> InMemoryDB::add_atoms(const vector<atoms::Atom*>& atom_list,
+                                     const atoms::Merger* merger,
                                      bool is_transactional) {
-    if (atoms.empty()) {
+    if (atom_list.empty()) {
         return {};
     }
 
     vector<Node*> nodes;
     vector<Link*> links;
-    for (const auto& atom : atoms) {
+    for (const auto& atom : atom_list) {
         LOG_DEBUG("Adding atom: " + atom->to_string());
         if (atom->arity() == 0) {
             nodes.push_back(dynamic_cast<atoms::Node*>(atom));
@@ -342,15 +352,15 @@ vector<string> InMemoryDB::add_atoms(const vector<atoms::Atom*>& atoms,
             links.push_back(dynamic_cast<atoms::Link*>(atom));
         }
     }
-    auto node_handles = this->add_nodes(nodes, throw_if_exists, is_transactional);
-    auto link_handles = this->add_links(links, throw_if_exists, is_transactional);
+    auto node_handles = this->add_nodes(nodes, merger, is_transactional);
+    auto link_handles = this->add_links(links, merger, is_transactional);
 
     node_handles.insert(node_handles.end(), link_handles.begin(), link_handles.end());
     return node_handles;
 }
 
 vector<string> InMemoryDB::add_nodes(const vector<atoms::Node*>& nodes,
-                                     bool throw_if_exists,
+                                     const atoms::Merger* merger,
                                      bool is_transactional) {
     if (nodes.empty()) {
         return {};
@@ -358,45 +368,17 @@ vector<string> InMemoryDB::add_nodes(const vector<atoms::Node*>& nodes,
 
     vector<string> handles;
     for (const auto& node : nodes) {
-        handles.push_back(node->handle());
-    }
-
-    if (throw_if_exists) {
-        auto existing_handles = this->nodes_exist(handles);
-        if (!existing_handles.empty()) {
-            vector<string> existing_handles_vector(existing_handles.begin(), existing_handles.end());
-            RAISE_ERROR("Failed to insert nodes, some nodes already exist: " +
-                        Utils::join(existing_handles_vector, ','));
-            return {};
-        }
-    }
-
-    for (const auto& node : nodes) {
-        handles.push_back(this->add_node(node, throw_if_exists));
+        handles.push_back(this->add_node(node, merger));
     }
 
     return handles;
 }
 
 vector<string> InMemoryDB::add_links(const vector<atoms::Link*>& links,
-                                     bool throw_if_exists,
+                                     const atoms::Merger* merger,
                                      bool is_transactional) {
     if (links.empty()) {
         return {};
-    }
-
-    if (throw_if_exists) {
-        vector<string> handles;
-        for (const auto& link : links) {
-            handles.push_back(link->handle());
-        }
-        auto existing_handles = this->links_exist(handles);
-        if (!existing_handles.empty()) {
-            vector<string> existing_handles_vector(existing_handles.begin(), existing_handles.end());
-            RAISE_ERROR("Failed to insert links, some links already exist: " +
-                        Utils::join(existing_handles_vector, ','));
-            return {};
-        }
     }
 
     vector<string> handles;
@@ -404,26 +386,35 @@ vector<string> InMemoryDB::add_links(const vector<atoms::Link*>& links,
         string link_handle = link->handle();
         handles.push_back(link_handle);
 
-        // Check if already exists
         auto existing = atoms_trie_->lookup(link_handle);
-        if (existing == NULL || !throw_if_exists) {
-            if (existing == NULL) {
-                // Clone the link to store in trie
-                Link* cloned_link = new Link(*link);
-                auto atom_trie_value = new AtomTrieValue(cloned_link);
-                atoms_trie_->insert(link_handle, atom_trie_value);
+        if (existing == NULL) {
+            Link* cloned_link = new Link(*link);
+            atoms_trie_->insert(link_handle, new AtomTrieValue(cloned_link));
+        } else if (merger == nullptr) {
+            // Upsert/replace — AtomTrieValue::merge frees the previous Atom.
+            Link* cloned_link = new Link(*link);
+            atoms_trie_->insert(link_handle, new AtomTrieValue(cloned_link));
+        } else {
+            auto* atom_trie_value = dynamic_cast<AtomTrieValue*>(existing);
+            Link* working = new Link(*dynamic_cast<Link*>(atom_trie_value->get_atom()));
+            try {
+                merger->merge(working, link);
+            } catch (...) {
+                delete working;
+                RAISE_ERROR("Failed to merge link: " + link->handle());
             }
+            atoms_trie_->insert(link_handle, new AtomTrieValue(working));
+        }
 
-            // Update incoming sets for each target
-            for (const auto& target_handle : link->targets) {
-                this->add_incoming_set(target_handle, link_handle);
-            }
+        // Update incoming sets for each target
+        for (const auto& target_handle : link->targets) {
+            this->add_incoming_set(target_handle, link_handle);
+        }
 
-            // Index pattern
-            auto pattern_handles = this->match_pattern_index_schema(link);
-            for (const auto& pattern_handle : pattern_handles) {
-                this->add_pattern(pattern_handle, link_handle);
-            }
+        // Index pattern
+        auto pattern_handles = this->match_pattern_index_schema(link);
+        for (const auto& pattern_handle : pattern_handles) {
+            this->add_pattern(pattern_handle, link_handle);
         }
     }
 

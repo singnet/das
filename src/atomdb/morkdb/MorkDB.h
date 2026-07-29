@@ -49,7 +49,7 @@ class MorkDB : public RedisMongoDB {
     shared_ptr<atomdb_api_types::HandleList> query_for_targets(const string& handle) override;
 
     vector<string> add_links(const vector<atoms::Link*>& links,
-                             bool throw_if_exists = false,
+                             const atoms::Merger* merger = nullptr,
                              bool is_transactional = false) override;
 
     // TODO: Implement this once MORK supports deleting links (S-Expressions)

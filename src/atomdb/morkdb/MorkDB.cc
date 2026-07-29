@@ -5,6 +5,7 @@
 #include <bsoncxx/builder/stream/document.hpp>
 #include <bsoncxx/builder/stream/helpers.hpp>
 #include <iostream>
+#include <map>
 #include <memory>
 #include <optional>
 #include <string>
@@ -12,6 +13,7 @@
 #include "HandleDecoder.h"
 #include "Hasher.h"
 #include "Logger.h"
+#include "Merger.h"
 #include "MettaMapping.h"
 #include "MettaParser.h"
 #include "MettaParserActions.h"
@@ -215,7 +217,7 @@ shared_ptr<atomdb_api_types::HandleList> MorkDB::query_for_targets(const string&
 }
 
 vector<string> MorkDB::add_links(const vector<atoms::Link*>& links,
-                                 bool throw_if_exists,
+                                 const atoms::Merger* merger,
                                  bool is_transactional) {
     if (links.empty()) {
         if (this->composite_type_enabled() && is_transactional) {
@@ -223,20 +225,6 @@ vector<string> MorkDB::add_links(const vector<atoms::Link*>& links,
             this->composite_type_hashes_map.clear();
         }
         return {};
-    }
-
-    if (throw_if_exists) {
-        vector<string> handles;
-        for (const auto& link : links) {
-            handles.push_back(link->handle());
-        }
-        auto existing_handles = this->links_exist(handles);
-        if (!existing_handles.empty()) {
-            vector<string> existing_handles_vector(existing_handles.begin(), existing_handles.end());
-            RAISE_ERROR("Failed to insert links, some links already exist: " +
-                        Utils::join(existing_handles_vector, ','));
-            return {};
-        }
     }
 
     map<string, vector<string>> composite_type_entries_map;
@@ -252,14 +240,37 @@ vector<string> MorkDB::add_links(const vector<atoms::Link*>& links,
     vector<string> handles;
     string metta_expressions;
     vector<bsoncxx::document::value> documents;
+    map<string, shared_ptr<Link>> batch_merged;
 
     uint count = 0;
     for (const auto& link : links) {
         auto link_handle = link->handle();
-        string metta_expression = link->custom_attributes.get_or<string>("metta_expression", "");
+
+        const atoms::Link* to_store = link;
+        if (merger != nullptr) {
+            auto it = batch_merged.find(link_handle);
+            if (it != batch_merged.end()) {
+                merger->merge(it->second.get(), link);
+                to_store = it->second.get();
+            } else {
+                shared_ptr<Link> working;
+                auto existing_link = get_link(link_handle);
+                if (existing_link != nullptr) {
+                    working = make_shared<Link>(*existing_link);
+                    merger->merge(working.get(), link);
+                } else {
+                    working = make_shared<Link>(*link);
+                }
+                batch_merged[link_handle] = working;
+                to_store = working.get();
+            }
+        }
+
+        string metta_expression = to_store->custom_attributes.get_or<string>("metta_expression", "");
         if (metta_expression.empty()) {
-            metta_expression = link->metta_representation(*this);
-            link->custom_attributes["metta_expression"] = metta_expression;
+            metta_expression = to_store->metta_representation(*this);
+            // Persist metta on the atom we will store (may be incoming or merged existing)
+            const_cast<atoms::Link*>(to_store)->custom_attributes["metta_expression"] = metta_expression;
         }
         metta_expressions += metta_expression + "\n";
 
@@ -273,13 +284,13 @@ vector<string> MorkDB::add_links(const vector<atoms::Link*>& links,
         optional<atomdb_api_types::MongodbDocument> mongodb_doc;
         if (!this->composite_type_enabled()) {
             static const vector<string> empty_composite_type;
-            mongodb_doc.emplace(link, "", empty_composite_type, false);
+            mongodb_doc.emplace(to_store, "", empty_composite_type, false);
         } else if (is_transactional) {
-            mongodb_doc.emplace(link,
+            mongodb_doc.emplace(to_store,
                                 composite_type_hashes_map_copy[link_handle],
                                 composite_type_entries_map[link_handle]);
         } else {
-            mongodb_doc.emplace(link, *this);
+            mongodb_doc.emplace(to_store, *this);
         }
 
         documents.push_back(mongodb_doc->value());
@@ -350,7 +361,7 @@ void MorkDB::re_index_patterns(bool flush_patterns) {
         }
     }
 
-    this->add_links(links, false, true);
+    this->add_links(links, nullptr, true);
 }
 
 // <--

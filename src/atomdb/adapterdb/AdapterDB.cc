@@ -137,40 +137,40 @@ set<string> AdapterDB::links_exist(const vector<string>& handles) {
     return this->atomdb_backend->links_exist(handles);
 }
 
-string AdapterDB::add_atom(const atoms::Atom* atom, bool throw_if_exists) {
+string AdapterDB::add_atom(const atoms::Atom* atom, const atoms::Merger* merger) {
     this->ensure_backend_ready();
-    return this->atomdb_backend->add_atom(atom, throw_if_exists);
+    return this->atomdb_backend->add_atom(atom, merger);
 }
 
-string AdapterDB::add_node(const atoms::Node* node, bool throw_if_exists) {
+string AdapterDB::add_node(const atoms::Node* node, const atoms::Merger* merger) {
     this->ensure_backend_ready();
-    return this->atomdb_backend->add_node(node, throw_if_exists);
+    return this->atomdb_backend->add_node(node, merger);
 }
 
-string AdapterDB::add_link(const atoms::Link* link, bool throw_if_exists) {
+string AdapterDB::add_link(const atoms::Link* link, const atoms::Merger* merger) {
     this->ensure_backend_ready();
-    return this->atomdb_backend->add_link(link, throw_if_exists);
+    return this->atomdb_backend->add_link(link, merger);
 }
 
-vector<string> AdapterDB::add_atoms(const vector<atoms::Atom*>& atoms,
-                                    bool throw_if_exists,
+vector<string> AdapterDB::add_atoms(const vector<atoms::Atom*>& atom_list,
+                                    const atoms::Merger* merger,
                                     bool is_transactional) {
     this->ensure_backend_ready();
-    return this->atomdb_backend->add_atoms(atoms, throw_if_exists, is_transactional);
+    return this->atomdb_backend->add_atoms(atom_list, merger, is_transactional);
 }
 
 vector<string> AdapterDB::add_nodes(const vector<atoms::Node*>& nodes,
-                                    bool throw_if_exists,
+                                    const atoms::Merger* merger,
                                     bool is_transactional) {
     this->ensure_backend_ready();
-    return this->atomdb_backend->add_nodes(nodes, throw_if_exists, is_transactional);
+    return this->atomdb_backend->add_nodes(nodes, merger, is_transactional);
 }
 
 vector<string> AdapterDB::add_links(const vector<atoms::Link*>& links,
-                                    bool throw_if_exists,
+                                    const atoms::Merger* merger,
                                     bool is_transactional) {
     this->ensure_backend_ready();
-    return this->atomdb_backend->add_links(links, throw_if_exists, is_transactional);
+    return this->atomdb_backend->add_links(links, merger, is_transactional);
 }
 
 bool AdapterDB::delete_atom(const string& handle, bool delete_link_targets) {

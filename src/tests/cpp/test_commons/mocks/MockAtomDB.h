@@ -52,21 +52,21 @@ class AtomDBMock : public AtomDB {
     MOCK_METHOD(set<string>, nodes_exist, (const vector<string>& handles), (override));
     MOCK_METHOD(set<string>, links_exist, (const vector<string>& link_handles), (override));
 
-    MOCK_METHOD(string, add_node, (const Node* node, bool throw_if_exists), (override));
-    MOCK_METHOD(string, add_link, (const Link* link, bool throw_if_exists), (override));
-    MOCK_METHOD(string, add_atom, (const Atom* atom, bool throw_if_exists), (override));
+    MOCK_METHOD(string, add_node, (const Node* node, const Merger* merger), (override));
+    MOCK_METHOD(string, add_link, (const Link* link, const Merger* merger), (override));
+    MOCK_METHOD(string, add_atom, (const Atom* atom, const Merger* merger), (override));
 
     MOCK_METHOD(vector<string>,
                 add_atoms,
-                (const vector<Atom*>& atoms, bool throw_if_exists, bool is_transactional),
+                (const vector<Atom*>& atom_list, const Merger* merger, bool is_transactional),
                 (override));
     MOCK_METHOD(vector<string>,
                 add_nodes,
-                (const vector<Node*>& nodes, bool throw_if_exists, bool is_transactional),
+                (const vector<Node*>& nodes, const Merger* merger, bool is_transactional),
                 (override));
     MOCK_METHOD(vector<string>,
                 add_links,
-                (const vector<Link*>& links, bool throw_if_exists, bool is_transactional),
+                (const vector<Link*>& links, const Merger* merger, bool is_transactional),
                 (override));
 
     MOCK_METHOD(bool, delete_atom, (const string& handle, bool delete_link_targets), (override));

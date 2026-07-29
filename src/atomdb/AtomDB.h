@@ -7,6 +7,7 @@
 #include "AtomDBAPITypes.h"
 #include "HandleDecoder.h"
 #include "LinkSchema.h"
+#include "Merger.h"
 #include "Properties.h"
 
 using namespace std;
@@ -41,18 +42,24 @@ class AtomDB : public HandleDecoder {
     virtual set<string> nodes_exist(const vector<string>& handles) = 0;
     virtual set<string> links_exist(const vector<string>& handles) = 0;
 
-    virtual string add_atom(const atoms::Atom* atom, bool throw_if_exists = false) = 0;
-    virtual string add_node(const atoms::Node* node, bool throw_if_exists = false) = 0;
-    virtual string add_link(const atoms::Link* link, bool throw_if_exists = false) = 0;
+    /**
+     * Add methods take an optional Merger.
+     * - merger == nullptr: upsert (insert if missing, replace if present)
+     * - merger != nullptr and atom exists: merge into a working copy, then persist on success
+     * - Use &ThrowIfExistsMerger::instance() to reject duplicates (former throw_if_exists=true)
+     */
+    virtual string add_atom(const atoms::Atom* atom, const atoms::Merger* merger = nullptr) = 0;
+    virtual string add_node(const atoms::Node* node, const atoms::Merger* merger = nullptr) = 0;
+    virtual string add_link(const atoms::Link* link, const atoms::Merger* merger = nullptr) = 0;
 
-    virtual vector<string> add_atoms(const vector<atoms::Atom*>& atoms,
-                                     bool throw_if_exists = false,
+    virtual vector<string> add_atoms(const vector<atoms::Atom*>& atom_list,
+                                     const atoms::Merger* merger = nullptr,
                                      bool is_transactional = false) = 0;
     virtual vector<string> add_nodes(const vector<atoms::Node*>& nodes,
-                                     bool throw_if_exists = false,
+                                     const atoms::Merger* merger = nullptr,
                                      bool is_transactional = false) = 0;
     virtual vector<string> add_links(const vector<atoms::Link*>& links,
-                                     bool throw_if_exists = false,
+                                     const atoms::Merger* merger = nullptr,
                                      bool is_transactional = false) = 0;
 
     virtual bool delete_atom(const string& handle, bool delete_link_targets = false) = 0;

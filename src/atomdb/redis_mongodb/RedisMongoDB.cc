@@ -6,6 +6,7 @@
 #include <cctype>
 #include <cmath>
 #include <iostream>
+#include <map>
 #include <memory>
 #include <optional>
 #include <string>
@@ -13,6 +14,7 @@
 #include "Hasher.h"
 #include "Link.h"
 #include "Logger.h"
+#include "Merger.h"
 #include "MongoInitializer.h"
 #include "Node.h"
 #include "Properties.h"
@@ -715,11 +717,11 @@ set<string> RedisMongoDB::links_exist(const vector<string>& link_handles) {
     return documents_exist(link_handles, MONGODB_LINKS_COLLECTION_NAME);
 }
 
-string RedisMongoDB::add_atom(const atoms::Atom* atom, bool throw_if_exists) {
+string RedisMongoDB::add_atom(const atoms::Atom* atom, const atoms::Merger* merger) {
     if (atom->arity() == 0) {
-        return add_node(dynamic_cast<const atoms::Node*>(atom), throw_if_exists);
+        return add_node(dynamic_cast<const atoms::Node*>(atom), merger);
     } else {
-        return add_link(dynamic_cast<const atoms::Link*>(atom), throw_if_exists);
+        return add_link(dynamic_cast<const atoms::Link*>(atom), merger);
     }
 }
 
@@ -802,13 +804,19 @@ uint RedisMongoDB::upsert_documents(const std::vector<bsoncxx::document::value>&
     return total_modified;
 }
 
-string RedisMongoDB::add_node(const atoms::Node* node, bool throw_if_exists) {
-    if (throw_if_exists && node_exists(node->handle())) {
-        RAISE_ERROR("Node already exists: " + node->handle());
-        return "";
+string RedisMongoDB::add_node(const atoms::Node* node, const atoms::Merger* merger) {
+    const atoms::Node* to_store = node;
+    shared_ptr<Node> working_node;
+    if (merger != nullptr) {
+        auto existing_node = get_node(node->handle());
+        if (existing_node != nullptr) {
+            working_node = make_shared<Node>(*existing_node);
+            merger->merge(working_node.get(), node);
+            to_store = working_node.get();
+        }
     }
 
-    auto mongodb_doc = atomdb_api_types::MongodbDocument(node);
+    auto mongodb_doc = atomdb_api_types::MongodbDocument(to_store);
     if (!this->upsert_document(mongodb_doc.value(), MONGODB_NODES_COLLECTION_NAME)) {
         RAISE_ERROR("Failed to insert node into MongoDB");
         return "";
@@ -816,21 +824,21 @@ string RedisMongoDB::add_node(const atoms::Node* node, bool throw_if_exists) {
     return node->handle();
 }
 
-string RedisMongoDB::add_link(const atoms::Link* link, bool throw_if_exists) {
+string RedisMongoDB::add_link(const atoms::Link* link, const atoms::Merger* merger) {
     vector<Link*> links = {const_cast<atoms::Link*>(link)};
-    return add_links(links, throw_if_exists)[0];
+    return add_links(links, merger)[0];
 }
 
-vector<string> RedisMongoDB::add_atoms(const vector<atoms::Atom*>& atoms,
-                                       bool throw_if_exists,
+vector<string> RedisMongoDB::add_atoms(const vector<atoms::Atom*>& atom_list,
+                                       const atoms::Merger* merger,
                                        bool is_transactional) {
-    if (atoms.empty()) {
+    if (atom_list.empty()) {
         return {};
     }
 
     vector<Node*> nodes;
     vector<Link*> links;
-    for (const auto& atom : atoms) {
+    for (const auto& atom : atom_list) {
         LOG_DEBUG("Adding atom: " + atom->to_string());
         if (atom->arity() == 0) {
             nodes.push_back(dynamic_cast<atoms::Node*>(atom));
@@ -838,15 +846,15 @@ vector<string> RedisMongoDB::add_atoms(const vector<atoms::Atom*>& atoms,
             links.push_back(dynamic_cast<atoms::Link*>(atom));
         }
     }
-    auto node_handles = add_nodes(nodes, throw_if_exists, is_transactional);
-    auto link_handles = add_links(links, throw_if_exists, is_transactional);
+    auto node_handles = add_nodes(nodes, merger, is_transactional);
+    auto link_handles = add_links(links, merger, is_transactional);
 
     node_handles.insert(node_handles.end(), link_handles.begin(), link_handles.end());
     return node_handles;
 }
 
 vector<string> RedisMongoDB::add_nodes(const vector<atoms::Node*>& nodes,
-                                       bool throw_if_exists,
+                                       const atoms::Merger* merger,
                                        bool is_transactional) {
     if (nodes.empty()) {
         return {};
@@ -854,22 +862,38 @@ vector<string> RedisMongoDB::add_nodes(const vector<atoms::Node*>& nodes,
 
     vector<bsoncxx::document::value> documents;
     vector<string> handles;
+    map<string, shared_ptr<Node>> batch_merged;
 
     for (const auto& node : nodes) {
-        auto mongodb_doc = atomdb_api_types::MongodbDocument(node);
-        documents.push_back(mongodb_doc.value());
         handles.push_back(node->handle());
-        if (this->composite_type_enabled_ && is_transactional) {
-            lock_guard<mutex> composite_type_hashes_map_lock(this->composite_type_hashes_map_mutex);
-            this->composite_type_hashes_map[node->handle()] = node->named_type_hash();
-        }
     }
 
-    if (throw_if_exists) {
-        auto existing_handles = this->nodes_exist(handles);
-        if (existing_handles.size() > 0) {
-            RAISE_ERROR("Failed to insert nodes, some nodes already exist.");
-            return {};
+    for (const auto& node : nodes) {
+        const atoms::Node* to_store = node;
+        if (merger != nullptr) {
+            string handle = node->handle();
+            auto it = batch_merged.find(handle);
+            if (it != batch_merged.end()) {
+                merger->merge(it->second.get(), node);
+                to_store = it->second.get();
+            } else {
+                shared_ptr<Node> working;
+                auto existing_node = get_node(handle);
+                if (existing_node != nullptr) {
+                    working = make_shared<Node>(*existing_node);
+                    merger->merge(working.get(), node);
+                } else {
+                    working = make_shared<Node>(*node);
+                }
+                batch_merged[handle] = working;
+                to_store = working.get();
+            }
+        }
+        auto mongodb_doc = atomdb_api_types::MongodbDocument(to_store);
+        documents.push_back(mongodb_doc.value());
+        if (this->composite_type_enabled_ && is_transactional) {
+            lock_guard<mutex> composite_type_hashes_map_lock(this->composite_type_hashes_map_mutex);
+            this->composite_type_hashes_map[node->handle()] = to_store->named_type_hash();
         }
     }
 
@@ -881,7 +905,7 @@ vector<string> RedisMongoDB::add_nodes(const vector<atoms::Node*>& nodes,
 }
 
 vector<string> RedisMongoDB::add_links(const vector<atoms::Link*>& links,
-                                       bool throw_if_exists,
+                                       const atoms::Merger* merger,
                                        bool is_transactional) {
     if (links.empty()) {
         if (this->composite_type_enabled_ && is_transactional) {
@@ -889,20 +913,6 @@ vector<string> RedisMongoDB::add_links(const vector<atoms::Link*>& links,
             this->composite_type_hashes_map.clear();
         }
         return {};
-    }
-
-    if (throw_if_exists) {
-        vector<string> handles;
-        for (const auto& link : links) {
-            handles.push_back(link->handle());
-        }
-        auto existing_handles = this->links_exist(handles);
-        if (!existing_handles.empty()) {
-            vector<string> existing_handles_vector(existing_handles.begin(), existing_handles.end());
-            RAISE_ERROR("Failed to insert links, some links already exist: " +
-                        Utils::join(existing_handles_vector, ','));
-            return {};
-        }
     }
 
     map<string, vector<string>> composite_type_entries_map;
@@ -914,15 +924,36 @@ vector<string> RedisMongoDB::add_links(const vector<atoms::Link*>& links,
 
     vector<string> handles;
     vector<bsoncxx::document::value> documents;
+    map<string, shared_ptr<Link>> batch_merged;
 
     shared_ptr<RedisContext> ctx = this->redis_pool->acquire();
 
     for (const auto& link : links) {
         auto link_handle = link->handle();
 
-        auto pattern_handles = match_pattern_index_schema(link);
+        const atoms::Link* to_store = link;
+        if (merger != nullptr) {
+            auto it = batch_merged.find(link_handle);
+            if (it != batch_merged.end()) {
+                merger->merge(it->second.get(), link);
+                to_store = it->second.get();
+            } else {
+                shared_ptr<Link> working;
+                auto existing_link = get_link(link_handle);
+                if (existing_link != nullptr) {
+                    working = make_shared<Link>(*existing_link);
+                    merger->merge(working.get(), link);
+                } else {
+                    working = make_shared<Link>(*link);
+                }
+                batch_merged[link_handle] = working;
+                to_store = working.get();
+            }
+        }
 
-        for (const auto& target : link->targets) {
+        auto pattern_handles = match_pattern_index_schema(to_store);
+
+        for (const auto& target : to_store->targets) {
             string incomming_set_cmd = "ZADD " + REDIS_INCOMING_PREFIX + ":" + target + " " +
                                        to_string(this->incoming_set_next_score.load()) + " " +
                                        link_handle;
@@ -931,7 +962,7 @@ vector<string> RedisMongoDB::add_links(const vector<atoms::Link*>& links,
         }
 
         string outgoing_set_cmd = "SET " + REDIS_OUTGOING_PREFIX + ":" + link_handle + " ";
-        for (const auto& outgoing_handle : link->targets) {
+        for (const auto& outgoing_handle : to_store->targets) {
             outgoing_set_cmd += outgoing_handle;
         }
         ctx->append_command(outgoing_set_cmd.c_str());
@@ -946,13 +977,13 @@ vector<string> RedisMongoDB::add_links(const vector<atoms::Link*>& links,
         optional<atomdb_api_types::MongodbDocument> mongodb_doc;
         if (!this->composite_type_enabled_) {
             static const vector<string> empty_composite_type;
-            mongodb_doc.emplace(link, "", empty_composite_type, false);
+            mongodb_doc.emplace(to_store, "", empty_composite_type, false);
         } else if (is_transactional) {
             string composite_type_hash =
                 Hasher::composite_handle(composite_type_entries_map[link_handle]);
-            mongodb_doc.emplace(link, composite_type_hash, composite_type_entries_map[link_handle]);
+            mongodb_doc.emplace(to_store, composite_type_hash, composite_type_entries_map[link_handle]);
         } else {
-            mongodb_doc.emplace(link, *this);
+            mongodb_doc.emplace(to_store, *this);
         }
 
         if (ctx->get_pending_commands_count() >= REDIS_CHUNK_SIZE) {
