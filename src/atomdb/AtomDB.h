@@ -44,8 +44,9 @@ class AtomDB : public HandleDecoder {
 
     /**
      * Add methods take an optional Merger.
-     * - merger == nullptr: upsert (insert if missing, replace if present)
-     * - merger != nullptr and atom exists: merge into a working copy, then persist on success
+     * - merger == NULL: upsert (insert if missing, replace if present)
+     * - merger != NULL and atom exists: merge into a working copy, then persist only if
+     *   merge() returns true; if merge() returns false, stored state is left unchanged
      * - Use &ThrowIfExistsMerger::instance() to reject duplicates (former throw_if_exists=true)
      * - If merge() throws, that exception propagates unchanged (backends do not wrap it)
      * - Merge-enabled adds assume a single writer per handle (no concurrent RMW atomicity)

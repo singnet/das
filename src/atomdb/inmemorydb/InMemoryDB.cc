@@ -302,30 +302,27 @@ string InMemoryDB::add_node(const atoms::Node* node, const atoms::Merger* merger
     string handle = node->handle();
 
     auto existing = atoms_trie_->lookup(handle);
-    if (existing == NULL) {
+    if ((existing == NULL) || (merger == NULL)) {
+        // Insert or upsert/replace — HandleTrie insert calls AtomTrieValue::merge,
+        // which deletes the previous Atom (if any) and takes ownership of the new one.
         Node* cloned_node = new Node(*node);
         atoms_trie_->insert(handle, new AtomTrieValue(cloned_node));
         return handle;
     }
 
+    // Merge a copy; persist only when merge() returns true.
     auto* atom_trie_value = dynamic_cast<AtomTrieValue*>(existing);
-    if (merger == nullptr) {
-        // Upsert/replace — HandleTrie insert calls AtomTrieValue::merge, which
-        // deletes the previous Atom and takes ownership of the new one.
-        Node* cloned_node = new Node(*node);
-        atoms_trie_->insert(handle, new AtomTrieValue(cloned_node));
-    } else {
-        // Merge a copy so a throwing merger cannot leave partial stored state.
-        // Propagate the merger's exception unchanged (see Merger exception contract).
-        Node* working = new Node(*dynamic_cast<Node*>(atom_trie_value->get_atom()));
-        try {
-            merger->merge(working, node);
-        } catch (...) {
+    Node* working = new Node(*dynamic_cast<Node*>(atom_trie_value->get_atom()));
+    try {
+        if (!merger->merge(working, node)) {
             delete working;
-            throw;
+            return handle;
         }
-        atoms_trie_->insert(handle, new AtomTrieValue(working));
+    } catch (...) {
+        delete working;
+        throw;
     }
+    atoms_trie_->insert(handle, new AtomTrieValue(working));
 
     return handle;
 }
@@ -388,18 +385,19 @@ vector<string> InMemoryDB::add_links(const vector<atoms::Link*>& links,
         handles.push_back(link_handle);
 
         auto existing = atoms_trie_->lookup(link_handle);
-        if (existing == NULL) {
-            Link* cloned_link = new Link(*link);
-            atoms_trie_->insert(link_handle, new AtomTrieValue(cloned_link));
-        } else if (merger == nullptr) {
-            // Upsert/replace — AtomTrieValue::merge frees the previous Atom.
+        if ((existing == NULL) || (merger == NULL)) {
+            // Insert or upsert/replace — AtomTrieValue::merge frees the previous Atom.
             Link* cloned_link = new Link(*link);
             atoms_trie_->insert(link_handle, new AtomTrieValue(cloned_link));
         } else {
+            // Merge a copy; persist only when merge() returns true.
             auto* atom_trie_value = dynamic_cast<AtomTrieValue*>(existing);
             Link* working = new Link(*dynamic_cast<Link*>(atom_trie_value->get_atom()));
             try {
-                merger->merge(working, link);
+                if (!merger->merge(working, link)) {
+                    delete working;
+                    continue;
+                }
             } catch (...) {
                 delete working;
                 throw;

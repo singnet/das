@@ -248,16 +248,22 @@ vector<string> MorkDB::add_links(const vector<atoms::Link*>& links,
         auto link_handle = link->handle();
         handles.push_back(link_handle);
 
-        if (merger != nullptr) {
+        if (merger != NULL) {
             auto it = batch_merged.find(link_handle);
             if (it != batch_merged.end()) {
-                merger->merge(it->second.get(), link);
+                shared_ptr<Link> candidate = make_shared<Link>(*it->second);
+                if (merger->merge(candidate.get(), link)) {
+                    it->second = candidate;
+                }
             } else {
                 shared_ptr<Link> working;
                 auto existing_link = get_link(link_handle);
                 if (existing_link != nullptr) {
                     working = make_shared<Link>(*existing_link);
-                    merger->merge(working.get(), link);
+                    if (!merger->merge(working.get(), link)) {
+                        // Failed merge — do not persist.
+                        continue;
+                    }
                 } else {
                     working = make_shared<Link>(*link);
                 }
@@ -269,7 +275,7 @@ vector<string> MorkDB::add_links(const vector<atoms::Link*>& links,
         }
     }
 
-    if (merger != nullptr) {
+    if (merger != NULL) {
         for (const auto& link_handle : unique_handles) {
             links_to_persist.push_back(batch_merged[link_handle].get());
         }

@@ -807,11 +807,13 @@ uint RedisMongoDB::upsert_documents(const std::vector<bsoncxx::document::value>&
 string RedisMongoDB::add_node(const atoms::Node* node, const atoms::Merger* merger) {
     const atoms::Node* to_store = node;
     shared_ptr<Node> working_node;
-    if (merger != nullptr) {
+    if (merger != NULL) {
         auto existing_node = get_node(node->handle());
         if (existing_node != nullptr) {
             working_node = make_shared<Node>(*existing_node);
-            merger->merge(working_node.get(), node);
+            if (!merger->merge(working_node.get(), node)) {
+                return node->handle();
+            }
             to_store = working_node.get();
         }
     }
@@ -870,17 +872,23 @@ vector<string> RedisMongoDB::add_nodes(const vector<atoms::Node*>& nodes,
     }
 
     for (const auto& node : nodes) {
-        if (merger != nullptr) {
+        if (merger != NULL) {
             string handle = node->handle();
             auto it = batch_merged.find(handle);
             if (it != batch_merged.end()) {
-                merger->merge(it->second.get(), node);
+                shared_ptr<Node> candidate = make_shared<Node>(*it->second);
+                if (merger->merge(candidate.get(), node)) {
+                    it->second = candidate;
+                }
             } else {
                 shared_ptr<Node> working;
                 auto existing_node = get_node(handle);
                 if (existing_node != nullptr) {
                     working = make_shared<Node>(*existing_node);
-                    merger->merge(working.get(), node);
+                    if (!merger->merge(working.get(), node)) {
+                        // Failed merge — do not persist.
+                        continue;
+                    }
                 } else {
                     working = make_shared<Node>(*node);
                 }
@@ -897,7 +905,7 @@ vector<string> RedisMongoDB::add_nodes(const vector<atoms::Node*>& nodes,
         }
     }
 
-    if (merger != nullptr) {
+    if (merger != NULL) {
         for (const auto& handle : unique_handles) {
             const atoms::Node* to_store = batch_merged[handle].get();
             auto mongodb_doc = atomdb_api_types::MongodbDocument(to_store);
@@ -944,16 +952,22 @@ vector<string> RedisMongoDB::add_links(const vector<atoms::Link*>& links,
         auto link_handle = link->handle();
         handles.push_back(link_handle);
 
-        if (merger != nullptr) {
+        if (merger != NULL) {
             auto it = batch_merged.find(link_handle);
             if (it != batch_merged.end()) {
-                merger->merge(it->second.get(), link);
+                shared_ptr<Link> candidate = make_shared<Link>(*it->second);
+                if (merger->merge(candidate.get(), link)) {
+                    it->second = candidate;
+                }
             } else {
                 shared_ptr<Link> working;
                 auto existing_link = get_link(link_handle);
                 if (existing_link != nullptr) {
                     working = make_shared<Link>(*existing_link);
-                    merger->merge(working.get(), link);
+                    if (!merger->merge(working.get(), link)) {
+                        // Failed merge — do not persist.
+                        continue;
+                    }
                 } else {
                     working = make_shared<Link>(*link);
                 }
@@ -965,7 +979,7 @@ vector<string> RedisMongoDB::add_links(const vector<atoms::Link*>& links,
         }
     }
 
-    if (merger != nullptr) {
+    if (merger != NULL) {
         for (const auto& link_handle : unique_handles) {
             links_to_persist.push_back(batch_merged[link_handle].get());
         }

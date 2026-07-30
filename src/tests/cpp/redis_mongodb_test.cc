@@ -979,10 +979,11 @@ namespace {
 
 class SumStrengthMerger : public Merger {
    public:
-    void merge(Atom* existing, const Atom* incoming) const override {
+    bool merge(Atom* existing, const Atom* incoming) const override {
         double existing_strength = existing->custom_attributes.get_or<double>("strength", 0.0);
         double incoming_strength = incoming->custom_attributes.get_or<double>("strength", 0.0);
         existing->custom_attributes["strength"] = existing_strength + incoming_strength;
+        return true;
     }
 };
 
