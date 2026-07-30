@@ -117,19 +117,29 @@ start_attention_broker(){
 }
 
 start_mork_server() {
-    echo "[SETUP-INFO] Starting MORK server..."
+    local name=$1
+    local port=$2
+
+    echo "[SETUP-INFO] Starting MORK ${name}..."
 
     docker run -d \
-        --name="mork-test-server" \
+        --name="${name}" \
         --network host \
         -e MORK_SERVER_ADDR=0.0.0.0 \
-        -e MORK_SERVER_PORT=40022 \
-        "${MORK_SERVER_IMAGE}" "$@"
+        -e MORK_SERVER_PORT=${port} \
+        "${MORK_SERVER_IMAGE}"
 
-    until curl --silent http://localhost:${DAS_MORK_PORT}/status/-; do
-    echo "[SETUP-INFO] Waiting for MORK..."
-    sleep 1
+    for _ in {1..60}; do
+        if curl --fail --silent --show-error \
+            --connect-timeout 1 --max-time 2 \
+            "http://localhost:${port}/status/-" >/dev/null; then
+            return 0
+        fi
+        echo "[SETUP-INFO] Waiting for MORK ${name}..."
+        sleep 1
     done
+    echo "[SETUP-ERROR] MORK ${name} did not become ready." >&2
+    return 1
 }
 
 start_postgres_server(){
@@ -185,12 +195,20 @@ else
     start_redis_mongo
 fi
 
-# 3. START MORK SERVER
+# 3.1 START MORK SERVER
 
 if container_running mork-test-server; then
     echo "[SETUP-INFO] Mork server container is already running. Skipping startup."
 else
-    start_mork_server
+    start_mork_server "mork-test-server" 40022
+fi
+
+# 3.2 START ADAPTERDB MORK SERVER
+
+if container_running adapterdb-mork-test-server; then
+    echo "[SETUP-INFO] AdapterDB MORK server container is already running. Skipping startup."
+else
+    start_mork_server "adapterdb-mork-test-server" 40032
 fi
 
 # 4.START POSTGRES SERVER
