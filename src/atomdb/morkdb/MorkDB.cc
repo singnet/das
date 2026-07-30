@@ -238,6 +238,8 @@ vector<string> MorkDB::add_links(const vector<atoms::Link*>& links,
     vector<string> unique_handles;
     // Non-const: metta_expression may be filled in before persist (including caller's Link*).
     vector<atoms::Link*> links_to_persist;
+    vector<shared_ptr<Link>> composite_keepalive;
+    vector<atoms::Link*> links_for_composite;
 
     for (const auto& link : links) {
         auto link_handle = link->handle();
@@ -254,19 +256,25 @@ vector<string> MorkDB::add_links(const vector<atoms::Link*>& links,
                 shared_ptr<Link> working;
                 auto existing_link = get_link(link_handle);
                 if (existing_link != nullptr) {
-                    working = existing_link;
-                    if (!merger->merge(working.get(), link)) {
-                        // Failed merge — do not persist.
+                    shared_ptr<Link> merged = make_shared<Link>(*existing_link);
+                    if (!merger->merge(merged.get(), link)) {
+                        // Do not persist, but keep existing in composite-type bookkeeping.
+                        composite_keepalive.push_back(existing_link);
+                        links_for_composite.push_back(existing_link.get());
                         continue;
                     }
+                    working = merged;
                 } else {
                     working = make_shared<Link>(*link);
                 }
                 batch_merged[link_handle] = working;
                 unique_handles.push_back(link_handle);
+                composite_keepalive.push_back(working);
+                links_for_composite.push_back(working.get());
             }
         } else {
             links_to_persist.push_back(link);
+            links_for_composite.push_back(link);
         }
     }
 
@@ -276,14 +284,11 @@ vector<string> MorkDB::add_links(const vector<atoms::Link*>& links,
         }
     }
 
-    // Derive transactional composite-type metadata from the final objects we persist
-    // (merged working copies), not from the original input batch.
+    // Derive transactional composite-type metadata from bookkeeping links (final merged
+    // objects plus rejected-but-existing ones), not from the raw input batch alone.
     map<string, vector<string>> composite_type_entries_map;
-    map<string, string> composite_type_hashes_map_copy;
     if (this->composite_type_enabled() && is_transactional) {
-        this->build_composite_type_entries_map(links_to_persist, composite_type_entries_map);
-        lock_guard<mutex> composite_type_hashes_map_lock(this->composite_type_hashes_map_mutex);
-        composite_type_hashes_map_copy = this->composite_type_hashes_map;
+        this->build_composite_type_entries_map(links_for_composite, composite_type_entries_map);
     }
 
     uint count = 0;
@@ -311,9 +316,9 @@ vector<string> MorkDB::add_links(const vector<atoms::Link*>& links,
             static const vector<string> empty_composite_type;
             mongodb_doc.emplace(to_store, "", empty_composite_type, false);
         } else if (is_transactional) {
-            mongodb_doc.emplace(to_store,
-                                composite_type_hashes_map_copy[link_handle],
-                                composite_type_entries_map[link_handle]);
+            string composite_type_hash =
+                Hasher::composite_handle(composite_type_entries_map[link_handle]);
+            mongodb_doc.emplace(to_store, composite_type_hash, composite_type_entries_map[link_handle]);
         } else {
             mongodb_doc.emplace(to_store, *this);
         }

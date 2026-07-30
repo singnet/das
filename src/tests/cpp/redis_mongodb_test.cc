@@ -1296,44 +1296,57 @@ TEST_F(RedisMongoDBTest, TransactionalMergeUsesFinalLinkCompositeType) {
     delete link2;
 }
 
-TEST_F(RedisMongoDBTest, TransactionalRejectedMergeSkipsCompositeTypeForFailedLink) {
+TEST_F(RedisMongoDBTest, TransactionalRejectedMergeStillBooksCompositeType) {
     vector<Node*> nodes = {new Node("Symbol", "TxRejectCT-A"),
                            new Node("Symbol", "TxRejectCT-B"),
                            new Node("Symbol", "TxRejectCT-C"),
                            new Node("Symbol", "TxRejectCT-D"),
-                           new Node("Symbol", "TxRejectCT-E"),
-                           new Node("Symbol", "TxRejectCT-F")};
-    ASSERT_EQ(db->add_nodes(nodes, true).size(), 6u);
+                           new Node("Symbol", "TxRejectCT-E")};
+    ASSERT_EQ(db->add_nodes(nodes, true).size(), 5u);
 
-    auto existing = new Link("Expression", {nodes[0]->handle(), nodes[1]->handle(), nodes[2]->handle()});
+    auto existing =
+        new Link("Expression", {nodes[0]->handle(), nodes[1]->handle(), nodes[2]->handle()});
     ASSERT_EQ(db->add_links({existing}, true).size(), 1u);
     string existing_hash = existing->composite_type_hash(*db);
 
+    // duplicate is rejected by RejectMerger; nested targets the rejected handle and must
+    // still resolve its composite-type bookkeeping in the same transactional batch.
     auto duplicate =
         new Link("Expression", {nodes[0]->handle(), nodes[1]->handle(), nodes[2]->handle()});
-    auto fresh = new Link("Expression", {nodes[3]->handle(), nodes[4]->handle(), nodes[5]->handle()});
+    auto nested =
+        new Link("Expression", {existing->handle(), nodes[3]->handle(), nodes[4]->handle()});
 
     RejectMerger reject;
-    ASSERT_EQ(db->add_nodes(nodes, true).size(), 6u);
-    ASSERT_EQ(db->add_links({duplicate, fresh}, true, &reject).size(), 2u);
+    ASSERT_EQ(db->add_nodes(nodes, true).size(), 5u);
+    ASSERT_EQ(db->add_links({duplicate, nested}, true, &reject).size(), 2u);
 
     auto existing_doc = db->get_atom_document(existing->handle());
     ASSERT_NE(existing_doc, nullptr);
     EXPECT_EQ(string(existing_doc->get("composite_type_hash")), existing_hash);
 
-    auto fresh_doc = db->get_atom_document(fresh->handle());
-    ASSERT_NE(fresh_doc, nullptr);
-    EXPECT_EQ(string(fresh_doc->get("composite_type_hash")), fresh->composite_type_hash(*db));
-    EXPECT_EQ(fresh_doc->get_size("composite_type"), 4);
+    auto nested_doc = db->get_atom_document(nested->handle());
+    ASSERT_NE(nested_doc, nullptr);
+    ASSERT_EQ(nested_doc->get_size("composite_type"), 4u);
+    // Transactional map stores named_type_hash for link targets (same as build_composite_type_entries_map).
+    EXPECT_EQ(string(nested_doc->get("composite_type", 0)), nested->named_type_hash());
+    EXPECT_EQ(string(nested_doc->get("composite_type", 1)), existing->named_type_hash());
+    EXPECT_FALSE(string(nested_doc->get("composite_type", 1)).empty());
+    EXPECT_EQ(string(nested_doc->get("composite_type", 2)), nodes[3]->named_type_hash());
+    EXPECT_EQ(string(nested_doc->get("composite_type", 3)), nodes[4]->named_type_hash());
+    EXPECT_EQ(string(nested_doc->get("composite_type_hash")),
+              Hasher::composite_handle({nested->named_type_hash(),
+                                        existing->named_type_hash(),
+                                        nodes[3]->named_type_hash(),
+                                        nodes[4]->named_type_hash()}));
 
+    EXPECT_TRUE(db->delete_atom(nested->handle(), true));
     EXPECT_TRUE(db->delete_atom(existing->handle(), true));
-    EXPECT_TRUE(db->delete_atom(fresh->handle(), true));
     for (auto* node : nodes) {
         delete node;
     }
     delete existing;
     delete duplicate;
-    delete fresh;
+    delete nested;
 }
 
 int main(int argc, char** argv) {
