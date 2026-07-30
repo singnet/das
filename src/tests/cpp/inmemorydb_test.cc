@@ -835,6 +835,58 @@ TEST_F(InMemoryDBTest, AddLinkRejectMergerDoesNotPersistOrReindex) {
     delete link2;
 }
 
+TEST_F(InMemoryDBTest, AddNodesThrowIfExistsIsAllOrNothing) {
+    auto existing = new Node("Symbol", "\"batch_throw_existing\"");
+    db->add_node(existing);
+
+    auto keep_absent = new Node("Symbol", "\"batch_throw_new_a\"");
+    auto collision = new Node("Symbol", "\"batch_throw_existing\"");
+    auto also_absent = new Node("Symbol", "\"batch_throw_new_b\"");
+
+    EXPECT_THROW(
+        db->add_nodes({keep_absent, collision, also_absent}, false, &ThrowIfExistsMerger::instance()),
+        runtime_error);
+    EXPECT_FALSE(db->node_exists(keep_absent->handle()));
+    EXPECT_FALSE(db->node_exists(also_absent->handle()));
+    EXPECT_TRUE(db->node_exists(existing->handle()));
+
+    delete existing;
+    delete keep_absent;
+    delete collision;
+    delete also_absent;
+}
+
+TEST_F(InMemoryDBTest, AddLinksThrowIfExistsIsAllOrNothing) {
+    auto n1 = new Node("Symbol", "\"batch_link_throw_a\"");
+    auto n2 = new Node("Symbol", "\"batch_link_throw_b\"");
+    auto n3 = new Node("Symbol", "\"batch_link_throw_c\"");
+    auto n4 = new Node("Symbol", "\"batch_link_throw_d\"");
+    auto h1 = db->add_node(n1);
+    auto h2 = db->add_node(n2);
+    auto h3 = db->add_node(n3);
+    auto h4 = db->add_node(n4);
+
+    auto existing = new Link("Expression", {h1, h2});
+    db->add_link(existing);
+
+    auto keep_absent = new Link("Expression", {h3, h4});
+    auto collision = new Link("Expression", {h1, h2});
+
+    EXPECT_THROW(db->add_links({keep_absent, collision}, false, &ThrowIfExistsMerger::instance()),
+                 runtime_error);
+    EXPECT_FALSE(db->link_exists(keep_absent->handle()));
+    EXPECT_TRUE(db->link_exists(existing->handle()));
+    EXPECT_EQ(db->query_for_incoming_set(h3)->size(), 0u);
+
+    delete n1;
+    delete n2;
+    delete n3;
+    delete n4;
+    delete existing;
+    delete keep_absent;
+    delete collision;
+}
+
 int main(int argc, char** argv) {
     ::testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();

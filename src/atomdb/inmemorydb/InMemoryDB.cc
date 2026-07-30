@@ -359,8 +359,25 @@ vector<string> InMemoryDB::add_nodes(const vector<atoms::Node*>& nodes,
     }
 
     vector<string> handles;
+    handles.reserve(nodes.size());
     for (const auto& node : nodes) {
-        handles.push_back(this->add_node(node, merger));
+        handles.push_back(node->handle());
+    }
+
+    // ThrowIfExistsMerger must fail the whole batch before any insert, matching the
+    // former throw_if_exists=true all-or-nothing semantics.
+    if (merger == &ThrowIfExistsMerger::instance()) {
+        auto existing_handles = this->nodes_exist(handles);
+        if (!existing_handles.empty()) {
+            vector<string> existing_handles_vector(existing_handles.begin(), existing_handles.end());
+            RAISE_ERROR("Failed to insert nodes, some nodes already exist: " +
+                        Utils::join(existing_handles_vector, ','));
+            return {};
+        }
+    }
+
+    for (const auto& node : nodes) {
+        this->add_node(node, merger);
     }
 
     return handles;
@@ -374,9 +391,25 @@ vector<string> InMemoryDB::add_links(const vector<atoms::Link*>& links,
     }
 
     vector<string> handles;
+    handles.reserve(links.size());
+    for (const auto& link : links) {
+        handles.push_back(link->handle());
+    }
+
+    // ThrowIfExistsMerger must fail the whole batch before any insert, matching the
+    // former throw_if_exists=true all-or-nothing semantics.
+    if (merger == &ThrowIfExistsMerger::instance()) {
+        auto existing_handles = this->links_exist(handles);
+        if (!existing_handles.empty()) {
+            vector<string> existing_handles_vector(existing_handles.begin(), existing_handles.end());
+            RAISE_ERROR("Failed to insert links, some links already exist: " +
+                        Utils::join(existing_handles_vector, ','));
+            return {};
+        }
+    }
+
     for (const auto& link : links) {
         string link_handle = link->handle();
-        handles.push_back(link_handle);
 
         auto existing = atoms_trie_->lookup(link_handle);
         if ((existing == NULL) || (merger == NULL)) {

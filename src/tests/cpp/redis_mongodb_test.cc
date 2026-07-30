@@ -1304,8 +1304,7 @@ TEST_F(RedisMongoDBTest, TransactionalRejectedMergeStillBooksCompositeType) {
                            new Node("Symbol", "TxRejectCT-E")};
     ASSERT_EQ(db->add_nodes(nodes, true).size(), 5u);
 
-    auto existing =
-        new Link("Expression", {nodes[0]->handle(), nodes[1]->handle(), nodes[2]->handle()});
+    auto existing = new Link("Expression", {nodes[0]->handle(), nodes[1]->handle(), nodes[2]->handle()});
     ASSERT_EQ(db->add_links({existing}, true).size(), 1u);
     string existing_hash = existing->composite_type_hash(*db);
 
@@ -1313,8 +1312,7 @@ TEST_F(RedisMongoDBTest, TransactionalRejectedMergeStillBooksCompositeType) {
     // still resolve its composite-type bookkeeping in the same transactional batch.
     auto duplicate =
         new Link("Expression", {nodes[0]->handle(), nodes[1]->handle(), nodes[2]->handle()});
-    auto nested =
-        new Link("Expression", {existing->handle(), nodes[3]->handle(), nodes[4]->handle()});
+    auto nested = new Link("Expression", {existing->handle(), nodes[3]->handle(), nodes[4]->handle()});
 
     RejectMerger reject;
     ASSERT_EQ(db->add_nodes(nodes, true).size(), 5u);
@@ -1327,7 +1325,8 @@ TEST_F(RedisMongoDBTest, TransactionalRejectedMergeStillBooksCompositeType) {
     auto nested_doc = db->get_atom_document(nested->handle());
     ASSERT_NE(nested_doc, nullptr);
     ASSERT_EQ(nested_doc->get_size("composite_type"), 4u);
-    // Transactional map stores named_type_hash for link targets (same as build_composite_type_entries_map).
+    // Transactional map stores named_type_hash for link targets (same as
+    // build_composite_type_entries_map).
     EXPECT_EQ(string(nested_doc->get("composite_type", 0)), nested->named_type_hash());
     EXPECT_EQ(string(nested_doc->get("composite_type", 1)), existing->named_type_hash());
     EXPECT_FALSE(string(nested_doc->get("composite_type", 1)).empty());
@@ -1339,8 +1338,10 @@ TEST_F(RedisMongoDBTest, TransactionalRejectedMergeStillBooksCompositeType) {
                                         nodes[3]->named_type_hash(),
                                         nodes[4]->named_type_hash()}));
 
-    EXPECT_TRUE(db->delete_atom(nested->handle(), true));
+    EXPECT_TRUE(db->delete_atom(nested->handle(), false));
     EXPECT_TRUE(db->delete_atom(existing->handle(), true));
+    EXPECT_TRUE(db->delete_node(nodes[3]->handle()));
+    EXPECT_TRUE(db->delete_node(nodes[4]->handle()));
     for (auto* node : nodes) {
         delete node;
     }
