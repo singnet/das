@@ -227,13 +227,7 @@ vector<string> MorkDB::add_links(const vector<atoms::Link*>& links,
         return {};
     }
 
-    map<string, vector<string>> composite_type_entries_map;
-    map<string, string> composite_type_hashes_map_copy;
-    if (this->composite_type_enabled() && is_transactional) {
-        this->build_composite_type_entries_map(links, composite_type_entries_map);
-        lock_guard<mutex> composite_type_hashes_map_lock(this->composite_type_hashes_map_mutex);
-        composite_type_hashes_map_copy = this->composite_type_hashes_map;
-    } else if (!is_transactional) {
+    if (!is_transactional) {
         this->check_existing_targets(links);
     }
 
@@ -280,6 +274,16 @@ vector<string> MorkDB::add_links(const vector<atoms::Link*>& links,
         for (const auto& link_handle : unique_handles) {
             links_to_persist.push_back(batch_merged[link_handle].get());
         }
+    }
+
+    // Derive transactional composite-type metadata from the final objects we persist
+    // (merged working copies), not from the original input batch.
+    map<string, vector<string>> composite_type_entries_map;
+    map<string, string> composite_type_hashes_map_copy;
+    if (this->composite_type_enabled() && is_transactional) {
+        this->build_composite_type_entries_map(links_to_persist, composite_type_entries_map);
+        lock_guard<mutex> composite_type_hashes_map_lock(this->composite_type_hashes_map_mutex);
+        composite_type_hashes_map_copy = this->composite_type_hashes_map;
     }
 
     uint count = 0;

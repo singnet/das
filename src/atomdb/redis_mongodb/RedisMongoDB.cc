@@ -935,10 +935,7 @@ vector<string> RedisMongoDB::add_links(const vector<atoms::Link*>& links,
         return {};
     }
 
-    map<string, vector<string>> composite_type_entries_map;
-    if (this->composite_type_enabled_ && is_transactional) {
-        this->build_composite_type_entries_map(links, composite_type_entries_map);
-    } else if (!is_transactional) {
+    if (!is_transactional) {
         this->check_existing_targets(links);
     }
 
@@ -983,6 +980,18 @@ vector<string> RedisMongoDB::add_links(const vector<atoms::Link*>& links,
         for (const auto& link_handle : unique_handles) {
             links_to_persist.push_back(batch_merged[link_handle].get());
         }
+    }
+
+    // Derive transactional composite-type metadata from the final objects we persist
+    // (merged working copies), not from the original input batch.
+    map<string, vector<string>> composite_type_entries_map;
+    if (this->composite_type_enabled_ && is_transactional) {
+        vector<atoms::Link*> links_for_composite;
+        links_for_composite.reserve(links_to_persist.size());
+        for (const auto* link : links_to_persist) {
+            links_for_composite.push_back(const_cast<atoms::Link*>(link));
+        }
+        this->build_composite_type_entries_map(links_for_composite, composite_type_entries_map);
     }
 
     shared_ptr<RedisContext> ctx = this->redis_pool->acquire();

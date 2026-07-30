@@ -987,6 +987,11 @@ class SumStrengthMerger : public Merger {
     }
 };
 
+class RejectMerger : public Merger {
+   public:
+    bool merge(Atom* /*existing*/, const Atom* /*incoming*/) const override { return false; }
+};
+
 }  // namespace
 
 TEST_F(RedisMongoDBTest, AddNodeReplacesByDefault) {
@@ -1248,6 +1253,87 @@ TEST_F(RedisMongoDBTest, CompositeTypeEnabledFlag) {
     EXPECT_TRUE(db->delete_atom(enabled_link_handle, true));
     EXPECT_TRUE(db_disabled->delete_atom(disabled_link_handle, true));
     EXPECT_TRUE(db_disabled->delete_atom(transactional_link->handle(), true));
+}
+
+TEST_F(RedisMongoDBTest, TransactionalMergeUsesFinalLinkCompositeType) {
+    vector<Node*> nodes = {new Node("Symbol", "TxMergeCT-A"),
+                           new Node("Symbol", "TxMergeCT-B"),
+                           new Node("Symbol", "TxMergeCT-C")};
+    ASSERT_EQ(db->add_nodes(nodes, true).size(), 3u);
+
+    Properties attrs1;
+    attrs1["strength"] = 0.2;
+    auto link1 =
+        new Link("Expression", {nodes[0]->handle(), nodes[1]->handle(), nodes[2]->handle()}, attrs1);
+    ASSERT_EQ(db->add_links({link1}, true).size(), 1u);
+
+    string expected_hash = link1->composite_type_hash(*db);
+    auto doc1 = db->get_atom_document(link1->handle());
+    ASSERT_NE(doc1, nullptr);
+    EXPECT_EQ(string(doc1->get("composite_type_hash")), expected_hash);
+    EXPECT_EQ(doc1->get_size("composite_type"), 4);
+
+    Properties attrs2;
+    attrs2["strength"] = 0.3;
+    auto link2 =
+        new Link("Expression", {nodes[0]->handle(), nodes[1]->handle(), nodes[2]->handle()}, attrs2);
+    SumStrengthMerger merger;
+    ASSERT_EQ(db->add_nodes(nodes, true).size(), 3u);
+    ASSERT_EQ(db->add_links({link2}, true, &merger).size(), 1u);
+
+    auto doc2 = db->get_atom_document(link2->handle());
+    ASSERT_NE(doc2, nullptr);
+    EXPECT_EQ(string(doc2->get("composite_type_hash")), expected_hash);
+    EXPECT_EQ(doc2->get_size("composite_type"), 4);
+    EXPECT_DOUBLE_EQ(db->get_link(link2->handle())->custom_attributes.get_or<double>("strength", -1.0),
+                     0.5);
+
+    EXPECT_TRUE(db->delete_atom(link2->handle(), true));
+    delete nodes[0];
+    delete nodes[1];
+    delete nodes[2];
+    delete link1;
+    delete link2;
+}
+
+TEST_F(RedisMongoDBTest, TransactionalRejectedMergeSkipsCompositeTypeForFailedLink) {
+    vector<Node*> nodes = {new Node("Symbol", "TxRejectCT-A"),
+                           new Node("Symbol", "TxRejectCT-B"),
+                           new Node("Symbol", "TxRejectCT-C"),
+                           new Node("Symbol", "TxRejectCT-D"),
+                           new Node("Symbol", "TxRejectCT-E"),
+                           new Node("Symbol", "TxRejectCT-F")};
+    ASSERT_EQ(db->add_nodes(nodes, true).size(), 6u);
+
+    auto existing = new Link("Expression", {nodes[0]->handle(), nodes[1]->handle(), nodes[2]->handle()});
+    ASSERT_EQ(db->add_links({existing}, true).size(), 1u);
+    string existing_hash = existing->composite_type_hash(*db);
+
+    auto duplicate =
+        new Link("Expression", {nodes[0]->handle(), nodes[1]->handle(), nodes[2]->handle()});
+    auto fresh = new Link("Expression", {nodes[3]->handle(), nodes[4]->handle(), nodes[5]->handle()});
+
+    RejectMerger reject;
+    ASSERT_EQ(db->add_nodes(nodes, true).size(), 6u);
+    ASSERT_EQ(db->add_links({duplicate, fresh}, true, &reject).size(), 2u);
+
+    auto existing_doc = db->get_atom_document(existing->handle());
+    ASSERT_NE(existing_doc, nullptr);
+    EXPECT_EQ(string(existing_doc->get("composite_type_hash")), existing_hash);
+
+    auto fresh_doc = db->get_atom_document(fresh->handle());
+    ASSERT_NE(fresh_doc, nullptr);
+    EXPECT_EQ(string(fresh_doc->get("composite_type_hash")), fresh->composite_type_hash(*db));
+    EXPECT_EQ(fresh_doc->get_size("composite_type"), 4);
+
+    EXPECT_TRUE(db->delete_atom(existing->handle(), true));
+    EXPECT_TRUE(db->delete_atom(fresh->handle(), true));
+    for (auto* node : nodes) {
+        delete node;
+    }
+    delete existing;
+    delete duplicate;
+    delete fresh;
 }
 
 int main(int argc, char** argv) {
