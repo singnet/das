@@ -1,10 +1,11 @@
+#define LOG_LEVEL DEBUG_LEVEL
 #include "InferenceAgent.h"
 
 #include <limits.h>
 
 #include <fstream>
 #include <sstream>
-#define LOG_LEVEL DEBUG_LEVEL
+
 #include "AtomDBSingleton.h"
 #include "AttentionBrokerClient.h"
 #include "InferenceContext.h"
