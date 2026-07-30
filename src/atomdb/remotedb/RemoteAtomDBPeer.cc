@@ -120,16 +120,16 @@ shared_ptr<Link> RemoteAtomDBPeer::get_link(const string& handle, const string& 
     return nullptr;
 }
 
-shared_ptr<Atom> RemoteAtomDBPeer::get_cached_atom(const string& handle) {
-    return cache_.get_atom(handle, "");
+shared_ptr<Atom> RemoteAtomDBPeer::get_cached_atom(const string& handle, const string& public_key) {
+    return cache_.get_atom(handle, public_key);
 }
 
-shared_ptr<Node> RemoteAtomDBPeer::get_cached_node(const string& handle) {
-    return cache_.get_node(handle, "");
+shared_ptr<Node> RemoteAtomDBPeer::get_cached_node(const string& handle, const string& public_key) {
+    return cache_.get_node(handle, public_key);
 }
 
-shared_ptr<Link> RemoteAtomDBPeer::get_cached_link(const string& handle) {
-    return cache_.get_link(handle, "");
+shared_ptr<Link> RemoteAtomDBPeer::get_cached_link(const string& handle, const string& public_key) {
+    return cache_.get_link(handle, public_key);
 }
 
 vector<shared_ptr<Atom>> RemoteAtomDBPeer::get_matching_atoms(bool is_toplevel,
@@ -420,10 +420,10 @@ bool RemoteAtomDBPeer::delete_atom(const string& handle,
                                    const string& public_key,
                                    bool delete_link_targets) {
     bool cache_ok = cache_.delete_atom(handle, public_key, delete_link_targets);
-    bool local_ok = true;
-    if (local_persistence_) {
-        local_ok = local_persistence_->delete_atom(handle, public_key, delete_link_targets);
+    if (!local_persistence_) {
+        return cache_ok;
     }
+    bool local_ok = local_persistence_->delete_atom(handle, public_key, delete_link_targets);
     return cache_ok || local_ok;
 }
 
@@ -431,10 +431,10 @@ bool RemoteAtomDBPeer::delete_node(const string& handle,
                                    const string& public_key,
                                    bool delete_link_targets) {
     bool cache_ok = cache_.delete_node(handle, public_key, delete_link_targets);
-    bool local_ok = true;
-    if (local_persistence_) {
-        local_ok = local_persistence_->delete_node(handle, public_key, delete_link_targets);
+    if (!local_persistence_) {
+        return cache_ok;
     }
+    bool local_ok = local_persistence_->delete_node(handle, public_key, delete_link_targets);
     return cache_ok || local_ok;
 }
 
@@ -442,44 +442,47 @@ bool RemoteAtomDBPeer::delete_link(const string& handle,
                                    const string& public_key,
                                    bool delete_link_targets) {
     bool cache_ok = cache_.delete_link(handle, public_key, delete_link_targets);
-    bool local_ok = true;
-    if (local_persistence_) {
-        local_ok = local_persistence_->delete_link(handle, public_key, delete_link_targets);
+    if (!local_persistence_) {
+        return cache_ok;
     }
+    bool local_ok = local_persistence_->delete_link(handle, public_key, delete_link_targets);
     return cache_ok || local_ok;
 }
 
 uint RemoteAtomDBPeer::delete_atoms(const vector<string>& handles,
                                     const string& public_key,
                                     bool delete_link_targets) {
-    uint cache_count = cache_.delete_atoms(handles, public_key, delete_link_targets);
-    uint local_count = 0;
-    if (local_persistence_) {
-        local_count = local_persistence_->delete_atoms(handles, public_key, delete_link_targets);
+    uint deleted_count = 0;
+    for (const auto& handle : handles) {
+        if (delete_atom(handle, public_key, delete_link_targets)) {
+            deleted_count++;
+        }
     }
-    return cache_count + local_count;
+    return deleted_count;
 }
 
 uint RemoteAtomDBPeer::delete_nodes(const vector<string>& handles,
                                     const string& public_key,
                                     bool delete_link_targets) {
-    uint cache_count = cache_.delete_nodes(handles, public_key, delete_link_targets);
-    uint local_count = 0;
-    if (local_persistence_) {
-        local_count = local_persistence_->delete_nodes(handles, public_key, delete_link_targets);
+    uint deleted_count = 0;
+    for (const auto& handle : handles) {
+        if (delete_node(handle, public_key, delete_link_targets)) {
+            deleted_count++;
+        }
     }
-    return cache_count + local_count;
+    return deleted_count;
 }
 
 uint RemoteAtomDBPeer::delete_links(const vector<string>& handles,
                                     const string& public_key,
                                     bool delete_link_targets) {
-    uint cache_count = cache_.delete_links(handles, public_key, delete_link_targets);
-    uint local_count = 0;
-    if (local_persistence_) {
-        local_count = local_persistence_->delete_links(handles, public_key, delete_link_targets);
+    uint deleted_count = 0;
+    for (const auto& handle : handles) {
+        if (delete_link(handle, public_key, delete_link_targets)) {
+            deleted_count++;
+        }
     }
-    return cache_count + local_count;
+    return deleted_count;
 }
 
 void RemoteAtomDBPeer::re_index_patterns(const string& public_key, bool flush_patterns) {

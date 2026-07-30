@@ -124,7 +124,7 @@ bool RemoteAtomDB::allow_nested_indexing(const string& public_key) { return nest
 shared_ptr<Atom> RemoteAtomDB::get_atom(const string& handle, const string& public_key) {
     // Phase 1: probe every peer's in-memory cache first (no network). Silent: this is the hot path.
     for (auto& [uid, peer] : remote_db_) {
-        auto atom = peer->get_cached_atom(handle);
+        auto atom = peer->get_cached_atom(handle, public_key);
         if (atom) return atom;
     }
     // Phase 2: escalate to peers (local_persistence + remote backend) only when no cache has it.
@@ -141,7 +141,7 @@ shared_ptr<Atom> RemoteAtomDB::get_atom(const string& handle, const string& publ
 
 shared_ptr<Node> RemoteAtomDB::get_node(const string& handle, const string& public_key) {
     for (auto& [uid, peer] : remote_db_) {
-        auto node = peer->get_cached_node(handle);
+        auto node = peer->get_cached_node(handle, public_key);
         if (node) return node;
     }
     for (auto& [uid, peer] : remote_db_) {
@@ -157,7 +157,7 @@ shared_ptr<Node> RemoteAtomDB::get_node(const string& handle, const string& publ
 
 shared_ptr<Link> RemoteAtomDB::get_link(const string& handle, const string& public_key) {
     for (auto& [uid, peer] : remote_db_) {
-        auto link = peer->get_cached_link(handle);
+        auto link = peer->get_cached_link(handle, public_key);
         if (link) return link;
     }
     for (auto& [uid, peer] : remote_db_) {

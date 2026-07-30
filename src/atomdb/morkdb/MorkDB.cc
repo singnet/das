@@ -306,7 +306,7 @@ vector<string> MorkDB::add_links(const vector<atoms::Link*>& links,
     return handles;
 }
 
-bool MorkDB::delete_link(const string& handle, const string& /*public_key*/, bool delete_targets) {
+bool MorkDB::delete_link(const string& handle, const string& public_key, bool delete_targets) {
     Utils::error("MORKDB does not support deleting links.", false);
     return false;
 }

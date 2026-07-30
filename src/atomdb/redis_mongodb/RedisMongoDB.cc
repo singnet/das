@@ -66,7 +66,12 @@ bool RedisMongoDB::is_protected() const {
         LOG_DEBUG("MongoDB config document not found; assuming unprotected database");
         return false;
     }
-    return (*result)["protected"].get_bool().value;
+    auto element = (*result)["protected"];
+    if (!element || element.type() != bsoncxx::type::k_bool) {
+        LOG_ERROR("MongoDB config document has no valid 'protected' field; assuming unprotected");
+        return false;
+    }
+    return element.get_bool().value;
 }
 
 void RedisMongoDB::redis_setup(const JsonConfig& config) {
@@ -146,7 +151,7 @@ void RedisMongoDB::mongodb_setup(const JsonConfig& config) {
     }
 }
 
-shared_ptr<Atom> RedisMongoDB::get_atom(const string& handle, const string& /*public_key*/) {
+shared_ptr<Atom> RedisMongoDB::get_atom(const string& handle, const string& public_key) {
     auto atom_document =
         dynamic_pointer_cast<atomdb_api_types::MongodbDocument>(get_atom_document(handle));
     if (atom_document != NULL) {
@@ -695,15 +700,15 @@ bool RedisMongoDB::document_exists(const string& handle, const string& collectio
     return reply != bsoncxx::v_noabi::stdx::nullopt;
 }
 
-bool RedisMongoDB::atom_exists(const string& atom_handle, const string& /*public_key*/) {
+bool RedisMongoDB::atom_exists(const string& atom_handle, const string& public_key) {
     return node_exists(atom_handle, "") || link_exists(atom_handle, "");
 }
 
-bool RedisMongoDB::node_exists(const string& node_handle, const string& /*public_key*/) {
+bool RedisMongoDB::node_exists(const string& node_handle, const string& public_key) {
     return document_exists(node_handle, MONGODB_NODES_COLLECTION_NAME);
 }
 
-bool RedisMongoDB::link_exists(const string& link_handle, const string& /*public_key*/) {
+bool RedisMongoDB::link_exists(const string& link_handle, const string& public_key) {
     return document_exists(link_handle, MONGODB_LINKS_COLLECTION_NAME);
 }
 
@@ -1063,18 +1068,18 @@ bool RedisMongoDB::delete_document(const string& handle,
     return reply->deleted_count() > 0 || !document_exists(handle, collection_name);
 }
 
-bool RedisMongoDB::delete_atom(const string& handle, const string& /*public_key*/, bool delete_targets) {
+bool RedisMongoDB::delete_atom(const string& handle, const string& public_key, bool delete_targets) {
     if (delete_node(handle, "", delete_targets)) return true;
     return delete_link(handle, "", delete_targets);
 }
 
-bool RedisMongoDB::delete_node(const string& handle, const string& /*public_key*/, bool delete_targets) {
+bool RedisMongoDB::delete_node(const string& handle, const string& public_key, bool delete_targets) {
     auto node_document = get_node_document(handle);
     if (node_document == nullptr) return false;
     return delete_document(handle, MONGODB_NODES_COLLECTION_NAME, delete_targets);
 }
 
-bool RedisMongoDB::delete_link(const string& handle, const string& /*public_key*/, bool delete_targets) {
+bool RedisMongoDB::delete_link(const string& handle, const string& public_key, bool delete_targets) {
     auto link_document = get_link_document(handle);
     if (link_document == nullptr) return false;
 
@@ -1114,7 +1119,7 @@ uint RedisMongoDB::delete_documents(const vector<string>& handles,
 }
 
 uint RedisMongoDB::delete_atoms(const vector<string>& handles,
-                                const string& /*public_key*/,
+                                const string& public_key,
                                 bool delete_targets) {
     uint deleted_count = 0;
     for (const auto& handle : handles) {
@@ -1126,13 +1131,13 @@ uint RedisMongoDB::delete_atoms(const vector<string>& handles,
 }
 
 uint RedisMongoDB::delete_nodes(const vector<string>& handles,
-                                const string& /*public_key*/,
+                                const string& public_key,
                                 bool delete_targets) {
     return delete_documents(handles, MONGODB_NODES_COLLECTION_NAME, delete_targets);
 }
 
 uint RedisMongoDB::delete_links(const vector<string>& handles,
-                                const string& /*public_key*/,
+                                const string& public_key,
                                 bool delete_targets) {
     uint deleted_count = 0;
     for (const auto& handle : handles) {

@@ -134,7 +134,7 @@ bool InMemoryDB::allow_nested_indexing(const string& public_key) { return false;
 
 bool InMemoryDB::is_protected() const { return false; }
 
-shared_ptr<Atom> InMemoryDB::get_atom(const string& handle, const string& /*public_key*/) {
+shared_ptr<Atom> InMemoryDB::get_atom(const string& handle, const string& public_key) {
     auto trie_value = this->atoms_trie_->lookup(handle);
     if (trie_value == NULL) {
         return nullptr;
@@ -156,18 +156,12 @@ shared_ptr<Atom> InMemoryDB::get_atom(const string& handle, const string& /*publ
 
 shared_ptr<Node> InMemoryDB::get_node(const string& handle, const string& public_key) {
     auto atom = get_atom(handle, public_key);
-    if (atom != nullptr) {
-        return make_shared<Node>(*dynamic_cast<Node*>(atom.get()));
-    }
-    return nullptr;
+    return dynamic_pointer_cast<Node>(atom);
 }
 
 shared_ptr<Link> InMemoryDB::get_link(const string& handle, const string& public_key) {
     auto atom = get_atom(handle, public_key);
-    if (atom != nullptr) {
-        return make_shared<Link>(*dynamic_cast<Link*>(atom.get()));
-    }
-    return nullptr;
+    return dynamic_pointer_cast<Link>(atom);
 }
 
 shared_ptr<HandleSet> InMemoryDB::query_for_pattern(const LinkSchema& link_schema,
@@ -237,11 +231,11 @@ vector<shared_ptr<Atom>> InMemoryDB::get_matching_atoms(bool is_toplevel,
     return matching_atoms;
 }
 
-bool InMemoryDB::atom_exists(const string& handle, const string& /*public_key*/) {
+bool InMemoryDB::atom_exists(const string& handle, const string& public_key) {
     return atoms_trie_->lookup(handle) != NULL;
 }
 
-bool InMemoryDB::node_exists(const string& handle, const string& /*public_key*/) {
+bool InMemoryDB::node_exists(const string& handle, const string& public_key) {
     auto trie_value = atoms_trie_->lookup(handle);
     if (trie_value == NULL) {
         return false;
@@ -254,7 +248,7 @@ bool InMemoryDB::node_exists(const string& handle, const string& /*public_key*/)
     return Atom::is_node(*atom);
 }
 
-bool InMemoryDB::link_exists(const string& handle, const string& /*public_key*/) {
+bool InMemoryDB::link_exists(const string& handle, const string& public_key) {
     auto trie_value = atoms_trie_->lookup(handle);
     if (trie_value == NULL) {
         return false;

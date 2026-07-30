@@ -14,6 +14,7 @@
 #include "MettaMapping.h"
 #include "MockAnimalsData.h"
 #include "Node.h"
+#include "ProtectedAtomDB.h"
 #include "RedisMongoDB.h"
 #include "TestAtomDBJsonConfig.h"
 #include "UntypedVariable.h"
@@ -1023,6 +1024,41 @@ TEST_F(RedisMongoDBTest, AtomsCount) {
     EXPECT_EQ(db->link_count(""), 1);
     EXPECT_EQ(db->atom_count(""), 4);
     EXPECT_EQ(db->empty(""), false);
+}
+
+TEST_F(RedisMongoDBTest, ProtectionDetection) {
+    const string prefix = "prot_detect_";
+    auto config = test_atomdb_json_config();
+
+    auto fresh = make_shared<RedisMongoDB>(prefix, false, config);
+    EXPECT_FALSE(fresh->is_protected());
+
+    auto seed_config = test_atomdb_json_config();
+    seed_config["mongodb"]["seed_protected"] = true;
+    auto seeder = make_shared<RedisMongoDB>(prefix, false, seed_config);
+    EXPECT_TRUE(seeder->is_protected());
+    EXPECT_TRUE(fresh->is_protected());
+
+    auto reopened = make_shared<RedisMongoDB>(prefix, false, config);
+    EXPECT_TRUE(reopened->is_protected());
+
+    fresh->drop_all();
+}
+
+TEST_F(RedisMongoDBTest, ProtectedAtomDBEmptyPublicKeyBehavior) {
+    // Stub wrapper: empty public_key does not delegate to the backend yet.
+    auto backend = make_shared<RedisMongoDB>("prot_wrap_", false, test_atomdb_json_config());
+    auto node = new Node("Symbol", "ProtectedWrapNode");
+    string handle = backend->add_node(node, "", false);
+    ASSERT_FALSE(handle.empty());
+
+    auto wrapped = make_shared<ProtectedAtomDB>(backend, test_atomdb_json_config());
+    EXPECT_TRUE(wrapped->is_protected());
+    EXPECT_NE(backend->get_atom(handle, ""), nullptr);
+    EXPECT_EQ(wrapped->get_atom(handle, ""), nullptr);
+    EXPECT_FALSE(wrapped->atom_exists(handle, ""));
+
+    backend->drop_all();
 }
 
 TEST_F(RedisMongoDBTest, CompositeTypeEnabledFlag) {

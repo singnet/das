@@ -9,6 +9,7 @@
 #include <vector>
 
 #include "Assignment.h"
+#include "Hasher.h"
 #include "InMemoryDB.h"
 #include "InMemoryDBAPITypes.h"
 #include "JsonConfig.h"
@@ -210,6 +211,25 @@ TEST_F(RemoteAtomDBPeerTest, DeleteLink) {
     bool deleted = peer_->delete_link(link_handle, "", false);
     EXPECT_TRUE(deleted);
     EXPECT_FALSE(peer_->link_exists(link_handle, ""));
+}
+
+TEST_F(RemoteAtomDBPeerTest, DeleteWithoutLocalPersistenceReportsActualResult) {
+    auto remote = make_shared<InMemoryDB>("delete_remote_");
+    auto peer = make_shared<RemoteAtomDBPeer>(remote, nullptr, "delete_no_local");
+    string missing_handle = Hasher::node_handle("Symbol", "\"not_in_db\"");
+
+    EXPECT_FALSE(peer->delete_atom(missing_handle, "", false));
+    EXPECT_EQ(peer->delete_atoms({missing_handle}, "", false), 0u);
+}
+
+TEST_F(RemoteAtomDBPeerTest, BatchDeleteCountsHandleOnceAcrossTiers) {
+    auto human = new Node("Symbol", "\"human\"");
+    string human_handle = local_->add_node(human, "", false);
+
+    ASSERT_NE(peer_->get_node(human_handle, ""), nullptr);
+
+    EXPECT_EQ(peer_->delete_nodes({human_handle}, "", false), 1u);
+    EXPECT_FALSE(peer_->node_exists(human_handle, ""));
 }
 
 TEST_F(RemoteAtomDBPeerTest, GetUid) { EXPECT_EQ(peer_->get_uid(), "test_peer"); }
@@ -511,7 +531,7 @@ class NestedInMemoryDB : public InMemoryDB {
    public:
     explicit NestedInMemoryDB(const string& context) : InMemoryDB(context) {}
 
-    bool allow_nested_indexing(const string& /*public_key*/) override { return true; }
+    bool allow_nested_indexing(const string& public_key) override { return true; }
 
     shared_ptr<HandleSet> query_for_pattern(const LinkSchema& link_schema,
                                             const string& public_key) override {
@@ -695,7 +715,7 @@ TEST(RemoteAtomDBFederationTest, CacheFirstProbingAcrossPeers) {
     auto* peer2 = db->get_peer("peer2");
     ASSERT_NE(peer2, nullptr);
     // Before any read, nothing is cached.
-    EXPECT_EQ(peer2->get_cached_atom(handle), nullptr);
+    EXPECT_EQ(peer2->get_cached_atom(handle, ""), nullptr);
 
     // Phase 1 (cache) misses everywhere; Phase 2 escalation resolves from peer2's backend.
     auto first = db->get_atom(handle, "");
@@ -703,7 +723,7 @@ TEST(RemoteAtomDBFederationTest, CacheFirstProbingAcrossPeers) {
     EXPECT_EQ(first->handle(), handle);
 
     // peer2 must have warmed its cache, so a subsequent Phase 1 probe hits.
-    EXPECT_NE(peer2->get_cached_atom(handle), nullptr);
+    EXPECT_NE(peer2->get_cached_atom(handle, ""), nullptr);
 
     auto second = db->get_atom(handle, "");
     ASSERT_NE(second, nullptr);

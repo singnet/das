@@ -388,7 +388,7 @@ TEST_F(LinkCreationAgentTest, TestLinkTemplateProcessor) {
     EXPECT_CALL(*mock_atom, get_atom(testing::_, testing::_))
         .Times(targets_node.size())
         .WillRepeatedly(
-            ::testing::Invoke([&targets_node](const string& handle, const string& /*public_key*/) {
+            ::testing::Invoke([&targets_node](const string& handle, const string& public_key) {
                 auto node = make_shared<Node>("Symbol", targets_node.front());
                 targets_node.erase(targets_node.begin());
                 return node;
@@ -554,7 +554,7 @@ TEST_F(LinkCreationAgentTest, TestImplicationProcessorLinkCreationOr) {
     EXPECT_CALL(*mock_atomdb, get_atom(testing::_, testing::_))
         .Times(5)
         .WillRepeatedly(
-            ::testing::Invoke([&targets, &t_count](const string& handle, const string& /*public_key*/) {
+            ::testing::Invoke([&targets, &t_count](const string& handle, const string& public_key) {
                 Properties props;
                 props["strength"] = 0.33 * (t_count + 1);
                 vector<string> targets_ = {targets[t_count].first, targets[t_count].second};
@@ -651,7 +651,7 @@ TEST_F(LinkCreationAgentTest, TestEquivalenceProcessorLinkCreationOr) {
     EXPECT_CALL(*mock_atomdb, get_atom(testing::_, testing::_))
         .Times(5)
         .WillRepeatedly(
-            ::testing::Invoke([&targets, &t_count](const string& handle, const string& /*public_key*/) {
+            ::testing::Invoke([&targets, &t_count](const string& handle, const string& public_key) {
                 Properties props;
                 props["strength"] = 0.33 * (t_count + 1);
                 vector<string> targets_ = {targets[t_count].first, targets[t_count].second};
@@ -687,7 +687,7 @@ TEST_F(LinkCreationAgentTest, TestMettaProcessorLinkCreation) {
     EXPECT_CALL(*mock_atomdb, get_atom(testing::_, testing::_))
         .Times(2)
         .WillRepeatedly(
-            ::testing::Invoke([&target_queue](const string& handle, const string& /*public_key*/) {
+            ::testing::Invoke([&target_queue](const string& handle, const string& public_key) {
                 string name = target_queue.front();
                 target_queue.pop();
                 auto link = make_shared<Node>("Symbol", name);
@@ -717,7 +717,7 @@ TEST_F(LinkCreationAgentTest, TestMettaProcessorLinkCreationInnerCheck) {
     EXPECT_CALL(*mock_atomdb, get_atom(testing::_, testing::_))
         .Times(2)
         .WillRepeatedly(
-            ::testing::Invoke([&target_queue](const string& handle, const string& /*public_key*/) {
+            ::testing::Invoke([&target_queue](const string& handle, const string& public_key) {
                 string name = target_queue.front();
                 target_queue.pop();
                 auto link = make_shared<Node>("Symbol", name);
@@ -729,7 +729,7 @@ TEST_F(LinkCreationAgentTest, TestMettaProcessorLinkCreationInnerCheck) {
     EXPECT_CALL(*mock_atomdb, add_node(testing::_, testing::_, testing::_))
         .Times(expected_nodes.size())
         .WillRepeatedly(::testing::Invoke([&expected_nodes, &nodes_count](const atoms::Node* node,
-                                                                          const string& /*public_key*/,
+                                                                          const string& public_key,
                                                                           bool throw_if_exists) {
             EXPECT_EQ(node->type, "Symbol");
             EXPECT_EQ(node->name, expected_nodes[nodes_count].c_str());
@@ -755,7 +755,7 @@ TEST_F(LinkCreationAgentTest, TestMettaProcessorLinkCreationInnerCheck) {
     EXPECT_CALL(*mock_atomdb, add_link(testing::_, testing::_, testing::_))
         .Times(expected_links.size())
         .WillRepeatedly(::testing::Invoke([&links_count, &expected_links](const atoms::Link* link,
-                                                                          const string& /*public_key*/,
+                                                                          const string& public_key,
                                                                           bool throw_if_exists) {
             EXPECT_EQ(link->type, "Expression");
             EXPECT_EQ(link->targets.size(), expected_links[links_count].size());
@@ -789,7 +789,7 @@ TEST_F(LinkCreationAgentTest, TestMettaProcessorLinkCreationSimpleMeta) {
     EXPECT_CALL(*mock_atomdb, get_atom(testing::_, testing::_))
         .Times(2)
         .WillRepeatedly(
-            ::testing::Invoke([&target_queue](const string& handle, const string& /*public_key*/) {
+            ::testing::Invoke([&target_queue](const string& handle, const string& public_key) {
                 string name = target_queue.front();
                 target_queue.pop();
                 auto link = make_shared<Node>("Symbol", name);
@@ -801,7 +801,7 @@ TEST_F(LinkCreationAgentTest, TestMettaProcessorLinkCreationSimpleMeta) {
     EXPECT_CALL(*mock_atomdb, add_node(testing::_, testing::_, testing::_))
         .Times(expected_nodes.size())
         .WillRepeatedly(::testing::Invoke([&expected_nodes, &nodes_count](const atoms::Node* node,
-                                                                          const string& /*public_key*/,
+                                                                          const string& public_key,
                                                                           bool throw_if_exists) {
             EXPECT_EQ(node->type, "Symbol");
             EXPECT_EQ(node->name, expected_nodes[nodes_count].c_str());

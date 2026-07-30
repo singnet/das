@@ -245,6 +245,8 @@ TEST_P(AdapterDBTest, ReloadDoesNotThrowAndKeepsBackendUsable) {
         bool nested = db->allow_nested_indexing("");
         (void) nested;
     });
+
+    EXPECT_EQ(db->is_protected(), backend->is_protected());
 }
 
 TEST_P(AdapterDBTest, NeedsSyncIsNotImplemented) {

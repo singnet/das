@@ -79,6 +79,25 @@ TEST_F(InMemoryDBTest, AddNodesAndLinks) {
     EXPECT_EQ(retrieved_link1->handle(), link1_handle);
 }
 
+TEST_F(InMemoryDBTest, GetNodeAndGetLinkValidateAtomType) {
+    auto human = new Node("Symbol", "\"human\"");
+    string human_handle = db->add_node(human, "", false);
+
+    auto link = new Link("Expression", {human_handle, human_handle});
+    string link_handle = db->add_link(link, "", false);
+
+    auto node = db->get_node(human_handle, "");
+    ASSERT_NE(node, nullptr);
+    EXPECT_EQ(node->handle(), human_handle);
+
+    auto retrieved_link = db->get_link(link_handle, "");
+    ASSERT_NE(retrieved_link, nullptr);
+    EXPECT_EQ(retrieved_link->handle(), link_handle);
+
+    EXPECT_EQ(db->get_node(link_handle, ""), nullptr);
+    EXPECT_EQ(db->get_link(human_handle, ""), nullptr);
+}
+
 TEST_F(InMemoryDBTest, QueryForPattern) {
     auto human = new Node("Symbol", "\"human\"");
     auto monkey = new Node("Symbol", "\"monkey\"");

@@ -786,6 +786,7 @@ cc_test(
     linkstatic = 1,
     deps = [
         "//atomdb:atomdb_singleton",
+        "//atomdb/auth:protected_atomdb_lib",
         "//tests/cpp/test_commons:mock_animals_data_lib",
         "//tests/cpp/test_commons:test_atomdb_json_config",
         "@com_github_google_googletest//:gtest_main",
@@ -861,6 +862,33 @@ cc_test(
         "//atomdb/inmemorydb:inmemorydb_lib",
         "//commons/atoms:atoms_lib",
         "@com_github_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "atomdb_singleton_test",
+    size = "small",
+    srcs = ["atomdb_singleton_test.cc"],
+    copts = [
+        "-Iexternal/gtest/googletest/include",
+        "-Iexternal/gtest/googletest",
+    ],
+    linkopts = [
+        "-L/usr/local/lib",
+        "-lhiredis_cluster",
+        "-lhiredis",
+        "-lmongocxx",
+        "-lbsoncxx",
+    ],
+    linkstatic = 1,
+    deps = [
+        "//atomdb:atomdb_singleton",
+        "//atomdb/auth:protected_atomdb_lib",
+        "//atomdb/remotedb:remotedb_lib",
+        "//tests/cpp/test_commons:test_atomdb_json_config",
+        "//tests/cpp/test_commons/mocks:mock_atom_db_lib",
+        "@com_github_google_googletest//:gtest_main",
+        "@mbedtls",
     ],
 )
 
