@@ -1047,7 +1047,9 @@ TEST_F(RedisMongoDBTest, ProtectionDetection) {
 
 TEST_F(RedisMongoDBTest, ProtectedAtomDBEmptyPublicKeyBehavior) {
     // Stub wrapper: empty public_key does not delegate to the backend yet.
-    auto backend = make_shared<RedisMongoDB>("prot_wrap_", false, test_atomdb_json_config());
+    auto config = test_atomdb_json_config();
+    config["mongodb"]["seed_protected"] = true;
+    auto backend = make_shared<RedisMongoDB>("prot_wrap_", false, config);
     auto node = new Node("Symbol", "ProtectedWrapNode");
     string handle = backend->add_node(node, "", false);
     ASSERT_FALSE(handle.empty());

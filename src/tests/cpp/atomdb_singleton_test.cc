@@ -6,6 +6,7 @@
 #include "AtomDBSingleton.h"
 #include "MockAtomDB.h"
 #include "ProtectedAtomDB.h"
+#include "RedisMongoDB.h"
 #include "RemoteAtomDB.h"
 #include "TestAtomDBJsonConfig.h"
 
@@ -14,28 +15,28 @@ using namespace commons;
 using namespace std;
 using namespace testing;
 
-shared_ptr<AtomDB> wrap_if_protected(shared_ptr<AtomDB> backend, const JsonConfig& config) {
-    if (backend->is_protected()) {
-        return make_shared<ProtectedAtomDB>(backend, config);
-    }
-    return backend;
-}
-
 TEST(AtomDBSingletonTest, InitWrapsProtectedBackend) {
-    auto mock = make_shared<AtomDBMock>();
-    EXPECT_CALL(*mock, is_protected()).WillRepeatedly(Return(true));
+    auto config = test_atomdb_json_config();
+    config["mongodb"]["seed_protected"] = true;
+    AtomDBSingleton::init(config);
 
-    auto wrapped = wrap_if_protected(mock, test_atomdb_json_config());
-    EXPECT_NE(dynamic_cast<ProtectedAtomDB*>(wrapped.get()), nullptr);
-    EXPECT_TRUE(wrapped->is_protected());
+    auto db = AtomDBSingleton::get_instance();
+    ASSERT_NE(db, nullptr);
+    EXPECT_NE(dynamic_cast<ProtectedAtomDB*>(db.get()), nullptr);
+    EXPECT_TRUE(db->is_protected());
+
+    {
+        auto cleanup = make_shared<RedisMongoDB>("", false, test_atomdb_json_config());
+        cleanup->drop_all();
+    }
+    AtomDBSingleton::provide(nullptr);
 }
 
 TEST(AtomDBSingletonTest, InitAndProvideBehavior) {
     nlohmann::json json;
-    json["type"] = "remotedb";
     json["remote_peers"] = nlohmann::json::array(
         {{{"uid", "peer1"}, {"type", "inmemorydb"}, {"context", "atomdb_singleton_test_"}}});
-    AtomDBSingleton::init(JsonConfig(json));
+    AtomDBSingleton::provide(make_shared<RemoteAtomDB>(JsonConfig(json["remote_peers"])));
 
     auto db = AtomDBSingleton::get_instance();
     EXPECT_EQ(dynamic_cast<ProtectedAtomDB*>(db.get()), nullptr);
