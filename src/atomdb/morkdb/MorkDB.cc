@@ -260,7 +260,7 @@ vector<string> MorkDB::add_links(const vector<atoms::Link*>& links,
                 shared_ptr<Link> working;
                 auto existing_link = get_link(link_handle);
                 if (existing_link != nullptr) {
-                    working = make_shared<Link>(*existing_link);
+                    working = existing_link;
                     if (!merger->merge(working.get(), link)) {
                         // Failed merge — do not persist.
                         continue;

@@ -810,10 +810,10 @@ string RedisMongoDB::add_node(const atoms::Node* node, const atoms::Merger* merg
     if (merger != NULL) {
         auto existing_node = get_node(node->handle());
         if (existing_node != nullptr) {
-            working_node = make_shared<Node>(*existing_node);
-            if (!merger->merge(working_node.get(), node)) {
+            if (!merger->merge(existing_node.get(), node)) {
                 return node->handle();
             }
+            working_node = existing_node;
             to_store = working_node.get();
         }
     }
@@ -884,7 +884,7 @@ vector<string> RedisMongoDB::add_nodes(const vector<atoms::Node*>& nodes,
                 shared_ptr<Node> working;
                 auto existing_node = get_node(handle);
                 if (existing_node != nullptr) {
-                    working = make_shared<Node>(*existing_node);
+                    working = existing_node;
                     if (!merger->merge(working.get(), node)) {
                         // Failed merge — do not persist.
                         continue;
@@ -963,7 +963,7 @@ vector<string> RedisMongoDB::add_links(const vector<atoms::Link*>& links,
                 shared_ptr<Link> working;
                 auto existing_link = get_link(link_handle);
                 if (existing_link != nullptr) {
-                    working = make_shared<Link>(*existing_link);
+                    working = existing_link;
                     if (!merger->merge(working.get(), link)) {
                         // Failed merge — do not persist.
                         continue;
