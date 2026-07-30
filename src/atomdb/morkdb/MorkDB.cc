@@ -242,7 +242,8 @@ vector<string> MorkDB::add_links(const vector<atoms::Link*>& links,
     vector<bsoncxx::document::value> documents;
     map<string, shared_ptr<Link>> batch_merged;
     vector<string> unique_handles;
-    vector<const atoms::Link*> links_to_persist;
+    // Non-const: metta_expression may be filled in before persist (including caller's Link*).
+    vector<atoms::Link*> links_to_persist;
 
     for (const auto& link : links) {
         auto link_handle = link->handle();
@@ -282,14 +283,15 @@ vector<string> MorkDB::add_links(const vector<atoms::Link*>& links,
     }
 
     uint count = 0;
-    for (const auto* to_store : links_to_persist) {
+    for (auto* to_store : links_to_persist) {
         auto link_handle = to_store->handle();
 
         string metta_expression = to_store->custom_attributes.get_or<string>("metta_expression", "");
         if (metta_expression.empty()) {
             metta_expression = to_store->metta_representation(*this);
-            // Persist metta on the atom we will store (may be incoming or merged existing)
-            const_cast<atoms::Link*>(to_store)->custom_attributes["metta_expression"] = metta_expression;
+            // Persist metta on the atom we will store (may be incoming or merged existing).
+            // Callers whose Link* is reused here should expect metta_expression to be filled in.
+            to_store->custom_attributes["metta_expression"] = metta_expression;
         }
         metta_expressions += metta_expression + "\n";
 

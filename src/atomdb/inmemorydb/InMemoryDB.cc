@@ -312,17 +312,11 @@ string InMemoryDB::add_node(const atoms::Node* node, const atoms::Merger* merger
 
     // Merge a copy; persist only when merge() returns true.
     auto* atom_trie_value = dynamic_cast<AtomTrieValue*>(existing);
-    Node* working = new Node(*dynamic_cast<Node*>(atom_trie_value->get_atom()));
-    try {
-        if (!merger->merge(working, node)) {
-            delete working;
-            return handle;
-        }
-    } catch (...) {
-        delete working;
-        throw;
+    unique_ptr<Node> working(new Node(*dynamic_cast<Node*>(atom_trie_value->get_atom())));
+    if (!merger->merge(working.get(), node)) {
+        return handle;
     }
-    atoms_trie_->insert(handle, new AtomTrieValue(working));
+    atoms_trie_->insert(handle, new AtomTrieValue(working.release()));
 
     return handle;
 }
@@ -391,18 +385,14 @@ vector<string> InMemoryDB::add_links(const vector<atoms::Link*>& links,
             atoms_trie_->insert(link_handle, new AtomTrieValue(cloned_link));
         } else {
             // Merge a copy; persist only when merge() returns true.
+            // On failure, skip incoming-set/pattern updates — the link was already
+            // indexed by whichever add created it.
             auto* atom_trie_value = dynamic_cast<AtomTrieValue*>(existing);
-            Link* working = new Link(*dynamic_cast<Link*>(atom_trie_value->get_atom()));
-            try {
-                if (!merger->merge(working, link)) {
-                    delete working;
-                    continue;
-                }
-            } catch (...) {
-                delete working;
-                throw;
+            unique_ptr<Link> working(new Link(*dynamic_cast<Link*>(atom_trie_value->get_atom())));
+            if (!merger->merge(working.get(), link)) {
+                continue;
             }
-            atoms_trie_->insert(link_handle, new AtomTrieValue(working));
+            atoms_trie_->insert(link_handle, new AtomTrieValue(working.release()));
         }
 
         // Update incoming sets for each target

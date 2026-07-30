@@ -665,6 +665,11 @@ class SumStrengthMerger : public Merger {
     }
 };
 
+class RejectMerger : public Merger {
+   public:
+    bool merge(Atom* /*existing*/, const Atom* /*incoming*/) const override { return false; }
+};
+
 }  // namespace
 
 TEST_F(InMemoryDBTest, AddNodeReplacesByDefault) {
@@ -777,6 +782,52 @@ TEST_F(InMemoryDBTest, AddLinkCustomMerger) {
     SumStrengthMerger merger;
     EXPECT_EQ(db->add_link(link2, &merger), handle);
     EXPECT_DOUBLE_EQ(db->get_link(handle)->custom_attributes.get_or<double>("strength", -1.0), 0.5);
+
+    delete n1;
+    delete n2;
+    delete link1;
+    delete link2;
+}
+
+TEST_F(InMemoryDBTest, AddNodeRejectMergerDoesNotPersist) {
+    Properties attrs1;
+    attrs1["strength"] = 0.2;
+    auto node1 = new Node("Symbol", "\"reject_me\"", attrs1);
+    string handle = db->add_node(node1);
+
+    Properties attrs2;
+    attrs2["strength"] = 0.9;
+    auto node2 = new Node("Symbol", "\"reject_me\"", attrs2);
+    RejectMerger merger;
+    EXPECT_EQ(db->add_node(node2, &merger), handle);
+    EXPECT_DOUBLE_EQ(db->get_node(handle)->custom_attributes.get_or<double>("strength", -1.0), 0.2);
+
+    delete node1;
+    delete node2;
+}
+
+TEST_F(InMemoryDBTest, AddLinkRejectMergerDoesNotPersistOrReindex) {
+    auto n1 = new Node("Symbol", "\"link_reject_a\"");
+    auto n2 = new Node("Symbol", "\"link_reject_b\"");
+    auto h1 = db->add_node(n1);
+    auto h2 = db->add_node(n2);
+
+    Properties attrs1;
+    attrs1["strength"] = 0.2;
+    auto link1 = new Link("Expression", {h1, h2}, attrs1);
+    string handle = db->add_link(link1);
+    auto incoming_before = db->query_for_incoming_set(h1);
+    ASSERT_EQ(incoming_before->size(), 1u);
+
+    Properties attrs2;
+    attrs2["strength"] = 0.9;
+    auto link2 = new Link("Expression", {h1, h2}, attrs2);
+    RejectMerger merger;
+    EXPECT_EQ(db->add_link(link2, &merger), handle);
+    EXPECT_DOUBLE_EQ(db->get_link(handle)->custom_attributes.get_or<double>("strength", -1.0), 0.2);
+
+    auto incoming_after = db->query_for_incoming_set(h1);
+    EXPECT_EQ(incoming_after->size(), 1u);
 
     delete n1;
     delete n2;
