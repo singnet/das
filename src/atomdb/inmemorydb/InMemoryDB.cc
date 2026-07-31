@@ -365,13 +365,22 @@ vector<string> InMemoryDB::add_nodes(const vector<atoms::Node*>& nodes,
     }
 
     // ThrowIfExistsMerger must fail the whole batch before any insert, matching the
-    // former throw_if_exists=true all-or-nothing semantics.
+    // former throw_if_exists=true all-or-nothing semantics (store collisions and
+    // repeated handles inside this batch).
     if (merger == &ThrowIfExistsMerger::instance()) {
+        set<string> conflicting;
+        set<string> seen;
+        for (const auto& handle : handles) {
+            if (!seen.insert(handle).second) {
+                conflicting.insert(handle);
+            }
+        }
         auto existing_handles = this->nodes_exist(handles);
-        if (!existing_handles.empty()) {
-            vector<string> existing_handles_vector(existing_handles.begin(), existing_handles.end());
+        conflicting.insert(existing_handles.begin(), existing_handles.end());
+        if (!conflicting.empty()) {
+            vector<string> conflicting_vector(conflicting.begin(), conflicting.end());
             RAISE_ERROR("Failed to insert nodes, some nodes already exist: " +
-                        Utils::join(existing_handles_vector, ','));
+                        Utils::join(conflicting_vector, ','));
             return {};
         }
     }
@@ -397,13 +406,22 @@ vector<string> InMemoryDB::add_links(const vector<atoms::Link*>& links,
     }
 
     // ThrowIfExistsMerger must fail the whole batch before any insert, matching the
-    // former throw_if_exists=true all-or-nothing semantics.
+    // former throw_if_exists=true all-or-nothing semantics (store collisions and
+    // repeated handles inside this batch).
     if (merger == &ThrowIfExistsMerger::instance()) {
+        set<string> conflicting;
+        set<string> seen;
+        for (const auto& handle : handles) {
+            if (!seen.insert(handle).second) {
+                conflicting.insert(handle);
+            }
+        }
         auto existing_handles = this->links_exist(handles);
-        if (!existing_handles.empty()) {
-            vector<string> existing_handles_vector(existing_handles.begin(), existing_handles.end());
+        conflicting.insert(existing_handles.begin(), existing_handles.end());
+        if (!conflicting.empty()) {
+            vector<string> conflicting_vector(conflicting.begin(), conflicting.end());
             RAISE_ERROR("Failed to insert links, some links already exist: " +
-                        Utils::join(existing_handles_vector, ','));
+                        Utils::join(conflicting_vector, ','));
             return {};
         }
     }

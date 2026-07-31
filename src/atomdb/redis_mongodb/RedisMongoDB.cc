@@ -884,8 +884,7 @@ vector<string> RedisMongoDB::add_nodes(const vector<atoms::Node*>& nodes,
                 shared_ptr<Node> working;
                 auto existing_node = get_node(handle);
                 if (existing_node != nullptr) {
-                    shared_ptr<Node> merged = make_shared<Node>(*existing_node);
-                    if (!merger->merge(merged.get(), node)) {
+                    if (!merger->merge(existing_node.get(), node)) {
                         // Do not persist, but keep existing in the transactional
                         // composite-type map so later links can resolve this target.
                         if (this->composite_type_enabled_ && is_transactional) {
@@ -895,7 +894,7 @@ vector<string> RedisMongoDB::add_nodes(const vector<atoms::Node*>& nodes,
                         }
                         continue;
                     }
-                    working = merged;
+                    working = existing_node;
                 } else {
                     working = make_shared<Node>(*node);
                 }
@@ -972,14 +971,13 @@ vector<string> RedisMongoDB::add_links(const vector<atoms::Link*>& links,
                 shared_ptr<Link> working;
                 auto existing_link = get_link(link_handle);
                 if (existing_link != nullptr) {
-                    shared_ptr<Link> merged = make_shared<Link>(*existing_link);
-                    if (!merger->merge(merged.get(), link)) {
+                    if (!merger->merge(existing_link.get(), link)) {
                         // Do not persist, but keep existing in composite-type bookkeeping.
                         composite_keepalive.push_back(existing_link);
                         links_for_composite.push_back(existing_link.get());
                         continue;
                     }
-                    working = merged;
+                    working = existing_link;
                 } else {
                     working = make_shared<Link>(*link);
                 }

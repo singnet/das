@@ -256,14 +256,13 @@ vector<string> MorkDB::add_links(const vector<atoms::Link*>& links,
                 shared_ptr<Link> working;
                 auto existing_link = get_link(link_handle);
                 if (existing_link != nullptr) {
-                    shared_ptr<Link> merged = make_shared<Link>(*existing_link);
-                    if (!merger->merge(merged.get(), link)) {
+                    if (!merger->merge(existing_link.get(), link)) {
                         // Do not persist, but keep existing in composite-type bookkeeping.
                         composite_keepalive.push_back(existing_link);
                         links_for_composite.push_back(existing_link.get());
                         continue;
                     }
-                    working = merged;
+                    working = existing_link;
                 } else {
                     working = make_shared<Link>(*link);
                 }

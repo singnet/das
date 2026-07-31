@@ -850,10 +850,23 @@ TEST_F(InMemoryDBTest, AddNodesThrowIfExistsIsAllOrNothing) {
     EXPECT_FALSE(db->node_exists(also_absent->handle()));
     EXPECT_TRUE(db->node_exists(existing->handle()));
 
+    // Duplicate only inside the batch (not yet in the store) must also fail before any insert.
+    auto batch_a = new Node("Symbol", "\"batch_throw_dup_only\"");
+    auto batch_a_copy = new Node("Symbol", "\"batch_throw_dup_only\"");
+    auto batch_b = new Node("Symbol", "\"batch_throw_sibling\"");
+    EXPECT_THROW(
+        db->add_nodes({batch_a, batch_a_copy, batch_b}, false, &ThrowIfExistsMerger::instance()),
+        runtime_error);
+    EXPECT_FALSE(db->node_exists(batch_a->handle()));
+    EXPECT_FALSE(db->node_exists(batch_b->handle()));
+
     delete existing;
     delete keep_absent;
     delete collision;
     delete also_absent;
+    delete batch_a;
+    delete batch_a_copy;
+    delete batch_b;
 }
 
 TEST_F(InMemoryDBTest, AddLinksThrowIfExistsIsAllOrNothing) {
@@ -861,10 +874,14 @@ TEST_F(InMemoryDBTest, AddLinksThrowIfExistsIsAllOrNothing) {
     auto n2 = new Node("Symbol", "\"batch_link_throw_b\"");
     auto n3 = new Node("Symbol", "\"batch_link_throw_c\"");
     auto n4 = new Node("Symbol", "\"batch_link_throw_d\"");
+    auto n5 = new Node("Symbol", "\"batch_link_throw_e\"");
+    auto n6 = new Node("Symbol", "\"batch_link_throw_f\"");
     auto h1 = db->add_node(n1);
     auto h2 = db->add_node(n2);
     auto h3 = db->add_node(n3);
     auto h4 = db->add_node(n4);
+    auto h5 = db->add_node(n5);
+    auto h6 = db->add_node(n6);
 
     auto existing = new Link("Expression", {h1, h2});
     db->add_link(existing);
@@ -878,13 +895,28 @@ TEST_F(InMemoryDBTest, AddLinksThrowIfExistsIsAllOrNothing) {
     EXPECT_TRUE(db->link_exists(existing->handle()));
     EXPECT_EQ(db->query_for_incoming_set(h3)->size(), 0u);
 
+    auto batch_dup = new Link("Expression", {h5, h6});
+    auto batch_dup_copy = new Link("Expression", {h5, h6});
+    auto batch_other = new Link("Expression", {h3, h4});
+    EXPECT_THROW(
+        db->add_links({batch_dup, batch_dup_copy, batch_other}, false, &ThrowIfExistsMerger::instance()),
+        runtime_error);
+    EXPECT_FALSE(db->link_exists(batch_dup->handle()));
+    EXPECT_FALSE(db->link_exists(batch_other->handle()));
+    EXPECT_EQ(db->query_for_incoming_set(h5)->size(), 0u);
+
     delete n1;
     delete n2;
     delete n3;
     delete n4;
+    delete n5;
+    delete n6;
     delete existing;
     delete keep_absent;
     delete collision;
+    delete batch_dup;
+    delete batch_dup_copy;
+    delete batch_other;
 }
 
 int main(int argc, char** argv) {
