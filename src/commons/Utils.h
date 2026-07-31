@@ -168,6 +168,7 @@ class Utils {
     {                                                     \
         LOG_ERROR(string(msg) + StackTrace::to_string()); \
         Utils::error(msg, true, false);                   \
+        __builtin_unreachable();                          \
     }
 
 #ifdef LOG_LEVEL

@@ -1046,7 +1046,7 @@ vector<string> RedisMongoDB::add_links(const vector<atoms::Link*>& links,
             mongodb_doc.emplace(to_store, *this);
         }
 
-        if (ctx->get_pending_commands_count() >= REDIS_CHUNK_SIZE) {
+        if (static_cast<uint>(ctx->get_pending_commands_count()) >= REDIS_CHUNK_SIZE) {
             LOG_DEBUG("Flushing Redis commands batch START");
             ctx->flush_commands();
             LOG_DEBUG("Flushing Redis commands batch END");
