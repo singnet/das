@@ -1,13 +1,9 @@
 #include "CommandRouterHttpAPI.h"
 
-#include <algorithm>
-#include <cctype>
-#include <sstream>
-
 #include "BusCommandRouterProcessor.h"
 #include "BusCommandRouterProxy.h"
 #include "BusCommandRouterProxyStreamPoller.h"
-#include "SystemParametersSingleton.h"
+#include "HttpCommandProxyFactory.h"
 
 #define LOG_LEVEL INFO_LEVEL
 #include "Logger.h"
@@ -21,8 +17,7 @@ using namespace agents;
 
 using json = nlohmann::json;
 
-const unordered_set<string> CommandRouterHttpAPI::VALID_COMMAND_TYPES = {
-    "query", "evolution", "get", "set"};
+const unordered_set<string> CommandRouterHttpAPI::VALID_COMMAND = {HttpCommandProxyFactory::QUERY};
 
 // -------------------------------------------------------------------------------------------------
 // Constructors, destructors
@@ -83,10 +78,6 @@ void CommandRouterHttpAPI::setup() {
 
 void CommandRouterHttpAPI::stop() {
     this->shutting_down = true;
-    {
-        lock_guard<mutex> semaphore(this->executions_mtx);
-        this->execution_slots_cv.notify_all();
-    }
     LOG_INFO("CommandRouter HTTP API stopping on " << this->host << ":" << this->port);
     this->server.stop();
     this->cleanup_finished_executions();
@@ -126,129 +117,34 @@ void CommandRouterHttpAPI::setup_routes() {
                 return;
             }
 
-            if (!body.is_object() || !body.contains("command_type") ||
-                !body["command_type"].is_string() || !body.contains("command_text") ||
-                !body["command_text"].is_string()) {
-                this->set_json_response(
-                    response, 400, {{"error", "Missing fields: command_type, command_text"}});
+            if (!body.is_object() || !body.contains("command") || !body["command"].is_string() ||
+                body["command"].get_ref<const string&>().empty() || !body.contains("params") ||
+                !body["params"].is_object()) {
+                this->set_json_response(response, 400, {{"error", "Missing fields: command, params"}});
                 return;
             }
 
-            string command_type = body["command_type"].get<string>();
-            string command_text = body["command_text"].get<string>();
+            const string command = body["command"].get<string>();
+            const json params = body["params"];
 
-            if (command_type.empty() || command_text.empty()) {
+            if (!this->is_valid_command(command)) {
                 this->set_json_response(
-                    response, 400, {{"error", "Missing fields: command_type, command_text"}});
+                    response, 400, {{"error", "Invalid command. Allowed values: query"}});
                 return;
             }
 
-            if (!this->is_valid_command_type(command_type)) {
-                this->set_json_response(
-                    response,
-                    400,
-                    {{"error", "Invalid command_type. Allowed values: query, evolution, get, set"}});
+            auto exec = make_shared<CommandExecution>(
+                this->generate_execution_id(), command, params, this->settings.max_events_per_execution);
+
+            if (this->try_admit_execution(exec) == AdmitResult::QueueFull) {
+                this->set_json_response(response, 503, {{"error", "Execution queue is full"}});
                 return;
-            }
-
-            if (body.contains("parameters")) {
-                if (!body["parameters"].is_object()) {
-                    this->set_json_response(
-                        response, 400, {{"error", "Invalid parameters: expected object"}});
-                    return;
-                }
-
-                LOG_INFO("CommandRouter HTTP API setting parameters for command=" << command_text);
-
-                Properties known_params =
-                    SystemParametersSingleton::get_instance()->get_command_router_params();
-                vector<pair<string, string>> set_args;
-                for (const auto& [key, value] : body["parameters"].items()) {
-                    string validation_error;
-                    const optional<string> args =
-                        this->build_set_param_arg(known_params, key, value, validation_error);
-                    if (!args.has_value()) {
-                        this->set_json_response(response, 400, {{"error", validation_error}});
-                        return;
-                    }
-                    set_args.emplace_back(key, args.value());
-                }
-                for (const auto& [key, args] : set_args) {
-                    string router_error;
-                    const PollStreamResult poll_result = this->execute_router_command(
-                        "set",
-                        args,
-                        nullptr,
-                        nullptr,
-                        [&](const string& message) { router_error = message; },
-                        nullptr);
-                    if (!poll_result.ok) {
-                        LOG_ERROR("CommandRouter HTTP API setting parameter failed for command="
-                                  << command_text << " key=" << key << " args=" << args
-                                  << " error=" << router_error);
-                        this->set_json_response(response, 500, {{"error", router_error}});
-                        return;
-                    }
-                }
-                LOG_INFO("CommandRouter HTTP API parameters set for command=" << command_text);
-            }
-
-            if (this->is_sync_command_type(command_type)) {
-                LOG_INFO("CommandRouter HTTP API sync execution type=" << command_type);
-
-                json results = json::array();
-                string error_message;
-                const PollStreamResult poll_result = this->execute_router_command(
-                    command_type,
-                    command_text,
-                    nullptr,
-                    [&](const json& chunk) {
-                        for (const auto& item : chunk) {
-                            results.push_back(item);
-                        }
-                    },
-                    [&](const string& message) { error_message = message; },
-                    nullptr);
-                if (!poll_result.ok) {
-                    if (error_message.empty()) {
-                        error_message = "Command failed";
-                    }
-                    this->set_json_response(response, 500, {{"error", error_message}});
-                    return;
-                }
-
-                if (results.empty()) {
-                    this->set_json_response(
-                        response, 500, {{"error", "Command finished without a response"}});
-                    return;
-                }
-
-                this->set_json_response(
-                    response, 200, {{"command_type", command_type}, {"result", results.front()}});
-                return;
-            }
-
-            auto exec = make_shared<CommandExecution>(this->generate_execution_id(),
-                                                      command_type,
-                                                      command_text,
-                                                      this->settings.max_events_per_execution);
-
-            switch (this->try_admit_execution(exec)) {
-                case AdmitResult::ConcurrentLimit:
-                    this->set_json_response(
-                        response, 429, {{"error", "Maximum concurrent executions reached"}});
-                    return;
-                case AdmitResult::QueueFull:
-                    this->set_json_response(response, 503, {{"error", "Execution queue is full"}});
-                    return;
-                case AdmitResult::Admitted:
-                    break;
             }
 
             string status_for_response = exec->status_string();
 
             LOG_INFO("CommandRouter HTTP API execution scheduled id=" << exec->execution_id
-                                                                      << " type=" << command_type);
+                                                                      << " command=" << command);
 
             try {
                 this->thread_pool->enqueue([this, exec]() { this->run_execution(exec); });
@@ -392,7 +288,7 @@ void CommandRouterHttpAPI::run_execution_inner(const shared_ptr<CommandExecution
     };
 
     const PollStreamResult poll_result = this->execute_router_command(
-        exec->command_type, exec->command_text, should_abort, on_chunk, on_error, on_aborted);
+        exec->command, exec->params, should_abort, on_chunk, on_error, on_aborted);
     if (!poll_result.ok) {
         return;
     }
@@ -404,13 +300,9 @@ void CommandRouterHttpAPI::run_execution_inner(const shared_ptr<CommandExecution
     on_complete(timer.milliseconds(), total_items);
 }
 
-bool CommandRouterHttpAPI::is_sync_command_type(const string& command_type) {
-    return command_type == "get" || command_type == "set";
-}
-
 PollStreamResult CommandRouterHttpAPI::execute_router_command(
-    const string& command_type,
-    const string& command_text,
+    const string& command,
+    const json& params,
     const function<bool()>& should_abort,
     const function<void(const json& chunk)>& on_chunk,
     const function<void(const string& error)>& on_error,
@@ -423,14 +315,19 @@ PollStreamResult CommandRouterHttpAPI::execute_router_command(
     }
 
     try {
-        string router_arg = command_text;
-        Utils::replace_all(router_arg, "%", "$");
-        auto router_proxy = make_shared<BusCommandRouterProxy>(command_type, router_arg);
+        string create_error;
+        auto router_proxy = HttpCommandProxyFactory::create(command, params, create_error);
+        if (router_proxy == nullptr) {
+            if (on_error) {
+                on_error(create_error);
+            }
+            return {};
+        }
 
         this->router_processor->dispatch_http_command(router_proxy, this->http_requestor_id);
 
         return BusCommandRouterProxyStreamPoller::poll_stream(router_proxy,
-                                                              command_type,
+                                                              command,
                                                               this->settings.stream_items_per_chunk,
                                                               should_abort,
                                                               on_chunk,
@@ -446,46 +343,21 @@ PollStreamResult CommandRouterHttpAPI::execute_router_command(
 }
 
 void CommandRouterHttpAPI::run_execution(const shared_ptr<CommandExecution>& exec) {
-    bool acquired_running_slot = false;
-
-    {
-        unique_lock<mutex> lock(this->executions_mtx);
-
-        // Block until a concurrent slot is free or the server is shutting down.
-        this->execution_slots_cv.wait(lock, [&] {
-            return this->shutting_down.load() ||
-                   this->running_executions < this->settings.max_concurrent_executions;
-        });
-
-        this->pending_executions--;
-
-        if (!this->shutting_down.load()) {
-            if (!exec->is_cancel_requested()) {
-                this->running_executions++;
-                acquired_running_slot = true;
-            }
-        }
-    }
-
     if (this->shutting_down.load()) {
         exec->mark_error_unless_terminal("Server is shutting down");
+        this->release_pending_execution();
         return;
     }
 
-    if (!acquired_running_slot) {
+    if (exec->is_cancel_requested()) {
         exec->mark_aborted_unless_terminal();
+        this->release_pending_execution();
         return;
     }
 
     exec->mark_running();
-
     this->run_execution_inner(exec);
-
-    {
-        lock_guard<mutex> lock(this->executions_mtx);
-        this->running_executions--;
-    }
-    this->execution_slots_cv.notify_one();
+    this->release_pending_execution();
 }
 
 void CommandRouterHttpAPI::cleanup_finished_executions() {
@@ -514,16 +386,13 @@ string CommandRouterHttpAPI::generate_execution_id() {
     return execution_id;
 }
 
-bool CommandRouterHttpAPI::is_valid_command_type(const string& command_type) const {
-    return this->VALID_COMMAND_TYPES.find(command_type) != this->VALID_COMMAND_TYPES.end();
+bool CommandRouterHttpAPI::is_valid_command(const string& command) const {
+    return this->VALID_COMMAND.find(command) != this->VALID_COMMAND.end();
 }
 
 CommandRouterHttpAPI::AdmitResult CommandRouterHttpAPI::try_admit_execution(
     const shared_ptr<CommandExecution>& exec) {
     lock_guard<mutex> semaphore(this->executions_mtx);
-    if (this->running_executions >= this->settings.max_concurrent_executions) {
-        return AdmitResult::ConcurrentLimit;
-    }
     if (this->settings.max_queued_executions > 0 &&
         this->pending_executions >= this->settings.max_queued_executions) {
         return AdmitResult::QueueFull;
@@ -533,139 +402,15 @@ CommandRouterHttpAPI::AdmitResult CommandRouterHttpAPI::try_admit_execution(
     return AdmitResult::Admitted;
 }
 
+void CommandRouterHttpAPI::release_pending_execution() {
+    lock_guard<mutex> lock(this->executions_mtx);
+    if (this->pending_executions > 0) {
+        this->pending_executions--;
+    }
+}
+
 void CommandRouterHttpAPI::set_json_response(httplib::Response& response, int status, const json& body) {
     response.status = status;
     string content = body.dump();
     response.set_content(content, "application/json");
-}
-
-optional<string> CommandRouterHttpAPI::build_set_param_arg(Properties& known_params,
-                                                           const string& key,
-                                                           const json& value,
-                                                           string& error_message) const {
-    auto param_it = known_params.find(key);
-    if (param_it == known_params.end()) {
-        error_message = "Unknown parameter: '" + key + "'";
-        return nullopt;
-    }
-
-    const auto fail = [&](string message) -> optional<string> {
-        error_message = std::move(message);
-        return nullopt;
-    };
-
-    optional<string> formatted_value;
-
-    if (holds_alternative<bool>(param_it->second)) {
-        if (value.is_boolean()) {
-            formatted_value = value.get<bool>() ? "true" : "false";
-        } else if (value.is_string()) {
-            const string& text = value.get<string>();
-            if (text == "true" || text == "false") {
-                formatted_value = text;
-            } else if (text == "1") {
-                formatted_value = "true";
-            } else if (text == "0") {
-                formatted_value = "false";
-            } else {
-                return fail("Parameter '" + key + "' expects bool (true, false, 1, or 0)");
-            }
-        } else if (value.is_number_integer()) {
-            const long long number = value.get<long long>();
-            if (number == 0) {
-                formatted_value = "false";
-            } else if (number == 1) {
-                formatted_value = "true";
-            } else {
-                return fail("Parameter '" + key + "' expects bool (true, false, 1, or 0)");
-            }
-        } else {
-            return fail("Parameter '" + key + "' expects bool (true, false, 1, or 0)");
-        }
-    } else if (holds_alternative<unsigned int>(param_it->second)) {
-        const string uint_error = "Parameter '" + key + "' expects unsigned integer";
-        const auto fits_uint = [](unsigned long long number) {
-            return static_cast<unsigned int>(number) == number;
-        };
-        if (value.is_number_unsigned()) {
-            const unsigned long long number = value.get<unsigned long long>();
-            if (!fits_uint(number)) {
-                return fail(uint_error);
-            }
-            formatted_value = std::to_string(number);
-        } else if (value.is_number_integer()) {
-            const long long number = value.get<long long>();
-            if (number < 0 || !fits_uint(static_cast<unsigned long long>(number))) {
-                return fail(uint_error);
-            }
-            formatted_value = std::to_string(number);
-        } else if (value.is_string()) {
-            const string& text = value.get<string>();
-            const bool all_digits =
-                !text.empty() &&
-                all_of(text.begin(), text.end(), [](unsigned char c) { return isdigit(c); });
-            if (!all_digits) {
-                return fail(uint_error);
-            }
-            try {
-                size_t consumed = 0;
-                const unsigned long long parsed = stoull(text, &consumed);
-                if (consumed != text.size() || !fits_uint(parsed)) {
-                    return fail(uint_error);
-                }
-                formatted_value = text;
-            } catch (const exception&) {
-                return fail(uint_error);
-            }
-        } else {
-            return fail(uint_error);
-        }
-    } else if (holds_alternative<long>(param_it->second)) {
-        if (value.is_number_integer()) {
-            formatted_value = std::to_string(value.get<long long>());
-        } else if (value.is_string()) {
-            try {
-                size_t consumed = 0;
-                const long parsed = stol(value.get<string>(), &consumed);
-                if (consumed != value.get<string>().size()) {
-                    return fail("Parameter '" + key + "' expects integer");
-                }
-                formatted_value = std::to_string(parsed);
-            } catch (const exception&) {
-                return fail("Parameter '" + key + "' expects integer");
-            }
-        } else {
-            return fail("Parameter '" + key + "' expects integer");
-        }
-    } else if (holds_alternative<double>(param_it->second)) {
-        if (value.is_number()) {
-            formatted_value = value.dump();
-        } else if (value.is_string()) {
-            try {
-                size_t consumed = 0;
-                stod(value.get<string>(), &consumed);
-                if (consumed != value.get<string>().size()) {
-                    return fail("Parameter '" + key + "' expects number");
-                }
-                formatted_value = value.get<string>();
-            } catch (const exception&) {
-                return fail("Parameter '" + key + "' expects number");
-            }
-        } else {
-            return fail("Parameter '" + key + "' expects number");
-        }
-    } else if (holds_alternative<string>(param_it->second)) {
-        if (!value.is_string()) {
-            return fail("Parameter '" + key + "' expects string");
-        }
-        const string& text = value.get<string>();
-        if (text.empty()) {
-            return fail("Parameter '" + key + "' expects non-empty string");
-        }
-        formatted_value = text;
-    } else {
-        return fail("Parameter '" + key + "' has unsupported type");
-    }
-
-    return "param " + key + " " + formatted_value.value();
 }

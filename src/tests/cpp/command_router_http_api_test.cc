@@ -11,6 +11,7 @@
 #include "CommandRouterHttpAPIConfig.h"
 #include "CommandRouterHttpAPISingleton.h"
 #include "DedicatedThread.h"
+#include "HttpCommandProxyFactory.h"
 #include "JsonConfig.h"
 #include "PatternMatchingQueryProxy.h"
 #include "PortPool.h"
@@ -35,19 +36,14 @@ namespace {
 
 const string TEST_HOST = "localhost";
 const int TEST_PORT = 19001;
-const int TEST_PORT_LIMITS = 19006;
+const int TEST_PORT_THREAD_POOL = 19007;
 const string UNKNOWN_EXECUTION_ID = "exec-00000000000000000000000000000000";
 const string SHORT_COMMAND_TEXT = "Blah";
 
-json make_execution_body(const string& command_type = "query",
-                         const string& command_text = "(Similarity \"human\" %V)") {
-    return {{"command_type", command_type}, {"command_text", command_text}};
-}
-
-json make_execution_body_with_parameters(const json& parameters,
-                                         const string& command_type = "query",
-                                         const string& command_text = "(Similarity \"human\" %V)") {
-    return {{"command_type", command_type}, {"command_text", command_text}, {"parameters", parameters}};
+json make_execution_body(const string& command = "query",
+                         const string& query_token = "(Similarity \"human\" %V)") {
+    return {{"command", command},
+            {"params", {{"query", {{"syntax", "metta"}, {"tokens", json::array({query_token})}}}}}};
 }
 
 class HangingQueryForwardProxy : public BusCommandProxy {
@@ -182,7 +178,6 @@ JsonConfig make_command_router_config(const json& overrides = json::object()) {
                  {"http_api",
                   {{"endpoint", "localhost:40009"},
                    {"thread_pool_size", 8},
-                   {"max_concurrent_executions", 50},
                    {"max_queued_executions", 200},
                    {"max_events_per_execution", 5000},
                    {"stream_items_per_chunk", 25},
@@ -205,40 +200,23 @@ class CommandRouterHttpAPITest : public ::testing::Test {
 
 HttpAPIServerFixture CommandRouterHttpAPITest::server;
 
-class CommandRouterHttpAPILimitsTest : public ::testing::Test {
+class CommandRouterHttpAPIThreadPoolConcurrencyTest : public ::testing::Test {
    protected:
+    static constexpr unsigned int kThreadPoolSize = 2;
     static HttpAPIServerFixture server;
 
     static void SetUpTestSuite() {
         HttpAPISettings settings;
-        settings.max_concurrent_executions = 1;
-        server.start(TEST_PORT_LIMITS, settings);
-    }
-
-    static void TearDownTestSuite() { server.stop(); }
-
-    httplib::Client client() { return server.make_client(TEST_PORT_LIMITS); }
-};
-
-HttpAPIServerFixture CommandRouterHttpAPILimitsTest::server;
-
-class CommandRouterHttpAPIQueuedConcurrencyTest : public ::testing::Test {
-   protected:
-    static HttpAPIServerFixture server;
-
-    static void SetUpTestSuite() {
-        HttpAPISettings settings;
-        settings.max_concurrent_executions = 2;
         settings.max_queued_executions = 10;
-        server.start(19007, settings, 4);
+        server.start(TEST_PORT_THREAD_POOL, settings, kThreadPoolSize);
     }
 
     static void TearDownTestSuite() { server.stop(); }
 
-    httplib::Client client() { return server.make_client(19007); }
+    httplib::Client client() { return server.make_client(TEST_PORT_THREAD_POOL); }
 };
 
-HttpAPIServerFixture CommandRouterHttpAPIQueuedConcurrencyTest::server;
+HttpAPIServerFixture CommandRouterHttpAPIThreadPoolConcurrencyTest::server;
 
 class CommandRouterHttpAPISingletonTest : public ::testing::Test {
     void TearDown() override { CommandRouterHttpAPISingleton::provide(nullptr); }
@@ -254,14 +232,21 @@ TEST(CommandExecutionTest, status_and_terminal_flags) {
 }
 
 TEST(CommandExecutionTest, terminal_marks_finished_at) {
-    CommandExecution exec("exec-abc", "query", "(Similarity %V1 %V2)");
+    CommandExecution exec(
+        "exec-abc",
+        "query",
+        {{"query", {{"syntax", "metta"}, {"tokens", json::array({"(Similarity %V1 %V2)"})}}}});
 
     exec.mark_completed(100, 5);
     EXPECT_GT(exec.finished_at_ms(), 0);
 }
 
 TEST(CommandExecutionTest, event_buffer_overflow_raises) {
-    CommandExecution exec("exec-abc", "query", "(Similarity %V1 %V2)", 2);
+    CommandExecution exec(
+        "exec-abc",
+        "query",
+        {{"query", {{"syntax", "metta"}, {"tokens", json::array({"(Similarity %V1 %V2)"})}}}},
+        2);
 
     exec.mark_running();
     exec.publish_chunk(1, json::array({json("a")}));
@@ -278,7 +263,6 @@ TEST(CommandRouterHttpAPIConfigTest, from_config_loads_http_api_fields) {
     EXPECT_EQ(config.port, 40009);
     EXPECT_EQ(config.thread_pool_size, 8u);
     EXPECT_EQ(config.bus_host, "localhost");
-    EXPECT_EQ(config.settings.max_concurrent_executions, 50u);
     EXPECT_EQ(config.settings.max_queued_executions, 200u);
     EXPECT_EQ(config.settings.max_events_per_execution, 5000u);
     EXPECT_EQ(config.settings.execution_retention_ms, 123456);
@@ -331,26 +315,65 @@ TEST(BusCommandRouterProcessorTest, dispatch_http_command_get_returns_params) {
     EXPECT_TRUE(caller_proxy->finished());
 }
 
-TEST(BusCommandRouterProcessorTest, dispatch_http_command_syncs_caller_parameters_from_store) {
+TEST(BusCommandRouterProcessorTest, dispatch_http_command_preserves_caller_parameters) {
     set<string> commands = {ServiceBus::BUS_COMMAND_ROUTER};
     ServiceBus::initialize_statics(commands, 49400, 49499);
     initialize_test_service_bus_statics_once();
 
-    const string requestor_id = TEST_HOST + ":http-param-sync-test";
+    const string requestor_id = TEST_HOST + ":http-param-preserve-test";
     const string router_id = TEST_HOST + ":" + std::to_string(PortPool::get_port());
     auto router_bus = make_shared<ServiceBus>(router_id);
     auto router_processor = make_shared<BusCommandRouterProcessor>(router_bus);
     router_bus->register_processor(router_processor);
     Utils::sleep(500);
 
+    // Peer store would have use_metta_as_query_tokens=true if HTTP still synced from it.
     auto set_caller = make_shared<BusCommandRouterProxy>("set", "param use_metta_as_query_tokens true");
     router_processor->dispatch_http_command(set_caller, requestor_id);
     Utils::sleep(500);
 
     auto query_caller = make_shared<BusCommandRouterProxy>("query", "(Similarity %V1 %V2)");
-    EXPECT_FALSE(query_caller->parameters.get<bool>(BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS));
+    query_caller->parameters[BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS] = false;
+    query_caller->parameters[BaseQueryProxy::MAX_ANSWERS] = (unsigned int) 10;
     router_processor->dispatch_http_command(query_caller, requestor_id);
-    EXPECT_TRUE(query_caller->parameters.get<bool>(BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS));
+
+    EXPECT_FALSE(query_caller->parameters.get<bool>(BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS));
+    EXPECT_EQ(query_caller->parameters.get<unsigned int>(BaseQueryProxy::MAX_ANSWERS), 10u);
+}
+
+TEST(HttpCommandProxyFactoryTest, create_query_sets_params_onto_proxy_defaults) {
+    string error;
+    const json params = {
+        {"query", {{"syntax", "metta"}, {"tokens", json::array({"(Similarity \"human\" %C)"})}}},
+        {"populate_metta_mapping", true},
+        {"use_metta_as_query_tokens", "true"},
+        {"max_answers", 7}};
+
+    auto proxy = HttpCommandProxyFactory::create(HttpCommandProxyFactory::QUERY, params, error);
+    ASSERT_NE(proxy, nullptr) << error;
+    EXPECT_EQ(proxy->get_args()[0], "query");
+    EXPECT_EQ(proxy->get_args()[1], "(Similarity \"human\" $C)");
+    EXPECT_TRUE(proxy->parameters.get<bool>(BaseQueryProxy::POPULATE_METTA_MAPPING));
+    EXPECT_TRUE(proxy->parameters.get<bool>(BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS));
+    EXPECT_EQ(proxy->parameters.get<unsigned int>(BaseQueryProxy::MAX_ANSWERS), 7u);
+}
+
+TEST(HttpCommandProxyFactoryTest, create_rejects_unknown_parameter) {
+    string error;
+    const json params = {
+        {"query", {{"syntax", "metta"}, {"tokens", json::array({"(Similarity \"human\" %C)"})}}},
+        {"unknown_key", true}};
+
+    auto proxy = HttpCommandProxyFactory::create(HttpCommandProxyFactory::QUERY, params, error);
+    EXPECT_EQ(proxy, nullptr);
+    EXPECT_NE(error.find("Unknown parameter"), string::npos);
+}
+
+TEST(HttpCommandProxyFactoryTest, create_rejects_unsupported_command) {
+    string error;
+    auto proxy = HttpCommandProxyFactory::create("evolution", json::object(), error);
+    EXPECT_EQ(proxy, nullptr);
+    EXPECT_NE(error.find("Unsupported command"), string::npos);
 }
 
 // -----------------------------------------------------------------------------
@@ -578,142 +601,70 @@ TEST_F(CommandRouterHttpAPITest, create_execution_returns_202) {
     EXPECT_EQ(payload["status"], "pending");
 }
 
-TEST_F(CommandRouterHttpAPITest, get_params_returns_sync_result) {
-    auto res = client().Post(
-        "/command-router/executions", make_execution_body("get", "params").dump(), "application/json");
-    ASSERT_TRUE(res);
-    EXPECT_EQ(res->status, 200);
-
-    auto payload = json::parse(res->body);
-    EXPECT_EQ(payload["command_type"], "get");
-    EXPECT_TRUE(payload.contains("result"));
-    EXPECT_NE(payload["result"].get<string>().find("use_cache"), string::npos);
-}
-
-TEST_F(CommandRouterHttpAPITest, set_param_returns_sync_ack) {
-    auto res = client().Post("/command-router/executions",
-                             make_execution_body("set", "param context test-context").dump(),
-                             "application/json");
-    ASSERT_TRUE(res);
-    EXPECT_EQ(res->status, 200);
-
-    auto payload = json::parse(res->body);
-    EXPECT_EQ(payload["command_type"], "set");
-    EXPECT_NE(payload["result"].get<string>().find("context"), string::npos);
-
-    auto get_res = client().Post(
-        "/command-router/executions", make_execution_body("get", "params").dump(), "application/json");
-    ASSERT_TRUE(get_res);
-    ASSERT_EQ(get_res->status, 200);
-    EXPECT_NE(json::parse(get_res->body)["result"].get<string>().find("context: test-context"),
-              string::npos);
-}
-
-TEST_F(CommandRouterHttpAPITest, set_param_persists_for_later_get) {
-    auto set_res = client().Post("/command-router/executions",
-                                 make_execution_body("set", "param populate_metta_mapping true").dump(),
-                                 "application/json");
-    ASSERT_TRUE(set_res);
-    ASSERT_EQ(set_res->status, 200);
-
-    auto get_res = client().Post(
-        "/command-router/executions", make_execution_body("get", "params").dump(), "application/json");
-    ASSERT_TRUE(get_res);
-    ASSERT_EQ(get_res->status, 200);
-
-    const string params = json::parse(get_res->body)["result"].get<string>();
-    EXPECT_NE(params.find("populate_metta_mapping: true"), string::npos);
-}
-
-TEST_F(CommandRouterHttpAPITest, set_param_rejects_unknown_key) {
-    auto res = client().Post("/command-router/executions",
-                             make_execution_body("set", "param unknown_key value").dump(),
-                             "application/json");
-    ASSERT_TRUE(res);
-    EXPECT_EQ(res->status, 500);
-
-    auto payload = json::parse(res->body);
-    EXPECT_TRUE(payload.contains("error"));
-    EXPECT_NE(payload["error"].get<string>().find("Unknown parameter"), string::npos);
-}
-
-TEST_F(CommandRouterHttpAPITest, execution_parameters_accepts_valid_scalar_values) {
-    auto create =
-        client().Post("/command-router/executions",
-                      make_execution_body_with_parameters({{"populate_metta_mapping", true},
-                                                           {"use_metta_as_query_tokens", "true"},
-                                                           {"max_answers", 1},
-                                                           {"count_flag", 1}})
-                          .dump(),
-                      "application/json");
-    ASSERT_TRUE(create);
-    EXPECT_EQ(create->status, 202);
-
-    auto get_res = client().Post(
-        "/command-router/executions", make_execution_body("get", "params").dump(), "application/json");
-    ASSERT_TRUE(get_res);
-    ASSERT_EQ(get_res->status, 200);
-
-    const string params = json::parse(get_res->body)["result"].get<string>();
-    EXPECT_NE(params.find("populate_metta_mapping: true"), string::npos);
-    EXPECT_NE(params.find("use_metta_as_query_tokens: true"), string::npos);
-    EXPECT_NE(params.find("max_answers: 1"), string::npos);
-    EXPECT_NE(params.find("count_flag: true"), string::npos);
-}
-
-TEST_F(CommandRouterHttpAPITest, execution_parameters_rejects_invalid_values) {
-    auto unknown_key = client().Post("/command-router/executions",
-                                     make_execution_body_with_parameters({{"unknown_key", true}}).dump(),
-                                     "application/json");
-    ASSERT_TRUE(unknown_key);
-    EXPECT_EQ(unknown_key->status, 400);
-    EXPECT_NE(json::parse(unknown_key->body)["error"].get<string>().find("Unknown parameter"),
-              string::npos);
-
-    auto wrong_type =
-        client().Post("/command-router/executions",
-                      make_execution_body_with_parameters({{"max_answers", "not_a_number"}}).dump(),
-                      "application/json");
-    ASSERT_TRUE(wrong_type);
-    EXPECT_EQ(wrong_type->status, 400);
-    EXPECT_NE(json::parse(wrong_type->body)["error"].get<string>().find("unsigned integer"),
-              string::npos);
-
-    auto out_of_range =
-        client().Post("/command-router/executions",
-                      make_execution_body_with_parameters({{"max_answers", 4294967296}}).dump(),
-                      "application/json");
-    ASSERT_TRUE(out_of_range);
-    EXPECT_EQ(out_of_range->status, 400);
-    EXPECT_NE(json::parse(out_of_range->body)["error"].get<string>().find("unsigned integer"),
-              string::npos);
-
-    auto not_object = client().Post("/command-router/executions",
-                                    json({{"command_type", "query"},
-                                          {"command_text", "(Similarity \"human\" %V)"},
-                                          {"parameters", json::array({1, 2, 3})}})
-                                        .dump(),
-                                    "application/json");
-    ASSERT_TRUE(not_object);
-    EXPECT_EQ(not_object->status, 400);
-    EXPECT_NE(json::parse(not_object->body)["error"].get<string>().find("expected object"),
-              string::npos);
-}
-
 TEST_F(CommandRouterHttpAPITest, create_execution_rejects_invalid_requests) {
     auto bad_json = client().Post("/command-router/executions", "{bad", "application/json");
     ASSERT_TRUE(bad_json);
     EXPECT_EQ(bad_json->status, 400);
 
     auto missing_field =
-        client().Post("/command-router/executions", R"({"command_type":"query"})", "application/json");
+        client().Post("/command-router/executions", R"({"command":"query"})", "application/json");
     ASSERT_TRUE(missing_field);
     EXPECT_EQ(missing_field->status, 400);
 
-    auto bad_type = client().Post(
-        "/command-router/executions", make_execution_body("invalid", "arg").dump(), "application/json");
-    ASSERT_TRUE(bad_type);
-    EXPECT_EQ(bad_type->status, 400);
+    auto legacy_fields = client().Post(
+        "/command-router/executions",
+        json({{"command_type", "query"}, {"command_text", "(Similarity \"human\" %V)"}}).dump(),
+        "application/json");
+    ASSERT_TRUE(legacy_fields);
+    EXPECT_EQ(legacy_fields->status, 400);
+
+    auto bad_command = client().Post(
+        "/command-router/executions", make_execution_body("set").dump(), "application/json");
+    ASSERT_TRUE(bad_command);
+    EXPECT_EQ(bad_command->status, 400);
+
+    auto invalid_command = client().Post(
+        "/command-router/executions", make_execution_body("invalid").dump(), "application/json");
+    ASSERT_TRUE(invalid_command);
+    EXPECT_EQ(invalid_command->status, 400);
+}
+
+TEST(CommandExecutionTest, stream_events_use_command_params_envelope) {
+    CommandExecution exec(
+        "exec-abc",
+        "query",
+        {{"query", {{"syntax", "metta"}, {"tokens", json::array({"(Similarity %V1 %V2)"})}}}});
+
+    exec.mark_running();
+    const json answer = {{"handles", json::array({json::array({"h1"})})}};
+    exec.publish_chunk(1, json::array({answer}));
+    exec.mark_completed(12, 1);
+
+    size_t next_index = 0;
+    bool stream_finished = false;
+    auto running = exec.wait_next_event(next_index, chrono::milliseconds(10), stream_finished);
+    ASSERT_TRUE(running.has_value());
+    auto running_event = json::parse(*running);
+    EXPECT_EQ(running_event["command"], CommandExecution::COMMAND_EXECUTION_STATUS);
+    EXPECT_EQ(running_event["params"]["status"], "running");
+    EXPECT_EQ(running_event["params"]["execution_id"], "exec-abc");
+
+    auto answers = exec.wait_next_event(next_index, chrono::milliseconds(10), stream_finished);
+    ASSERT_TRUE(answers.has_value());
+    auto answers_event = json::parse(*answers);
+    EXPECT_EQ(answers_event["command"], CommandExecution::COMMAND_QUERY_ANSWERS);
+    EXPECT_EQ(answers_event["params"]["seq"], 1);
+    EXPECT_EQ(answers_event["params"]["received_count"], 1);
+    ASSERT_TRUE(answers_event["params"]["answers"].is_array());
+    EXPECT_EQ(answers_event["params"]["answers"].size(), 1u);
+
+    auto completed = exec.wait_next_event(next_index, chrono::milliseconds(10), stream_finished);
+    ASSERT_TRUE(completed.has_value());
+    auto completed_event = json::parse(*completed);
+    EXPECT_EQ(completed_event["command"], CommandExecution::COMMAND_EXECUTION_STATUS);
+    EXPECT_EQ(completed_event["params"]["status"], "completed");
+    EXPECT_EQ(completed_event["params"]["total_items"], 1);
+    EXPECT_EQ(completed_event["params"]["duration_ms"], 12);
 }
 
 TEST_F(CommandRouterHttpAPITest, get_execution_reports_running_then_unknown_returns_404) {
@@ -787,7 +738,7 @@ TEST_F(CommandRouterHttpAPITest, cancel_running_execution_aborts_and_second_canc
     EXPECT_EQ(json::parse(second_cancel->body)["status"], "aborted");
 }
 
-TEST_F(CommandRouterHttpAPIQueuedConcurrencyTest, queued_executions_respect_concurrent_limit) {
+TEST_F(CommandRouterHttpAPIThreadPoolConcurrencyTest, running_executions_bounded_by_thread_pool_size) {
     vector<string> execution_ids;
     for (int i = 0; i < 4; ++i) {
         auto create =
@@ -795,11 +746,9 @@ TEST_F(CommandRouterHttpAPIQueuedConcurrencyTest, queued_executions_respect_conc
                           make_execution_body("query", SHORT_COMMAND_TEXT + std::to_string(i)).dump(),
                           "application/json");
         ASSERT_TRUE(create);
-        if (create->status == 202) {
-            execution_ids.push_back(json::parse(create->body)["execution_id"].get<string>());
-        }
+        ASSERT_EQ(create->status, 202);
+        execution_ids.push_back(json::parse(create->body)["execution_id"].get<string>());
     }
-    ASSERT_GE(execution_ids.size(), 2u);
 
     int max_observed_running = 0;
     for (int attempt = 0; attempt < 100; ++attempt) {
@@ -816,36 +765,8 @@ TEST_F(CommandRouterHttpAPIQueuedConcurrencyTest, queued_executions_respect_conc
         Utils::sleep(50);
     }
 
-    EXPECT_LE(max_observed_running, 2);
-}
-
-TEST_F(CommandRouterHttpAPILimitsTest, rejects_concurrency_limit) {
-    auto first = client().Post("/command-router/executions",
-                               make_execution_body("query", SHORT_COMMAND_TEXT).dump(),
-                               "application/json");
-    ASSERT_TRUE(first);
-    ASSERT_EQ(first->status, 202);
-
-    const auto execution_id = json::parse(first->body)["execution_id"].get<string>();
-
-    string status;
-    for (int attempt = 0; attempt < 50; ++attempt) {
-        auto get_res = client().Get("/command-router/executions/" + execution_id);
-        ASSERT_TRUE(get_res);
-        ASSERT_EQ(get_res->status, 200);
-        status = json::parse(get_res->body)["status"].get<string>();
-        if (status == "running") {
-            break;
-        }
-        Utils::sleep(100);
-    }
-    ASSERT_EQ(status, "running");
-
-    auto second = client().Post("/command-router/executions",
-                                make_execution_body("evolution", SHORT_COMMAND_TEXT).dump(),
-                                "application/json");
-    ASSERT_TRUE(second);
-    EXPECT_EQ(second->status, 429);
+    EXPECT_GT(max_observed_running, 0);
+    EXPECT_LE(max_observed_running, static_cast<int>(kThreadPoolSize));
 }
 
 TEST_F(CommandRouterHttpAPITest, websocket_streams_lifecycle_events) {
@@ -876,8 +797,11 @@ TEST_F(CommandRouterHttpAPITest, websocket_streams_lifecycle_events) {
     string msg;
     while (ws.read(msg)) {
         auto event = json::parse(msg);
-        EXPECT_EQ(event["execution_id"].get<string>(), execution_id);
-        if (event.value("status", "") == "running") {
+        ASSERT_TRUE(event.contains("command"));
+        ASSERT_TRUE(event.contains("params"));
+        EXPECT_EQ(event["params"]["execution_id"].get<string>(), execution_id);
+        if (event["command"] == CommandExecution::COMMAND_EXECUTION_STATUS &&
+            event["params"].value("status", "") == "running") {
             saw_running = true;
             break;
         }

@@ -73,7 +73,18 @@ def main() -> int:
     # POST /command-router/executions
     response = requests.post(
         f"{base_url}/command-router/executions",
-        json={"command_type": "query", "command_text": '(Similarity "human" %V)'},
+        json={
+            "command": "query",
+            "params": {
+                "query": {
+                    "syntax": "metta",
+                    "tokens": ['(Similarity "human" %V)'],
+                },
+                "use_metta_as_query_tokens": True,
+                "populate_metta_mapping": True,
+                "max_answers": 1
+            },
+        },
         timeout=10,
     )
     print(f"POST /command-router/executions -> {response.status_code} {response.text}")
@@ -92,15 +103,17 @@ def main() -> int:
 
     def before_cancel(event: dict, _events: list[dict]) -> bool:
         nonlocal saw_running, saw_chunk
-        if event.get("status") == "running":
+        command = event.get("command")
+        params = event.get("params") or {}
+        if command == "execution_status" and params.get("status") == "running":
             saw_running = True
-        if event.get("type") == "chunk":
+        if command == "query_answers":
             saw_chunk = True
         return saw_running and saw_chunk
 
     read_ws_events(ws, before_cancel, timeout=30.0)
     assert saw_running, "websocket never received running event"
-    assert saw_chunk, "websocket never received chunk event"
+    assert saw_chunk, "websocket never received query_answers event"
 
     # POST /command-router/executions/{id}/cancel
     response = requests.post(
@@ -114,12 +127,15 @@ def main() -> int:
     assert response.status_code == 200, "cancel failed"
 
     def until_aborted(event: dict, _events: list[dict]) -> bool:
-        return event.get("status") == "aborted"
+        params = event.get("params") or {}
+        return event.get("command") == "execution_status" and params.get("status") == "aborted"
 
     aborted_events = read_ws_events(ws, until_aborted, timeout=30.0)
-    assert any(event.get("status") == "aborted" for event in aborted_events), (
-        "websocket never received aborted event"
-    )
+    assert any(
+        event.get("command") == "execution_status"
+        and (event.get("params") or {}).get("status") == "aborted"
+        for event in aborted_events
+    ), "websocket never received aborted event"
     ws.close()
 
     # GET /command-router/executions/{id}

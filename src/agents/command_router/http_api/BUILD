@@ -25,6 +25,30 @@ cc_library(
 )
 
 cc_library(
+    name = "proxy_parameters_from_json",
+    srcs = ["ProxyParametersFromJson.cc"],
+    hdrs = ["ProxyParametersFromJson.h"],
+    includes = ["."],
+    deps = [
+        "//commons:commons_lib",
+        "@nlohmann_json//:json",
+    ],
+)
+
+cc_library(
+    name = "http_command_proxy_factory",
+    srcs = ["HttpCommandProxyFactory.cc"],
+    hdrs = ["HttpCommandProxyFactory.h"],
+    includes = ["."],
+    deps = [
+        ":proxy_parameters_from_json",
+        "//agents/command_router:bus_command_router_proxy",
+        "//commons:commons_lib",
+        "@nlohmann_json//:json",
+    ],
+)
+
+cc_library(
     name = "command_router_http_api_config",
     srcs = ["CommandRouterHttpAPIConfig.cc"],
     hdrs = ["CommandRouterHttpAPIConfig.h"],
@@ -44,6 +68,7 @@ cc_library(
         ":bus_command_router_proxy_stream_poller",
         ":command_execution",
         ":command_router_http_api_config",
+        ":http_command_proxy_factory",
         "//agents/command_router:bus_command_router_processor",
         "//agents/command_router:bus_command_router_proxy",
         "//commons:commons_lib",
