@@ -1,4 +1,5 @@
 #include <nlohmann/json.hpp>
+#include <thread>
 
 #include "AtomDBSingleton.h"
 #include "BaseProxy.h"
@@ -19,6 +20,7 @@
 #include "ServiceBus.h"
 #include "TestAtomDBJsonConfig.h"
 #include "TestSystemParams.h"
+#include "expression_hasher.h"
 #include "gtest/gtest.h"
 #include "httplib.h"
 #include "processor/ThreadPool.h"
@@ -37,6 +39,7 @@ namespace {
 const string TEST_HOST = "localhost";
 const int TEST_PORT = 19001;
 const int TEST_PORT_THREAD_POOL = 19007;
+const int TEST_PORT_PARALLEL = 19008;
 const string UNKNOWN_EXECUTION_ID = "exec-00000000000000000000000000000000";
 const string SHORT_COMMAND_TEXT = "Blah";
 
@@ -44,6 +47,13 @@ json make_execution_body(const string& command = "query",
                          const string& query_token = "(Similarity \"human\" %V)") {
     return {{"command", command},
             {"params", {{"query", {{"syntax", "metta"}, {"tokens", json::array({query_token})}}}}}};
+}
+
+string hash_string(const string& input) {
+    char* hash = compute_hash(const_cast<char*>(input.c_str()));
+    string result(hash);
+    delete[] hash;
+    return result;
 }
 
 class HangingQueryForwardProxy : public BusCommandProxy {
@@ -63,6 +73,38 @@ class HangingQueryForwardProcessor : public BusCommandProcessor {
     void run_command(shared_ptr<BusCommandProxy> /*proxy*/) override {}
 };
 
+/** Replies with one answer whose handle is hash(query_tokens), plus max_answers-1 extras. */
+class EchoQueryProcessor : public BusCommandProcessor {
+   public:
+    EchoQueryProcessor() : BusCommandProcessor({ServiceBus::PATTERN_MATCHING_QUERY}) {}
+
+    shared_ptr<BusCommandProxy> factory_empty_proxy() override {
+        return make_shared<PatternMatchingQueryProxy>();
+    }
+
+    void run_command(shared_ptr<BusCommandProxy> proxy) override {
+        auto query = dynamic_pointer_cast<PatternMatchingQueryProxy>(proxy);
+        if (query == nullptr) {
+            return;
+        }
+        // Bus delivers packed args; real processors untokenize before reading tokens/params.
+        query->untokenize(query->args);
+        const string query_key = Utils::join(query->get_query_tokens(), ' ');
+        unsigned int n = query->parameters.get<unsigned int>(BaseQueryProxy::MAX_ANSWERS);
+        if (n == 0) {
+            n = 1;
+        }
+        std::thread([query, query_key, n]() {
+            Utils::sleep(5 + (query->get_serial() % 30));
+            for (unsigned int i = 0; i < n; ++i) {
+                query->push(
+                    make_shared<QueryAnswer>(hash_string(query_key + "#" + std::to_string(i)), 0.0));
+            }
+            query->query_processing_finished();
+        }).detach();
+    }
+};
+
 void initialize_test_service_bus_statics_once() {
     static bool initialized = false;
     if (!initialized) {
@@ -77,7 +119,10 @@ void initialize_test_service_bus_statics_once() {
  */
 class HttpAPIServerFixture {
    public:
-    void start(int port, const HttpAPISettings& settings = {}, unsigned int num_threads = 8) {
+    void start(int port,
+               const HttpAPISettings& settings = {},
+               unsigned int num_threads = 8,
+               shared_ptr<BusCommandProcessor> query_processor = nullptr) {
         initialize_test_service_bus_statics_once();
 
         const unsigned int query_port = PortPool::get_port();
@@ -85,8 +130,12 @@ class HttpAPIServerFixture {
         const unsigned int router_port = PortPool::get_port();
         const string router_id = TEST_HOST + ":" + std::to_string(router_port);
 
+        if (query_processor == nullptr) {
+            query_processor = make_shared<HangingQueryForwardProcessor>();
+        }
+
         this->query_bus = make_shared<ServiceBus>(query_id);
-        this->query_bus->register_processor(make_shared<HangingQueryForwardProcessor>());
+        this->query_bus->register_processor(query_processor);
         Utils::sleep(300);
 
         this->router_bus = make_shared<ServiceBus>(router_id, query_id);
@@ -217,6 +266,19 @@ class CommandRouterHttpAPIThreadPoolConcurrencyTest : public ::testing::Test {
 };
 
 HttpAPIServerFixture CommandRouterHttpAPIThreadPoolConcurrencyTest::server;
+
+class CommandRouterHttpAPIParallelTest : public ::testing::Test {
+   protected:
+    static HttpAPIServerFixture server;
+
+    static void SetUpTestSuite() {
+        server.start(TEST_PORT_PARALLEL, {}, 8, make_shared<EchoQueryProcessor>());
+    }
+
+    static void TearDownTestSuite() { server.stop(); }
+};
+
+HttpAPIServerFixture CommandRouterHttpAPIParallelTest::server;
 
 class CommandRouterHttpAPISingletonTest : public ::testing::Test {
     void TearDown() override { CommandRouterHttpAPISingleton::provide(nullptr); }
@@ -767,6 +829,87 @@ TEST_F(CommandRouterHttpAPIThreadPoolConcurrencyTest, running_executions_bounded
 
     EXPECT_GT(max_observed_running, 0);
     EXPECT_LE(max_observed_running, static_cast<int>(kThreadPoolSize));
+}
+
+TEST_F(CommandRouterHttpAPIParallelTest, parallel_queries_keep_params_and_answers_isolated) {
+    constexpr int N = 20;
+    vector<string> errors(N);
+
+    auto worker = [&](int i) {
+        const string token = "(Similarity \"c-" + std::to_string(i) + "\" %V)";
+        const string expected_key = "(Similarity \"c-" + std::to_string(i) + "\" $V)";
+        const unsigned int max_answers = 1u + static_cast<unsigned int>(i % 4);
+
+        json body = {{"command", "query"},
+                     {"params",
+                      {{"query", {{"syntax", "metta"}, {"tokens", json::array({token})}}},
+                       {"use_metta_as_query_tokens", true},
+                       {"populate_metta_mapping", false},
+                       {"max_answers", max_answers}}}};
+
+        httplib::Client http(TEST_HOST, TEST_PORT_PARALLEL);
+        http.set_connection_timeout(2);
+        http.set_read_timeout(30);
+
+        auto create = http.Post("/command-router/executions", body.dump(), "application/json");
+        if (!create || create->status != 202) {
+            errors[i] = "create failed";
+            return;
+        }
+        const string id = json::parse(create->body)["execution_id"].get<string>();
+
+        httplib::ws::WebSocketClient ws("ws://" + TEST_HOST + ":" + std::to_string(TEST_PORT_PARALLEL) +
+                                        "/command-router/ws/" + id);
+        if (!ws.is_valid() || !ws.connect()) {
+            errors[i] = "ws connect failed";
+            return;
+        }
+        ws.set_read_timeout(10, 0);
+
+        vector<string> handles;
+        string status;
+        string msg;
+        while (ws.read(msg)) {
+            auto event = json::parse(msg);
+            if (event.value("command", "") == CommandExecution::COMMAND_QUERY_ANSWERS) {
+                for (const auto& answer : event["params"]["answers"]) {
+                    handles.push_back(answer["handles"][0][0].get<string>());
+                }
+            } else if (event.value("command", "") == CommandExecution::COMMAND_EXECUTION_STATUS) {
+                status = event["params"].value("status", "");
+            }
+        }
+        ws.close();
+
+        if (status != "completed") {
+            errors[i] = "status=" + status;
+            return;
+        }
+        if (handles.size() != max_answers) {
+            errors[i] = "count got=" + std::to_string(handles.size()) +
+                        " expected=" + std::to_string(max_answers);
+            return;
+        }
+        for (unsigned int k = 0; k < max_answers; ++k) {
+            const string expected = hash_string(expected_key + "#" + std::to_string(k));
+            if (handles[k] != expected) {
+                errors[i] = "handle mismatch at " + std::to_string(k) + " got=" + handles[k] +
+                            " expected=" + expected;
+                return;
+            }
+        }
+    };
+
+    vector<std::thread> threads;
+    for (int i = 0; i < N; ++i) {
+        threads.emplace_back(worker, i);
+    }
+    for (auto& t : threads) {
+        t.join();
+    }
+    for (int i = 0; i < N; ++i) {
+        EXPECT_TRUE(errors[i].empty()) << "client " << i << ": " << errors[i];
+    }
 }
 
 TEST_F(CommandRouterHttpAPITest, websocket_streams_lifecycle_events) {
