@@ -167,7 +167,7 @@ void AtomDBProxy::add_atoms_callback(const vector<string>& tokens) {
         for (auto& atom : atoms) {
             buffer.push_back(atom.get());
         }
-        this->atomdb->add_atoms(buffer, false, true);
+        this->atomdb->add_atoms(buffer, true);
     } catch (const exception& e) {
         LOG_ERROR("Error processing batch: " << e.what());
     }
@@ -215,7 +215,7 @@ void AtomDBProxy::process_atom_batches() {
             this->pending_atoms_count -= atoms.size();
             lock.unlock();
             auto job = [this, atoms = std::move(atoms)]() {
-                this->atomdb->add_atoms(atoms, false, true);
+                this->atomdb->add_atoms(atoms, true);
                 for (auto& atom : atoms) {
                     delete atom;
                 }
