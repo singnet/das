@@ -399,7 +399,7 @@ static shared_ptr<Link> add_or_update_link(const string& type_handle,
         if (strength != old_link->custom_attributes.get_or<double>(STRENGTH_TAG, 1)) {
             if (WRITE_CREATED_LINKS_TO_DB) {
                 LOG_DEBUG("Updating Link in AtomDB");
-                // Default merger (nullptr) upserts/replaces the existing atom.
+                // Default merger (NULL) upserts/replaces the existing atom.
                 db->add_link(new_link.get());
             }
             if (WRITE_CREATED_LINKS_TO_FILE) {

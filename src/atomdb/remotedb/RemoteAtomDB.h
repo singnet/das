@@ -48,19 +48,19 @@ class RemoteAtomDB : public AtomDB {
     set<string> nodes_exist(const vector<string>& handles) override;
     set<string> links_exist(const vector<string>& handles) override;
 
-    string add_atom(const atoms::Atom* atom, const atoms::Merger* merger = nullptr) override;
-    string add_node(const atoms::Node* node, const atoms::Merger* merger = nullptr) override;
-    string add_link(const atoms::Link* link, const atoms::Merger* merger = nullptr) override;
+    string add_atom(const atoms::Atom* atom, const atoms::Merger* merger = NULL) override;
+    string add_node(const atoms::Node* node, const atoms::Merger* merger = NULL) override;
+    string add_link(const atoms::Link* link, const atoms::Merger* merger = NULL) override;
 
     vector<string> add_atoms(const vector<atoms::Atom*>& atom_list,
                              bool is_transactional = false,
-                             const atoms::Merger* merger = nullptr) override;
+                             const atoms::Merger* merger = NULL) override;
     vector<string> add_nodes(const vector<atoms::Node*>& nodes,
                              bool is_transactional = false,
-                             const atoms::Merger* merger = nullptr) override;
+                             const atoms::Merger* merger = NULL) override;
     vector<string> add_links(const vector<atoms::Link*>& links,
                              bool is_transactional = false,
-                             const atoms::Merger* merger = nullptr) override;
+                             const atoms::Merger* merger = NULL) override;
 
     bool delete_atom(const string& handle, bool delete_link_targets = false) override;
     bool delete_node(const string& handle, bool delete_link_targets = false) override;

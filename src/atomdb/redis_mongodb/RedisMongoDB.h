@@ -93,19 +93,19 @@ class RedisMongoDB : public AtomDB {
     set<string> nodes_exist(const vector<string>& handles);
     set<string> links_exist(const vector<string>& handles);
 
-    string add_atom(const atoms::Atom* atom, const atoms::Merger* merger = nullptr);
-    string add_node(const atoms::Node* node, const atoms::Merger* merger = nullptr);
-    string add_link(const atoms::Link* link, const atoms::Merger* merger = nullptr);
+    string add_atom(const atoms::Atom* atom, const atoms::Merger* merger = NULL);
+    string add_node(const atoms::Node* node, const atoms::Merger* merger = NULL);
+    string add_link(const atoms::Link* link, const atoms::Merger* merger = NULL);
 
     vector<string> add_atoms(const vector<atoms::Atom*>& atom_list,
                              bool is_transactional = false,
-                             const atoms::Merger* merger = nullptr);
+                             const atoms::Merger* merger = NULL);
     vector<string> add_nodes(const vector<atoms::Node*>& nodes,
                              bool is_transactional = false,
-                             const atoms::Merger* merger = nullptr);
+                             const atoms::Merger* merger = NULL);
     vector<string> add_links(const vector<atoms::Link*>& links,
                              bool is_transactional = false,
-                             const atoms::Merger* merger = nullptr);
+                             const atoms::Merger* merger = NULL);
 
     bool delete_atom(const string& handle, bool delete_link_targets = false);
     bool delete_node(const string& handle, bool delete_link_targets = false);

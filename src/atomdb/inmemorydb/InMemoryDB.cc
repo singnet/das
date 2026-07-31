@@ -314,7 +314,7 @@ string InMemoryDB::add_node(const atoms::Node* node, const atoms::Merger* merger
     auto* atom_trie_value = dynamic_cast<AtomTrieValue*>(existing);
     unique_ptr<Node> working(new Node(*dynamic_cast<Node*>(atom_trie_value->get_atom())));
     if (!merger->merge(working.get(), node)) {
-        return handle;
+        return "";
     }
     atoms_trie_->insert(handle, new AtomTrieValue(working.release()));
 
@@ -361,34 +361,8 @@ vector<string> InMemoryDB::add_nodes(const vector<atoms::Node*>& nodes,
     vector<string> handles;
     handles.reserve(nodes.size());
     for (const auto& node : nodes) {
-        handles.push_back(node->handle());
+        handles.push_back(this->add_node(node, merger));
     }
-
-    // ThrowIfExistsMerger must fail the whole batch before any insert, matching the
-    // former throw_if_exists=true all-or-nothing semantics (store collisions and
-    // repeated handles inside this batch).
-    if (merger == &ThrowIfExistsMerger::instance()) {
-        set<string> conflicting;
-        set<string> seen;
-        for (const auto& handle : handles) {
-            if (!seen.insert(handle).second) {
-                conflicting.insert(handle);
-            }
-        }
-        auto existing_handles = this->nodes_exist(handles);
-        conflicting.insert(existing_handles.begin(), existing_handles.end());
-        if (!conflicting.empty()) {
-            vector<string> conflicting_vector(conflicting.begin(), conflicting.end());
-            RAISE_ERROR("Failed to insert nodes, some nodes already exist: " +
-                        Utils::join(conflicting_vector, ','));
-            return {};
-        }
-    }
-
-    for (const auto& node : nodes) {
-        this->add_node(node, merger);
-    }
-
     return handles;
 }
 
@@ -401,30 +375,6 @@ vector<string> InMemoryDB::add_links(const vector<atoms::Link*>& links,
 
     vector<string> handles;
     handles.reserve(links.size());
-    for (const auto& link : links) {
-        handles.push_back(link->handle());
-    }
-
-    // ThrowIfExistsMerger must fail the whole batch before any insert, matching the
-    // former throw_if_exists=true all-or-nothing semantics (store collisions and
-    // repeated handles inside this batch).
-    if (merger == &ThrowIfExistsMerger::instance()) {
-        set<string> conflicting;
-        set<string> seen;
-        for (const auto& handle : handles) {
-            if (!seen.insert(handle).second) {
-                conflicting.insert(handle);
-            }
-        }
-        auto existing_handles = this->links_exist(handles);
-        conflicting.insert(existing_handles.begin(), existing_handles.end());
-        if (!conflicting.empty()) {
-            vector<string> conflicting_vector(conflicting.begin(), conflicting.end());
-            RAISE_ERROR("Failed to insert links, some links already exist: " +
-                        Utils::join(conflicting_vector, ','));
-            return {};
-        }
-    }
 
     for (const auto& link : links) {
         string link_handle = link->handle();
@@ -441,6 +391,7 @@ vector<string> InMemoryDB::add_links(const vector<atoms::Link*>& links,
             auto* atom_trie_value = dynamic_cast<AtomTrieValue*>(existing);
             unique_ptr<Link> working(new Link(*dynamic_cast<Link*>(atom_trie_value->get_atom())));
             if (!merger->merge(working.get(), link)) {
+                handles.push_back("");
                 continue;
             }
             atoms_trie_->insert(link_handle, new AtomTrieValue(working.release()));
@@ -456,6 +407,8 @@ vector<string> InMemoryDB::add_links(const vector<atoms::Link*>& links,
         for (const auto& pattern_handle : pattern_handles) {
             this->add_pattern(pattern_handle, link_handle);
         }
+
+        handles.push_back(link_handle);
     }
 
     return handles;

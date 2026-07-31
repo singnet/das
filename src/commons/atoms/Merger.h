@@ -12,16 +12,18 @@ namespace atoms {
  *
  * When AtomDB add_* is called with merger == NULL, the incoming Atom replaces any
  * existing one (upsert). When a Merger is provided and the Atom already exists,
- * backends merge into a working copy and commit only when merge() returns true so
- * a failed merger cannot leave partially updated stored state.
+ * backends merge into a working copy and persist only when merge() returns true.
  *
  * Return contract: merge() returns true on success and false on failure. When
  * false is returned, backends must not persist the working copy (existing stored
- * state is left unchanged).
+ * state is left unchanged) and must report that add as "" (single add_* return
+ * value, or the corresponding index in a batch handles vector). Soft failures do
+ * not abort the rest of a batch.
  *
  * Exception contract: if merge() throws (e.g. ThrowIfExistsMerger), that exception
  * propagates to the caller unchanged. Backends must not wrap or replace it, and
- * must not persist the working copy.
+ * must not persist the working copy. Earlier atoms in the same batch may already
+ * have been applied (no all-or-nothing precheck).
  *
  * Concurrency: merge-enabled adds are a read-modify-write with no cross-thread
  * atomicity. Concurrent merge-enabled adds for the same handle can lose updates.
@@ -43,7 +45,9 @@ class Merger {
 };
 
 /**
- * Merger that rejects any add when the Atom already exists (replaces throw_if_exists=true).
+ * Merger that rejects any add when the Atom already exists by throwing
+ * (replaces throw_if_exists=true). Halts the add_* call via exception; earlier
+ * items in a batch may already have been applied.
  */
 class ThrowIfExistsMerger : public Merger {
    public:
@@ -55,6 +59,21 @@ class ThrowIfExistsMerger : public Merger {
 
     static const ThrowIfExistsMerger& instance() {
         static ThrowIfExistsMerger inst;
+        return inst;
+    }
+};
+
+/**
+ * Merger that skips any add when the Atom already exists (soft reject).
+ * merge() returns false so backends leave stored state unchanged, report "",
+ * and continue with the rest of a batch.
+ */
+class SkipIfExistsMerger : public Merger {
+   public:
+    bool merge(Atom* /*existing*/, const Atom* /*incoming*/) const override { return false; }
+
+    static const SkipIfExistsMerger& instance() {
+        static SkipIfExistsMerger inst;
         return inst;
     }
 };

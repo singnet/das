@@ -811,7 +811,7 @@ string RedisMongoDB::add_node(const atoms::Node* node, const atoms::Merger* merg
         auto existing_node = get_node(node->handle());
         if (existing_node != nullptr) {
             if (!merger->merge(existing_node.get(), node)) {
-                return node->handle();
+                return "";
             }
             working_node = existing_node;
             to_store = working_node.get();
@@ -864,12 +864,9 @@ vector<string> RedisMongoDB::add_nodes(const vector<atoms::Node*>& nodes,
 
     vector<bsoncxx::document::value> documents;
     vector<string> handles;
+    handles.reserve(nodes.size());
     map<string, shared_ptr<Node>> batch_merged;
     vector<string> unique_handles;
-
-    for (const auto& node : nodes) {
-        handles.push_back(node->handle());
-    }
 
     for (const auto& node : nodes) {
         if (merger != NULL) {
@@ -879,6 +876,9 @@ vector<string> RedisMongoDB::add_nodes(const vector<atoms::Node*>& nodes,
                 shared_ptr<Node> candidate = make_shared<Node>(*it->second);
                 if (merger->merge(candidate.get(), node)) {
                     it->second = candidate;
+                    handles.push_back(handle);
+                } else {
+                    handles.push_back("");
                 }
             } else {
                 shared_ptr<Node> working;
@@ -892,6 +892,7 @@ vector<string> RedisMongoDB::add_nodes(const vector<atoms::Node*>& nodes,
                                 this->composite_type_hashes_map_mutex);
                             this->composite_type_hashes_map[handle] = existing_node->named_type_hash();
                         }
+                        handles.push_back("");
                         continue;
                     }
                     working = existing_node;
@@ -900,10 +901,12 @@ vector<string> RedisMongoDB::add_nodes(const vector<atoms::Node*>& nodes,
                 }
                 batch_merged[handle] = working;
                 unique_handles.push_back(handle);
+                handles.push_back(handle);
             }
         } else {
             auto mongodb_doc = atomdb_api_types::MongodbDocument(node);
             documents.push_back(mongodb_doc.value());
+            handles.push_back(node->handle());
             if (this->composite_type_enabled_ && is_transactional) {
                 lock_guard<mutex> composite_type_hashes_map_lock(this->composite_type_hashes_map_mutex);
                 this->composite_type_hashes_map[node->handle()] = node->named_type_hash();
@@ -946,6 +949,7 @@ vector<string> RedisMongoDB::add_links(const vector<atoms::Link*>& links,
     }
 
     vector<string> handles;
+    handles.reserve(links.size());
     vector<bsoncxx::document::value> documents;
     map<string, shared_ptr<Link>> batch_merged;
     vector<string> unique_handles;
@@ -958,7 +962,6 @@ vector<string> RedisMongoDB::add_links(const vector<atoms::Link*>& links,
 
     for (const auto& link : links) {
         auto link_handle = link->handle();
-        handles.push_back(link_handle);
 
         if (merger != NULL) {
             auto it = batch_merged.find(link_handle);
@@ -966,6 +969,9 @@ vector<string> RedisMongoDB::add_links(const vector<atoms::Link*>& links,
                 shared_ptr<Link> candidate = make_shared<Link>(*it->second);
                 if (merger->merge(candidate.get(), link)) {
                     it->second = candidate;
+                    handles.push_back(link_handle);
+                } else {
+                    handles.push_back("");
                 }
             } else {
                 shared_ptr<Link> working;
@@ -975,6 +981,7 @@ vector<string> RedisMongoDB::add_links(const vector<atoms::Link*>& links,
                         // Do not persist, but keep existing in composite-type bookkeeping.
                         composite_keepalive.push_back(existing_link);
                         links_for_composite.push_back(existing_link.get());
+                        handles.push_back("");
                         continue;
                     }
                     working = existing_link;
@@ -985,10 +992,12 @@ vector<string> RedisMongoDB::add_links(const vector<atoms::Link*>& links,
                 unique_handles.push_back(link_handle);
                 composite_keepalive.push_back(working);
                 links_for_composite.push_back(working.get());
+                handles.push_back(link_handle);
             }
         } else {
             links_to_persist.push_back(link);
             links_for_composite.push_back(link);
+            handles.push_back(link_handle);
         }
     }
 

@@ -50,7 +50,7 @@ class MorkDB : public RedisMongoDB {
 
     vector<string> add_links(const vector<atoms::Link*>& links,
                              bool is_transactional = false,
-                             const atoms::Merger* merger = nullptr) override;
+                             const atoms::Merger* merger = NULL) override;
 
     // TODO: Implement this once MORK supports deleting links (S-Expressions)
     bool delete_link(const string& handle, bool delete_targets) override;

@@ -987,11 +987,6 @@ class SumStrengthMerger : public Merger {
     }
 };
 
-class RejectMerger : public Merger {
-   public:
-    bool merge(Atom* /*existing*/, const Atom* /*incoming*/) const override { return false; }
-};
-
 }  // namespace
 
 TEST_F(RedisMongoDBTest, AddNodeReplacesByDefault) {
@@ -1308,15 +1303,17 @@ TEST_F(RedisMongoDBTest, TransactionalRejectedMergeStillBooksCompositeType) {
     ASSERT_EQ(db->add_links({existing}, true).size(), 1u);
     string existing_hash = existing->composite_type_hash(*db);
 
-    // duplicate is rejected by RejectMerger; nested targets the rejected handle and must
+    // duplicate is rejected by SkipIfExistsMerger; nested targets the rejected handle and must
     // still resolve its composite-type bookkeeping in the same transactional batch.
     auto duplicate =
         new Link("Expression", {nodes[0]->handle(), nodes[1]->handle(), nodes[2]->handle()});
     auto nested = new Link("Expression", {existing->handle(), nodes[3]->handle(), nodes[4]->handle()});
 
-    RejectMerger reject;
     ASSERT_EQ(db->add_nodes(nodes, true).size(), 5u);
-    ASSERT_EQ(db->add_links({duplicate, nested}, true, &reject).size(), 2u);
+    auto handles = db->add_links({duplicate, nested}, true, &SkipIfExistsMerger::instance());
+    ASSERT_EQ(handles.size(), 2u);
+    EXPECT_EQ(handles[0], "");
+    EXPECT_EQ(handles[1], nested->handle());
 
     auto existing_doc = db->get_atom_document(existing->handle());
     ASSERT_NE(existing_doc, nullptr);

@@ -665,11 +665,6 @@ class SumStrengthMerger : public Merger {
     }
 };
 
-class RejectMerger : public Merger {
-   public:
-    bool merge(Atom* /*existing*/, const Atom* /*incoming*/) const override { return false; }
-};
-
 }  // namespace
 
 TEST_F(InMemoryDBTest, AddNodeReplacesByDefault) {
@@ -789,7 +784,7 @@ TEST_F(InMemoryDBTest, AddLinkCustomMerger) {
     delete link2;
 }
 
-TEST_F(InMemoryDBTest, AddNodeRejectMergerDoesNotPersist) {
+TEST_F(InMemoryDBTest, AddNodeSkipIfExistsMergerDoesNotPersist) {
     Properties attrs1;
     attrs1["strength"] = 0.2;
     auto node1 = new Node("Symbol", "\"reject_me\"", attrs1);
@@ -798,15 +793,14 @@ TEST_F(InMemoryDBTest, AddNodeRejectMergerDoesNotPersist) {
     Properties attrs2;
     attrs2["strength"] = 0.9;
     auto node2 = new Node("Symbol", "\"reject_me\"", attrs2);
-    RejectMerger merger;
-    EXPECT_EQ(db->add_node(node2, &merger), handle);
+    EXPECT_EQ(db->add_node(node2, &SkipIfExistsMerger::instance()), "");
     EXPECT_DOUBLE_EQ(db->get_node(handle)->custom_attributes.get_or<double>("strength", -1.0), 0.2);
 
     delete node1;
     delete node2;
 }
 
-TEST_F(InMemoryDBTest, AddLinkRejectMergerDoesNotPersistOrReindex) {
+TEST_F(InMemoryDBTest, AddLinkSkipIfExistsMergerDoesNotPersistOrReindex) {
     auto n1 = new Node("Symbol", "\"link_reject_a\"");
     auto n2 = new Node("Symbol", "\"link_reject_b\"");
     auto h1 = db->add_node(n1);
@@ -822,8 +816,7 @@ TEST_F(InMemoryDBTest, AddLinkRejectMergerDoesNotPersistOrReindex) {
     Properties attrs2;
     attrs2["strength"] = 0.9;
     auto link2 = new Link("Expression", {h1, h2}, attrs2);
-    RejectMerger merger;
-    EXPECT_EQ(db->add_link(link2, &merger), handle);
+    EXPECT_EQ(db->add_link(link2, &SkipIfExistsMerger::instance()), "");
     EXPECT_DOUBLE_EQ(db->get_link(handle)->custom_attributes.get_or<double>("strength", -1.0), 0.2);
 
     auto incoming_after = db->query_for_incoming_set(h1);
@@ -835,7 +828,7 @@ TEST_F(InMemoryDBTest, AddLinkRejectMergerDoesNotPersistOrReindex) {
     delete link2;
 }
 
-TEST_F(InMemoryDBTest, AddNodesThrowIfExistsIsAllOrNothing) {
+TEST_F(InMemoryDBTest, AddNodesThrowIfExistsIsNotAllOrNothing) {
     auto existing = new Node("Symbol", "\"batch_throw_existing\"");
     db->add_node(existing);
 
@@ -843,21 +836,22 @@ TEST_F(InMemoryDBTest, AddNodesThrowIfExistsIsAllOrNothing) {
     auto collision = new Node("Symbol", "\"batch_throw_existing\"");
     auto also_absent = new Node("Symbol", "\"batch_throw_new_b\"");
 
+    // Earlier items may be applied; ThrowIfExists raises when the collision is hit.
     EXPECT_THROW(
         db->add_nodes({keep_absent, collision, also_absent}, false, &ThrowIfExistsMerger::instance()),
         runtime_error);
-    EXPECT_FALSE(db->node_exists(keep_absent->handle()));
+    EXPECT_TRUE(db->node_exists(keep_absent->handle()));
     EXPECT_FALSE(db->node_exists(also_absent->handle()));
     EXPECT_TRUE(db->node_exists(existing->handle()));
 
-    // Duplicate only inside the batch (not yet in the store) must also fail before any insert.
+    // Duplicate only inside the batch: first insert succeeds, rematch raises.
     auto batch_a = new Node("Symbol", "\"batch_throw_dup_only\"");
     auto batch_a_copy = new Node("Symbol", "\"batch_throw_dup_only\"");
     auto batch_b = new Node("Symbol", "\"batch_throw_sibling\"");
     EXPECT_THROW(
         db->add_nodes({batch_a, batch_a_copy, batch_b}, false, &ThrowIfExistsMerger::instance()),
         runtime_error);
-    EXPECT_FALSE(db->node_exists(batch_a->handle()));
+    EXPECT_TRUE(db->node_exists(batch_a->handle()));
     EXPECT_FALSE(db->node_exists(batch_b->handle()));
 
     delete existing;
@@ -869,7 +863,7 @@ TEST_F(InMemoryDBTest, AddNodesThrowIfExistsIsAllOrNothing) {
     delete batch_b;
 }
 
-TEST_F(InMemoryDBTest, AddLinksThrowIfExistsIsAllOrNothing) {
+TEST_F(InMemoryDBTest, AddLinksThrowIfExistsIsNotAllOrNothing) {
     auto n1 = new Node("Symbol", "\"batch_link_throw_a\"");
     auto n2 = new Node("Symbol", "\"batch_link_throw_b\"");
     auto n3 = new Node("Symbol", "\"batch_link_throw_c\"");
@@ -891,9 +885,11 @@ TEST_F(InMemoryDBTest, AddLinksThrowIfExistsIsAllOrNothing) {
 
     EXPECT_THROW(db->add_links({keep_absent, collision}, false, &ThrowIfExistsMerger::instance()),
                  runtime_error);
-    EXPECT_FALSE(db->link_exists(keep_absent->handle()));
+    EXPECT_TRUE(db->link_exists(keep_absent->handle()));
     EXPECT_TRUE(db->link_exists(existing->handle()));
-    EXPECT_EQ(db->query_for_incoming_set(h3)->size(), 0u);
+    EXPECT_EQ(db->query_for_incoming_set(h3)->size(), 1u);
+
+    EXPECT_TRUE(db->delete_link(keep_absent->handle()));
 
     auto batch_dup = new Link("Expression", {h5, h6});
     auto batch_dup_copy = new Link("Expression", {h5, h6});
@@ -901,9 +897,9 @@ TEST_F(InMemoryDBTest, AddLinksThrowIfExistsIsAllOrNothing) {
     EXPECT_THROW(
         db->add_links({batch_dup, batch_dup_copy, batch_other}, false, &ThrowIfExistsMerger::instance()),
         runtime_error);
-    EXPECT_FALSE(db->link_exists(batch_dup->handle()));
+    EXPECT_TRUE(db->link_exists(batch_dup->handle()));
     EXPECT_FALSE(db->link_exists(batch_other->handle()));
-    EXPECT_EQ(db->query_for_incoming_set(h5)->size(), 0u);
+    EXPECT_EQ(db->query_for_incoming_set(h5)->size(), 1u);
 
     delete n1;
     delete n2;
@@ -917,6 +913,68 @@ TEST_F(InMemoryDBTest, AddLinksThrowIfExistsIsAllOrNothing) {
     delete batch_dup;
     delete batch_dup_copy;
     delete batch_other;
+}
+
+TEST_F(InMemoryDBTest, AddNodesSkipIfExistsMergerReturnsEmptyHandleSlots) {
+    Properties attrs1;
+    attrs1["strength"] = 0.2;
+    auto existing = new Node("Symbol", "\"batch_reject_existing\"", attrs1);
+    string existing_handle = db->add_node(existing);
+
+    auto fresh = new Node("Symbol", "\"batch_reject_new\"");
+    Properties attrs2;
+    attrs2["strength"] = 0.9;
+    auto collision = new Node("Symbol", "\"batch_reject_existing\"", attrs2);
+
+    auto handles = db->add_nodes({fresh, collision}, false, &SkipIfExistsMerger::instance());
+    ASSERT_EQ(handles.size(), 2u);
+    EXPECT_EQ(handles[0], fresh->handle());
+    EXPECT_EQ(handles[1], "");
+    EXPECT_TRUE(db->node_exists(fresh->handle()));
+    EXPECT_DOUBLE_EQ(db->get_node(existing_handle)->custom_attributes.get_or<double>("strength", -1.0),
+                     0.2);
+
+    delete existing;
+    delete fresh;
+    delete collision;
+}
+
+TEST_F(InMemoryDBTest, AddLinksSkipIfExistsMergerReturnsEmptyHandleSlots) {
+    auto n1 = new Node("Symbol", "\"batch_link_reject_a\"");
+    auto n2 = new Node("Symbol", "\"batch_link_reject_b\"");
+    auto n3 = new Node("Symbol", "\"batch_link_reject_c\"");
+    auto n4 = new Node("Symbol", "\"batch_link_reject_d\"");
+    auto h1 = db->add_node(n1);
+    auto h2 = db->add_node(n2);
+    auto h3 = db->add_node(n3);
+    auto h4 = db->add_node(n4);
+
+    Properties attrs1;
+    attrs1["strength"] = 0.2;
+    auto existing = new Link("Expression", {h1, h2}, attrs1);
+    string existing_handle = db->add_link(existing);
+
+    auto fresh = new Link("Expression", {h3, h4});
+    Properties attrs2;
+    attrs2["strength"] = 0.9;
+    auto collision = new Link("Expression", {h1, h2}, attrs2);
+
+    auto handles = db->add_links({fresh, collision}, false, &SkipIfExistsMerger::instance());
+    ASSERT_EQ(handles.size(), 2u);
+    EXPECT_EQ(handles[0], fresh->handle());
+    EXPECT_EQ(handles[1], "");
+    EXPECT_TRUE(db->link_exists(fresh->handle()));
+    EXPECT_DOUBLE_EQ(db->get_link(existing_handle)->custom_attributes.get_or<double>("strength", -1.0),
+                     0.2);
+    EXPECT_EQ(db->query_for_incoming_set(h1)->size(), 1u);
+
+    delete n1;
+    delete n2;
+    delete n3;
+    delete n4;
+    delete existing;
+    delete fresh;
+    delete collision;
 }
 
 int main(int argc, char** argv) {

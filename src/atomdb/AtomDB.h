@@ -47,23 +47,27 @@ class AtomDB : public HandleDecoder {
      * - merger == NULL: upsert (insert if missing, replace if present)
      * - merger != NULL and atom exists: merge into a working copy, then persist only if
      *   merge() returns true; if merge() returns false, stored state is left unchanged
-     * - Use &ThrowIfExistsMerger::instance() to reject duplicates (former throw_if_exists=true)
-     * - If merge() throws, that exception propagates unchanged (backends do not wrap it)
+     *   and the returned handle (or batch slot) is ""
+     * - Use &ThrowIfExistsMerger::instance() to reject duplicates by throwing
+     *   (former throw_if_exists=true); earlier items in a batch may already be applied
+     * - Use &SkipIfExistsMerger::instance() to soft-skip duplicates (merge returns false,
+     *   returned handle/slot is "", batch continues)
+     * - Soft merge() returns false does not abort the rest of a batch
      * - Merge-enabled adds assume a single writer per handle (no concurrent RMW atomicity)
      */
-    virtual string add_atom(const atoms::Atom* atom, const atoms::Merger* merger = nullptr) = 0;
-    virtual string add_node(const atoms::Node* node, const atoms::Merger* merger = nullptr) = 0;
-    virtual string add_link(const atoms::Link* link, const atoms::Merger* merger = nullptr) = 0;
+    virtual string add_atom(const atoms::Atom* atom, const atoms::Merger* merger = NULL) = 0;
+    virtual string add_node(const atoms::Node* node, const atoms::Merger* merger = NULL) = 0;
+    virtual string add_link(const atoms::Link* link, const atoms::Merger* merger = NULL) = 0;
 
     virtual vector<string> add_atoms(const vector<atoms::Atom*>& atom_list,
                                      bool is_transactional = false,
-                                     const atoms::Merger* merger = nullptr) = 0;
+                                     const atoms::Merger* merger = NULL) = 0;
     virtual vector<string> add_nodes(const vector<atoms::Node*>& nodes,
                                      bool is_transactional = false,
-                                     const atoms::Merger* merger = nullptr) = 0;
+                                     const atoms::Merger* merger = NULL) = 0;
     virtual vector<string> add_links(const vector<atoms::Link*>& links,
                                      bool is_transactional = false,
-                                     const atoms::Merger* merger = nullptr) = 0;
+                                     const atoms::Merger* merger = NULL) = 0;
 
     virtual bool delete_atom(const string& handle, bool delete_link_targets = false) = 0;
     virtual bool delete_node(const string& handle, bool delete_link_targets = false) = 0;

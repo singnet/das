@@ -232,6 +232,7 @@ vector<string> MorkDB::add_links(const vector<atoms::Link*>& links,
     }
 
     vector<string> handles;
+    handles.reserve(links.size());
     string metta_expressions;
     vector<bsoncxx::document::value> documents;
     map<string, shared_ptr<Link>> batch_merged;
@@ -243,7 +244,6 @@ vector<string> MorkDB::add_links(const vector<atoms::Link*>& links,
 
     for (const auto& link : links) {
         auto link_handle = link->handle();
-        handles.push_back(link_handle);
 
         if (merger != NULL) {
             auto it = batch_merged.find(link_handle);
@@ -251,6 +251,9 @@ vector<string> MorkDB::add_links(const vector<atoms::Link*>& links,
                 shared_ptr<Link> candidate = make_shared<Link>(*it->second);
                 if (merger->merge(candidate.get(), link)) {
                     it->second = candidate;
+                    handles.push_back(link_handle);
+                } else {
+                    handles.push_back("");
                 }
             } else {
                 shared_ptr<Link> working;
@@ -260,6 +263,7 @@ vector<string> MorkDB::add_links(const vector<atoms::Link*>& links,
                         // Do not persist, but keep existing in composite-type bookkeeping.
                         composite_keepalive.push_back(existing_link);
                         links_for_composite.push_back(existing_link.get());
+                        handles.push_back("");
                         continue;
                     }
                     working = existing_link;
@@ -270,10 +274,12 @@ vector<string> MorkDB::add_links(const vector<atoms::Link*>& links,
                 unique_handles.push_back(link_handle);
                 composite_keepalive.push_back(working);
                 links_for_composite.push_back(working.get());
+                handles.push_back(link_handle);
             }
         } else {
             links_to_persist.push_back(link);
             links_for_composite.push_back(link);
+            handles.push_back(link_handle);
         }
     }
 
