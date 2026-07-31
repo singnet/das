@@ -1,10 +1,10 @@
+#define LOG_LEVEL DEBUG_LEVEL
 #include "LinkCreationAgent.h"
 
 #include <fstream>
 
 #include "LinkCreateTemplate.h"
 #include "LinkProcessor.h"
-#define LOG_LEVEL DEBUG_LEVEL
 #include "Logger.h"
 #include "expression_hasher.h"
 

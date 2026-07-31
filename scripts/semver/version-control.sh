@@ -212,27 +212,9 @@ _determine_release_note() {
     _var ReleaseNote
 }
 
-function _check_for_uncommitted_changes() {
-    if git diff --quiet && git diff --staged --quiet; then
-        echo "Skipping commit changes because no files were changed to be committed"
-        return 1
-    fi
-    return 0
-}
-
 _update_changelog() {
     if [ $NextMajorNumber -gt $PreviousMajorNumber ] || [ $NextMinorNumber -gt $PreviousMinorNumber ]; then
-        _info "Reseting changelog file"
-        _info "${CHANGELOG_PATH}"
-
-        echo "" >"$CHANGELOG_PATH"
-
-        if _check_for_uncommitted_changes; then
-            git add "$CHANGELOG_PATH"
-            git commit -m "Reset CHANGELOG"
-            git push origin "${MAIN_BRANCH}" -f
-        fi
-
+        _info "Skipping CHANGELOG reset push (master is protected; reset via PR after release)"
     else
         _info "Skipping reset changelog file"
     fi

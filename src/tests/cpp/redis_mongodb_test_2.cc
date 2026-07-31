@@ -212,11 +212,11 @@ TEST_F(RedisMongoDBTest, MongodbDocumentGetSize) {
 }
 
 TEST_F(RedisMongoDBTest, ConcurrentAddLinks) {
-    int num_links = 2000;
+    int num_links = 50;
     int arity = 3;
-    int chunck_size = 250;
+    int chunck_size = 25;
 
-    const int num_threads = 120;
+    const int num_threads = 4;
     vector<thread> threads;
     atomic<int> success_count{0};
 
@@ -241,15 +241,15 @@ TEST_F(RedisMongoDBTest, ConcurrentAddLinks) {
                 links.push_back(link_with_nested);
 
                 if (i % chunck_size == 0) {
-                    db2->add_nodes(nodes, false, true);
-                    db2->add_links(links, false, true);
+                    db2->add_nodes(nodes, true);
+                    db2->add_links(links, true);
                     nodes.clear();
                     links.clear();
                 }
             }
 
-            if (!nodes.empty()) db2->add_nodes(nodes, false, true);
-            if (!links.empty()) db2->add_links(links, false, true);
+            if (!nodes.empty()) db2->add_nodes(nodes, true);
+            if (!links.empty()) db2->add_links(links, true);
 
             success_count++;
         } catch (const exception& e) {

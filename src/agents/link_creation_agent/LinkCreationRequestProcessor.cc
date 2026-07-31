@@ -1,7 +1,7 @@
+#define LOG_LEVEL DEBUG_LEVEL
 #include "LinkCreationRequestProcessor.h"
 
 #include "LinkCreationRequestProxy.h"
-#define LOG_LEVEL DEBUG_LEVEL
 #include "Logger.h"
 
 using namespace link_creation_agent;
