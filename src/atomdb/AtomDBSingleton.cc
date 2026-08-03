@@ -2,6 +2,7 @@
 
 #include "AdapterDB.h"
 #include "MorkDB.h"
+#include "ProtectedAtomDB.h"
 #include "RedisMongoDB.h"
 #include "RemoteAtomDB.h"
 #include "Utils.h"
@@ -19,24 +20,32 @@ void AtomDBSingleton::init(const JsonConfig& atomdb_config) {
     if (AtomDBSingleton::initialized) {
         RAISE_ERROR(
             "AtomDBSingleton already initialized. AtomDBSingleton::init() should be called only once.");
-    } else {
-        auto atomdb_type = atomdb_config.at_path("type").get_or<string>("");
-        if (atomdb_type == "morkdb") {
-            AtomDBSingleton::atom_db = shared_ptr<AtomDB>(new MorkDB("", atomdb_config));
-        } else if (atomdb_type == "redismongodb") {
-            AtomDBSingleton::atom_db = shared_ptr<AtomDB>(new RedisMongoDB("", false, atomdb_config));
-        } else if (atomdb_type == "remotedb") {
-            auto remote_peers_config =
-                atomdb_config.at_path("remote_peers").get_or<JsonConfig>(JsonConfig());
-            AtomDBSingleton::atom_db = shared_ptr<AtomDB>(new RemoteAtomDB(remote_peers_config));
-        } else if (atomdb_type == "adapterdb") {
-            AtomDBSingleton::atom_db = shared_ptr<AtomDB>(new AdapterDB(atomdb_config));
-        } else {
-            RAISE_ERROR("Invalid AtomDB type: " + atomdb_type);
-        }
-
-        AtomDBSingleton::initialized = true;
     }
+
+    shared_ptr<AtomDB> atomdb;
+    auto atomdb_type = atomdb_config.at_path("type").get_or<string>("");
+
+    if (atomdb_type == "morkdb") {
+        atomdb = shared_ptr<AtomDB>(new MorkDB("", atomdb_config));
+    } else if (atomdb_type == "redismongodb") {
+        atomdb = shared_ptr<AtomDB>(new RedisMongoDB("", false, atomdb_config));
+    } else if (atomdb_type == "remotedb") {
+        auto remote_peers_config =
+            atomdb_config.at_path("remote_peers").get_or<JsonConfig>(JsonConfig());
+        atomdb = shared_ptr<AtomDB>(new RemoteAtomDB(remote_peers_config));
+    } else if (atomdb_type == "adapterdb") {
+        atomdb = shared_ptr<AtomDB>(new AdapterDB(atomdb_config));
+    } else {
+        RAISE_ERROR("Invalid AtomDB type: " + atomdb_type);
+    }
+
+    if (atomdb->is_protected()) {
+        AtomDBSingleton::atom_db = shared_ptr<AtomDB>(new ProtectedAtomDB(atomdb));
+    } else {
+        AtomDBSingleton::atom_db = atomdb;
+    }
+
+    AtomDBSingleton::initialized = true;
 }
 
 shared_ptr<AtomDB> AtomDBSingleton::get_instance() {

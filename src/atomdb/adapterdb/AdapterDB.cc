@@ -72,6 +72,11 @@ bool AdapterDB::composite_type_enabled() const {
     return this->atomdb_backend->composite_type_enabled();
 }
 
+bool AdapterDB::is_protected() const {
+    this->ensure_backend_ready();
+    return this->atomdb_backend->is_protected();
+}
+
 shared_ptr<Atom> AdapterDB::get_atom(const string& handle) {
     this->ensure_backend_ready();
     return this->atomdb_backend->get_atom(handle);
