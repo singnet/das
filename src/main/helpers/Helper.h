@@ -9,7 +9,6 @@ using namespace commons;
 namespace mains {
 
 enum class ProcessorType {
-    INFERENCE_AGENT,
     LINK_CREATION_AGENT,
     CONTEXT_BROKER,
     EVOLUTION_AGENT,

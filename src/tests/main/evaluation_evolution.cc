@@ -399,7 +399,7 @@ static shared_ptr<Link> add_or_update_link(const string& type_handle,
         if (strength != old_link->custom_attributes.get_or<double>(STRENGTH_TAG, 1)) {
             if (WRITE_CREATED_LINKS_TO_DB) {
                 LOG_DEBUG("Updating Link in AtomDB");
-                db->delete_link(handle, false);
+                // Default merger (NULL) upserts/replaces the existing atom.
                 db->add_link(new_link.get());
             }
             if (WRITE_CREATED_LINKS_TO_FILE) {
@@ -992,7 +992,7 @@ static void add_preset_links(const vector<string>& implication_to_target_predica
             auto link = std::dynamic_pointer_cast<Link>(parser_handler->element_stack.top());
             link->custom_attributes["strength"] = (double) Utils::string_to_float(line[0]);
             LOG_DEBUG("Adding Link: [" + line[0] + "] " + line[1]);
-            db->add_link(link.get(), false);
+            db->add_link(link.get());
             count++;
             line.clear();
             buffer_determiners.push_back({link->handle(), link->targets[1], link->targets[2]});
@@ -1390,7 +1390,7 @@ static void insert_type_symbols() {
     Node* node;
     for (string node_name : to_insert) {
         node = new Node(SYMBOL, node_name);
-        db->add_node(node, false);
+        db->add_node(node);
         delete (node);
     }
 }
