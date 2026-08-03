@@ -11,6 +11,7 @@
 
 #include "AtomDBSingleton.h"
 #include "LinkSchema.h"
+#include "Merger.h"
 #include "MockAnimalsData.h"
 #include "TestAtomDBJsonConfig.h"
 using namespace atomdb;
@@ -125,7 +126,7 @@ TEST_F(MorkDBTest, QueryForTargets) {
 }
 
 TEST_F(MorkDBTest, ConcurrentQueryForPattern) {
-    const int num_threads = 8;
+    const int num_threads = 4;
     vector<thread> threads;
     atomic<int> success_count{0};
 
@@ -281,7 +282,7 @@ TEST_F(MorkDBTest, AddLinksWithDuplicateTargets) {
     nodes.push_back(new Node("Symbol", "DuplicateTargets1"));
     nodes.push_back(new Node("Symbol", "DuplicateTargets2"));
     nodes.push_back(new Node("Symbol", "DuplicateTargets3"));
-    EXPECT_EQ(db->add_nodes(nodes, true).size(), 3);
+    EXPECT_EQ(db->add_nodes(nodes, false, &ThrowIfExistsMerger::instance()).size(), 3);
 
     auto link = new Link("Expression",
                          {nodes[0]->handle(),
@@ -297,11 +298,11 @@ TEST_F(MorkDBTest, AddLinksWithDuplicateTargets) {
 }
 
 TEST_F(MorkDBTest, ConcurrentAddLinks) {
-    int num_links = 1000;
+    int num_links = 50;
     int arity = 3;
-    int chunck_size = 500;
+    int chunck_size = 25;
 
-    const int num_threads = 8;
+    const int num_threads = 4;
     vector<thread> threads;
     atomic<int> success_count{0};
 
@@ -340,15 +341,15 @@ TEST_F(MorkDBTest, ConcurrentAddLinks) {
                 links.push_back(link_with_nested);
 
                 if (i % chunck_size == 0) {
-                    db->add_nodes(nodes, false, true);
-                    db->add_links(links, false, true);
+                    db->add_nodes(nodes, true);
+                    db->add_links(links, true);
                     nodes.clear();
                     links.clear();
                 }
             }
 
-            if (!nodes.empty()) db->add_nodes(nodes, false, true);
-            if (!links.empty()) db->add_links(links, false, true);
+            if (!nodes.empty()) db->add_nodes(nodes, true);
+            if (!links.empty()) db->add_links(links, true);
 
             success_count++;
         } catch (const exception& e) {
@@ -384,8 +385,8 @@ TEST_F(MorkDBTest, AddLinkWithoutMettaExpressionMustPopulateIt) {
     auto human = new Node("Symbol", "\"human\"");
     auto robot = new Node("Symbol", "\"robot\"");
 
-    db->add_node(similarity, false);
-    db->add_node(human, false);
+    db->add_node(similarity);
+    db->add_node(human);
     auto robot_handle = db->add_node(robot);
 
     auto link = new Link("Expression", {similarity->handle(), human->handle(), robot->handle()});

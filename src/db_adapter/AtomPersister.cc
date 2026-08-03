@@ -169,7 +169,7 @@ void AtomPersister::send_batch(vector<shared_ptr<Atom>> atoms,
         for (const auto& atom : atoms) {
             atom_ptrs.push_back(atom.get());
         }
-        this->atomdb->add_atoms(atom_ptrs, false, true);
+        this->atomdb->add_atoms(atom_ptrs, true);
 
         if (this->is_save_metta()) {
             for (auto& atom : atoms) {
@@ -189,7 +189,7 @@ void AtomPersister::send_batch(vector<shared_ptr<Atom>> atoms,
 
         timer_success.stop();
 
-        this->total_count.fetch_add(static_cast<int>(atoms.size())) + static_cast<int>(atoms.size());
+        this->total_count.fetch_add(static_cast<int>(atoms.size()));
 
         this->batches_completed.fetch_add(1);
 

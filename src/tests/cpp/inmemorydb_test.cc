@@ -12,7 +12,9 @@
 #include "InMemoryDBAPITypes.h"
 #include "Link.h"
 #include "LinkSchema.h"
+#include "Merger.h"
 #include "Node.h"
+#include "Properties.h"
 
 using namespace atomdb;
 using namespace atomdb::atomdb_api_types;
@@ -37,12 +39,12 @@ TEST_F(InMemoryDBTest, AddNodesAndLinks) {
     auto similarity = new Node("Symbol", "Similarity");
     auto inheritance = new Node("Symbol", "Inheritance");
 
-    string human_handle = db->add_node(human, false);
-    string monkey_handle = db->add_node(monkey, false);
-    string chimp_handle = db->add_node(chimp, false);
-    string mammal_handle = db->add_node(mammal, false);
-    string similarity_handle = db->add_node(similarity, false);
-    string inheritance_handle = db->add_node(inheritance, false);
+    string human_handle = db->add_node(human);
+    string monkey_handle = db->add_node(monkey);
+    string chimp_handle = db->add_node(chimp);
+    string mammal_handle = db->add_node(mammal);
+    string similarity_handle = db->add_node(similarity);
+    string inheritance_handle = db->add_node(inheritance);
 
     // Verify nodes were added
     EXPECT_TRUE(db->node_exists(human_handle));
@@ -58,11 +60,11 @@ TEST_F(InMemoryDBTest, AddNodesAndLinks) {
     auto link4 = new Link("Expression", {inheritance_handle, monkey_handle, mammal_handle});
     auto link5 = new Link("Expression", {inheritance_handle, chimp_handle, mammal_handle});
 
-    string link1_handle = db->add_link(link1, false);
-    string link2_handle = db->add_link(link2, false);
-    string link3_handle = db->add_link(link3, false);
-    string link4_handle = db->add_link(link4, false);
-    string link5_handle = db->add_link(link5, false);
+    string link1_handle = db->add_link(link1);
+    string link2_handle = db->add_link(link2);
+    string link3_handle = db->add_link(link3);
+    string link4_handle = db->add_link(link4);
+    string link5_handle = db->add_link(link5);
 
     // Verify links were added
     EXPECT_TRUE(db->link_exists(link1_handle));
@@ -86,19 +88,19 @@ TEST_F(InMemoryDBTest, QueryForPattern) {
     auto mammal = new Node("Symbol", "\"mammal\"");
     auto inheritance = new Node("Symbol", "Inheritance");
 
-    string human_handle = db->add_node(human, false);
-    string monkey_handle = db->add_node(monkey, false);
-    string chimp_handle = db->add_node(chimp, false);
-    string mammal_handle = db->add_node(mammal, false);
-    string inheritance_handle = db->add_node(inheritance, false);
+    string human_handle = db->add_node(human);
+    string monkey_handle = db->add_node(monkey);
+    string chimp_handle = db->add_node(chimp);
+    string mammal_handle = db->add_node(mammal);
+    string inheritance_handle = db->add_node(inheritance);
 
     auto link1 = new Link("Expression", {inheritance_handle, human_handle, mammal_handle});
     auto link2 = new Link("Expression", {inheritance_handle, monkey_handle, mammal_handle});
     auto link3 = new Link("Expression", {inheritance_handle, chimp_handle, mammal_handle});
 
-    string link1_handle = db->add_link(link1, false);
-    string link2_handle = db->add_link(link2, false);
-    string link3_handle = db->add_link(link3, false);
+    string link1_handle = db->add_link(link1);
+    string link2_handle = db->add_link(link2);
+    string link3_handle = db->add_link(link3);
 
     // Re-index patterns to ensure re_index works
     db->re_index_patterns(true);
@@ -137,13 +139,13 @@ TEST_F(InMemoryDBTest, QueryForPatternWithSpecificMatch) {
     auto monkey = new Node("Symbol", "\"monkey\"");
     auto similarity = new Node("Symbol", "Similarity");
 
-    string human_handle = db->add_node(human, false);
-    string monkey_handle = db->add_node(monkey, false);
-    string similarity_handle = db->add_node(similarity, false);
+    string human_handle = db->add_node(human);
+    string monkey_handle = db->add_node(monkey);
+    string similarity_handle = db->add_node(similarity);
 
     auto link1 = new Link("Expression", {similarity_handle, human_handle, monkey_handle});
 
-    string link1_handle = db->add_link(link1, false);
+    string link1_handle = db->add_link(link1);
 
     LinkSchema link_schema({"LINK_TEMPLATE",
                             "Expression",
@@ -188,16 +190,16 @@ TEST_F(InMemoryDBTest, QueryForTargets) {
     auto node3 = new Node("Symbol", "Node3");
     auto similarity = new Node("Symbol", "Similarity");
 
-    string node1_handle = db->add_node(node1, false);
-    string node2_handle = db->add_node(node2, false);
-    string node3_handle = db->add_node(node3, false);
-    string similarity_handle = db->add_node(similarity, false);
+    string node1_handle = db->add_node(node1);
+    string node2_handle = db->add_node(node2);
+    string node3_handle = db->add_node(node3);
+    string similarity_handle = db->add_node(similarity);
 
     auto node_targets = db->query_for_targets(node1_handle);
     EXPECT_EQ(node_targets, nullptr);
 
     auto link1 = new Link("Expression", {similarity_handle, node1_handle, node2_handle, node3_handle});
-    string link1_handle = db->add_link(link1, false);
+    string link1_handle = db->add_link(link1);
 
     auto link1_targets = db->query_for_targets(link1_handle);
     EXPECT_EQ(link1_targets->size(), 4);
@@ -219,18 +221,18 @@ TEST_F(InMemoryDBTest, QueryForTargetsMultipleLinks) {
     auto chimp = new Node("Symbol", "\"chimp\"");
     auto similarity = new Node("Symbol", "Similarity");
 
-    string human_handle = db->add_node(human, false);
-    string monkey_handle = db->add_node(monkey, false);
-    string chimp_handle = db->add_node(chimp, false);
-    string similarity_handle = db->add_node(similarity, false);
+    string human_handle = db->add_node(human);
+    string monkey_handle = db->add_node(monkey);
+    string chimp_handle = db->add_node(chimp);
+    string similarity_handle = db->add_node(similarity);
 
     auto link1 = new Link("Expression", {similarity_handle, human_handle, monkey_handle});
     auto link2 = new Link("Expression", {similarity_handle, human_handle, chimp_handle});
     auto link3 = new Link("Expression", {similarity_handle, monkey_handle, chimp_handle});
 
-    string link1_handle = db->add_link(link1, false);
-    string link2_handle = db->add_link(link2, false);
-    string link3_handle = db->add_link(link3, false);
+    string link1_handle = db->add_link(link1);
+    string link2_handle = db->add_link(link2);
+    string link3_handle = db->add_link(link3);
 
     auto link1_targets = db->query_for_targets(link1_handle);
     EXPECT_EQ(link1_targets->size(), 3);
@@ -256,12 +258,12 @@ TEST_F(InMemoryDBTest, QueryForTargetsAfterDeletion) {
     auto node2 = new Node("Symbol", "Node2");
     auto similarity = new Node("Symbol", "Similarity");
 
-    string node1_handle = db->add_node(node1, false);
-    string node2_handle = db->add_node(node2, false);
-    string similarity_handle = db->add_node(similarity, false);
+    string node1_handle = db->add_node(node1);
+    string node2_handle = db->add_node(node2);
+    string similarity_handle = db->add_node(similarity);
 
     auto link1 = new Link("Expression", {similarity_handle, node1_handle, node2_handle});
-    string link1_handle = db->add_link(link1, false);
+    string link1_handle = db->add_link(link1);
 
     auto targets = db->query_for_targets(link1_handle);
     EXPECT_EQ(targets->size(), 3);
@@ -280,21 +282,21 @@ TEST_F(InMemoryDBTest, QueryForIncomingSet) {
     auto similarity = new Node("Symbol", "Similarity");
     auto inheritance = new Node("Symbol", "Inheritance");
 
-    string human_handle = db->add_node(human, false);
-    string monkey_handle = db->add_node(monkey, false);
-    string chimp_handle = db->add_node(chimp, false);
-    string mammal_handle = db->add_node(mammal, false);
-    string similarity_handle = db->add_node(similarity, false);
-    string inheritance_handle = db->add_node(inheritance, false);
+    string human_handle = db->add_node(human);
+    string monkey_handle = db->add_node(monkey);
+    string chimp_handle = db->add_node(chimp);
+    string mammal_handle = db->add_node(mammal);
+    string similarity_handle = db->add_node(similarity);
+    string inheritance_handle = db->add_node(inheritance);
 
     // Create links that reference human
     auto link1 = new Link("Expression", {similarity_handle, human_handle, monkey_handle});
     auto link2 = new Link("Expression", {similarity_handle, human_handle, chimp_handle});
     auto link3 = new Link("Expression", {inheritance_handle, human_handle, mammal_handle});
 
-    string link1_handle = db->add_link(link1, false);
-    string link2_handle = db->add_link(link2, false);
-    string link3_handle = db->add_link(link3, false);
+    string link1_handle = db->add_link(link1);
+    string link2_handle = db->add_link(link2);
+    string link3_handle = db->add_link(link3);
 
     // Query incoming set for human
     auto incoming_set = db->query_for_incoming_set(human_handle);
@@ -331,12 +333,12 @@ TEST_F(InMemoryDBTest, QueryForIncomingSetAfterDeletion) {
     auto monkey = new Node("Symbol", "\"monkey\"");
     auto similarity = new Node("Symbol", "Similarity");
 
-    string human_handle = db->add_node(human, false);
-    string monkey_handle = db->add_node(monkey, false);
-    string similarity_handle = db->add_node(similarity, false);
+    string human_handle = db->add_node(human);
+    string monkey_handle = db->add_node(monkey);
+    string similarity_handle = db->add_node(similarity);
 
     auto link1 = new Link("Expression", {similarity_handle, human_handle, monkey_handle});
-    string link1_handle = db->add_link(link1, false);
+    string link1_handle = db->add_link(link1);
 
     // Verify incoming set before deletion
     auto incoming_set = db->query_for_incoming_set(human_handle);
@@ -355,13 +357,13 @@ TEST_F(InMemoryDBTest, DeleteAtom) {
     auto monkey = new Node("Symbol", "\"monkey\"");
     auto similarity = new Node("Symbol", "Similarity");
 
-    string human_handle = db->add_node(human, false);
-    string monkey_handle = db->add_node(monkey, false);
-    string similarity_handle = db->add_node(similarity, false);
+    string human_handle = db->add_node(human);
+    string monkey_handle = db->add_node(monkey);
+    string similarity_handle = db->add_node(similarity);
 
     // Create a link that references human
     auto link1 = new Link("Expression", {similarity_handle, human_handle, monkey_handle});
-    string link1_handle = db->add_link(link1, false);
+    string link1_handle = db->add_link(link1);
 
     // Try to delete human atom with delete_link_targets=false (should fail)
     bool deleted = db->delete_atom(human_handle, false);
@@ -373,7 +375,7 @@ TEST_F(InMemoryDBTest, DeleteAtom) {
 
     // Create a link that references human
     auto link2 = new Link("Expression", {similarity_handle, human_handle, monkey_handle});
-    string link2_handle = db->add_link(link2, false);
+    string link2_handle = db->add_link(link2);
 
     // Delete human atom with delete_link_targets=true (should succeed and delete the link)
     deleted = db->delete_atom(human_handle, true);
@@ -391,13 +393,13 @@ TEST_F(InMemoryDBTest, DeleteNode) {
     auto monkey = new Node("Symbol", "\"monkey\"");
     auto similarity = new Node("Symbol", "Similarity");
 
-    string human_handle = db->add_node(human, false);
-    string monkey_handle = db->add_node(monkey, false);
-    string similarity_handle = db->add_node(similarity, false);
+    string human_handle = db->add_node(human);
+    string monkey_handle = db->add_node(monkey);
+    string similarity_handle = db->add_node(similarity);
 
     // Create a link that references human
     auto link1 = new Link("Expression", {similarity_handle, human_handle, monkey_handle});
-    string link1_handle = db->add_link(link1, false);
+    string link1_handle = db->add_link(link1);
 
     // Try to delete human with delete_link_targets=false (should fail)
     bool deleted = db->delete_node(human_handle, false);
@@ -413,7 +415,7 @@ TEST_F(InMemoryDBTest, DeleteNode) {
 
     // Create a link that references human
     auto link2 = new Link("Expression", {similarity_handle, human_handle, monkey_handle});
-    string link2_handle = db->add_link(link2, false);
+    string link2_handle = db->add_link(link2);
 
     // Delete human with delete_link_targets=true (should succeed and delete the link)
     deleted = db->delete_node(human_handle, true);
@@ -435,13 +437,13 @@ TEST_F(InMemoryDBTest, DeleteLink) {
     auto monkey = new Node("Symbol", "\"monkey\"");
     auto similarity = new Node("Symbol", "Similarity");
 
-    string human_handle = db->add_node(human, false);
-    string monkey_handle = db->add_node(monkey, false);
-    string similarity_handle = db->add_node(similarity, false);
+    string human_handle = db->add_node(human);
+    string monkey_handle = db->add_node(monkey);
+    string similarity_handle = db->add_node(similarity);
 
     // Create a link that references human and monkey
     auto link1 = new Link("Expression", {similarity_handle, human_handle, monkey_handle});
-    string link1_handle = db->add_link(link1, false);
+    string link1_handle = db->add_link(link1);
 
     // Delete link with delete_link_targets=false (should succeed, targets remain)
     bool deleted = db->delete_link(link1_handle, false);
@@ -463,7 +465,7 @@ TEST_F(InMemoryDBTest, DeleteLink) {
 
     // Create a link that references human and monkey
     auto link2 = new Link("Expression", {similarity_handle, human_handle, monkey_handle});
-    string link2_handle = db->add_link(link2, false);
+    string link2_handle = db->add_link(link2);
 
     // Delete link with delete_link_targets=true (should delete targets if no other references)
     deleted = db->delete_link(link2_handle, true);
@@ -484,16 +486,16 @@ TEST_F(InMemoryDBTest, DeleteLinkMultipleReferences) {
     auto chimp = new Node("Symbol", "\"chimp\"");
     auto similarity = new Node("Symbol", "Similarity");
 
-    string human_handle = db->add_node(human, false);
-    string monkey_handle = db->add_node(monkey, false);
-    string chimp_handle = db->add_node(chimp, false);
-    string similarity_handle = db->add_node(similarity, false);
+    string human_handle = db->add_node(human);
+    string monkey_handle = db->add_node(monkey);
+    string chimp_handle = db->add_node(chimp);
+    string similarity_handle = db->add_node(similarity);
 
     // Create two links that both reference human
     auto link1 = new Link("Expression", {similarity_handle, human_handle, monkey_handle});
     auto link2 = new Link("Expression", {similarity_handle, human_handle, chimp_handle});
-    string link1_handle = db->add_link(link1, false);
-    string link2_handle = db->add_link(link2, false);
+    string link1_handle = db->add_link(link1);
+    string link2_handle = db->add_link(link2);
 
     // Verify human has 2 incoming links
     auto human_incoming = db->query_for_incoming_set(human_handle);
@@ -528,14 +530,14 @@ TEST_F(InMemoryDBTest, AtomsCount) {
     auto node2 = new Node("Symbol", "Node2");
     auto similarity = new Node("Symbol", "Similarity");
 
-    db->add_node(node1, false);
-    db->add_node(node2, false);
-    db->add_node(similarity, false);
+    db->add_node(node1);
+    db->add_node(node2);
+    db->add_node(similarity);
 
     EXPECT_EQ(db->atom_count(), 3);
 
     auto link1 = new Link("Expression", {similarity->handle(), node1->handle(), node2->handle()});
-    db->add_link(link1, false);
+    db->add_link(link1);
 
     EXPECT_EQ(db->atom_count(), 4);
     EXPECT_EQ(db->empty(), false);
@@ -649,6 +651,330 @@ TEST(HandleSetInMemoryTest, IteratorVisitsAllHandlesOnce) {
     EXPECT_EQ(visited.size(), 2u);
     EXPECT_NE(find(visited.begin(), visited.end(), handle_a), visited.end());
     EXPECT_NE(find(visited.begin(), visited.end(), handle_b), visited.end());
+}
+
+namespace {
+
+class SumStrengthMerger : public Merger {
+   public:
+    bool merge(Atom* existing, const Atom* incoming) const override {
+        double existing_strength = existing->custom_attributes.get_or<double>("strength", 0.0);
+        double incoming_strength = incoming->custom_attributes.get_or<double>("strength", 0.0);
+        existing->custom_attributes["strength"] = existing_strength + incoming_strength;
+        return true;
+    }
+};
+
+}  // namespace
+
+TEST_F(InMemoryDBTest, AddNodeReplacesByDefault) {
+    Properties attrs1;
+    attrs1["strength"] = 0.1;
+    attrs1["obsolete"] = true;
+    auto node1 = new Node("Symbol", "\"replace_me\"", attrs1);
+    string handle = db->add_node(node1);
+    EXPECT_DOUBLE_EQ(db->get_node(handle)->custom_attributes.get_or<double>("strength", -1.0), 0.1);
+    EXPECT_TRUE(db->get_node(handle)->custom_attributes.get_or<bool>("obsolete", false));
+
+    Properties attrs2;
+    attrs2["strength"] = 0.9;
+    auto node2 = new Node("Symbol", "\"replace_me\"", attrs2);
+    EXPECT_EQ(db->add_node(node2), handle);
+    EXPECT_DOUBLE_EQ(db->get_node(handle)->custom_attributes.get_or<double>("strength", -1.0), 0.9);
+    EXPECT_FALSE(db->get_node(handle)->custom_attributes.get_or<bool>("obsolete", false));
+
+    delete node1;
+    delete node2;
+}
+
+TEST_F(InMemoryDBTest, AddNodeThrowIfExistsMerger) {
+    auto node1 = new Node("Symbol", "\"throw_me\"");
+    auto node2 = new Node("Symbol", "\"throw_me\"");
+    EXPECT_EQ(db->add_node(node1, &ThrowIfExistsMerger::instance()), node1->handle());
+    EXPECT_THROW(db->add_node(node2, &ThrowIfExistsMerger::instance()), runtime_error);
+    delete node1;
+    delete node2;
+}
+
+TEST_F(InMemoryDBTest, AddNodeCustomMerger) {
+    Properties attrs1;
+    attrs1["strength"] = 0.2;
+    auto node1 = new Node("Symbol", "\"merge_me\"", attrs1);
+    string handle = db->add_node(node1);
+
+    Properties attrs2;
+    attrs2["strength"] = 0.3;
+    auto node2 = new Node("Symbol", "\"merge_me\"", attrs2);
+    SumStrengthMerger merger;
+    EXPECT_EQ(db->add_node(node2, &merger), handle);
+    EXPECT_DOUBLE_EQ(db->get_node(handle)->custom_attributes.get_or<double>("strength", -1.0), 0.5);
+
+    delete node1;
+    delete node2;
+}
+
+TEST_F(InMemoryDBTest, AddLinkReplacesByDefault) {
+    auto n1 = new Node("Symbol", "\"link_replace_a\"");
+    auto n2 = new Node("Symbol", "\"link_replace_b\"");
+    auto h1 = db->add_node(n1);
+    auto h2 = db->add_node(n2);
+
+    Properties attrs1;
+    attrs1["strength"] = 0.1;
+    attrs1["obsolete"] = true;
+    auto link1 = new Link("Expression", {h1, h2}, attrs1);
+    string handle = db->add_link(link1);
+    EXPECT_DOUBLE_EQ(db->get_link(handle)->custom_attributes.get_or<double>("strength", -1.0), 0.1);
+    EXPECT_TRUE(db->get_link(handle)->custom_attributes.get_or<bool>("obsolete", false));
+
+    Properties attrs2;
+    attrs2["strength"] = 0.9;
+    auto link2 = new Link("Expression", {h1, h2}, attrs2);
+    EXPECT_EQ(db->add_link(link2), handle);
+    EXPECT_DOUBLE_EQ(db->get_link(handle)->custom_attributes.get_or<double>("strength", -1.0), 0.9);
+    EXPECT_FALSE(db->get_link(handle)->custom_attributes.get_or<bool>("obsolete", false));
+
+    auto incoming = db->query_for_incoming_set(h1);
+    EXPECT_EQ(incoming->size(), 1u);
+
+    delete n1;
+    delete n2;
+    delete link1;
+    delete link2;
+}
+
+TEST_F(InMemoryDBTest, AddLinkThrowIfExistsMerger) {
+    auto n1 = new Node("Symbol", "\"link_throw_a\"");
+    auto n2 = new Node("Symbol", "\"link_throw_b\"");
+    auto h1 = db->add_node(n1);
+    auto h2 = db->add_node(n2);
+
+    auto link1 = new Link("Expression", {h1, h2});
+    auto link2 = new Link("Expression", {h1, h2});
+    EXPECT_EQ(db->add_link(link1, &ThrowIfExistsMerger::instance()), link1->handle());
+    EXPECT_THROW(db->add_link(link2, &ThrowIfExistsMerger::instance()), runtime_error);
+
+    delete n1;
+    delete n2;
+    delete link1;
+    delete link2;
+}
+
+TEST_F(InMemoryDBTest, AddLinkCustomMerger) {
+    auto n1 = new Node("Symbol", "\"link_merge_a\"");
+    auto n2 = new Node("Symbol", "\"link_merge_b\"");
+    auto h1 = db->add_node(n1);
+    auto h2 = db->add_node(n2);
+
+    Properties attrs1;
+    attrs1["strength"] = 0.2;
+    auto link1 = new Link("Expression", {h1, h2}, attrs1);
+    string handle = db->add_link(link1);
+
+    Properties attrs2;
+    attrs2["strength"] = 0.3;
+    auto link2 = new Link("Expression", {h1, h2}, attrs2);
+    SumStrengthMerger merger;
+    EXPECT_EQ(db->add_link(link2, &merger), handle);
+    EXPECT_DOUBLE_EQ(db->get_link(handle)->custom_attributes.get_or<double>("strength", -1.0), 0.5);
+
+    delete n1;
+    delete n2;
+    delete link1;
+    delete link2;
+}
+
+TEST_F(InMemoryDBTest, AddNodeSkipIfExistsMergerDoesNotPersist) {
+    Properties attrs1;
+    attrs1["strength"] = 0.2;
+    auto node1 = new Node("Symbol", "\"reject_me\"", attrs1);
+    string handle = db->add_node(node1);
+
+    Properties attrs2;
+    attrs2["strength"] = 0.9;
+    auto node2 = new Node("Symbol", "\"reject_me\"", attrs2);
+    EXPECT_EQ(db->add_node(node2, &SkipIfExistsMerger::instance()), "");
+    EXPECT_DOUBLE_EQ(db->get_node(handle)->custom_attributes.get_or<double>("strength", -1.0), 0.2);
+
+    delete node1;
+    delete node2;
+}
+
+TEST_F(InMemoryDBTest, AddLinkSkipIfExistsMergerDoesNotPersistOrReindex) {
+    auto n1 = new Node("Symbol", "\"link_reject_a\"");
+    auto n2 = new Node("Symbol", "\"link_reject_b\"");
+    auto h1 = db->add_node(n1);
+    auto h2 = db->add_node(n2);
+
+    Properties attrs1;
+    attrs1["strength"] = 0.2;
+    auto link1 = new Link("Expression", {h1, h2}, attrs1);
+    string handle = db->add_link(link1);
+    auto incoming_before = db->query_for_incoming_set(h1);
+    ASSERT_EQ(incoming_before->size(), 1u);
+
+    Properties attrs2;
+    attrs2["strength"] = 0.9;
+    auto link2 = new Link("Expression", {h1, h2}, attrs2);
+    EXPECT_EQ(db->add_link(link2, &SkipIfExistsMerger::instance()), "");
+    EXPECT_DOUBLE_EQ(db->get_link(handle)->custom_attributes.get_or<double>("strength", -1.0), 0.2);
+
+    auto incoming_after = db->query_for_incoming_set(h1);
+    EXPECT_EQ(incoming_after->size(), 1u);
+
+    delete n1;
+    delete n2;
+    delete link1;
+    delete link2;
+}
+
+TEST_F(InMemoryDBTest, AddNodesThrowIfExistsIsNotAllOrNothing) {
+    auto existing = new Node("Symbol", "\"batch_throw_existing\"");
+    db->add_node(existing);
+
+    auto keep_absent = new Node("Symbol", "\"batch_throw_new_a\"");
+    auto collision = new Node("Symbol", "\"batch_throw_existing\"");
+    auto also_absent = new Node("Symbol", "\"batch_throw_new_b\"");
+
+    // Earlier items may be applied; ThrowIfExists raises when the collision is hit.
+    EXPECT_THROW(
+        db->add_nodes({keep_absent, collision, also_absent}, false, &ThrowIfExistsMerger::instance()),
+        runtime_error);
+    EXPECT_TRUE(db->node_exists(keep_absent->handle()));
+    EXPECT_FALSE(db->node_exists(also_absent->handle()));
+    EXPECT_TRUE(db->node_exists(existing->handle()));
+
+    // Duplicate only inside the batch: first insert succeeds, rematch raises.
+    auto batch_a = new Node("Symbol", "\"batch_throw_dup_only\"");
+    auto batch_a_copy = new Node("Symbol", "\"batch_throw_dup_only\"");
+    auto batch_b = new Node("Symbol", "\"batch_throw_sibling\"");
+    EXPECT_THROW(
+        db->add_nodes({batch_a, batch_a_copy, batch_b}, false, &ThrowIfExistsMerger::instance()),
+        runtime_error);
+    EXPECT_TRUE(db->node_exists(batch_a->handle()));
+    EXPECT_FALSE(db->node_exists(batch_b->handle()));
+
+    delete existing;
+    delete keep_absent;
+    delete collision;
+    delete also_absent;
+    delete batch_a;
+    delete batch_a_copy;
+    delete batch_b;
+}
+
+TEST_F(InMemoryDBTest, AddLinksThrowIfExistsIsNotAllOrNothing) {
+    auto n1 = new Node("Symbol", "\"batch_link_throw_a\"");
+    auto n2 = new Node("Symbol", "\"batch_link_throw_b\"");
+    auto n3 = new Node("Symbol", "\"batch_link_throw_c\"");
+    auto n4 = new Node("Symbol", "\"batch_link_throw_d\"");
+    auto n5 = new Node("Symbol", "\"batch_link_throw_e\"");
+    auto n6 = new Node("Symbol", "\"batch_link_throw_f\"");
+    auto h1 = db->add_node(n1);
+    auto h2 = db->add_node(n2);
+    auto h3 = db->add_node(n3);
+    auto h4 = db->add_node(n4);
+    auto h5 = db->add_node(n5);
+    auto h6 = db->add_node(n6);
+
+    auto existing = new Link("Expression", {h1, h2});
+    db->add_link(existing);
+
+    auto keep_absent = new Link("Expression", {h3, h4});
+    auto collision = new Link("Expression", {h1, h2});
+
+    EXPECT_THROW(db->add_links({keep_absent, collision}, false, &ThrowIfExistsMerger::instance()),
+                 runtime_error);
+    EXPECT_TRUE(db->link_exists(keep_absent->handle()));
+    EXPECT_TRUE(db->link_exists(existing->handle()));
+    EXPECT_EQ(db->query_for_incoming_set(h3)->size(), 1u);
+
+    EXPECT_TRUE(db->delete_link(keep_absent->handle()));
+
+    auto batch_dup = new Link("Expression", {h5, h6});
+    auto batch_dup_copy = new Link("Expression", {h5, h6});
+    auto batch_other = new Link("Expression", {h3, h4});
+    EXPECT_THROW(
+        db->add_links({batch_dup, batch_dup_copy, batch_other}, false, &ThrowIfExistsMerger::instance()),
+        runtime_error);
+    EXPECT_TRUE(db->link_exists(batch_dup->handle()));
+    EXPECT_FALSE(db->link_exists(batch_other->handle()));
+    EXPECT_EQ(db->query_for_incoming_set(h5)->size(), 1u);
+
+    delete n1;
+    delete n2;
+    delete n3;
+    delete n4;
+    delete n5;
+    delete n6;
+    delete existing;
+    delete keep_absent;
+    delete collision;
+    delete batch_dup;
+    delete batch_dup_copy;
+    delete batch_other;
+}
+
+TEST_F(InMemoryDBTest, AddNodesSkipIfExistsMergerReturnsEmptyHandleSlots) {
+    Properties attrs1;
+    attrs1["strength"] = 0.2;
+    auto existing = new Node("Symbol", "\"batch_reject_existing\"", attrs1);
+    string existing_handle = db->add_node(existing);
+
+    auto fresh = new Node("Symbol", "\"batch_reject_new\"");
+    Properties attrs2;
+    attrs2["strength"] = 0.9;
+    auto collision = new Node("Symbol", "\"batch_reject_existing\"", attrs2);
+
+    auto handles = db->add_nodes({fresh, collision}, false, &SkipIfExistsMerger::instance());
+    ASSERT_EQ(handles.size(), 2u);
+    EXPECT_EQ(handles[0], fresh->handle());
+    EXPECT_EQ(handles[1], "");
+    EXPECT_TRUE(db->node_exists(fresh->handle()));
+    EXPECT_DOUBLE_EQ(db->get_node(existing_handle)->custom_attributes.get_or<double>("strength", -1.0),
+                     0.2);
+
+    delete existing;
+    delete fresh;
+    delete collision;
+}
+
+TEST_F(InMemoryDBTest, AddLinksSkipIfExistsMergerReturnsEmptyHandleSlots) {
+    auto n1 = new Node("Symbol", "\"batch_link_reject_a\"");
+    auto n2 = new Node("Symbol", "\"batch_link_reject_b\"");
+    auto n3 = new Node("Symbol", "\"batch_link_reject_c\"");
+    auto n4 = new Node("Symbol", "\"batch_link_reject_d\"");
+    auto h1 = db->add_node(n1);
+    auto h2 = db->add_node(n2);
+    auto h3 = db->add_node(n3);
+    auto h4 = db->add_node(n4);
+
+    Properties attrs1;
+    attrs1["strength"] = 0.2;
+    auto existing = new Link("Expression", {h1, h2}, attrs1);
+    string existing_handle = db->add_link(existing);
+
+    auto fresh = new Link("Expression", {h3, h4});
+    Properties attrs2;
+    attrs2["strength"] = 0.9;
+    auto collision = new Link("Expression", {h1, h2}, attrs2);
+
+    auto handles = db->add_links({fresh, collision}, false, &SkipIfExistsMerger::instance());
+    ASSERT_EQ(handles.size(), 2u);
+    EXPECT_EQ(handles[0], fresh->handle());
+    EXPECT_EQ(handles[1], "");
+    EXPECT_TRUE(db->link_exists(fresh->handle()));
+    EXPECT_DOUBLE_EQ(db->get_link(existing_handle)->custom_attributes.get_or<double>("strength", -1.0),
+                     0.2);
+    EXPECT_EQ(db->query_for_incoming_set(h1)->size(), 1u);
+
+    delete n1;
+    delete n2;
+    delete n3;
+    delete n4;
+    delete existing;
+    delete fresh;
+    delete collision;
 }
 
 int main(int argc, char** argv) {

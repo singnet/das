@@ -1,5 +1,11 @@
 # Release Notes
 
+## DAS Version 1.2.0
+
+### Changelog
+## DAS Version 1.2.0
+
+### Changelog
 ## DAS Version 1.0.5
 
 ### Changelog

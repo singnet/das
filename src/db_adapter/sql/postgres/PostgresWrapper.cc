@@ -495,7 +495,7 @@ SqlRow PostgresWrapper::build_sql_row(const pqxx::row& row, const Table& table, 
     sql_row.table_name = table.name;
     sql_row.primary_key = ColumnValue{columns[0], row[0].c_str()};
 
-    for (size_t i = 1; i < columns.size() && i < row.size(); i++) {
+    for (size_t i = 1; i < columns.size() && i < static_cast<size_t>(row.size()); i++) {
         auto field = row[i];
 
         if (field.is_null()) continue;

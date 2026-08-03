@@ -157,7 +157,7 @@ static bool visit_serialize_node(HandleTrie::TrieNode* trie_node, void* data) {
     visit_data->stream->write(reinterpret_cast<const char*>(&node->stimuli_to_spread),
                               sizeof(node->stimuli_to_spread));
     unsigned int determiners_size = node->determiners.size();
-    unsigned int neighbors_size = node->neighbors->size;
+    unsigned int neighbors_size = node->neighbors->size();
     visit_data->stream->write(reinterpret_cast<const char*>(&determiners_size),
                               sizeof(determiners_size));
     visit_data->stream->write(reinterpret_cast<const char*>(&neighbors_size), sizeof(neighbors_size));
@@ -225,7 +225,8 @@ void HebbianNetwork::deserialize_node(istream& is,
 void HebbianNetwork::serialize(ostream& os) {
     os.write(reinterpret_cast<const char*>(&this->tokens_to_distribute),
              sizeof(this->tokens_to_distribute));
-    os.write(reinterpret_cast<const char*>(&this->nodes->size), sizeof(this->nodes->size));
+    unsigned int s = this->nodes->size();
+    os.write(reinterpret_cast<const char*>(&s), sizeof(s));
     VisitData visit_data;
     visit_data.node = NULL;
     visit_data.network = this;

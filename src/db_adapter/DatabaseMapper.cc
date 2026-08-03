@@ -18,4 +18,4 @@ using namespace db_adapter;
 using namespace commons;
 using namespace atoms;
 
-unsigned int DatabaseMapper::handle_trie_size() { return this->handle_trie.size; }
+unsigned int DatabaseMapper::handle_trie_size() { return this->handle_trie.size(); }

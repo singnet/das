@@ -53,24 +53,31 @@ class ChainOperatorTestEnvironment : public ::testing::Environment {
    public:
     void load_data() {
         auto db = AtomDBSingleton::get_instance();
-        atoms::Node *node1, *node2;
-        atoms::Link* link;
-        node1 = new atoms::Node(NODE_TYPE, EVALUATION);
-        LOG_DEBUG("Add node: " + node1->handle() + " " + node1->to_string());
-        db->add_node(node1, false);
+
+        // Insert each node once (duplicate-tolerant upsert is the default).
+        auto evaluation = new atoms::Node(NODE_TYPE, EVALUATION);
+        EXPECT_EQ(db->add_node(evaluation), evaluation->handle());
+        delete evaluation;
+
+        vector<atoms::Node*> nodes;
         for (unsigned int i = 0; i <= (NODE_COUNT + 1); i++) {
-            node1 = new atoms::Node(NODE_TYPE, node_name(i));
-            db->add_node(node1, false);
-            LOG_DEBUG("Add node: " + node1->handle() + " " + node1->to_string());
+            auto node = new atoms::Node(NODE_TYPE, node_name(i));
+            LOG_DEBUG("Add node: " + node->handle() + " " + node->to_string());
+            EXPECT_EQ(db->add_node(node), node->handle());
+            nodes.push_back(node);
+        }
+
+        for (unsigned int i = 0; i <= (NODE_COUNT + 1); i++) {
             for (unsigned int j = 0; j <= (NODE_COUNT + 1); j++) {
-                node2 = new atoms::Node(NODE_TYPE, node_name(j));
-                LOG_DEBUG("Add node: " + node2->handle() + " " + node2->to_string());
-                db->add_node(node2, false);
-                link = new atoms::Link(
-                    LINK_TYPE, {EVALUATION_HANDLE, node1->handle(), node2->handle()}, true);
+                auto link = new atoms::Link(
+                    LINK_TYPE, {EVALUATION_HANDLE, nodes[i]->handle(), nodes[j]->handle()}, true);
                 LOG_DEBUG("Add link: " + link->handle() + " " + link->to_string());
-                db->add_link(link, false);
+                db->add_link(link);
+                delete link;
             }
+        }
+        for (auto* node : nodes) {
+            delete node;
         }
     }
 
