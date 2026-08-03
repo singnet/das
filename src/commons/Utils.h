@@ -120,7 +120,7 @@ class Utils {
     static void sleep(unsigned int milliseconds = 100);
     static string get_environment(string const& key);
     static map<string, string> parse_config(string const& config_path);
-    static vector<string> split(string const& str, char delimiter);
+    static vector<string> split(string const& str, char delimiter = ' ');
     static pair<size_t, size_t> parse_ports_range(string const& str, char delimiter = ':');
     static string join(vector<string> const& tokens, char delimiter = ' ');
     static string random_string(size_t length);
