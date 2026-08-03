@@ -359,8 +359,6 @@ TEST(CommandRouterHttpAPIConfigTest, from_config_rejects_trailing_junk_http_api_
 // BusCommandRouterProcessor HTTP dispatch
 
 TEST(BusCommandRouterProcessorTest, dispatch_http_command_get_returns_params) {
-    set<string> commands = {ServiceBus::BUS_COMMAND_ROUTER};
-    ServiceBus::initialize_statics(commands, 49400, 49499);
     initialize_test_service_bus_statics_once();
 
     const string router_id = TEST_HOST + ":" + std::to_string(PortPool::get_port());
@@ -378,8 +376,6 @@ TEST(BusCommandRouterProcessorTest, dispatch_http_command_get_returns_params) {
 }
 
 TEST(BusCommandRouterProcessorTest, dispatch_http_command_preserves_caller_parameters) {
-    set<string> commands = {ServiceBus::BUS_COMMAND_ROUTER};
-    ServiceBus::initialize_statics(commands, 49400, 49499);
     initialize_test_service_bus_statics_once();
 
     const string requestor_id = TEST_HOST + ":http-param-preserve-test";
