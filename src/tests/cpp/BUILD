@@ -614,19 +614,24 @@ cc_test(
 cc_test(
     name = "link_creation_agent_test",
     size = "small",
-    srcs = ["link_creation_agent_test.cc"],
+    srcs = ["query_evolution_test.cc"],
     copts = [
         "-Iexternal/gtest/googletest/include",
         "-Iexternal/gtest/googletest",
     ],
+    linkopts = [
+        "-L/usr/local/lib",
+        "-lhiredis_cluster",
+        "-lhiredis",
+        "-lmongocxx",
+        "-lbsoncxx",
+    ],
     linkstatic = 1,
     deps = [
-        "//agents/link_creation_agent:link_creation_agent_lib",
-        "//commons:commons_lib",
-        "//service_bus:service_bus_lib",
+        "//agents/evolution:evolution_lib",
+        "//agents/query_engine:pattern_matching_query_processor",
+        "//tests/cpp/test_commons:test_atomdb_json_config",
         "//tests/cpp/test_commons:test_system_params",
-        "//tests/cpp/test_commons/mocks:mock_atom_db_lib",
-        "//tests/cpp/test_commons/mocks:mock_service_bus_lib",
         "@com_github_google_googletest//:gtest_main",
     ],
 )

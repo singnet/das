@@ -30,7 +30,7 @@ LinkCreationProxy::LinkCreationProxy(
     const vector<string>& tokens,
     const string& context,
     const string& link_creator_tag,
-    const shared_ptr<LinkCreator> link_creator = shared_ptr<LinkCreator>(nullptr))
+    const shared_ptr<LinkCreator> link_creation_function)
     : BaseQueryProxy(tokens, context) {
     // constructor typically used in requestor
     init();
@@ -84,14 +84,14 @@ void LinkCreationProxy::untokenize(vector<string>& tokens) {
 pair<unsigned int, unsigned int> LinkCreationProxy::link_creation(shared_ptr<QueryAnswer> answer) {
     if (this->link_creation_function_tag == "") {
         RAISE_ERROR("Invalid empty link creation function tag");
-        return 0;
+        return make_pair(0, 0);
     } else if (this->link_creation_function_object == nullptr) {
-        if (this->link_creation_function_tag == LinkCreatorFunctionRegistry::REMOTE_FUNCTION) {
+        if (this->link_creation_function_tag == LinkCreatorRegistry::REMOTE_FUNCTION) {
             RAISE_ERROR("Invalid call to remote function");
         } else {
             RAISE_ERROR("Link creation function is not set up");
         }
-        return 0;
+        return make_pair(0, 0);
     } else {
         return this->link_creation_function_object->create(answer);
     }
@@ -111,8 +111,8 @@ void LinkCreationProxy::set_link_creation_function_tag(const string& tag) {
             RAISE_ERROR("Invalid empty link creation function tag");
         }
         this->link_creation_function_tag = tag;
-        if (tag != LinkCreatorFunctionRegistry::REMOTE_FUNCTION) {
-            this->link_creation_function_object = LinkCreatorFunctionRegistry::function(tag);
+        if (tag != LinkCreatorRegistry::REMOTE_FUNCTION) {
+            this->link_creation_function_object = LinkCreatorRegistry::function(tag);
         }
     }
 }
@@ -120,7 +120,7 @@ void LinkCreationProxy::set_link_creation_function_tag(const string& tag) {
 bool LinkCreationProxy::is_link_creation_function_remote() {
     lock_guard<mutex> semaphore(this->api_mutex);
     return (this->link_creation_function_object == nullptr) &&
-           (this->link_creation_function_tag == LinkCreatorFunctionRegistry::REMOTE_FUNCTION);
+           (this->link_creation_function_tag == LinkCreatorRegistry::REMOTE_FUNCTION);
 }
 
 void LinkCreationProxy::remote_link_creation(const vector<string>& answer_bundle) {
@@ -185,9 +185,9 @@ void LinkCreationProxy::process_query_answer_response(const vector<string>& args
         if (args.size() == 0) {
             RAISE_ERROR("Invalid empty link creation answer bundle");
         } else {
-            for (auto value_str : args) {
+            for (const string& value_str : args) {
                 vector<string> value_vector = Utils::split(value_str);
-                if ((value_vector.size != 2) || (value_vector[0] == "") || (value_vector[1] == "")) {
+                if ((value_vector.size() != 2) || (value_vector[0] == "") || (value_vector[1] == "")) {
                     RAISE_ERROR("Invalid link creation answer: <" + value_str + ">");
                 }
                 this->remote_link_creation_result.push_back(make_pair(Utils::string_to_uint(value_vector[0]), Utils::string_to_uint(value_vector[1])));

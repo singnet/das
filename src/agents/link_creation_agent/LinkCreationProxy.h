@@ -3,7 +3,7 @@
 #include "BaseQueryProxy.h"
 #include "LinkCreator.h"
 
-
+using namespace link_creators;
 using namespace std;
 
 namespace link_creation_agent {
@@ -34,6 +34,8 @@ public:
     static string MAX_ROUNDS;
     static string MAX_VISITS_PER_ROUND;
     static string MAX_UNPRODUCTIVE_ANSWERS_PER_ROUND;
+
+    LinkCreationProxy();
 
     LinkCreationProxy(
         const vector<string>& tokens,
@@ -130,13 +132,25 @@ public:
      */
     void process_query_answer_response(const vector<string>& args);
 
+    /**
+     * Packs mandatory LCA parameters in token array.
+     */
+    void pack_command_line_args() override;
+
+
+    /**
+     * Add LCA proxy tokens to output.
+     */
+    void tokenize(vector<string>& output) override;
+
+
    private:
 
     void set_default_query_parameters();
     void set_link_creation_function_tag(const string& tag);
     void init();
 
-    shared_ptr<FitnessFunction> link_creation_function_object;
+    shared_ptr<LinkCreator> link_creation_function_object;
     mutex api_mutex;
     string link_creation_function_tag;
     bool ongoing_remote_link_creation;

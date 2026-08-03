@@ -4,7 +4,7 @@
 #include "BaseProxy.h"
 #include "ContextBrokerProxy.h"
 #include "Helper.h"
-#include "LinkCreationRequestProxy.h"
+#include "LinkCreationProxy.h"
 #include "PatternMatchingQueryProxy.h"
 #include "Properties.h"
 #include "QueryEvolutionProxy.h"
@@ -159,15 +159,7 @@ class ProxyFactory {
 
         switch (processor_type) {
             case ProcessorType::LINK_CREATION_AGENT: {
-                string request_str = params.get_or<string>(Helper::REQUEST, "");
-                string repeat_count = params.get_or<string>(Helper::REPEAT_COUNT, "");
-                auto request = parse_request(request_str, umaqt);
-                auto proxy = make_shared<LinkCreationRequestProxy>(request);
-                set_param(
-                    proxy, LinkCreationRequestProxy::POSITIVE_IMPORTANCE_FLAG, pif, ParamType::BOOL);
-                set_param(proxy, LinkCreationRequestProxy::REPEAT_COUNT, repeat_count, ParamType::UINT);
-                set_base_query_params(proxy, params);
-                return proxy;
+                return make_shared<LinkCreationProxy>();
             }
             case ProcessorType::CONTEXT_BROKER: {
                 string query_str = params.get_or<string>("query", "");

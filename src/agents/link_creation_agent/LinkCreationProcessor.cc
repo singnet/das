@@ -68,9 +68,8 @@ void LinkCreationProcessor::thread_process_one_query(shared_ptr<StoppableThread>
     } catch (const std::exception& exception) {
         proxy->raise_error_on_peer(exception.what());
     }
-    // The evolution run is over, so the population and all intermediate query answers held during
-    // it are freed. Return that freed heap to the OS so RSS does not stay pinned at the peak.
 #if defined(__GLIBC__)
+    // Release freed heap to the OS
     malloc_trim(0);
 #endif
     // Self-reap: detach this finished thread and drop it from query_threads immediately, so a
@@ -86,19 +85,8 @@ void LinkCreationProcessor::thread_process_one_query(shared_ptr<StoppableThread>
 
 shared_ptr<PatternMatchingQueryProxy> LinkCreationProcessor::issue_link_creation_query(
     shared_ptr<LinkCreationProxy> proxy) {
-    auto pm_proxy =
-        make_shared<PatternMatchingQueryProxy>(proxy->get_query_tokens(), proxy->get_context());
-    pm_proxy->parameters = proxy->parameters;
-    pm_proxy->parameters[BaseQueryProxy::ATTENTION_CORRELATION] = (unsigned int) BaseQueryProxy::NONE;
-    pm_proxy->parameters[BaseQueryProxy::ATTENTION_UPDATE] = (unsigned int) BaseQueryProxy::NONE;
-    pm_proxy->parameters[BaseQueryProxy::POPULATE_METTA_MAPPING] =
-        proxy->parameters.get<bool>(BaseQueryProxy::POPULATE_METTA_MAPPING) ||
-        proxy->parameters.get<bool>(
-            BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS);  // enforced when MeTTa queries are being used
-    pm_proxy->parameters[PatternMatchingQueryProxy::MAX_ANSWERS] =
-        proxy->parameters.get<unsigned int>(LinkCreationProxy::POPULATION_SIZE);
-    ServiceBusSingleton::get_instance()->issue_bus_command(pm_proxy);
-    return pm_proxy;
+    // TBD
+    return nullptr;
 }
 
 void LinkCreationProcessor::remove_query_thread(const string& stoppable_thread_id) {
@@ -108,5 +96,6 @@ void LinkCreationProcessor::remove_query_thread(const string& stoppable_thread_i
 
 void LinkCreationProcessor::link_creation(shared_ptr<StoppableThread> monitor,
                                            shared_ptr<LinkCreationProxy> proxy) {
+    // TBD
 }
 

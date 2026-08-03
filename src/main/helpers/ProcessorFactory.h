@@ -9,7 +9,7 @@
 #include "BusCommandRouterProcessor.h"
 #include "ContextBrokerProcessor.h"
 #include "Helper.h"
-#include "LinkCreationRequestProcessor.h"
+#include "LinkCreationProcessor.h"
 #include "PatternMatchingQueryProcessor.h"
 #include "Properties.h"
 #include "QueryEvolutionProcessor.h"
@@ -38,7 +38,7 @@ class ProcessorFactory {
             case ProcessorType::ATOMDB_BROKER:
                 return make_shared<AtomDBProcessor>();
             case ProcessorType::LINK_CREATION_AGENT:
-                return make_shared<LinkCreationRequestProcessor>(params);
+                return make_shared<LinkCreationProcessor>();
             case ProcessorType::CONTEXT_BROKER:
                 return make_shared<ContextBrokerProcessor>();
             case ProcessorType::EVOLUTION_AGENT:

@@ -5,7 +5,7 @@
 
 // -------------------------------------------------------------------------------------------------
 // Add your header here
-//#include "UnitTestFunction.h"
+#include "UnitTestLinkCreator.h"
 // -------------------------------------------------------------------------------------------------
 
 using namespace link_creators;
@@ -27,7 +27,7 @@ void LinkCreatorRegistry::initialize_statics() {
         // FUNCTION["my_function_tag"] = make_shared<MyFunction>();
         // NOTE: "remote_link_creation_function" is reserved and CAN'T be used here.
         // -----------------------------------------------------------------------------------------
-        //FUNCTION["unit_test"] = make_shared<UnitTestFunction>();
+        FUNCTION["unit_test"] = make_shared<UnitTestLinkCreator>();
     }
 }
 
