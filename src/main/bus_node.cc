@@ -117,8 +117,6 @@ int main(int argc, char* argv[]) {
         AtomDBSingleton::init(atomdb_config);
 
         if (Helper::processor_type_from_string(cmd_args[Helper::SERVICE]) ==
-                mains::ProcessorType::INFERENCE_AGENT ||
-            Helper::processor_type_from_string(cmd_args[Helper::SERVICE]) ==
                 mains::ProcessorType::EVOLUTION_AGENT ||
             Helper::processor_type_from_string(cmd_args[Helper::SERVICE]) ==
                 mains::ProcessorType::COMMAND_ROUTER) {

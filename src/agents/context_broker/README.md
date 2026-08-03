@@ -34,7 +34,6 @@ make run-context-broker OPTIONS="0.0.0.0:38000 42000:42999 0.0.0.0:35700 0.0.0.0
 2025-10-01 17:51:00 | [INFO] | Connected to (NON-CLUSTER) Redis at 0.0.0.0:29000
 2025-10-01 17:51:00 | [INFO] | BUS static initialization
 2025-10-01 17:51:00 | [INFO] | BUS command: <context>
-2025-10-01 17:51:00 | [INFO] | BUS command: <inference>
 2025-10-01 17:51:00 | [INFO] | BUS command: <link_creation>
 2025-10-01 17:51:00 | [INFO] | BUS command: <pattern_matching_query>
 2025-10-01 17:51:00 | [INFO] | BUS command: <query_evolution>
