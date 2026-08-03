@@ -9,7 +9,6 @@
 #include "BusCommandRouterProcessor.h"
 #include "ContextBrokerProcessor.h"
 #include "Helper.h"
-#include "InferenceProcessor.h"
 #include "LinkCreationRequestProcessor.h"
 #include "PatternMatchingQueryProcessor.h"
 #include "Properties.h"
@@ -18,7 +17,6 @@
 
 using namespace std;
 using namespace service_bus;
-using namespace inference_agent;
 using namespace link_creation_agent;
 using namespace context_broker;
 using namespace query_engine;
@@ -39,8 +37,6 @@ class ProcessorFactory {
         switch (p_type) {
             case ProcessorType::ATOMDB_BROKER:
                 return make_shared<AtomDBProcessor>();
-            case ProcessorType::INFERENCE_AGENT:
-                return make_shared<InferenceProcessor>();
             case ProcessorType::LINK_CREATION_AGENT:
                 return make_shared<LinkCreationRequestProcessor>(params);
             case ProcessorType::CONTEXT_BROKER:

@@ -632,24 +632,6 @@ cc_test(
 )
 
 cc_test(
-    name = "inference_agent_test",
-    size = "small",
-    srcs = ["inference_agent_test.cc"],
-    copts = [
-        "-Iexternal/gtest/googletest/include",
-        "-Iexternal/gtest/googletest",
-    ],
-    linkstatic = 1,
-    deps = [
-        "//agents/inference_agent:inference_agent_lib",
-        "//commons:commons_lib",
-        "//tests/cpp/test_commons/mocks:mock_atom_db_lib",
-        "//tests/cpp/test_commons/mocks:mock_service_bus_lib",
-        "@com_github_google_googletest//:gtest_main",
-    ],
-)
-
-cc_test(
     name = "properties_test",
     size = "small",
     srcs = ["properties_test.cc"],
