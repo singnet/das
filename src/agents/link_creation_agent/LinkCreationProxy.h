@@ -147,12 +147,12 @@ public:
    private:
 
     void set_default_query_parameters();
-    void set_link_creation_function_tag(const string& tag);
+    void set_link_creator_function_tag(const string& tag);
     void init();
 
     shared_ptr<LinkCreator> link_creation_function_object;
     mutex api_mutex;
-    string link_creation_function_tag;
+    string link_creator_function_tag;
     bool ongoing_remote_link_creation;
     vector<pair<unsigned int, unsigned int>> remote_link_creation_result;
     unsigned int round_count;

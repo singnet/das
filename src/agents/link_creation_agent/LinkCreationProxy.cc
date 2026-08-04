@@ -36,7 +36,7 @@ LinkCreationProxy::LinkCreationProxy(
     init();
     set_default_query_parameters();
     this->link_creation_function_object = link_creation_function;
-    set_link_creation_function_tag(link_creation_function_tag);
+    set_link_creator_function_tag(link_creator_tag);
 }
 
 LinkCreationProxy::~LinkCreationProxy() {}
@@ -56,7 +56,7 @@ string LinkCreationProxy::to_string() {
     lock_guard<mutex> semaphore(this->api_mutex);
     string answer = "{BaseQueryProxy: ";
     answer += BaseQueryProxy::to_string();
-    answer += ", link_creation_function: " + this->link_creation_function_tag;
+    answer += ", link_creator_function: " + this->link_creator_function_tag;
     answer += "}";
     return answer;
 }
@@ -68,7 +68,7 @@ void LinkCreationProxy::pack_command_line_args() { tokenize(this->args); }
 
 void LinkCreationProxy::tokenize(vector<string>& output) {
     lock_guard<mutex> semaphore(this->api_mutex);
-    output.insert(output.begin(), this->link_creation_function_tag);
+    output.insert(output.begin(), this->link_creator_function_tag);
     BaseQueryProxy::tokenize(output);
 }
 
@@ -77,16 +77,16 @@ void LinkCreationProxy::tokenize(vector<string>& output) {
 
 void LinkCreationProxy::untokenize(vector<string>& tokens) {
     BaseQueryProxy::untokenize(tokens);
-    set_link_creation_function_tag(tokens[0]);
+    set_link_creator_function_tag(tokens[0]);
     tokens.erase(tokens.begin(), tokens.begin() + 1);
 }
 
 pair<unsigned int, unsigned int> LinkCreationProxy::link_creation(shared_ptr<QueryAnswer> answer) {
-    if (this->link_creation_function_tag == "") {
+    if (this->link_creator_function_tag == "") {
         RAISE_ERROR("Invalid empty link creation function tag");
         return make_pair(0, 0);
     } else if (this->link_creation_function_object == nullptr) {
-        if (this->link_creation_function_tag == LinkCreatorRegistry::REMOTE_FUNCTION) {
+        if (this->link_creator_function_tag == LinkCreatorRegistry::REMOTE_FUNCTION) {
             RAISE_ERROR("Invalid call to remote function");
         } else {
             RAISE_ERROR("Link creation function is not set up");
@@ -102,15 +102,15 @@ bool LinkCreationProxy::stop_criteria_met() {
     return (this->round_count >= this->parameters.get<unsigned int>(MAX_ROUNDS));
 }
 
-void LinkCreationProxy::set_link_creation_function_tag(const string& tag) {
+void LinkCreationProxy::set_link_creator_function_tag(const string& tag) {
     lock_guard<mutex> semaphore(this->api_mutex);
-    if ((this->link_creation_function_tag != "") && (tag != this->link_creation_function_tag)) {
-        RAISE_ERROR("Invalid reset of link creation function: " + this->link_creation_function_tag + " --> " + tag);
+    if ((this->link_creator_function_tag != "") && (tag != this->link_creator_function_tag)) {
+        RAISE_ERROR("Invalid reset of link creation function: " + this->link_creator_function_tag + " --> " + tag);
     } else {
         if (tag == "") {
             RAISE_ERROR("Invalid empty link creation function tag");
         }
-        this->link_creation_function_tag = tag;
+        this->link_creator_function_tag = tag;
         if (tag != LinkCreatorRegistry::REMOTE_FUNCTION) {
             this->link_creation_function_object = LinkCreatorRegistry::function(tag);
         }
@@ -120,7 +120,7 @@ void LinkCreationProxy::set_link_creation_function_tag(const string& tag) {
 bool LinkCreationProxy::is_link_creation_function_remote() {
     lock_guard<mutex> semaphore(this->api_mutex);
     return (this->link_creation_function_object == nullptr) &&
-           (this->link_creation_function_tag == LinkCreatorRegistry::REMOTE_FUNCTION);
+           (this->link_creator_function_tag == LinkCreatorRegistry::REMOTE_FUNCTION);
 }
 
 void LinkCreationProxy::remote_link_creation(const vector<string>& answer_bundle) {

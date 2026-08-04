@@ -33,6 +33,9 @@ shared_ptr<BusCommandProxy> LinkCreationProcessor::factory_empty_proxy() {
 void LinkCreationProcessor::run_command(shared_ptr<BusCommandProxy> proxy) {
     lock_guard<mutex> semaphore(this->query_threads_mutex);
     auto link_creation_proxy = dynamic_pointer_cast<LinkCreationProxy>(proxy);
+    if (link_creation_proxy == nullptr) {
+        RAISE_ERROR("Invalid BusCommandProxy instance");
+    }
     string thread_id = "thread<" + proxy->my_id() + "_" + std::to_string(proxy->get_serial()) + ">";
     LOG_DEBUG("Starting new thread: " << thread_id << " to run command: <" << proxy->get_command()
                                       << ">");
@@ -91,7 +94,11 @@ shared_ptr<PatternMatchingQueryProxy> LinkCreationProcessor::issue_link_creation
 
 void LinkCreationProcessor::remove_query_thread(const string& stoppable_thread_id) {
     lock_guard<mutex> semaphore(this->query_threads_mutex);
-    this->query_threads.erase(this->query_threads.find(stoppable_thread_id));
+    auto iterator = this->query_threads.find(stoppable_thread_id);
+    if (iterator == this->query_threads.end()) {
+        RAISE_ERROR("Attempt to remove a StoppableThread that doesn't exist: " + stoppable_thread_id);
+    }
+    this->query_threads.erase(iterator);
 }
 
 void LinkCreationProcessor::link_creation(shared_ptr<StoppableThread> monitor,

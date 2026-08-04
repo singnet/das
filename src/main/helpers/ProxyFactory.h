@@ -5,6 +5,7 @@
 #include "ContextBrokerProxy.h"
 #include "Helper.h"
 #include "LinkCreationProxy.h"
+#include "LinkCreatorRegistry.h"
 #include "PatternMatchingQueryProxy.h"
 #include "Properties.h"
 #include "QueryEvolutionProxy.h"
@@ -159,6 +160,7 @@ class ProxyFactory {
 
         switch (processor_type) {
             case ProcessorType::LINK_CREATION_AGENT: {
+                LinkCreatorRegistry::initialize_statics();
                 return make_shared<LinkCreationProxy>();
             }
             case ProcessorType::CONTEXT_BROKER: {

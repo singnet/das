@@ -614,7 +614,7 @@ cc_test(
 cc_test(
     name = "link_creation_agent_test",
     size = "small",
-    srcs = ["query_evolution_test.cc"],
+    srcs = ["link_creation_agent_test.cc"],
     copts = [
         "-Iexternal/gtest/googletest/include",
         "-Iexternal/gtest/googletest",
@@ -628,7 +628,7 @@ cc_test(
     ],
     linkstatic = 1,
     deps = [
-        "//agents/evolution:evolution_lib",
+        "//agents/link_creation_agent:link_creation_agent_lib",
         "//agents/query_engine:pattern_matching_query_processor",
         "//tests/cpp/test_commons:test_atomdb_json_config",
         "//tests/cpp/test_commons:test_system_params",

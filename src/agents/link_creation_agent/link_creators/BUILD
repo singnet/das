@@ -10,5 +10,6 @@ cc_library(
     includes = ["."],
     deps = [
         "//agents/query_engine:query_answer",
+        "//commons:commons_lib",
     ],
 )
