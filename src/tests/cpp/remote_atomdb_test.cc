@@ -756,6 +756,9 @@ string seed_redis_node(const string& context, const string& node_name) {
     auto seeder = dynamic_pointer_cast<RedisMongoDB>(
         AtomDBFactory::create_backend(test_atomdb_json_config(), context));
     EXPECT_NE(seeder, nullptr);
+    if (seeder == nullptr) {
+        return "";
+    }
     auto node = new Node("Symbol", node_name);
     string handle = seeder->add_node(node);
     delete node;
