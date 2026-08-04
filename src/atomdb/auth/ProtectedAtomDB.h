@@ -73,38 +73,44 @@ class ProtectedAtomDB : public AtomDB {
     set<string> links_exist(const vector<string>& handles) override;
     set<string> links_exist(const vector<string>& handles, const string& public_key);
 
-    string add_atom(const atoms::Atom* atom, bool throw_if_exists = false) override;
-    string add_atom(const atoms::Atom* atom, const string& public_key, bool throw_if_exists = false);
+    string add_atom(const atoms::Atom* atom, const atoms::Merger* merger = NULL) override;
+    string add_atom(const atoms::Atom* atom,
+                    const string& public_key,
+                    const atoms::Merger* merger = NULL);
 
-    string add_node(const atoms::Node* node, bool throw_if_exists = false) override;
-    string add_node(const atoms::Node* node, const string& public_key, bool throw_if_exists = false);
+    string add_node(const atoms::Node* node, const atoms::Merger* merger = NULL) override;
+    string add_node(const atoms::Node* node,
+                    const string& public_key,
+                    const atoms::Merger* merger = NULL);
 
-    string add_link(const atoms::Link* link, bool throw_if_exists = false) override;
-    string add_link(const atoms::Link* link, const string& public_key, bool throw_if_exists = false);
+    string add_link(const atoms::Link* link, const atoms::Merger* merger = NULL) override;
+    string add_link(const atoms::Link* link,
+                    const string& public_key,
+                    const atoms::Merger* merger = NULL);
 
-    vector<string> add_atoms(const vector<atoms::Atom*>& atoms,
-                             bool throw_if_exists = false,
-                             bool is_transactional = false) override;
-    vector<string> add_atoms(const vector<atoms::Atom*>& atoms,
+    vector<string> add_atoms(const vector<atoms::Atom*>& atom_list,
+                             bool is_transactional = false,
+                             const atoms::Merger* merger = NULL) override;
+    vector<string> add_atoms(const vector<atoms::Atom*>& atom_list,
                              const string& public_key,
-                             bool throw_if_exists = false,
-                             bool is_transactional = false);
+                             bool is_transactional = false,
+                             const atoms::Merger* merger = NULL);
 
     vector<string> add_nodes(const vector<atoms::Node*>& nodes,
-                             bool throw_if_exists = false,
-                             bool is_transactional = false) override;
+                             bool is_transactional = false,
+                             const atoms::Merger* merger = NULL) override;
     vector<string> add_nodes(const vector<atoms::Node*>& nodes,
                              const string& public_key,
-                             bool throw_if_exists = false,
-                             bool is_transactional = false);
+                             bool is_transactional = false,
+                             const atoms::Merger* merger = NULL);
 
     vector<string> add_links(const vector<atoms::Link*>& links,
-                             bool throw_if_exists = false,
-                             bool is_transactional = false) override;
+                             bool is_transactional = false,
+                             const atoms::Merger* merger = NULL) override;
     vector<string> add_links(const vector<atoms::Link*>& links,
                              const string& public_key,
-                             bool throw_if_exists = false,
-                             bool is_transactional = false);
+                             bool is_transactional = false,
+                             const atoms::Merger* merger = NULL);
 
     bool delete_atom(const string& handle, bool delete_link_targets = false) override;
     bool delete_atom(const string& handle, const string& public_key, bool delete_link_targets = false);

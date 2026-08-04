@@ -72,40 +72,40 @@ set<string> ProtectedAtomDB::links_exist(const vector<string>& handles, const st
 
 string ProtectedAtomDB::add_atom(const atoms::Atom* atom,
                                  const string& public_key,
-                                 bool throw_if_exists) {
+                                 const atoms::Merger* merger) {
     RAISE_ERROR("ProtectedAtomDB::add_atom(atom, public_key) is not implemented yet");
 }
 
 string ProtectedAtomDB::add_node(const atoms::Node* node,
                                  const string& public_key,
-                                 bool throw_if_exists) {
+                                 const atoms::Merger* merger) {
     RAISE_ERROR("ProtectedAtomDB::add_node(node, public_key) is not implemented yet");
 }
 
 string ProtectedAtomDB::add_link(const atoms::Link* link,
                                  const string& public_key,
-                                 bool throw_if_exists) {
+                                 const atoms::Merger* merger) {
     RAISE_ERROR("ProtectedAtomDB::add_link(link, public_key) is not implemented yet");
 }
 
-vector<string> ProtectedAtomDB::add_atoms(const vector<atoms::Atom*>& atoms,
+vector<string> ProtectedAtomDB::add_atoms(const vector<atoms::Atom*>& atom_list,
                                           const string& public_key,
-                                          bool throw_if_exists,
-                                          bool is_transactional) {
-    RAISE_ERROR("ProtectedAtomDB::add_atoms(atoms, public_key) is not implemented yet");
+                                          bool is_transactional,
+                                          const atoms::Merger* merger) {
+    RAISE_ERROR("ProtectedAtomDB::add_atoms(atom_list, public_key) is not implemented yet");
 }
 
 vector<string> ProtectedAtomDB::add_nodes(const vector<atoms::Node*>& nodes,
                                           const string& public_key,
-                                          bool throw_if_exists,
-                                          bool is_transactional) {
+                                          bool is_transactional,
+                                          const atoms::Merger* merger) {
     RAISE_ERROR("ProtectedAtomDB::add_nodes(nodes, public_key) is not implemented yet");
 }
 
 vector<string> ProtectedAtomDB::add_links(const vector<atoms::Link*>& links,
                                           const string& public_key,
-                                          bool throw_if_exists,
-                                          bool is_transactional) {
+                                          bool is_transactional,
+                                          const atoms::Merger* merger) {
     RAISE_ERROR("ProtectedAtomDB::add_links(links, public_key) is not implemented yet");
 }
 
@@ -217,33 +217,33 @@ set<string> ProtectedAtomDB::links_exist(const vector<string>& handles) {
     raise_public_key_required("links_exist");
 }
 
-string ProtectedAtomDB::add_atom(const atoms::Atom* atom, bool throw_if_exists) {
+string ProtectedAtomDB::add_atom(const atoms::Atom* atom, const atoms::Merger* merger) {
     raise_public_key_required("add_atom");
 }
 
-string ProtectedAtomDB::add_node(const atoms::Node* node, bool throw_if_exists) {
+string ProtectedAtomDB::add_node(const atoms::Node* node, const atoms::Merger* merger) {
     raise_public_key_required("add_node");
 }
 
-string ProtectedAtomDB::add_link(const atoms::Link* link, bool throw_if_exists) {
+string ProtectedAtomDB::add_link(const atoms::Link* link, const atoms::Merger* merger) {
     raise_public_key_required("add_link");
 }
 
-vector<string> ProtectedAtomDB::add_atoms(const vector<atoms::Atom*>& atoms,
-                                          bool throw_if_exists,
-                                          bool is_transactional) {
+vector<string> ProtectedAtomDB::add_atoms(const vector<atoms::Atom*>& atom_list,
+                                          bool is_transactional,
+                                          const atoms::Merger* merger) {
     raise_public_key_required("add_atoms");
 }
 
 vector<string> ProtectedAtomDB::add_nodes(const vector<atoms::Node*>& nodes,
-                                          bool throw_if_exists,
-                                          bool is_transactional) {
+                                          bool is_transactional,
+                                          const atoms::Merger* merger) {
     raise_public_key_required("add_nodes");
 }
 
 vector<string> ProtectedAtomDB::add_links(const vector<atoms::Link*>& links,
-                                          bool throw_if_exists,
-                                          bool is_transactional) {
+                                          bool is_transactional,
+                                          const atoms::Merger* merger) {
     raise_public_key_required("add_links");
 }
 
