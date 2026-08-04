@@ -12,6 +12,7 @@ namespace link_creators {
 
 /**
  * Processes a QueryAnswer and creates one or more links using any of the elements in it.
+ * LinkCreator is NOT a thread-safe object.
  */
 class LinkCreator {
    public:
