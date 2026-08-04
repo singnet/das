@@ -795,6 +795,7 @@ TEST(RemoteAtomDBFactoryConstruction, EmptyLocalPersistenceContextFallsBackToPee
 
     auto node = new Node("Symbol", "\"fallback_routed\"");
     string handle = db.add_node(node);
+    delete node;
     ASSERT_FALSE(handle.empty());
     auto got = db.get_atom(handle);
     ASSERT_NE(got, nullptr);
@@ -803,6 +804,7 @@ TEST(RemoteAtomDBFactoryConstruction, EmptyLocalPersistenceContextFallsBackToPee
     auto cleanup = dynamic_pointer_cast<RedisMongoDB>(
         AtomDBFactory::create_backend(test_atomdb_json_config(), peer_context));
     ASSERT_NE(cleanup, nullptr);
+    EXPECT_TRUE(cleanup->atom_exists(handle));
     cleanup->drop_all();
 }
 
@@ -824,6 +826,7 @@ TEST(RemoteAtomDBFactoryConstruction, ProtectedPeerRoutesThroughLocalPersistence
 
     auto node = new Node("Symbol", "\"factory_routed\"");
     string handle = db.add_node(node);
+    delete node;
     ASSERT_FALSE(handle.empty());
     auto got = db.get_atom(handle);
     ASSERT_NE(got, nullptr);

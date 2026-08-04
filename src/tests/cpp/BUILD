@@ -1101,6 +1101,7 @@ cc_test(
         "//atomdb/redis_mongodb",
         "//db_adapter:db_adapter_lib",
         "//tests/cpp/test_commons:test_atomdb_json_config",
+        "//tests/cpp/test_commons/mocks:mock_atom_db_lib",
         "@com_github_google_googletest//:gtest_main",
         "@mbedtls",
     ],

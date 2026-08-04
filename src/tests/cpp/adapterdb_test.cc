@@ -14,6 +14,7 @@
 #include "AtomDBSingleton.h"
 #include "Link.h"
 #include "Merger.h"
+#include "MockAtomDB.h"
 #include "MorkDB.h"
 #include "Node.h"
 #include "RedisMongoDB.h"
@@ -26,6 +27,7 @@ using namespace std;
 using namespace atomdb;
 using namespace atoms;
 using namespace commons;
+using ::testing::Return;
 
 struct AdapterTestParams {
     string adapter_type;
@@ -217,9 +219,16 @@ TEST_P(AdapterDBTest, ConstructorSucceedsWithValidConfig) {
 }
 
 TEST_P(AdapterDBTest, IsProtectedDelegatesToBackend) {
-    auto db = create_current_adapter();
+    ASSERT_NE(create_current_adapter(), nullptr);
+
+    auto mock_backend = make_shared<AtomDBMock>();
+    EXPECT_CALL(*mock_backend, is_protected()).WillRepeatedly(Return(true));
+
+    const AdapterTestParams& p = GetParam();
+    auto config = build_adapter_config(mapping_file_path, p.adapter_type, p.db_credentials);
+    auto db = make_shared<AdapterDB>(config, mock_backend);
     ASSERT_NE(db, nullptr);
-    EXPECT_EQ(db->is_protected(), backend->is_protected());
+    EXPECT_TRUE(db->is_protected());
 }
 
 TEST_P(AdapterDBTest, ConstructorLoadsDataIntoBackendOnFirstRun) {
