@@ -8,7 +8,11 @@ using namespace commons;
 // --------------------------------------------------------------------------------
 // Constructors and destructors
 
-ProtectedAtomDB::ProtectedAtomDB(shared_ptr<AtomDB> backend) : backend(std::move(backend)) {}
+ProtectedAtomDB::ProtectedAtomDB(shared_ptr<AtomDB> backend) : backend(std::move(backend)) {
+    if (this->backend == nullptr) {
+        RAISE_ERROR("ProtectedAtomDB requires a non-null backend AtomDB");
+    }
+}
 
 // --------------------------------------------------------------------------------
 // Public methods
@@ -161,9 +165,9 @@ size_t ProtectedAtomDB::atom_count(const string& public_key) const {
     RAISE_ERROR("ProtectedAtomDB::atom_count(public_key) is not implemented yet");
 }
 
-bool ProtectedAtomDB::allow_nested_indexing() { return backend->allow_nested_indexing(); }
+bool ProtectedAtomDB::allow_nested_indexing() { return this->backend->allow_nested_indexing(); }
 
-bool ProtectedAtomDB::composite_type_enabled() const { return backend->composite_type_enabled(); }
+bool ProtectedAtomDB::composite_type_enabled() const { return this->backend->composite_type_enabled(); }
 
 bool ProtectedAtomDB::is_protected() const { return true; }
 

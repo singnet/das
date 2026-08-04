@@ -1,6 +1,8 @@
 #include <gtest/gtest.h>
 
 #include <atomic>
+#include <bsoncxx/builder/basic/document.hpp>
+#include <bsoncxx/builder/basic/kvp.hpp>
 #include <cstring>
 #include <iostream>
 #include <memory>
@@ -1350,6 +1352,32 @@ TEST_F(RedisMongoDBTest, TransactionalRejectedMergeStillBooksCompositeType) {
     delete existing;
     delete duplicate;
     delete nested;
+}
+
+TEST_F(RedisMongoDBTest, LoadProtectedFlagFromConfigCollection) {
+    using bsoncxx::builder::basic::kvp;
+    using bsoncxx::builder::basic::make_document;
+
+    auto conn = db->get_mongo_pool()->acquire();
+    auto config_collection =
+        (*conn)[RedisMongoDB::MONGODB_DB_NAME][RedisMongoDB::MONGODB_CONFIG_COLLECTION_NAME];
+    config_collection.delete_many({});
+
+    auto recreate = []() {
+        return dynamic_pointer_cast<RedisMongoDB>(
+            AtomDBFactory::create_backend(test_atomdb_json_config(), "test_"));
+    };
+
+    EXPECT_FALSE(recreate()->is_protected());
+
+    config_collection.insert_one(make_document(kvp("protected", true)));
+    EXPECT_TRUE(recreate()->is_protected());
+
+    config_collection.delete_many({});
+    config_collection.insert_one(make_document(kvp("protected", false)));
+    EXPECT_FALSE(recreate()->is_protected());
+
+    config_collection.delete_many({});
 }
 
 int main(int argc, char** argv) {

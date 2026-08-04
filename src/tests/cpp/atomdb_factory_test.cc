@@ -62,12 +62,17 @@ TEST(AtomDBFactoryTest, WrapIfProtectedUnprotectedReturnsSameInstance) {
 TEST(AtomDBFactoryTest, WrapIfProtectedWrapsOnce) {
     auto backend = make_shared<AtomDBMock>();
     EXPECT_CALL(*backend, is_protected()).WillRepeatedly(Return(true));
+    EXPECT_CALL(*backend, allow_nested_indexing()).WillRepeatedly(Return(true));
+    EXPECT_CALL(*backend, composite_type_enabled()).WillRepeatedly(Return(false));
 
     auto wrapped = AtomDBFactory::wrap_if_protected(backend);
     ASSERT_NE(wrapped, nullptr);
     EXPECT_NE(wrapped.get(), backend.get());
     EXPECT_NE(dynamic_pointer_cast<ProtectedAtomDB>(wrapped), nullptr);
     EXPECT_TRUE(wrapped->is_protected());
+    // ProtectedAtomDB must keep advertising the backend's capabilities.
+    EXPECT_TRUE(wrapped->allow_nested_indexing());
+    EXPECT_FALSE(wrapped->composite_type_enabled());
 
     auto wrapped_again = AtomDBFactory::wrap_if_protected(wrapped);
     EXPECT_EQ(wrapped_again.get(), wrapped.get());

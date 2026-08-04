@@ -151,7 +151,7 @@ class ProtectedAtomDB : public AtomDB {
    private:
     shared_ptr<AtomDB> backend;
 
-    static void raise_public_key_required(const string& method_name);
+    [[noreturn]] static void raise_public_key_required(const string& method_name);
 };
 
 }  // namespace atomdb

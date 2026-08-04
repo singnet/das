@@ -216,6 +216,12 @@ TEST_P(AdapterDBTest, ConstructorSucceedsWithValidConfig) {
     EXPECT_GT(db->atom_count(), 0);
 }
 
+TEST_P(AdapterDBTest, IsProtectedDelegatesToBackend) {
+    auto db = create_current_adapter();
+    ASSERT_NE(db, nullptr);
+    EXPECT_EQ(db->is_protected(), backend->is_protected());
+}
+
 TEST_P(AdapterDBTest, ConstructorLoadsDataIntoBackendOnFirstRun) {
     auto db = create_current_adapter();
     ASSERT_NE(db, nullptr);
