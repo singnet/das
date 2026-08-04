@@ -75,6 +75,9 @@ void LinkCreationProxy::tokenize(vector<string>& output) {
 
 void LinkCreationProxy::untokenize(vector<string>& tokens) {
     BaseQueryProxy::untokenize(tokens);
+    if (tokens.size() < 1) {
+        RAISE_ERROR("Invalid tokens for LinkCreationProxy");
+    }
     set_link_creator_function_tag(tokens[0]);
     tokens.erase(tokens.begin(), tokens.begin() + 1);
 }
@@ -82,14 +85,14 @@ void LinkCreationProxy::untokenize(vector<string>& tokens) {
 pair<unsigned int, unsigned int> LinkCreationProxy::link_creation(shared_ptr<QueryAnswer> answer) {
     if (this->link_creator_function_tag == "") {
         RAISE_ERROR("Invalid empty link creation function tag");
-        return make_pair(0, 0);
+        return make_pair(0, 0); // just to avoid compilation warnings
     } else if (this->link_creation_function_object == nullptr) {
         if (this->link_creator_function_tag == LinkCreatorRegistry::REMOTE_FUNCTION) {
             RAISE_ERROR("Invalid call to remote function");
         } else {
             RAISE_ERROR("Link creation function is not set up");
         }
-        return make_pair(0, 0);
+        return make_pair(0, 0); // just to avoid compilation warnings
     } else {
         return this->link_creation_function_object->create(answer);
     }

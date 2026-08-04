@@ -84,7 +84,7 @@ class LinkCreationProxy : public BaseQueryProxy {
     bool is_link_creation_function_remote();
 
     /**
-     * Send a request to peer in order to evaluate fitness function of the passed
+     * Send a request to peer in order to execute the link creator function
      * aswer bundle
      */
     void remote_link_creation(const vector<string>& answer_bundle);
@@ -97,9 +97,9 @@ class LinkCreationProxy : public BaseQueryProxy {
     vector<pair<unsigned int, unsigned int>> get_remotely_created_links();
 
     /**
-     * Returns true iff there's no remote fitness evaluation going on.
+     * Returns true iff there's no remote link creator function is going on
      *
-     * @return true iff there's no remote fitness evaluation going on.
+     * @return true iff there's no remote link creator function is going on
      */
     bool remote_link_creation_finished();
 
@@ -126,7 +126,7 @@ class LinkCreationProxy : public BaseQueryProxy {
     /**
      * Response of a create_links() command
      *
-     * @param args a bundle of fitness values.
+     * @param args a bundle of <unsigned int, unsigned int> pairs
      */
     void process_query_answer_response(const vector<string>& args);
 
