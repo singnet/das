@@ -752,6 +752,23 @@ void seed_protected_flag(const string& context, bool protected_value) {
     }
 }
 
+string seed_redis_node(const string& context, const string& node_name) {
+    auto seeder = dynamic_pointer_cast<RedisMongoDB>(
+        AtomDBFactory::create_backend(test_atomdb_json_config(), context));
+    EXPECT_NE(seeder, nullptr);
+    auto node = new Node("Symbol", node_name);
+    string handle = seeder->add_node(node);
+    delete node;
+    return handle;
+}
+
+void drop_redis_context(const string& context) {
+    auto cleanup = dynamic_pointer_cast<RedisMongoDB>(
+        AtomDBFactory::create_backend(test_atomdb_json_config(), context));
+    ASSERT_NE(cleanup, nullptr);
+    cleanup->drop_all();
+}
+
 }  // namespace
 
 TEST(RemoteAtomDBPeerIsProtected, OrAcrossRemoteAndLocal) {
@@ -779,6 +796,8 @@ TEST(RemoteAtomDBIsProtected, AggregatesPeers) {
 
 TEST(RemoteAtomDBFactoryConstruction, EmptyLocalPersistenceContextFallsBackToPeerContext) {
     const string peer_context = "remote_fallback_ctx_";
+    string handle = seed_redis_node(peer_context, "\"fallback_routed\"");
+    ASSERT_FALSE(handle.empty());
 
     nlohmann::json peer_json = {{"uid", "fallback_peer"},
                                 {"type", "inmemorydb"},
@@ -793,19 +812,12 @@ TEST(RemoteAtomDBFactoryConstruction, EmptyLocalPersistenceContextFallsBackToPee
     EXPECT_EQ(RedisMongoDB::MONGODB_DB_NAME, peer_context + "das");
     EXPECT_EQ(RedisMongoDB::MONGODB_CONFIG_COLLECTION_NAME, peer_context + "config");
 
-    auto node = new Node("Symbol", "\"fallback_routed\"");
-    string handle = db.add_node(node);
-    delete node;
-    ASSERT_FALSE(handle.empty());
+    EXPECT_EQ(peer->get_cached_atom(handle), nullptr);
     auto got = db.get_atom(handle);
     ASSERT_NE(got, nullptr);
     EXPECT_EQ(got->handle(), handle);
 
-    auto cleanup = dynamic_pointer_cast<RedisMongoDB>(
-        AtomDBFactory::create_backend(test_atomdb_json_config(), peer_context));
-    ASSERT_NE(cleanup, nullptr);
-    EXPECT_TRUE(cleanup->atom_exists(handle));
-    cleanup->drop_all();
+    drop_redis_context(peer_context);
 }
 
 TEST(RemoteAtomDBFactoryConstruction, ProtectedPeerRoutesThroughLocalPersistence) {
@@ -817,25 +829,33 @@ TEST(RemoteAtomDBFactoryConstruction, ProtectedPeerRoutesThroughLocalPersistence
     peer_json["context"] = peer_context;
     peer_json["local_persistence"] = {{"type", "inmemorydb"}, {"context", ""}};
 
-    RemoteAtomDB db(JsonConfig(nlohmann::json::array({peer_json})));
-    auto* peer = db.get_peer("protected_peer");
-    ASSERT_NE(peer, nullptr);
-    EXPECT_FALSE(peer->is_readonly());
-    EXPECT_TRUE(peer->is_protected());
-    EXPECT_TRUE(db.is_protected());
+    RemoteAtomDB factory_db(JsonConfig(nlohmann::json::array({peer_json})));
+    auto* factory_peer = factory_db.get_peer("protected_peer");
+    ASSERT_NE(factory_peer, nullptr);
+    EXPECT_FALSE(factory_peer->is_readonly());
+    EXPECT_TRUE(factory_peer->is_protected());
+    EXPECT_TRUE(factory_db.is_protected());
 
+    auto remote = make_protection_mock(true);
+    EXPECT_CALL(*remote, get_atom(testing::_)).Times(0);
+    auto local = make_shared<InMemoryDB>("prot_route_local_");
     auto node = new Node("Symbol", "\"factory_routed\"");
-    string handle = db.add_node(node);
+    string handle = local->add_node(node);
     delete node;
     ASSERT_FALSE(handle.empty());
+
+    map<string, shared_ptr<RemoteAtomDBPeer>> peers;
+    peers["protected_peer"] =
+        make_shared<RemoteAtomDBPeer>(AtomDBFactory::wrap_if_protected(remote), local, "protected_peer");
+    RemoteAtomDB db(peers);
+    auto* peer = db.get_peer("protected_peer");
+    ASSERT_NE(peer, nullptr);
+    EXPECT_EQ(peer->get_cached_atom(handle), nullptr);
     auto got = db.get_atom(handle);
     ASSERT_NE(got, nullptr);
     EXPECT_EQ(got->handle(), handle);
 
-    auto cleanup = dynamic_pointer_cast<RedisMongoDB>(
-        AtomDBFactory::create_backend(test_atomdb_json_config(), peer_context));
-    ASSERT_NE(cleanup, nullptr);
-    cleanup->drop_all();
+    drop_redis_context(peer_context);
 }
 
 int main(int argc, char** argv) {
