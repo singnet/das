@@ -19,15 +19,14 @@ namespace link_creation_agent {
  * the actual query tokens, flags etc).
  */
 class LinkCreationProxy : public BaseQueryProxy {
-
-public:
-
+   public:
     // ---------------------------------------------------------------------------------------------
     // Constructors, destructors and static state
 
     // Commands allowed at the proxy level (caller <--> processor)
     static string PROCESS_QUERY_ANSWER;  // Delivers a bundle with QueryAnswer objects to process
-    static string PROCESS_QUERY_ANSWER_RESPONSE;  // Delivers the answer for a previous PROCESS_QUERY_ANSWER command
+    static string PROCESS_QUERY_ANSWER_RESPONSE;  // Delivers the answer for a previous
+                                                  // PROCESS_QUERY_ANSWER command
 
     // LCA command's optional parameters
     static string MAX_SUCCESSFUL_CREATES_PER_ROUND;
@@ -37,11 +36,10 @@ public:
 
     LinkCreationProxy();
 
-    LinkCreationProxy(
-        const vector<string>& tokens,
-        const string& context,
-        const string& link_creator_tag,
-        const shared_ptr<LinkCreator> link_creator = shared_ptr<LinkCreator>(nullptr));
+    LinkCreationProxy(const vector<string>& tokens,
+                      const string& context,
+                      const string& link_creator_tag,
+                      const shared_ptr<LinkCreator> link_creator = shared_ptr<LinkCreator>(nullptr));
 
     ~LinkCreationProxy();
 
@@ -137,15 +135,12 @@ public:
      */
     void pack_command_line_args() override;
 
-
     /**
      * Add LCA proxy tokens to output.
      */
     void tokenize(vector<string>& output) override;
 
-
    private:
-
     void set_default_query_parameters();
     void set_link_creator_function_tag(const string& tag);
     void init();
@@ -158,4 +153,4 @@ public:
     unsigned int round_count;
 };
 
-} // namespace link_creation_agent
+}  // namespace link_creation_agent

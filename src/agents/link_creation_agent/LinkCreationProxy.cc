@@ -1,10 +1,9 @@
 #include "LinkCreationProxy.h"
 
 #include "LinkCreatorRegistry.h"
+#include "Logger.h"
 #include "ServiceBus.h"
 #include "SystemParametersSingleton.h"
-
-#include "Logger.h"
 
 using namespace link_creation_agent;
 
@@ -13,7 +12,7 @@ using namespace link_creation_agent;
 
 string LinkCreationProxy::PROCESS_QUERY_ANSWER = "process_query_answer";
 string LinkCreationProxy::PROCESS_QUERY_ANSWER_RESPONSE = "process_query_answer_response";
-    
+
 string LinkCreationProxy::MAX_SUCCESSFUL_CREATES_PER_ROUND = "max_successful_creates_per_round";
 string LinkCreationProxy::MAX_ROUNDS = "max_rounds";
 string LinkCreationProxy::MAX_VISITS_PER_ROUND = "max_visits_per_round";
@@ -26,11 +25,10 @@ LinkCreationProxy::LinkCreationProxy() {
     set_default_query_parameters();
 }
 
-LinkCreationProxy::LinkCreationProxy(
-    const vector<string>& tokens,
-    const string& context,
-    const string& link_creator_tag,
-    const shared_ptr<LinkCreator> link_creation_function)
+LinkCreationProxy::LinkCreationProxy(const vector<string>& tokens,
+                                     const string& context,
+                                     const string& link_creator_tag,
+                                     const shared_ptr<LinkCreator> link_creation_function)
     : BaseQueryProxy(tokens, context) {
     // constructor typically used in requestor
     init();
@@ -105,7 +103,8 @@ bool LinkCreationProxy::stop_criteria_met() {
 void LinkCreationProxy::set_link_creator_function_tag(const string& tag) {
     lock_guard<mutex> semaphore(this->api_mutex);
     if ((this->link_creator_function_tag != "") && (tag != this->link_creator_function_tag)) {
-        RAISE_ERROR("Invalid reset of link creation function: " + this->link_creator_function_tag + " --> " + tag);
+        RAISE_ERROR("Invalid reset of link creation function: " + this->link_creator_function_tag +
+                    " --> " + tag);
     } else {
         if (tag == "") {
             RAISE_ERROR("Invalid empty link creation function tag");
@@ -190,7 +189,8 @@ void LinkCreationProxy::process_query_answer_response(const vector<string>& args
                 if ((value_vector.size() != 2) || (value_vector[0] == "") || (value_vector[1] == "")) {
                     RAISE_ERROR("Invalid link creation answer: <" + value_str + ">");
                 }
-                this->remote_link_creation_result.push_back(make_pair(Utils::string_to_uint(value_vector[0]), Utils::string_to_uint(value_vector[1])));
+                this->remote_link_creation_result.push_back(make_pair(
+                    Utils::string_to_uint(value_vector[0]), Utils::string_to_uint(value_vector[1])));
             }
             this->ongoing_remote_link_creation = false;
         }

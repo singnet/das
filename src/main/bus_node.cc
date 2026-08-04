@@ -13,8 +13,8 @@
 #include "ProcessorFactory.h"
 #include "Properties.h"
 #include "RemoteAtomDB.h"
-#include "SystemParametersSingleton.h"
 #include "ServiceBusSingleton.h"
+#include "SystemParametersSingleton.h"
 #include "Utils.h"
 
 using namespace commons;

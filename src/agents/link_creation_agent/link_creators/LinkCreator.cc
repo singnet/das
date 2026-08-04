@@ -10,8 +10,7 @@ LinkCreator::LinkCreator() {
     this->_visited_at_least_one_in_last_create = false;
 }
 
-LinkCreator::~LinkCreator() {
-}
+LinkCreator::~LinkCreator() {}
 
 bool LinkCreator::get_and_reset_visited() {
     bool answer = _visited_at_least_one_in_last_create;

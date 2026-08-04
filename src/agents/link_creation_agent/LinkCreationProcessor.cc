@@ -17,7 +17,7 @@ using namespace service_bus;
 // Constructors and destructors
 
 LinkCreationProcessor::LinkCreationProcessor() : BusCommandProcessor({ServiceBus::LINK_CREATION}) {
-    //AttentionBrokerClient::health_check(true);
+    // AttentionBrokerClient::health_check(true);
 }
 
 LinkCreationProcessor::~LinkCreationProcessor() {}
@@ -43,8 +43,10 @@ void LinkCreationProcessor::run_command(shared_ptr<BusCommandProxy> proxy) {
         RAISE_ERROR("Invalid thread id: " + thread_id);
     } else {
         shared_ptr<StoppableThread> stoppable_thread = make_shared<StoppableThread>(thread_id);
-        stoppable_thread->attach(new thread(
-            &LinkCreationProcessor::thread_process_one_query, this, stoppable_thread, link_creation_proxy));
+        stoppable_thread->attach(new thread(&LinkCreationProcessor::thread_process_one_query,
+                                            this,
+                                            stoppable_thread,
+                                            link_creation_proxy));
         this->query_threads[thread_id] = stoppable_thread;
     }
 }
@@ -53,7 +55,7 @@ void LinkCreationProcessor::run_command(shared_ptr<BusCommandProxy> proxy) {
 // Private methods
 
 void LinkCreationProcessor::thread_process_one_query(shared_ptr<StoppableThread> monitor,
-                                                       shared_ptr<LinkCreationProxy> proxy) {
+                                                     shared_ptr<LinkCreationProxy> proxy) {
     try {
         if (proxy->args.size() < 2) {
             RAISE_ERROR("Syntax error in query command. Missing implicit parameters.");
@@ -102,7 +104,6 @@ void LinkCreationProcessor::remove_query_thread(const string& stoppable_thread_i
 }
 
 void LinkCreationProcessor::link_creation(shared_ptr<StoppableThread> monitor,
-                                           shared_ptr<LinkCreationProxy> proxy) {
+                                          shared_ptr<LinkCreationProxy> proxy) {
     // TBD
 }
-

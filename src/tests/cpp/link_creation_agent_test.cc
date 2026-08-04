@@ -1,26 +1,26 @@
 #include <cmath>
 
-#include "LinkCreatorRegistry.h"
-#include "Logger.h"
 #include "LinkCreationProcessor.h"
 #include "LinkCreationProxy.h"
-#include "TestAtomDBJsonConfig.h"
-#include "TestSystemParams.h"
+#include "LinkCreatorRegistry.h"
+#include "Logger.h"
 #include "ServiceBus.h"
 #include "ServiceBusSingleton.h"
-
+#include "TestAtomDBJsonConfig.h"
+#include "TestSystemParams.h"
 #include "Utils.h"
 #include "gtest/gtest.h"
 
 using namespace link_creation_agent;
+using namespace link_creators;
 using namespace das_test;
 
-class TestLinkCreator: public LinkCreator {
+class TestLinkCreator : public LinkCreator {
    public:
-       virtual pair<unsigned int, unsigned int> create(shared_ptr<QueryAnswer> query_answer) {
-           return make_pair((unsigned int) round(query_answer->importance), 
-                            (unsigned int) round(query_answer->importance));
-       }
+    virtual pair<unsigned int, unsigned int> create(shared_ptr<QueryAnswer> query_answer) {
+        return make_pair((unsigned int) round(query_answer->importance),
+                         (unsigned int) round(query_answer->importance));
+    }
 };
 
 TEST(LinkCreation, link_creator_function) {
@@ -40,13 +40,22 @@ TEST(LinkCreation, link_creator_function) {
     bus->register_processor(processor);
 
     LinkCreationProxy proxy1({""}, "link_creation_test", "unit_test");
-    EXPECT_EQ(proxy1.link_creation(make_shared<QueryAnswer>("blah", 0.0)), make_pair((unsigned int) 4, (unsigned int) 4));
-    EXPECT_EQ(proxy1.link_creation(make_shared<QueryAnswer>("blahhh", 0.5)), make_pair((unsigned int) 6, (unsigned int) 6));
-    EXPECT_EQ(proxy1.link_creation(make_shared<QueryAnswer>("blahh", 1.0)), make_pair((unsigned int) 5, (unsigned int) 5));
-    LinkCreationProxy proxy2({""}, "link_creation_test", LinkCreatorRegistry::REMOTE_FUNCTION, make_shared<TestLinkCreator>());
-    EXPECT_EQ(proxy2.link_creation(make_shared<QueryAnswer>("blah", 0.0)), make_pair((unsigned int) 0, (unsigned int) 0));
-    EXPECT_EQ(proxy2.link_creation(make_shared<QueryAnswer>("blahhh", 0.4)), make_pair((unsigned int) 0, (unsigned int) 0));
-    EXPECT_EQ(proxy2.link_creation(make_shared<QueryAnswer>("blahh", 0.9)), make_pair((unsigned int) 1, (unsigned int) 1));
+    EXPECT_EQ(proxy1.link_creation(make_shared<QueryAnswer>("blah", 0.0)),
+              make_pair((unsigned int) 4, (unsigned int) 4));
+    EXPECT_EQ(proxy1.link_creation(make_shared<QueryAnswer>("blahhh", 0.5)),
+              make_pair((unsigned int) 6, (unsigned int) 6));
+    EXPECT_EQ(proxy1.link_creation(make_shared<QueryAnswer>("blahh", 1.0)),
+              make_pair((unsigned int) 5, (unsigned int) 5));
+    LinkCreationProxy proxy2({""},
+                             "link_creation_test",
+                             LinkCreatorRegistry::REMOTE_FUNCTION,
+                             make_shared<TestLinkCreator>());
+    EXPECT_EQ(proxy2.link_creation(make_shared<QueryAnswer>("blah", 0.0)),
+              make_pair((unsigned int) 0, (unsigned int) 0));
+    EXPECT_EQ(proxy2.link_creation(make_shared<QueryAnswer>("blahhh", 0.4)),
+              make_pair((unsigned int) 0, (unsigned int) 0));
+    EXPECT_EQ(proxy2.link_creation(make_shared<QueryAnswer>("blahh", 0.9)),
+              make_pair((unsigned int) 1, (unsigned int) 1));
     vector<string> tokens;
     proxy2.tokenize(tokens);
     LinkCreationProxy proxy3;

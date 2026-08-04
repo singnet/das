@@ -14,9 +14,7 @@ namespace link_creators {
  * Processes a QueryAnswer and creates one or more links using any of the elements in it.
  */
 class LinkCreator {
-
-public:
-
+   public:
     LinkCreator();
     ~LinkCreator();
 
@@ -58,16 +56,14 @@ public:
      */
     bool get_and_reset_visited();
 
-protected:
-
+   protected:
     void visit(const string& key);
     bool visited(const string& key);
 
-private:
-
+   private:
     bool _visited_at_least_one_in_last_create;
     set<string> _visited;
     string _context;
 };
 
-} // namespace link_creators
+}  // namespace link_creators
