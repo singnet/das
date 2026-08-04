@@ -8,12 +8,12 @@
 #include <vector>
 
 #include "AdapterDB.h"
+#include "AtomDBFactory.h"
 #include "AtomDBSingleton.h"
 #include "JsonConfig.h"
 #include "JsonConfigParser.h"
 #include "MettaParser.h"
 #include "MettaParserActions.h"
-#include "MorkDB.h"
 #include "RedisMongoDB.h"
 #include "RemoteAtomDB.h"
 #include "Utils.h"
@@ -73,18 +73,16 @@ int main(int argc, char* argv[]) {
     auto atomdb_config = json_config.at_path("atomdb").get_or<JsonConfig>(JsonConfig());
 
     auto atomdb_type = atomdb_config.at_path("type").get_or<string>("");
-    if (atomdb_type == "redismongodb") {
-        AtomDBSingleton::provide(make_shared<RedisMongoDB>(context, false, atomdb_config));
-    } else if (atomdb_type == "morkdb") {
-        AtomDBSingleton::provide(make_shared<MorkDB>(context, atomdb_config));
-    } else if (atomdb_type == "remotedb") {
+    if (atomdb_type == "remotedb") {
         auto remote_peers_config =
             atomdb_config.at_path("remote_peers").get_or<JsonConfig>(JsonConfig());
-        AtomDBSingleton::provide(make_shared<RemoteAtomDB>(remote_peers_config));
+        AtomDBSingleton::provide(
+            AtomDBFactory::wrap_if_protected(shared_ptr<AtomDB>(new RemoteAtomDB(remote_peers_config))));
     } else if (atomdb_type == "adapterdb") {
-        AtomDBSingleton::provide(make_shared<AdapterDB>(atomdb_config));
+        AtomDBSingleton::provide(
+            AtomDBFactory::wrap_if_protected(shared_ptr<AtomDB>(new AdapterDB(atomdb_config))));
     } else {
-        RAISE_ERROR("Invalid AtomDB type: " + atomdb_type);
+        AtomDBSingleton::provide(AtomDBFactory::create(atomdb_config, context));
     }
 
     signal(SIGINT, &ctrl_c_handler);
