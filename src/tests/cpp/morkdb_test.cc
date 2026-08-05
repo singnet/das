@@ -14,7 +14,6 @@
 #include "Merger.h"
 #include "MockAnimalsData.h"
 #include "TestAtomDBJsonConfig.h"
-#include "Merger.h"
 using namespace atomdb;
 using namespace atoms;
 using namespace std;

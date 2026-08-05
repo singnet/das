@@ -20,7 +20,6 @@
 #include "Utils.h"
 #include "expression_hasher.h"
 #include "gmock/gmock.h"
-#include "Merger.h"
 
 using namespace std;
 using namespace atomdb;

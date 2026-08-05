@@ -21,7 +21,6 @@
 #include "TestAtomDBJsonConfig.h"
 #include "UntypedVariable.h"
 #include "Wildcard.h"
-#include "Merger.h"
 
 using namespace atomdb;
 using namespace atoms;
