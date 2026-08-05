@@ -63,7 +63,6 @@ void BusCommandRouterProcessor::dispatch_http_command(
 
     caller_proxy->issued = true;
     caller_proxy->requestor_id = http_requestor_id;
-    caller_proxy->parameters = parameters_for_peer(http_requestor_id);
     caller_proxy->serial = serial;
     caller_proxy->proxy_port = PortPool::get_port();
     if (caller_proxy->proxy_port == 0) {
@@ -86,8 +85,9 @@ void BusCommandRouterProcessor::dispatch_http_command(
     processor_proxy->setup_proxy_node(processor_proxy_node_id, caller_proxy->my_id());
     processor_proxy->command = std::move(caller_proxy->command);
     processor_proxy->args = std::move(caller_proxy->args);
+    processor_proxy->parameters = caller_proxy->parameters;
 
-    this->run_command(processor_proxy);
+    this->run_command_internal(processor_proxy, false);
 }
 
 void BusCommandRouterProcessor::run_command(shared_ptr<BusCommandProxy> proxy) {
@@ -96,7 +96,14 @@ void BusCommandRouterProcessor::run_command(shared_ptr<BusCommandProxy> proxy) {
         proxy->raise_error_on_peer("Invalid proxy type for BUS_COMMAND_ROUTER");
         return;
     }
-    router_proxy->parameters = parameters_for_peer(router_proxy->get_requestor_id());
+    this->run_command_internal(router_proxy, true);
+}
+
+void BusCommandRouterProcessor::run_command_internal(shared_ptr<BusCommandRouterProxy> router_proxy,
+                                                     bool load_peer_parameters) {
+    if (load_peer_parameters) {
+        router_proxy->parameters = parameters_for_peer(router_proxy->get_requestor_id());
+    }
     try {
         if (router_proxy->get_args().size() < 2) {
             RAISE_ERROR("Invalid bus_command_router args: expected {COMMAND, ARG}");

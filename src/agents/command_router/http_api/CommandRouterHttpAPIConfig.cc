@@ -26,9 +26,6 @@ static pair<string, int> parse_host_port(const string& endpoint) {
 
 static HttpAPISettings load_http_api_settings(const JsonConfig& command_router_config) {
     HttpAPISettings settings;
-    settings.max_concurrent_executions =
-        command_router_config.at_path("http_api.max_concurrent_executions")
-            .get_or<size_t>(settings.max_concurrent_executions);
     settings.max_queued_executions = command_router_config.at_path("http_api.max_queued_executions")
                                          .get_or<size_t>(settings.max_queued_executions);
     settings.max_events_per_execution =

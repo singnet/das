@@ -36,6 +36,8 @@ class BusCommandRouterProcessor : public BusCommandProcessor {
                                const string& http_requestor_id);
 
    private:
+    void run_command_internal(shared_ptr<BusCommandRouterProxy> router_proxy, bool load_peer_parameters);
+
     void handle_get(shared_ptr<BusCommandRouterProxy> proxy, const string& arg);
     void handle_set(shared_ptr<BusCommandRouterProxy> proxy, const string& arg);
     void handle_query(shared_ptr<BusCommandRouterProxy> proxy, const string& arg);
