@@ -19,6 +19,7 @@
 #include "Utils.h"
 #include "expression_hasher.h"
 #include "gmock/gmock.h"
+#include "Merger.h"
 
 using namespace std;
 using namespace atomdb;
@@ -402,8 +403,8 @@ TEST_P(AdapterDBTest, AddNodeWithThrowIfExists) {
 
     auto node = new Node("Symbol", "AdapterThrowIfExistsNode");
 
-    EXPECT_EQ(db->add_node(node, true), node->handle());
-    EXPECT_THROW({ db->add_node(node, true); }, runtime_error);
+    EXPECT_EQ(db->add_node(node, &ThrowIfExistsMerger::instance()), node->handle());
+    EXPECT_THROW({ db->add_node(node, &ThrowIfExistsMerger::instance()); }, runtime_error);
 
     EXPECT_TRUE(db->delete_node(node->handle()));
     delete node;
@@ -424,7 +425,7 @@ TEST_P(AdapterDBTest, AddLinkWithThrowIfExists) {
     auto link = new Link("Expression", {h1, h2, h3});
 
     EXPECT_EQ(db->add_link(link), link->handle());
-    EXPECT_THROW({ db->add_link(link, true); }, runtime_error);
+    EXPECT_THROW({ db->add_link(link, &ThrowIfExistsMerger::instance()); }, runtime_error);
 
     EXPECT_TRUE(db->delete_link(link->handle()));
     EXPECT_TRUE(db->delete_node(h1));

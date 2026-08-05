@@ -20,6 +20,7 @@
 #include "TestAtomDBJsonConfig.h"
 #include "UntypedVariable.h"
 #include "Wildcard.h"
+#include "Merger.h"
 
 using namespace atomdb;
 using namespace atoms;
@@ -953,21 +954,21 @@ TEST_F(RedisMongoDBTest, AddSameAtomMustNotThrow) {
 
 TEST_F(RedisMongoDBTest, AddNodesWithThrowIfExists) {
     auto node1 = new Node("Symbol", "ThrowIfExists1");
-    EXPECT_EQ(db->add_node(node1, true), node1->handle());
+    EXPECT_EQ(db->add_node(node1, &ThrowIfExistsMerger::instance()), node1->handle());
 
     vector<Node*> nodes;
     nodes.push_back(new Node("Symbol", "ThrowIfExists2"));
     nodes.push_back(new Node("Symbol", "ThrowIfExists3"));
 
-    EXPECT_EQ(db->add_nodes(nodes, true).size(), 2);
+    EXPECT_EQ(db->add_nodes(nodes, false, &ThrowIfExistsMerger::instance()).size(), 2);
 
     auto link = new Link("Expression", {node1->handle(), nodes[0]->handle(), nodes[1]->handle()});
-    EXPECT_EQ(db->add_link(link, true), link->handle());
+    EXPECT_EQ(db->add_link(link, &ThrowIfExistsMerger::instance()), link->handle());
 
     // Try to add the same node again
-    EXPECT_THROW(db->add_node(node1, true), runtime_error);
-    EXPECT_THROW(db->add_nodes(nodes, true), runtime_error);
-    EXPECT_THROW(db->add_link(link, true), runtime_error);
+    EXPECT_THROW(db->add_node(node1, &ThrowIfExistsMerger::instance()), runtime_error);
+    EXPECT_THROW(db->add_nodes(nodes, false, &ThrowIfExistsMerger::instance()), runtime_error);
+    EXPECT_THROW(db->add_link(link, &ThrowIfExistsMerger::instance()), runtime_error);
 
     EXPECT_EQ(db->delete_link(link->handle(), true), true);
     EXPECT_EQ(db->link_exists(link->handle()), false);
@@ -981,7 +982,7 @@ TEST_F(RedisMongoDBTest, AddLinksWithDuplicateTargets) {
     nodes.push_back(new Node("Symbol", "DuplicateTargets1"));
     nodes.push_back(new Node("Symbol", "DuplicateTargets2"));
     nodes.push_back(new Node("Symbol", "DuplicateTargets3"));
-    EXPECT_EQ(db->add_nodes(nodes, true).size(), 3);
+    EXPECT_EQ(db->add_nodes(nodes, false, &ThrowIfExistsMerger::instance()).size(), 3);
 
     auto link = new Link("Expression",
                          {nodes[0]->handle(),
@@ -1004,7 +1005,7 @@ TEST_F(RedisMongoDBTest, CompositeHashDisabledSkipsTargetChecks) {
                          {implication->handle(), missing_a->handle(), missing_b->handle()},
                          true,
                          Properties{{"strength", 0.833333}});
-    EXPECT_THROW(db->add_links({link}, false, false), runtime_error);
+    EXPECT_THROW(db->add_links({link}), runtime_error);
 
     // Same Redis/Mongo namespace, composite_type_enabled=false: skip checks and persist the link.
     auto json = nlohmann::json();
@@ -1014,7 +1015,7 @@ TEST_F(RedisMongoDBTest, CompositeHashDisabledSkipsTargetChecks) {
     json["mongodb"] = {{"endpoint", "localhost:40021"}, {"username", "admin"}, {"password", "admin"}};
     auto local_db = make_shared<RedisMongoDB>("test_", false, commons::JsonConfig(json));
 
-    auto handles = local_db->add_links({link}, false, false);
+    auto handles = local_db->add_links({link});
     ASSERT_EQ(handles.size(), 1);
     EXPECT_EQ(handles[0], link->handle());
     ASSERT_TRUE(local_db->link_exists(link->handle()));
@@ -1044,9 +1045,9 @@ TEST_F(RedisMongoDBTest, AtomsCount) {
     auto node2 = new Node("Symbol", "Node2");
     auto similarity = new Node("Symbol", "Similarity");
 
-    db->add_node(node1, false);
-    db->add_node(node2, false);
-    db->add_node(similarity, false);
+    db->add_node(node1);
+    db->add_node(node2);
+    db->add_node(similarity);
 
     EXPECT_EQ(db->node_count(), 3);
     EXPECT_EQ(db->link_count(), 0);
@@ -1054,7 +1055,7 @@ TEST_F(RedisMongoDBTest, AtomsCount) {
     EXPECT_EQ(db->empty(), false);
 
     auto link1 = new Link("Expression", {similarity->handle(), node1->handle(), node2->handle()});
-    db->add_link(link1, false);
+    db->add_link(link1);
 
     EXPECT_EQ(db->node_count(), 3);
     EXPECT_EQ(db->link_count(), 1);
@@ -1114,8 +1115,8 @@ TEST_F(RedisMongoDBTest, CompositeTypeEnabledFlag) {
                                        {transactional_nodes[0]->handle(),
                                         transactional_nodes[1]->handle(),
                                         transactional_nodes[2]->handle()});
-    ASSERT_EQ(db_disabled->add_nodes(transactional_nodes, false, true).size(), 3);
-    ASSERT_EQ(db_disabled->add_links({transactional_link}, false, true).size(), 1);
+    ASSERT_EQ(db_disabled->add_nodes(transactional_nodes, true).size(), 3);
+    ASSERT_EQ(db_disabled->add_links({transactional_link}, true).size(), 1);
 
     auto transactional_doc = db_disabled->get_atom_document(transactional_link->handle());
     ASSERT_NE(transactional_doc, nullptr);

@@ -542,7 +542,7 @@ TEST(HandleTrieTest, remove_basic) {
     HandleTrie trie(4);
     TestValue* value;
 
-    unsigned int initial_size = trie.size;
+    unsigned int initial_size = trie.size();
     EXPECT_EQ(initial_size, 0);
 
     // Insert some values
@@ -552,7 +552,7 @@ TEST(HandleTrieTest, remove_basic) {
     trie.insert("FBCD", new TestValue(6));
     trie.insert("AFCD", new TestValue(7));
 
-    EXPECT_EQ(trie.size, initial_size + 5);
+    EXPECT_EQ(trie.size(), initial_size + 5);
 
     // Verify they exist
     value = (TestValue*) trie.lookup("ABCD");
@@ -570,7 +570,7 @@ TEST(HandleTrieTest, remove_basic) {
     value = (TestValue*) trie.lookup("ABCD");
     EXPECT_TRUE(value == NULL);
 
-    EXPECT_EQ(trie.size, initial_size + 4);
+    EXPECT_EQ(trie.size(), initial_size + 4);
 
     // Verify others still exist
     value = (TestValue*) trie.lookup("ABCF");
@@ -590,7 +590,7 @@ TEST(HandleTrieTest, remove_basic) {
     removed = trie.remove("XXXX");
     EXPECT_FALSE(removed);
 
-    EXPECT_EQ(trie.size, initial_size + 4);
+    EXPECT_EQ(trie.size(), initial_size + 4);
 }
 
 TEST(HandleTrieTest, remove_and_reinsert) {

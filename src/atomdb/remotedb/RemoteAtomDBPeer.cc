@@ -342,21 +342,21 @@ set<string> RemoteAtomDBPeer::links_exist(const vector<string>& handles) {
     return result;
 }
 
-string RemoteAtomDBPeer::add_atom(const atoms::Atom* atom, bool throw_if_exists) {
+string RemoteAtomDBPeer::add_atom(const atoms::Atom* atom, const atoms::Merger* merger) {
     vector<Atom*> atoms = {const_cast<atoms::Atom*>(atom)};
-    auto handles = add_atoms(atoms, throw_if_exists);
+    auto handles = add_atoms(atoms, false, merger);
     return handles.empty() ? "" : handles[0];
 }
 
-string RemoteAtomDBPeer::add_node(const atoms::Node* node, bool throw_if_exists) {
+string RemoteAtomDBPeer::add_node(const atoms::Node* node, const atoms::Merger* merger) {
     vector<Node*> nodes = {const_cast<atoms::Node*>(node)};
-    auto handles = add_nodes(nodes, throw_if_exists);
+    auto handles = add_nodes(nodes, false, merger);
     return handles.empty() ? "" : handles[0];
 }
 
-string RemoteAtomDBPeer::add_link(const atoms::Link* link, bool throw_if_exists) {
+string RemoteAtomDBPeer::add_link(const atoms::Link* link, const atoms::Merger* merger) {
     vector<Link*> links = {const_cast<atoms::Link*>(link)};
-    auto handles = add_links(links, throw_if_exists);
+    auto handles = add_links(links, false, merger);
     return handles.empty() ? "" : handles[0];
 }
 
@@ -365,38 +365,44 @@ string RemoteAtomDBPeer::add_link(const atoms::Link* link, bool throw_if_exists)
 // in the same cache generation as its staged handle). Cache ops are pure in-memory and fast.
 
 vector<string> RemoteAtomDBPeer::add_atoms(const vector<atoms::Atom*>& atoms,
-                                           bool throw_if_exists,
-                                           bool is_transactional) {
+                                           bool is_transactional,
+                                           const atoms::Merger* merger) {
     if (is_readonly()) return vector<string>();
 
     lock_guard<mutex> lock(peer_mutex_);
     fetched_link_templates_ = make_unique<HandleTrie>(HANDLE_HASH_SIZE - 1);
-    auto handles = cache_->add_atoms(atoms, throw_if_exists, is_transactional);
-    staged_handles_.insert(handles.begin(), handles.end());
+    auto handles = cache_->add_atoms(atoms, is_transactional, merger);
+    for (const auto& h : handles) {
+        if (!h.empty()) staged_handles_.insert(h);
+    }
     return handles;
 }
 
 vector<string> RemoteAtomDBPeer::add_nodes(const vector<atoms::Node*>& nodes,
-                                           bool throw_if_exists,
-                                           bool is_transactional) {
+                                           bool is_transactional,
+                                           const atoms::Merger* merger) {
     if (is_readonly()) return vector<string>();
 
     lock_guard<mutex> lock(peer_mutex_);
     fetched_link_templates_ = make_unique<HandleTrie>(HANDLE_HASH_SIZE - 1);
-    auto handles = cache_->add_nodes(nodes, throw_if_exists, is_transactional);
-    staged_handles_.insert(handles.begin(), handles.end());
+    auto handles = cache_->add_nodes(nodes, is_transactional, merger);
+    for (const auto& h : handles) {
+        if (!h.empty()) staged_handles_.insert(h);
+    }
     return handles;
 }
 
 vector<string> RemoteAtomDBPeer::add_links(const vector<atoms::Link*>& links,
-                                           bool throw_if_exists,
-                                           bool is_transactional) {
+                                           bool is_transactional,
+                                           const atoms::Merger* merger) {
     if (is_readonly()) return vector<string>();
 
     lock_guard<mutex> lock(peer_mutex_);
     fetched_link_templates_ = make_unique<HandleTrie>(HANDLE_HASH_SIZE - 1);
-    auto handles = cache_->add_links(links, throw_if_exists, is_transactional);
-    staged_handles_.insert(handles.begin(), handles.end());
+    auto handles = cache_->add_links(links, is_transactional, merger);
+    for (const auto& h : handles) {
+        if (!h.empty()) staged_handles_.insert(h);
+    }
     return handles;
 }
 
@@ -637,7 +643,7 @@ void RemoteAtomDBPeer::persist_atoms_to_local(const vector<shared_ptr<Atom>>& at
     // Do NOT delete first: RedisMongoDB::delete_atom cascades over the atom's incoming set, which
     // would wipe large parts of the base KB when a staged handle is a shared node.
     if (!nodes.empty()) {
-        local_persistence_->add_nodes(nodes, false, false);
+        local_persistence_->add_nodes(nodes);
     }
 
     if (links.empty()) {
@@ -647,7 +653,7 @@ void RemoteAtomDBPeer::persist_atoms_to_local(const vector<shared_ptr<Atom>>& at
     // When composite_type is disabled, backends skip target-existence checks — persist links
     // directly even if some targets live only on other peers.
     if (!local_persistence_->composite_type_enabled()) {
-        local_persistence_->add_links(links, false, false);
+        local_persistence_->add_links(links);
         return;
     }
 
@@ -676,7 +682,7 @@ void RemoteAtomDBPeer::persist_atoms_to_local(const vector<shared_ptr<Atom>>& at
                                       "cache release)");
             break;
         }
-        local_persistence_->add_links(batch, false, false);
+        local_persistence_->add_links(batch);
         remaining_links = pending;
     }
 }
@@ -686,7 +692,7 @@ void RemoteAtomDBPeer::release_cache(bool persist_to_local, bool persist_entire_
 
     {
         lock_guard<mutex> lock(peer_mutex_);
-        if (cache_->atom_count() == 0 && fetched_link_templates_->size == 0) {
+        if (cache_->atom_count() == 0 && fetched_link_templates_->size() == 0) {
             return;
         }
 

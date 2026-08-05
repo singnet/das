@@ -14,6 +14,7 @@
 #include "TemplateProcessor.h"
 #include "TestSystemParams.h"
 #include "Utils.h"
+#include "Merger.h"
 
 using das_test::init_test_system_parameters_singleton;
 
@@ -724,7 +725,7 @@ TEST_F(LinkCreationAgentTest, TestMettaProcessorLinkCreationInnerCheck) {
     EXPECT_CALL(*mock_atomdb, add_node(testing::_, testing::_))
         .Times(expected_nodes.size())
         .WillRepeatedly(::testing::Invoke(
-            [&expected_nodes, &nodes_count](const atoms::Node* node, bool throw_if_exists) {
+            [&expected_nodes, &nodes_count](const atoms::Node* node, const atoms::Merger* merger) {
                 EXPECT_EQ(node->type, "Symbol");
                 EXPECT_EQ(node->name, expected_nodes[nodes_count].c_str());
                 nodes_count++;
@@ -749,7 +750,7 @@ TEST_F(LinkCreationAgentTest, TestMettaProcessorLinkCreationInnerCheck) {
     EXPECT_CALL(*mock_atomdb, add_link(testing::_, testing::_))
         .Times(expected_links.size())
         .WillRepeatedly(::testing::Invoke(
-            [&links_count, &expected_links](const atoms::Link* link, bool throw_if_exists) {
+            [&links_count, &expected_links](const atoms::Link* link, const atoms::Merger* merger) {
                 EXPECT_EQ(link->type, "Expression");
                 EXPECT_EQ(link->targets.size(), expected_links[links_count].size());
                 for (size_t i = 0; i < expected_links[links_count].size(); i++) {
@@ -793,7 +794,7 @@ TEST_F(LinkCreationAgentTest, TestMettaProcessorLinkCreationSimpleMeta) {
     EXPECT_CALL(*mock_atomdb, add_node(testing::_, testing::_))
         .Times(expected_nodes.size())
         .WillRepeatedly(::testing::Invoke(
-            [&expected_nodes, &nodes_count](const atoms::Node* node, bool throw_if_exists) {
+            [&expected_nodes, &nodes_count](const atoms::Node* node, const atoms::Merger* merger) {
                 EXPECT_EQ(node->type, "Symbol");
                 EXPECT_EQ(node->name, expected_nodes[nodes_count].c_str());
                 nodes_count++;

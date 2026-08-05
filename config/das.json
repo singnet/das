@@ -1,6 +1,6 @@
 {
     "atomdb": {
-        "type": "redismongodb",
+        "type": "remotedb",
         "composite_type_enabled": true,
         "redis": {
             "image": "redis:7.2.3-alpine",

@@ -65,15 +65,15 @@ static vector<string> populate_inheritance_mammal_links(shared_ptr<InMemoryDB> b
     auto mammal = new Node("Symbol", "\"mammal\"");
     auto inheritance = new Node("Symbol", "Inheritance");
 
-    string human_handle = backend->add_node(human, false);
-    string monkey_handle = backend->add_node(monkey, false);
-    string mammal_handle = backend->add_node(mammal, false);
-    string inheritance_handle = backend->add_node(inheritance, false);
+    string human_handle = backend->add_node(human);
+    string monkey_handle = backend->add_node(monkey);
+    string mammal_handle = backend->add_node(mammal);
+    string inheritance_handle = backend->add_node(inheritance);
 
     auto link1 = new Link("Expression", {inheritance_handle, human_handle, mammal_handle});
     auto link2 = new Link("Expression", {inheritance_handle, monkey_handle, mammal_handle});
-    string link1_handle = backend->add_link(link1, false);
-    string link2_handle = backend->add_link(link2, false);
+    string link1_handle = backend->add_link(link1);
+    string link2_handle = backend->add_link(link2);
     backend->re_index_patterns(true);
     return {link1_handle, link2_handle};
 }
@@ -82,8 +82,8 @@ TEST_F(RemoteAtomDBPeerTest, AddAndGetNodes) {
     auto human = new Node("Symbol", "\"human\"");
     auto monkey = new Node("Symbol", "\"monkey\"");
 
-    string human_handle = peer_->add_node(human, false);
-    string monkey_handle = peer_->add_node(monkey, false);
+    string human_handle = peer_->add_node(human);
+    string monkey_handle = peer_->add_node(monkey);
 
     EXPECT_FALSE(human_handle.empty());
     EXPECT_FALSE(monkey_handle.empty());
@@ -100,12 +100,12 @@ TEST_F(RemoteAtomDBPeerTest, AddAndGetLinks) {
     auto monkey = new Node("Symbol", "\"monkey\"");
     auto similarity = new Node("Symbol", "Similarity");
 
-    string human_handle = peer_->add_node(human, false);
-    string monkey_handle = peer_->add_node(monkey, false);
-    string similarity_handle = peer_->add_node(similarity, false);
+    string human_handle = peer_->add_node(human);
+    string monkey_handle = peer_->add_node(monkey);
+    string similarity_handle = peer_->add_node(similarity);
 
     auto link = new Link("Expression", {similarity_handle, human_handle, monkey_handle});
-    string link_handle = peer_->add_link(link, false);
+    string link_handle = peer_->add_link(link);
 
     EXPECT_FALSE(link_handle.empty());
     EXPECT_TRUE(peer_->link_exists(link_handle));
@@ -118,7 +118,7 @@ TEST_F(RemoteAtomDBPeerTest, AddAndGetLinks) {
 TEST_F(RemoteAtomDBPeerTest, GetFromCacheThenRemote) {
     // Add to remote only (bypass peer)
     auto human = new Node("Symbol", "\"human\"");
-    string human_handle = remote_->add_node(human, false);
+    string human_handle = remote_->add_node(human);
 
     // Peer should find it via remote
     auto retrieved = peer_->get_node(human_handle);
@@ -134,8 +134,8 @@ TEST_F(RemoteAtomDBPeerTest, GetFromCacheThenRemote) {
 TEST_F(RemoteAtomDBPeerTest, PersistsToLocal) {
     auto human = new Node("Symbol", "\"human\"");
     auto monkey = new Node("Symbol", "\"monkey\"");
-    string human_handle = peer_->add_node(human, false);
-    string monkey_handle = peer_->add_node(monkey, false);
+    string human_handle = peer_->add_node(human);
+    string monkey_handle = peer_->add_node(monkey);
 
     peer_->release_cache(true, true);
 
@@ -154,15 +154,15 @@ TEST_F(RemoteAtomDBPeerTest, QueryForPattern) {
     auto mammal = new Node("Symbol", "\"mammal\"");
     auto inheritance = new Node("Symbol", "Inheritance");
 
-    string human_handle = remote_->add_node(human, false);
-    string monkey_handle = remote_->add_node(monkey, false);
-    string mammal_handle = remote_->add_node(mammal, false);
-    string inheritance_handle = remote_->add_node(inheritance, false);
+    string human_handle = remote_->add_node(human);
+    string monkey_handle = remote_->add_node(monkey);
+    string mammal_handle = remote_->add_node(mammal);
+    string inheritance_handle = remote_->add_node(inheritance);
 
     auto link1 = new Link("Expression", {inheritance_handle, human_handle, mammal_handle});
     auto link2 = new Link("Expression", {inheritance_handle, monkey_handle, mammal_handle});
-    string link1_handle = remote_->add_link(link1, false);
-    string link2_handle = remote_->add_link(link2, false);
+    string link1_handle = remote_->add_link(link1);
+    string link2_handle = remote_->add_link(link2);
 
     remote_->re_index_patterns(true);
 
@@ -197,12 +197,12 @@ TEST_F(RemoteAtomDBPeerTest, QueryForTargets) {
     auto node2 = new Node("Symbol", "Node2");
     auto similarity = new Node("Symbol", "Similarity");
 
-    string node1_handle = peer_->add_node(node1, false);
-    string node2_handle = peer_->add_node(node2, false);
-    string similarity_handle = peer_->add_node(similarity, false);
+    string node1_handle = peer_->add_node(node1);
+    string node2_handle = peer_->add_node(node2);
+    string similarity_handle = peer_->add_node(similarity);
 
     auto link = new Link("Expression", {similarity_handle, node1_handle, node2_handle});
-    string link_handle = peer_->add_link(link, false);
+    string link_handle = peer_->add_link(link);
 
     auto targets = peer_->query_for_targets(link_handle);
     ASSERT_NE(targets, nullptr);
@@ -217,12 +217,12 @@ TEST_F(RemoteAtomDBPeerTest, QueryForIncomingSet) {
     auto monkey = new Node("Symbol", "\"monkey\"");
     auto similarity = new Node("Symbol", "Similarity");
 
-    string human_handle = peer_->add_node(human, false);
-    string monkey_handle = peer_->add_node(monkey, false);
-    string similarity_handle = peer_->add_node(similarity, false);
+    string human_handle = peer_->add_node(human);
+    string monkey_handle = peer_->add_node(monkey);
+    string similarity_handle = peer_->add_node(similarity);
 
     auto link = new Link("Expression", {similarity_handle, human_handle, monkey_handle});
-    string link_handle = peer_->add_link(link, false);
+    string link_handle = peer_->add_link(link);
 
     auto incoming = peer_->query_for_incoming_set(human_handle);
     ASSERT_NE(incoming, nullptr);
@@ -239,12 +239,12 @@ TEST_F(RemoteAtomDBPeerTest, DeleteLink) {
     auto monkey = new Node("Symbol", "\"monkey\"");
     auto similarity = new Node("Symbol", "Similarity");
 
-    string human_handle = peer_->add_node(human, false);
-    string monkey_handle = peer_->add_node(monkey, false);
-    string similarity_handle = peer_->add_node(similarity, false);
+    string human_handle = peer_->add_node(human);
+    string monkey_handle = peer_->add_node(monkey);
+    string similarity_handle = peer_->add_node(similarity);
 
     auto link = new Link("Expression", {similarity_handle, human_handle, monkey_handle});
-    string link_handle = peer_->add_link(link, false);
+    string link_handle = peer_->add_link(link);
 
     bool deleted = peer_->delete_link(link_handle, false);
     EXPECT_TRUE(deleted);
@@ -291,7 +291,7 @@ TEST_F(RemoteAtomDBPeerTest, AddAfterFetchRefetchesPatternFromRemote) {
 
     // Any write invalidates the fetched-template registry but keeps read-cached atoms in cache.
     auto staged = new Node("Symbol", "\"staged\"");
-    string staged_handle = peer_->add_node(staged, false);
+    string staged_handle = peer_->add_node(staged);
     EXPECT_NE(peer_->get_cached_atom(link1_handle), nullptr);
     EXPECT_NE(peer_->get_cached_atom(link2_handle), nullptr);
     EXPECT_NE(peer_->get_cached_atom(staged_handle), nullptr);
@@ -303,9 +303,9 @@ TEST_F(RemoteAtomDBPeerTest, AddAfterFetchRefetchesPatternFromRemote) {
     string mammal_handle = link1->targets[2];
 
     auto chimp = new Node("Symbol", "\"chimp\"");
-    string chimp_handle = remote_->add_node(chimp, false);
+    string chimp_handle = remote_->add_node(chimp);
     auto link3 = new Link("Expression", {inheritance_handle, chimp_handle, mammal_handle});
-    string link3_handle = remote_->add_link(link3, false);
+    string link3_handle = remote_->add_link(link3);
     remote_->re_index_patterns(true);
 
     auto result = peer_->query_for_pattern(link_schema);
@@ -341,9 +341,9 @@ TEST_F(RemoteAtomDBPeerTest, DeleteAfterFetchReleasesRemoteCache) {
     ASSERT_NE(link2, nullptr);
 
     auto chimp = new Node("Symbol", "\"chimp\"");
-    string chimp_handle = remote_->add_node(chimp, false);
+    string chimp_handle = remote_->add_node(chimp);
     auto link3 = new Link("Expression", {link2->targets[0], chimp_handle, link2->targets[2]});
-    string link3_handle = remote_->add_link(link3, false);
+    string link3_handle = remote_->add_link(link3);
     remote_->re_index_patterns(true);
 
     auto result = peer_->query_for_pattern(link_schema);
@@ -369,12 +369,12 @@ TEST_F(RemoteAtomDBPeerTest, ReleaseWithoutLocalPersistence) {
     auto mammal = new Node("Symbol", "\"mammal\"");
     auto inheritance = new Node("Symbol", "Inheritance");
 
-    string human_handle = remote->add_node(human, false);
-    string mammal_handle = remote->add_node(mammal, false);
-    string inheritance_handle = remote->add_node(inheritance, false);
+    string human_handle = remote->add_node(human);
+    string mammal_handle = remote->add_node(mammal);
+    string inheritance_handle = remote->add_node(inheritance);
 
     auto link = new Link("Expression", {inheritance_handle, human_handle, mammal_handle});
-    string link_handle = remote->add_link(link, false);
+    string link_handle = remote->add_link(link);
     remote->re_index_patterns(true);
 
     LinkSchema link_schema({"LINK_TEMPLATE",
@@ -410,14 +410,14 @@ TEST_F(RemoteAtomDBPeerTest, AtomsCount) {
     auto node2 = new Node("Symbol", "Node2");
     auto similarity = new Node("Symbol", "Similarity");
 
-    peer_->add_node(node1, false);
-    peer_->add_node(node2, false);
-    peer_->add_node(similarity, false);
+    peer_->add_node(node1);
+    peer_->add_node(node2);
+    peer_->add_node(similarity);
 
     EXPECT_EQ(peer_->atom_count(), 3);
 
     auto link1 = new Link("Expression", {similarity->handle(), node1->handle(), node2->handle()});
-    peer_->add_link(link1, false);
+    peer_->add_link(link1);
 
     EXPECT_EQ(peer_->atom_count(), 4);
     EXPECT_EQ(peer_->empty(), false);
@@ -445,9 +445,9 @@ TEST(RemoteAtomDBPeerReadonlyTest, RepeatQuerySeesRemoteAfterRelease) {
     string mammal_handle = link1->targets[2];
 
     auto chimp = new Node("Symbol", "\"chimp\"");
-    string chimp_handle = remote->add_node(chimp, false);
+    string chimp_handle = remote->add_node(chimp);
     auto link3 = new Link("Expression", {inheritance_handle, chimp_handle, mammal_handle});
-    string link3_handle = remote->add_link(link3, false);
+    string link3_handle = remote->add_link(link3);
     remote->re_index_patterns(true);
 
     // Drop the fetched-schema marker so the next query re-hits the remote backend.
@@ -473,7 +473,7 @@ TEST(RemoteAtomDBPeerReadonlyTest, AddStagesThenPersistsOnRelease) {
     auto peer = make_shared<RemoteAtomDBPeer>(remote, local, "stage_peer");
 
     auto human = new Node("Symbol", "\"human\"");
-    string human_handle = peer->add_node(human, false);
+    string human_handle = peer->add_node(human);
 
     EXPECT_FALSE(human_handle.empty());
     EXPECT_NE(peer->get_cached_atom(human_handle), nullptr);
@@ -489,8 +489,8 @@ TEST(RemoteAtomDBPeerReadonlyTest, AddFailsWithoutLocalPersistence) {
     auto peer = make_shared<RemoteAtomDBPeer>(remote, nullptr, "read_only_peer");
 
     auto human = new Node("Symbol", "\"human\"");
-    EXPECT_TRUE(peer->add_node(human, false).empty());
-    EXPECT_TRUE(peer->add_link(new Link("Expression", {"a", "b", "c"}), false).empty());
+    EXPECT_TRUE(peer->add_node(human).empty());
+    EXPECT_TRUE(peer->add_link(new Link("Expression", {"a", "b", "c"})).empty());
 }
 
 TEST(RemoteAtomDBPeerReadonlyTest, DeleteAtomFromLocalPersistence) {
@@ -499,7 +499,7 @@ TEST(RemoteAtomDBPeerReadonlyTest, DeleteAtomFromLocalPersistence) {
     auto peer = make_shared<RemoteAtomDBPeer>(remote, local, "delete_peer");
 
     auto human = new Node("Symbol", "\"human\"");
-    string human_handle = local->add_node(human, false);
+    string human_handle = local->add_node(human);
 
     EXPECT_TRUE(peer->delete_atom(human_handle, false));
     EXPECT_FALSE(peer->atom_exists(human_handle));
@@ -596,7 +596,7 @@ TEST_F(RemoteAtomDBTest, GetPeer) {
 
 TEST_F(RemoteAtomDBTest, AddAndGetAcrossPeers) {
     auto human = new Node("Symbol", "\"human\"");
-    string human_handle = db_->add_node(human, false);
+    string human_handle = db_->add_node(human);
 
     EXPECT_FALSE(human_handle.empty());
     EXPECT_TRUE(db_->node_exists(human_handle));
@@ -612,15 +612,15 @@ TEST_F(RemoteAtomDBTest, AddLinksAndRetrieve) {
     auto mammal = new Node("Symbol", "\"mammal\"");
     auto inheritance = new Node("Symbol", "Inheritance");
 
-    string human_handle = db_->add_node(human, false);
-    string monkey_handle = db_->add_node(monkey, false);
-    string mammal_handle = db_->add_node(mammal, false);
-    string inheritance_handle = db_->add_node(inheritance, false);
+    string human_handle = db_->add_node(human);
+    string monkey_handle = db_->add_node(monkey);
+    string mammal_handle = db_->add_node(mammal);
+    string inheritance_handle = db_->add_node(inheritance);
 
     auto link1 = new Link("Expression", {inheritance_handle, human_handle, mammal_handle});
     auto link2 = new Link("Expression", {inheritance_handle, monkey_handle, mammal_handle});
-    string link1_handle = db_->add_link(link1, false);
-    string link2_handle = db_->add_link(link2, false);
+    string link1_handle = db_->add_link(link1);
+    string link2_handle = db_->add_link(link2);
 
     EXPECT_TRUE(db_->link_exists(link1_handle));
     EXPECT_TRUE(db_->link_exists(link2_handle));
@@ -639,12 +639,12 @@ TEST_F(RemoteAtomDBTest, DeleteOperations) {
     auto monkey = new Node("Symbol", "\"monkey\"");
     auto similarity = new Node("Symbol", "Similarity");
 
-    string human_handle = db_->add_node(human, false);
-    string monkey_handle = db_->add_node(monkey, false);
-    string similarity_handle = db_->add_node(similarity, false);
+    string human_handle = db_->add_node(human);
+    string monkey_handle = db_->add_node(monkey);
+    string similarity_handle = db_->add_node(similarity);
 
     auto link = new Link("Expression", {similarity_handle, human_handle, monkey_handle});
-    string link_handle = db_->add_link(link, false);
+    string link_handle = db_->add_link(link);
 
     bool deleted = db_->delete_link(link_handle, false);
     EXPECT_TRUE(deleted);
@@ -678,7 +678,7 @@ TEST_F(RemoteAtomDBConfigTest, SingleConfigWorks) {
     EXPECT_NE(peers.find("single_peer"), peers.end());
 
     auto human = new Node("Symbol", "\"human\"");
-    string human_handle = db_->add_node(human, false);
+    string human_handle = db_->add_node(human);
     EXPECT_TRUE(db_->node_exists(human_handle));
 }
 
@@ -833,7 +833,7 @@ TEST(RemoteAtomDBFederationTest, CacheFirstProbingAcrossPeers) {
     auto backend2 = make_shared<InMemoryDB>("fed_cache_peer2_");
 
     auto only_in_peer2 = new Node("Symbol", "\"only_in_peer2\"");
-    string handle = backend2->add_node(only_in_peer2, false);
+    string handle = backend2->add_node(only_in_peer2);
 
     map<string, shared_ptr<RemoteAtomDBPeer>> peers;
     peers["peer1"] = make_shared<RemoteAtomDBPeer>(backend1, nullptr, "peer1");
@@ -872,9 +872,9 @@ TEST(RemoteAtomDBFederationTest, PersistLinkWithoutCrossPeerTargetCopy) {
     auto a = new Node("Symbol", "\"persistA\"");
     auto b = new Node("Symbol", "\"persistB\"");
     auto implication = new Node("Symbol", "Implication");
-    string a_h = peer1_remote->add_node(a, false);
-    string b_h = peer1_remote->add_node(b, false);
-    string impl_h = peer1_remote->add_node(implication, false);
+    string a_h = peer1_remote->add_node(a);
+    string b_h = peer1_remote->add_node(b);
+    string impl_h = peer1_remote->add_node(implication);
 
     map<string, shared_ptr<RemoteAtomDBPeer>> peers;
     peers["peer1"] = make_shared<RemoteAtomDBPeer>(peer1_remote, nullptr, "peer1");
@@ -883,7 +883,7 @@ TEST(RemoteAtomDBFederationTest, PersistLinkWithoutCrossPeerTargetCopy) {
 
     auto link = make_shared<Link>(
         "Expression", vector<string>{impl_h, a_h, b_h}, true, Properties{{"strength", 0.833333}});
-    string handle = db->add_link(link.get(), false);
+    string handle = db->add_link(link.get());
     ASSERT_FALSE(handle.empty());
 
     EXPECT_FALSE(peer3_local->link_exists(handle));
@@ -923,17 +923,17 @@ TEST(RemoteAtomDBFederationTest, StrengthUpdateVisibleAcrossPeers) {
     auto a = new Node("Symbol", "\"A\"");
     auto b = new Node("Symbol", "\"B\"");
     auto implication = new Node("Symbol", "Implication");
-    string a_h = peer1_remote->add_node(a, false);
-    string b_h = peer1_remote->add_node(b, false);
-    string impl_h = peer1_remote->add_node(implication, false);
-    peer2_remote->add_node(a, false);
-    peer2_remote->add_node(b, false);
-    peer2_remote->add_node(implication, false);
+    string a_h = peer1_remote->add_node(a);
+    string b_h = peer1_remote->add_node(b);
+    string impl_h = peer1_remote->add_node(implication);
+    peer2_remote->add_node(a);
+    peer2_remote->add_node(b);
+    peer2_remote->add_node(implication);
 
     auto weak = make_shared<Link>(
         "Expression", vector<string>{impl_h, a_h, b_h}, true, Properties{{"strength", 0.833333}});
     string handle = weak->handle();
-    peer1_remote->add_link(weak.get(), false);
+    peer1_remote->add_link(weak.get());
 
     map<string, shared_ptr<RemoteAtomDBPeer>> peers;
     peers["peer1"] = make_shared<RemoteAtomDBPeer>(peer1_remote, nullptr, "peer1");
@@ -951,10 +951,10 @@ TEST(RemoteAtomDBFederationTest, StrengthUpdateVisibleAcrossPeers) {
     auto strong = make_shared<Link>(
         "Expression", vector<string>{impl_h, a_h, b_h}, true, Properties{{"strength", 0.942654}});
     ASSERT_EQ(strong->handle(), handle);
-    peer3_local->add_node(a, false);
-    peer3_local->add_node(b, false);
-    peer3_local->add_node(implication, false);
-    peer3_local->add_link(strong.get(), false);
+    peer3_local->add_node(a);
+    peer3_local->add_node(b);
+    peer3_local->add_node(implication);
+    peer3_local->add_link(strong.get());
 
     // Same process still has stale peer1 cache; must still read the updated strength.
     auto updated = db->get_atom(handle);
@@ -971,13 +971,13 @@ TEST(RemoteAtomDBFederationTest, StagedStrengthUpdateVisibleBeforeFlush) {
     auto a = new Node("Symbol", "\"stagedA\"");
     auto b = new Node("Symbol", "\"stagedB\"");
     auto implication = new Node("Symbol", "Implication");
-    string a_h = peer3_local->add_node(a, false);
-    string b_h = peer3_local->add_node(b, false);
-    string impl_h = peer3_local->add_node(implication, false);
+    string a_h = peer3_local->add_node(a);
+    string b_h = peer3_local->add_node(b);
+    string impl_h = peer3_local->add_node(implication);
 
     auto weak = make_shared<Link>(
         "Expression", vector<string>{impl_h, a_h, b_h}, true, Properties{{"strength", 0.833333}});
-    string handle = peer3_local->add_link(weak.get(), false);
+    string handle = peer3_local->add_link(weak.get());
     ASSERT_FALSE(handle.empty());
 
     map<string, shared_ptr<RemoteAtomDBPeer>> peers;
@@ -991,7 +991,7 @@ TEST(RemoteAtomDBFederationTest, StagedStrengthUpdateVisibleBeforeFlush) {
     auto strong = make_shared<Link>(
         "Expression", vector<string>{impl_h, a_h, b_h}, true, Properties{{"strength", 0.942654}});
     ASSERT_EQ(strong->handle(), handle);
-    ASSERT_EQ(db->add_link(strong.get(), false), handle);
+    ASSERT_EQ(db->add_link(strong.get()), handle);
 
     // Still staged only — local_persistence keeps the weak copy until release.
     EXPECT_DOUBLE_EQ(peer3_local->get_atom(handle)->custom_attributes.get_or<double>("strength", -1.0),

@@ -18,6 +18,7 @@ cc_library(
         "HandleDecoder.h",
         "Link.h",
         "LinkSchema.h",
+        "Merger.h",
         "MettaParserActions.h",
         "Node.h",
         "UntypedVariable.h",

@@ -1008,7 +1008,7 @@ static void add_preset_links(const vector<string>& implication_to_target_predica
             for (const auto& [_, atom] : parser_handler->handle_to_atom) {
                 atoms_to_add.push_back(atom.get());
             }
-            db->add_atoms(atoms_to_add, false, true);
+            db->add_atoms(atoms_to_add, true);
             count++;
             line.clear();
             buffer_determiners.push_back({link->handle(), link->targets[1], link->targets[2]});
@@ -1407,7 +1407,7 @@ static void insert_type_symbols() {
     Node* node;
     for (string node_name : to_insert) {
         node = new Node(SYMBOL, node_name);
-        db->add_node(node, false);
+        db->add_node(node);
         delete (node);
     }
     flush_remote_link_template_cache();

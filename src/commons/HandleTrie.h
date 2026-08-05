@@ -1,5 +1,6 @@
 #pragma once
 
+#include <atomic>
 #include <mutex>
 #include <string>
 
@@ -34,7 +35,8 @@ class HandleTrie {
         virtual string to_string();  /// Returns a string representation of the value object.
         virtual void* get_stored_object(
             bool clone) {            /// Return the actual object being stored (or a clone of it).
-            return (void*) NULL;
+            RAISE_ERROR("get_stored_object() is not implemented for this TrieValue subclass.");
+            return NULL;             // Just to avoid warnings
         }
     };
 
@@ -78,20 +80,21 @@ class HandleTrie {
      *
      * @return The HandleTrie::TrieValue object attached to the passed key or NULL if none.
      */
-    inline TrieValue* lookup(const string& key) { return fetch<TrieValue>(key); }
+    inline TrieValue* lookup(const string& key) { return fetch<TrieValue>(key, true, false); }
 
     /**
      * Lookup for a given handle and return the corresponding object stored in TrieValue.
      *
      * @param key Handle being searched.
-     * @param clone A flag indicating if a clone is supposed to be returned instead of the actual object
-     * being stored.
+     * @param clone A flag indicating if a clone is supposed to be returned instead of the actual
+     * object being stored. It's defaulted to "true". Use clone=false with caution as the actual
+     * raw pointer to the inner stored object inside the TrieValue is returned.
      *
      * @return The object actually being stored inside a HandleTrie::TrieValue object attached to the
      * passed key.
      */
-    inline void* lookup_stored_object(const string& key, bool clone = false) {
-        return fetch<void>(key, clone);
+    inline void* lookup_stored_object(const string& key, bool clone = true) {
+        return fetch<void>(key, true, clone);
     }
 
     bool exists(const string& key);
@@ -116,12 +119,18 @@ class HandleTrie {
      */
     void traverse(bool keep_root_locked, bool (*visit_function)(TrieNode* node, void* data), void* data);
 
+    /**
+     * Return the number of elements stored in this HandleTrie.
+     *
+     * @return The number of elements stored in this HandleTrie.
+     */
+    inline unsigned int size() { return (unsigned int) this->_size; }
+
     TrieNode* root;
-    unsigned int size;
 
    private:
     template <typename T>
-    T* fetch(const string& key, bool clone_stored_object = false) {
+    T* fetch(const string& key, bool unlock_node, bool clone_stored_object) {
         if (key.size() != key_size) {
             RAISE_ERROR("Invalid key size: " + to_string(key.size()) + " != " + to_string(key_size));
         }
@@ -141,18 +150,27 @@ class HandleTrie {
                 }
                 TrieNode* node = match ? tree_cursor : NULL;
                 T* answer = NULL;
+                bool forced_lock_release = false;
                 if (node != NULL) {
                     if constexpr (is_same_v<T, TrieNode>) {
                         answer = node;
                     } else if constexpr (is_same_v<T, TrieValue>) {
+                        forced_lock_release = true;
                         answer = node->value;
                     } else if constexpr (is_same_v<T, void>) {
-                        answer = node->value->get_stored_object(clone_stored_object);
+                        forced_lock_release = true;
+                        if (node->value != NULL) {
+                            answer = node->value->get_stored_object(clone_stored_object);
+                        }
                     } else {
                         RAISE_ERROR("Invalid fetch() attempt with unexpected type");
                     }
+                } else {
+                    forced_lock_release = true;
                 }
-                tree_cursor->trie_node_mutex.unlock();
+                if (unlock_node || forced_lock_release) {
+                    tree_cursor->trie_node_mutex.unlock();
+                }
                 return answer;
             } else {
                 unsigned char c = TLB[(unsigned char) key[key_cursor]];
@@ -191,6 +209,7 @@ class HandleTrie {
     }
 
     unsigned int key_size;
+    atomic<unsigned int> _size;
 };
 
 /**

@@ -318,68 +318,68 @@ set<string> RemoteAtomDB::links_exist(const vector<string>& handles) {
     return result;
 }
 
-string RemoteAtomDB::add_atom(const atoms::Atom* atom, bool throw_if_exists) {
+string RemoteAtomDB::add_atom(const atoms::Atom* atom, const atoms::Merger* merger) {
     // Writes only land on writable peers (readonly peers gate the call internally).
     string handle;
     for (auto& [uid, peer] : remote_db_) {
         LOG_DEBUG("add_atom(" << atom->handle() << ") to peer [" << uid << "]");
-        string peer_handle = peer->add_atom(atom, throw_if_exists);
+        string peer_handle = peer->add_atom(atom, merger);
         if (!peer_handle.empty()) handle = peer_handle;
     }
     return handle;
 }
 
-string RemoteAtomDB::add_node(const atoms::Node* node, bool throw_if_exists) {
+string RemoteAtomDB::add_node(const atoms::Node* node, const atoms::Merger* merger) {
     string handle;
     for (auto& [uid, peer] : remote_db_) {
         LOG_DEBUG("add_node(" << node->handle() << ") to peer [" << uid << "]");
-        string peer_handle = peer->add_node(node, throw_if_exists);
+        string peer_handle = peer->add_node(node, merger);
         if (!peer_handle.empty()) handle = peer_handle;
     }
     return handle;
 }
 
-string RemoteAtomDB::add_link(const atoms::Link* link, bool throw_if_exists) {
+string RemoteAtomDB::add_link(const atoms::Link* link, const atoms::Merger* merger) {
     string handle;
     for (auto& [uid, peer] : remote_db_) {
         LOG_DEBUG("add_link(" << link->handle() << ") to peer [" << uid << "]");
-        string peer_handle = peer->add_link(link, throw_if_exists);
+        string peer_handle = peer->add_link(link, merger);
         if (!peer_handle.empty()) handle = peer_handle;
     }
     return handle;
 }
 
 vector<string> RemoteAtomDB::add_atoms(const vector<atoms::Atom*>& atoms,
-                                       bool throw_if_exists,
-                                       bool is_transactional) {
+                                       bool is_transactional,
+                                       const atoms::Merger* merger) {
     vector<string> handles;
     for (auto& [uid, peer] : remote_db_) {
         LOG_DEBUG("add_atoms(" << atoms.size() << ") to peer [" << uid << "]");
-        auto peer_handles = peer->add_atoms(atoms, throw_if_exists, is_transactional);
+        auto peer_handles = peer->add_atoms(atoms, is_transactional, merger);
         if (!peer_handles.empty()) handles = peer_handles;
     }
     return handles;
 }
 
 vector<string> RemoteAtomDB::add_nodes(const vector<atoms::Node*>& nodes,
-                                       bool throw_if_exists,
-                                       bool is_transactional) {
+                                       bool is_transactional,
+                                       const atoms::Merger* merger) {
     vector<string> handles;
     for (auto& [uid, peer] : remote_db_) {
         LOG_DEBUG("add_nodes(" << nodes.size() << ") to peer [" << uid << "]");
-        auto peer_handles = peer->add_nodes(nodes, throw_if_exists, is_transactional);
+        auto peer_handles = peer->add_nodes(nodes, is_transactional, merger);
         if (!peer_handles.empty()) handles = peer_handles;
     }
     return handles;
 }
 
 vector<string> RemoteAtomDB::add_links(const vector<atoms::Link*>& links,
-                                       bool throw_if_exists,
-                                       bool is_transactional) {
+                                       bool is_transactional,
+                                       const atoms::Merger* merger) {
     vector<string> handles;
     for (auto& [uid, peer] : remote_db_) {
         LOG_DEBUG("add_links(" << links.size() << ") to peer [" << uid << "]");
-        auto peer_handles = peer->add_links(links, throw_if_exists, is_transactional);
+        auto peer_handles = peer->add_links(links, is_transactional, merger);
         if (!peer_handles.empty()) handles = peer_handles;
     }
     return handles;
