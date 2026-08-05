@@ -20,8 +20,10 @@ namespace atomdb {
 /**
  * RemoteAtomDBPeer represents a connection to a remote AtomDB with optional layers.
  * It may combine an in-memory cache, a remote AtomDB backend, and optional local persistence
- * for newly added atoms. Peers without local_persistence are readonly for mutations; get_atom
- * prefers local_persistence over cache so updated custom attributes (e.g. strength) are visible.
+ * for newly added atoms. Peers without local_persistence are readonly for mutations. get_atom
+ * order is cache -> local_persistence -> remote, so in-flight cache writes (e.g. strength
+ * upserts) are visible before release/flush; release_cache clears the cache so subsequent
+ * reads fall through to local_persistence.
  *
  * Thread-safety: the cache (InMemoryDB) is internally thread-safe, so cache reads/writes need
  * no locking here. peer_mutex_ only guards the peer's own bookkeeping: the cache_ pointer swap

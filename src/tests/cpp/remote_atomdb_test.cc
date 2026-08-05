@@ -962,6 +962,53 @@ TEST(RemoteAtomDBFederationTest, StrengthUpdateVisibleAcrossPeers) {
     EXPECT_DOUBLE_EQ(updated->custom_attributes.get_or<double>("strength", -1.0), 0.942654);
 }
 
+TEST(RemoteAtomDBFederationTest, StagedStrengthUpdateVisibleBeforeFlush) {
+    // local_persistence already has a weak copy. A same-process upsert stages a stronger copy
+    // in peer3's cache. get_atom must prefer the staged handle over local before release.
+    auto peer3_remote = make_shared<InMemoryDB>("staged_strength_peer3_remote_");
+    auto peer3_local = make_shared<InMemoryDB>("staged_strength_peer3_local_");
+
+    auto a = new Node("Symbol", "\"stagedA\"");
+    auto b = new Node("Symbol", "\"stagedB\"");
+    auto implication = new Node("Symbol", "Implication");
+    string a_h = peer3_local->add_node(a, false);
+    string b_h = peer3_local->add_node(b, false);
+    string impl_h = peer3_local->add_node(implication, false);
+
+    auto weak = make_shared<Link>(
+        "Expression", vector<string>{impl_h, a_h, b_h}, true, Properties{{"strength", 0.833333}});
+    string handle = peer3_local->add_link(weak.get(), false);
+    ASSERT_FALSE(handle.empty());
+
+    map<string, shared_ptr<RemoteAtomDBPeer>> peers;
+    peers["peer3"] = make_shared<RemoteAtomDBPeer>(peer3_remote, peer3_local, "peer3");
+    auto db = make_shared<RemoteAtomDB>(peers);
+
+    auto before = db->get_atom(handle);
+    ASSERT_NE(before, nullptr);
+    EXPECT_DOUBLE_EQ(before->custom_attributes.get_or<double>("strength", -1.0), 0.833333);
+
+    auto strong = make_shared<Link>(
+        "Expression", vector<string>{impl_h, a_h, b_h}, true, Properties{{"strength", 0.942654}});
+    ASSERT_EQ(strong->handle(), handle);
+    ASSERT_EQ(db->add_link(strong.get(), false), handle);
+
+    // Still staged only — local_persistence keeps the weak copy until release.
+    EXPECT_DOUBLE_EQ(peer3_local->get_atom(handle)->custom_attributes.get_or<double>("strength", -1.0),
+                     0.833333);
+
+    auto staged = db->get_atom(handle);
+    ASSERT_NE(staged, nullptr);
+    EXPECT_DOUBLE_EQ(staged->custom_attributes.get_or<double>("strength", -1.0), 0.942654);
+
+    db->get_peer("peer3")->release_cache(true, false);
+    auto flushed = db->get_atom(handle);
+    ASSERT_NE(flushed, nullptr);
+    EXPECT_DOUBLE_EQ(flushed->custom_attributes.get_or<double>("strength", -1.0), 0.942654);
+    EXPECT_DOUBLE_EQ(peer3_local->get_atom(handle)->custom_attributes.get_or<double>("strength", -1.0),
+                     0.942654);
+}
+
 int main(int argc, char** argv) {
     ::testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();

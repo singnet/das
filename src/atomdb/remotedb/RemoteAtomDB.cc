@@ -116,8 +116,8 @@ void RemoteAtomDB::derive_nested_indexing() {
 bool RemoteAtomDB::allow_nested_indexing() { return nested_indexing_; }
 
 shared_ptr<Atom> RemoteAtomDB::get_atom(const string& handle) {
-    // Writable peers first: local_persistence is the source of truth for updated custom
-    // attributes (strength) that share a content-addressed handle.
+    // Writable peers first: their cache/local_persistence are the source of truth for
+    // updated custom attributes (strength) that share a content-addressed handle.
     for (auto& [uid, peer] : remote_db_) {
         if (peer->is_readonly()) continue;
         auto atom = peer->get_atom(handle);

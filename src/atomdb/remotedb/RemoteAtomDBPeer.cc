@@ -45,8 +45,12 @@ shared_ptr<InMemoryDB> RemoteAtomDBPeer::cache() const {
 }
 
 shared_ptr<Atom> RemoteAtomDBPeer::get_atom(const string& handle) {
-    // local_persistence is authoritative for written/updated atoms (including strength changes
-    // that keep the same content-addressed handle). Prefer it over a possibly stale cache.
+    // Cache first so staged upserts (e.g. strength) are visible before flush. release_cache
+    // swaps in an empty cache, after which reads fall through to local_persistence.
+    if (auto atom = cache()->get_atom(handle)) {
+        return atom;
+    }
+
     if (local_persistence_) {
         auto atom = local_persistence_->get_atom(handle);
         if (atom) {
@@ -55,10 +59,6 @@ shared_ptr<Atom> RemoteAtomDBPeer::get_atom(const string& handle) {
             cache()->add_atom(atom.get());
             return atom;
         }
-    }
-
-    if (auto atom = cache()->get_atom(handle)) {
-        return atom;
     }
 
     auto atom = atomdb_->get_atom(handle);

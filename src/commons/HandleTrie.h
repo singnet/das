@@ -2,6 +2,7 @@
 
 #include <mutex>
 #include <string>
+
 #include "Utils.h"
 
 #define TRIE_ALPHABET_SIZE ((unsigned int) 16)
@@ -26,13 +27,14 @@ class HandleTrie {
      */
     class TrieValue {
        protected:
-        TrieValue(); /// basic empty constructor.
+        TrieValue();                               /// basic empty constructor.
        public:
-        virtual ~TrieValue(); /// Destructor.
+        virtual ~TrieValue();                      /// Destructor.
         virtual void merge(TrieValue* other) = 0;  /// Called when a repeated handle is inserted.
-        virtual string to_string(); /// Returns a string representation of the value object.
-        virtual void* get_stored_object(bool clone) { /// Return the actual object being stored (or a clone of it).
-            return (void*) NULL; 
+        virtual string to_string();  /// Returns a string representation of the value object.
+        virtual void* get_stored_object(
+            bool clone) {            /// Return the actual object being stored (or a clone of it).
+            return (void*) NULL;
         }
     };
 
@@ -82,11 +84,15 @@ class HandleTrie {
      * Lookup for a given handle and return the corresponding object stored in TrieValue.
      *
      * @param key Handle being searched.
-     * @param clone A flag indicating if a clone is supposed to be returned instead of the actual object being stored.
+     * @param clone A flag indicating if a clone is supposed to be returned instead of the actual object
+     * being stored.
      *
-     * @return The object actually being stored inside a HandleTrie::TrieValue object attached to the passed key.
+     * @return The object actually being stored inside a HandleTrie::TrieValue object attached to the
+     * passed key.
      */
-    inline void* lookup_stored_object(const string& key, bool clone = false) { return fetch<void>(key, clone); }
+    inline void* lookup_stored_object(const string& key, bool clone = false) {
+        return fetch<void>(key, clone);
+    }
 
     bool exists(const string& key);
 
@@ -114,7 +120,6 @@ class HandleTrie {
     unsigned int size;
 
    private:
-
     template <typename T>
     T* fetch(const string& key, bool clone_stored_object = false) {
         if (key.size() != key_size) {
