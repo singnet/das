@@ -13,6 +13,7 @@
 #include "ProcessorFactory.h"
 #include "Properties.h"
 #include "RemoteAtomDB.h"
+#include "ServiceBusSingleton.h"
 #include "SystemParametersSingleton.h"
 #include "Utils.h"
 
