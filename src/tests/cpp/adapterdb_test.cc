@@ -10,9 +10,11 @@
 #include <string>
 #include <vector>
 
+#include "AtomDBFactory.h"
 #include "AtomDBSingleton.h"
 #include "Link.h"
 #include "Merger.h"
+#include "MockAtomDB.h"
 #include "MorkDB.h"
 #include "Node.h"
 #include "RedisMongoDB.h"
@@ -25,6 +27,7 @@ using namespace std;
 using namespace atomdb;
 using namespace atoms;
 using namespace commons;
+using ::testing::Return;
 
 struct AdapterTestParams {
     string adapter_type;
@@ -56,7 +59,9 @@ class AdapterDBTestBase : public ::testing::Test {
     shared_ptr<RedisMongoDB> backend;
 
     void SetUpBackend() {
-        backend = make_shared<RedisMongoDB>("adapter_test", false, test_atomdb_json_config());
+        backend = dynamic_pointer_cast<RedisMongoDB>(
+            AtomDBFactory::create_backend(test_atomdb_json_config(), "adapter_test"));
+        ASSERT_NE(backend, nullptr);
     }
 
     JsonConfig build_adapter_config(const string& mapping_path,
@@ -211,6 +216,19 @@ TEST_P(AdapterDBTest, ConstructorSucceedsWithValidConfig) {
     auto db = create_current_adapter();
     ASSERT_NE(db, nullptr);
     EXPECT_GT(db->atom_count(), 0);
+}
+
+TEST_P(AdapterDBTest, IsProtectedDelegatesToBackend) {
+    ASSERT_NE(create_current_adapter(), nullptr);
+
+    auto mock_backend = make_shared<AtomDBMock>();
+    EXPECT_CALL(*mock_backend, is_protected()).WillRepeatedly(Return(true));
+
+    const AdapterTestParams& p = GetParam();
+    auto config = build_adapter_config(mapping_file_path, p.adapter_type, p.db_credentials);
+    auto db = make_shared<AdapterDB>(config, mock_backend);
+    ASSERT_NE(db, nullptr);
+    EXPECT_TRUE(db->is_protected());
 }
 
 TEST_P(AdapterDBTest, ConstructorLoadsDataIntoBackendOnFirstRun) {

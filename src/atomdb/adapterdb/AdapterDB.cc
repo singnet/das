@@ -3,17 +3,16 @@
 #include <chrono>
 #include <thread>
 
+#include "AtomDBFactory.h"
 #include "AtomPersister.h"
 #include "BoundedSharedQueue.h"
 #include "DatabaseOrchestrator.h"
 #include "DedicatedThread.h"
 #include "MongoInitializer.h"
-#include "MorkDB.h"
 #include "MorkMappingStrategy.h"
 #include "PostgresMappingStrategy.h"
 #include "PostgresWrapper.h"
 #include "Processor.h"
-#include "RedisMongoDB.h"
 #include "RemoteAtomDB.h"
 #include "Utils.h"
 #include "expression_hasher.h"
@@ -70,6 +69,11 @@ bool AdapterDB::allow_nested_indexing() {
 bool AdapterDB::composite_type_enabled() const {
     this->ensure_backend_ready();
     return this->atomdb_backend->composite_type_enabled();
+}
+
+bool AdapterDB::is_protected() const {
+    this->ensure_backend_ready();
+    return this->atomdb_backend->is_protected();
 }
 
 shared_ptr<Atom> AdapterDB::get_atom(const string& handle) {
@@ -314,12 +318,12 @@ void AdapterDB::atomdb_backend_setup() {
     auto atomdb_backend_config =
         this->config.at_path("adapterdb.atomdb_backend").get_or<JsonConfig>(JsonConfig());
     string atomdb_backend_type = atomdb_backend_config.at_path("type").get_or<string>("");
-    if (atomdb_backend_type == "morkdb") {
-        this->atomdb_backend = shared_ptr<AtomDB>(new MorkDB("", atomdb_backend_config));
-    } else if (atomdb_backend_type == "redismongodb") {
-        this->atomdb_backend = shared_ptr<AtomDB>(new RedisMongoDB("", false, atomdb_backend_config));
-    } else if (atomdb_backend_type == "remotedb") {
-        this->atomdb_backend = shared_ptr<AtomDB>(new RemoteAtomDB(atomdb_backend_config));
+    if (atomdb_backend_type == "remotedb") {
+        this->atomdb_backend = AtomDBFactory::wrap_if_protected(
+            shared_ptr<AtomDB>(new RemoteAtomDB(atomdb_backend_config)));
+    } else if (atomdb_backend_type == "morkdb" || atomdb_backend_type == "redismongodb" ||
+               atomdb_backend_type == "inmemorydb") {
+        this->atomdb_backend = AtomDBFactory::create(atomdb_backend_config);
     } else {
         RAISE_ERROR("Invalid AtomDB type: " + atomdb_backend_type);
     }

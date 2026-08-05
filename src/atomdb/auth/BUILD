@@ -3,24 +3,22 @@ load("@rules_cc//cc:cc_library.bzl", "cc_library")
 package(default_visibility = ["//visibility:public"])
 
 cc_library(
-    name = "adapterdb_lib",
+    name = "protected_atomdb_lib",
     includes = ["."],
     deps = [
-        ":adapterdb",
+        ":protected_atomdb",
     ],
 )
 
 cc_library(
-    name = "adapterdb",
-    srcs = ["AdapterDB.cc"],
-    hdrs = ["AdapterDB.h"],
+    name = "protected_atomdb",
+    srcs = ["ProtectedAtomDB.cc"],
+    hdrs = ["ProtectedAtomDB.h"],
     includes = ["."],
     deps = [
         "//atomdb",
-        "//atomdb:atomdb_factory",
-        "//atomdb/remotedb:remotedb_lib",
+        "//atomdb:atomdb_api_types",
         "//commons:commons_lib",
         "//commons/atoms:atoms_lib",
-        "//db_adapter:db_adapter_lib",
     ],
 )

@@ -1,6 +1,8 @@
 #include <gtest/gtest.h>
 
 #include <algorithm>
+#include <bsoncxx/builder/basic/document.hpp>
+#include <bsoncxx/builder/basic/kvp.hpp>
 #include <cstdlib>
 #include <fstream>
 #include <map>
@@ -9,20 +11,25 @@
 #include <vector>
 
 #include "Assignment.h"
+#include "AtomDBFactory.h"
 #include "InMemoryDB.h"
 #include "InMemoryDBAPITypes.h"
 #include "JsonConfig.h"
 #include "Link.h"
 #include "LinkSchema.h"
+#include "MockAtomDB.h"
 #include "Node.h"
+#include "RedisMongoDB.h"
 #include "RemoteAtomDB.h"
 #include "RemoteAtomDBPeer.h"
+#include "TestAtomDBJsonConfig.h"
 
 using namespace atomdb;
 using namespace atomdb::atomdb_api_types;
 using namespace atoms;
 using namespace commons;
 using namespace std;
+using ::testing::Return;
 
 // =============================================================================
 // RemoteAtomDBPeer tests - peer with InMemoryDB as both remote and local
@@ -710,6 +717,148 @@ TEST(RemoteAtomDBFederationTest, CacheFirstProbingAcrossPeers) {
 
     // A handle present in no peer resolves to nullptr.
     EXPECT_EQ(db->get_atom("ffffffffffffffffffffffffffffffff"), nullptr);
+}
+
+namespace {
+
+shared_ptr<AtomDBMock> make_protection_mock(bool protected_flag) {
+    auto mock = make_shared<AtomDBMock>();
+    EXPECT_CALL(*mock, is_protected()).WillRepeatedly(Return(protected_flag));
+    EXPECT_CALL(*mock, allow_nested_indexing()).WillRepeatedly(Return(false));
+    EXPECT_CALL(*mock, composite_type_enabled()).WillRepeatedly(Return(false));
+    return mock;
+}
+
+nlohmann::json redis_mongodb_fields() {
+    return {
+        {"type", "redismongodb"},
+        {"redis", {{"endpoint", "localhost:40020"}, {"cluster", false}}},
+        {"mongodb", {{"endpoint", "localhost:40021"}, {"username", "admin"}, {"password", "admin"}}}};
+}
+
+void seed_protected_flag(const string& context, bool protected_value) {
+    using bsoncxx::builder::basic::kvp;
+    using bsoncxx::builder::basic::make_document;
+
+    auto seeder = dynamic_pointer_cast<RedisMongoDB>(
+        AtomDBFactory::create_backend(test_atomdb_json_config(), context));
+    ASSERT_NE(seeder, nullptr);
+    auto conn = seeder->get_mongo_pool()->acquire();
+    auto config_collection =
+        (*conn)[RedisMongoDB::MONGODB_DB_NAME][RedisMongoDB::MONGODB_CONFIG_COLLECTION_NAME];
+    config_collection.delete_many({});
+    if (protected_value) {
+        config_collection.insert_one(make_document(kvp("protected", true)));
+    }
+}
+
+string seed_redis_node(const string& context, const string& node_name) {
+    auto seeder = dynamic_pointer_cast<RedisMongoDB>(
+        AtomDBFactory::create_backend(test_atomdb_json_config(), context));
+    EXPECT_NE(seeder, nullptr);
+    if (seeder == nullptr) {
+        return "";
+    }
+    auto node = new Node("Symbol", node_name);
+    string handle = seeder->add_node(node);
+    delete node;
+    return handle;
+}
+
+void drop_redis_context(const string& context) {
+    auto cleanup = dynamic_pointer_cast<RedisMongoDB>(
+        AtomDBFactory::create_backend(test_atomdb_json_config(), context));
+    ASSERT_NE(cleanup, nullptr);
+    cleanup->drop_all();
+}
+
+}  // namespace
+
+TEST(RemoteAtomDBPeerIsProtected, OrAcrossRemoteAndLocal) {
+    EXPECT_FALSE(
+        RemoteAtomDBPeer(make_protection_mock(false), make_protection_mock(false), "p").is_protected());
+    EXPECT_TRUE(
+        RemoteAtomDBPeer(make_protection_mock(true), make_protection_mock(false), "p").is_protected());
+    EXPECT_TRUE(
+        RemoteAtomDBPeer(make_protection_mock(false), make_protection_mock(true), "p").is_protected());
+}
+
+TEST(RemoteAtomDBIsProtected, AggregatesPeers) {
+    EXPECT_FALSE(RemoteAtomDB(map<string, shared_ptr<RemoteAtomDBPeer>>{}).is_protected());
+
+    map<string, shared_ptr<RemoteAtomDBPeer>> unprotected;
+    unprotected["p1"] =
+        make_shared<RemoteAtomDBPeer>(make_protection_mock(false), make_protection_mock(false), "p1");
+    EXPECT_FALSE(RemoteAtomDB(unprotected).is_protected());
+
+    map<string, shared_ptr<RemoteAtomDBPeer>> mixed = unprotected;
+    mixed["p2"] =
+        make_shared<RemoteAtomDBPeer>(make_protection_mock(true), make_protection_mock(false), "p2");
+    EXPECT_TRUE(RemoteAtomDB(mixed).is_protected());
+}
+
+TEST(RemoteAtomDBFactoryConstruction, EmptyLocalPersistenceContextFallsBackToPeerContext) {
+    const string peer_context = "remote_fallback_ctx_";
+    string handle = seed_redis_node(peer_context, "\"fallback_routed\"");
+    ASSERT_FALSE(handle.empty());
+
+    nlohmann::json peer_json = {{"uid", "fallback_peer"},
+                                {"type", "inmemorydb"},
+                                {"context", peer_context},
+                                {"local_persistence", redis_mongodb_fields()}};
+    peer_json["local_persistence"]["context"] = "";
+
+    RemoteAtomDB db(JsonConfig(nlohmann::json::array({peer_json})));
+    auto* peer = db.get_peer("fallback_peer");
+    ASSERT_NE(peer, nullptr);
+    EXPECT_FALSE(peer->is_readonly());
+    EXPECT_EQ(RedisMongoDB::MONGODB_DB_NAME, peer_context + "das");
+    EXPECT_EQ(RedisMongoDB::MONGODB_CONFIG_COLLECTION_NAME, peer_context + "config");
+
+    EXPECT_EQ(peer->get_cached_atom(handle), nullptr);
+    auto got = db.get_atom(handle);
+    ASSERT_NE(got, nullptr);
+    EXPECT_EQ(got->handle(), handle);
+
+    drop_redis_context(peer_context);
+}
+
+TEST(RemoteAtomDBFactoryConstruction, ProtectedPeerRoutesThroughLocalPersistence) {
+    const string peer_context = "remote_factory_prot_";
+    seed_protected_flag(peer_context, true);
+
+    auto peer_json = redis_mongodb_fields();
+    peer_json["uid"] = "protected_peer";
+    peer_json["context"] = peer_context;
+    peer_json["local_persistence"] = {{"type", "inmemorydb"}, {"context", ""}};
+
+    RemoteAtomDB factory_db(JsonConfig(nlohmann::json::array({peer_json})));
+    auto* factory_peer = factory_db.get_peer("protected_peer");
+    ASSERT_NE(factory_peer, nullptr);
+    EXPECT_FALSE(factory_peer->is_readonly());
+    EXPECT_TRUE(factory_peer->is_protected());
+    EXPECT_TRUE(factory_db.is_protected());
+
+    auto remote = make_protection_mock(true);
+    EXPECT_CALL(*remote, get_atom(testing::_)).Times(0);
+    auto local = make_shared<InMemoryDB>("prot_route_local_");
+    auto node = new Node("Symbol", "\"factory_routed\"");
+    string handle = local->add_node(node);
+    delete node;
+    ASSERT_FALSE(handle.empty());
+
+    map<string, shared_ptr<RemoteAtomDBPeer>> peers;
+    peers["protected_peer"] =
+        make_shared<RemoteAtomDBPeer>(AtomDBFactory::wrap_if_protected(remote), local, "protected_peer");
+    RemoteAtomDB db(peers);
+    auto* peer = db.get_peer("protected_peer");
+    ASSERT_NE(peer, nullptr);
+    EXPECT_EQ(peer->get_cached_atom(handle), nullptr);
+    auto got = db.get_atom(handle);
+    ASSERT_NE(got, nullptr);
+    EXPECT_EQ(got->handle(), handle);
+
+    drop_redis_context(peer_context);
 }
 
 int main(int argc, char** argv) {

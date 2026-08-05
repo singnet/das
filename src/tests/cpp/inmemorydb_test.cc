@@ -31,6 +31,8 @@ class InMemoryDBTest : public ::testing::Test {
     shared_ptr<InMemoryDB> db;
 };
 
+TEST_F(InMemoryDBTest, IsProtectedAlwaysFalse) { EXPECT_FALSE(db->is_protected()); }
+
 TEST_F(InMemoryDBTest, AddNodesAndLinks) {
     auto human = new Node("Symbol", "\"human\"");
     auto monkey = new Node("Symbol", "\"monkey\"");
