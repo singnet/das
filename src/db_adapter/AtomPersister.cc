@@ -189,7 +189,7 @@ void AtomPersister::send_batch(vector<shared_ptr<Atom>> atoms,
 
         timer_success.stop();
 
-        this->total_count.fetch_add(static_cast<int>(atoms.size())) + static_cast<int>(atoms.size());
+        this->total_count.fetch_add(static_cast<int>(atoms.size()));
 
         this->batches_completed.fetch_add(1);
 

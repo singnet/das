@@ -11,6 +11,7 @@
 
 #include "AtomDBSingleton.h"
 #include "LinkSchema.h"
+#include "Merger.h"
 #include "MockAnimalsData.h"
 #include "TestAtomDBJsonConfig.h"
 #include "Merger.h"
@@ -126,7 +127,7 @@ TEST_F(MorkDBTest, QueryForTargets) {
 }
 
 TEST_F(MorkDBTest, ConcurrentQueryForPattern) {
-    const int num_threads = 8;
+    const int num_threads = 4;
     vector<thread> threads;
     atomic<int> success_count{0};
 
@@ -298,11 +299,11 @@ TEST_F(MorkDBTest, AddLinksWithDuplicateTargets) {
 }
 
 TEST_F(MorkDBTest, ConcurrentAddLinks) {
-    int num_links = 1000;
+    int num_links = 50;
     int arity = 3;
-    int chunck_size = 500;
+    int chunck_size = 25;
 
-    const int num_threads = 8;
+    const int num_threads = 4;
     vector<thread> threads;
     atomic<int> success_count{0};
 

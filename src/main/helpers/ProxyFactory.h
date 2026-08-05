@@ -4,8 +4,8 @@
 #include "BaseProxy.h"
 #include "ContextBrokerProxy.h"
 #include "Helper.h"
-#include "InferenceProxy.h"
-#include "LinkCreationRequestProxy.h"
+#include "LinkCreationProxy.h"
+#include "LinkCreatorRegistry.h"
 #include "PatternMatchingQueryProxy.h"
 #include "Properties.h"
 #include "QueryEvolutionProxy.h"
@@ -14,7 +14,6 @@
 using namespace std;
 using namespace commons;
 using namespace agents;
-using namespace inference_agent;
 using namespace link_creation_agent;
 using namespace context_broker;
 using namespace evolution;
@@ -160,26 +159,9 @@ class ProxyFactory {
         string umaqt = params.get_or<string>(Helper::USE_METTA_AS_QUERY_TOKENS, "");
 
         switch (processor_type) {
-            case ProcessorType::INFERENCE_AGENT: {
-                string request = params.get_or<string>(Helper::REQUEST, "");
-                string timeout = params.get_or<string>(Helper::TIMEOUT, "");
-                string repeat_count = params.get_or<string>(Helper::REPEAT_COUNT, "");
-                auto proxy = make_shared<InferenceProxy>(Utils::split(request, ' '));
-                set_param(proxy, InferenceProxy::INFERENCE_REQUEST_TIMEOUT, timeout, ParamType::UINT);
-                set_base_query_params(proxy, params);
-                set_param(proxy, InferenceProxy::REPEAT_COUNT, repeat_count, ParamType::UINT);
-                return proxy;
-            }
             case ProcessorType::LINK_CREATION_AGENT: {
-                string request_str = params.get_or<string>(Helper::REQUEST, "");
-                string repeat_count = params.get_or<string>(Helper::REPEAT_COUNT, "");
-                auto request = parse_request(request_str, umaqt);
-                auto proxy = make_shared<LinkCreationRequestProxy>(request);
-                set_param(
-                    proxy, LinkCreationRequestProxy::POSITIVE_IMPORTANCE_FLAG, pif, ParamType::BOOL);
-                set_param(proxy, LinkCreationRequestProxy::REPEAT_COUNT, repeat_count, ParamType::UINT);
-                set_base_query_params(proxy, params);
-                return proxy;
+                LinkCreatorRegistry::initialize_statics();
+                return make_shared<LinkCreationProxy>();
             }
             case ProcessorType::CONTEXT_BROKER: {
                 string query_str = params.get_or<string>("query", "");

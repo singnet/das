@@ -60,7 +60,6 @@ map<string, string> Helper::arg_to_json_config_key = {
     {"command-router", "agents.command_router"},
     {"evolution-agent", "agents.evolution"},
     {"link-creation-agent", "agents.link_creation"},
-    {"inference-agent", "agents.inference"},
     {"atomdb-broker", "agents.atomdb"},
     {"context-broker", "agents.context"},
     {"attention-broker", "agents.attention"},
@@ -105,13 +104,7 @@ void Helper::merge_params_from_config(map<string, string>& cmd_args, JsonConfig&
     merge_params(cmd_args, context_params);
 }
 
-static map<ProcessorType, string> node_service_help = {{ProcessorType::INFERENCE_AGENT, string(R"(
-Inference Agent:
-This processor handles inference requests from the service bus.
-Required arguments:
-    - attention-broker-endpoint: The address of the Attention Broker to connect to, in the form "host:port"
-)")},
-                                                       {ProcessorType::LINK_CREATION_AGENT, string(R"(
+static map<ProcessorType, string> node_service_help = {{ProcessorType::LINK_CREATION_AGENT, string(R"(
 Link Creation Agent:
 This processor manages link creation requests from the service bus.
 Optional arguments:
@@ -156,19 +149,7 @@ busnode --service=<service> --endpoint=<host:port> --ports-range=<start_port:end
 With --config=das.json, non-query-engine services default --bus-endpoint to agents.query.endpoint (query-engine mesh hub).
 )")}};
 
-static map<ProcessorType, string> client_service_help = {{ProcessorType::INFERENCE_AGENT, string(R"(
-Inference Agent Client:
-This client sends inference requests to the Inference Agent via the service bus.
-It requires the following arguments:
-    - request: The inference request tokens.
- Optional arguments:
-    - timeout: Timeout for the inference request in seconds
-    - max-answers: Maximum number of answers to return
-    - attention-update: Whether/how to update STI values through stimuli spreading in the attention broker (0 means no update. See BaseQueryProxy::QUERY_ELEMENTS to see all possible values)
-    - attention-correlation: Whether/how to correlate handles in the attention broker (0 means no update. See BaseQueryProxy::QUERY_ELEMENTS to see all possible values)
-    - repeat-count: Number of times to repeat the request (0 for infinite)
-)")},
-                                                         {ProcessorType::LINK_CREATION_AGENT, string(R"(
+static map<ProcessorType, string> client_service_help = {{ProcessorType::LINK_CREATION_AGENT, string(R"(
 Link Creation Agent Client:
 This client sends link creation requests to the Link Creation Agent via the service bus.
 It requires the following arguments:
@@ -285,7 +266,6 @@ Defaults load config/das.json (schema 1.0): client.endpoint and client.ports_ran
         )")}};
 
 static map<string, ProcessorType> string_to_processor_type = {
-    {"inference-agent", ProcessorType::INFERENCE_AGENT},
     {"link-creation-agent", ProcessorType::LINK_CREATION_AGENT},
     {"context-broker", ProcessorType::CONTEXT_BROKER},
     {"evolution-agent", ProcessorType::EVOLUTION_AGENT},
@@ -301,12 +281,6 @@ string Helper::help(const ProcessorType& processor_type, ServiceCallerType calle
         usage = node_service_help[ProcessorType::UNKNOWN];
     }
     switch (processor_type) {
-        case ProcessorType::INFERENCE_AGENT:
-            if (caller_type == ServiceCallerType::CLIENT) {
-                return usage + client_service_help[ProcessorType::INFERENCE_AGENT];
-            } else {
-                return usage + node_service_help[ProcessorType::INFERENCE_AGENT];
-            }
         case ProcessorType::LINK_CREATION_AGENT:
             if (caller_type == ServiceCallerType::CLIENT) {
                 return usage + client_service_help[ProcessorType::LINK_CREATION_AGENT];
@@ -357,12 +331,6 @@ vector<string> Helper::get_required_arguments(const string& processor_type,
                                               ServiceCallerType caller_type) {
     ProcessorType p_type = processor_type_from_string(processor_type);
     switch (p_type) {
-        case ProcessorType::INFERENCE_AGENT:
-            if (caller_type == ServiceCallerType::CLIENT) {
-                return {REQUEST};
-            } else {
-                return {ATTENTION_BROKER_ENDPOINT};
-            }
         case ProcessorType::LINK_CREATION_AGENT:
             if (caller_type == ServiceCallerType::CLIENT) {
                 return {REQUEST};

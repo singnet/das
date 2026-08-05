@@ -258,7 +258,7 @@ cc_test(
 
 cc_test(
     name = "query_answer_test",
-    size = "small",
+    size = "medium",
     srcs = [
         "query_answer_test.cc",
         "test_utils.cc",
@@ -619,32 +619,19 @@ cc_test(
         "-Iexternal/gtest/googletest/include",
         "-Iexternal/gtest/googletest",
     ],
+    linkopts = [
+        "-L/usr/local/lib",
+        "-lhiredis_cluster",
+        "-lhiredis",
+        "-lmongocxx",
+        "-lbsoncxx",
+    ],
     linkstatic = 1,
     deps = [
         "//agents/link_creation_agent:link_creation_agent_lib",
-        "//commons:commons_lib",
-        "//service_bus:service_bus_lib",
+        "//agents/query_engine:pattern_matching_query_processor",
+        "//tests/cpp/test_commons:test_atomdb_json_config",
         "//tests/cpp/test_commons:test_system_params",
-        "//tests/cpp/test_commons/mocks:mock_atom_db_lib",
-        "//tests/cpp/test_commons/mocks:mock_service_bus_lib",
-        "@com_github_google_googletest//:gtest_main",
-    ],
-)
-
-cc_test(
-    name = "inference_agent_test",
-    size = "small",
-    srcs = ["inference_agent_test.cc"],
-    copts = [
-        "-Iexternal/gtest/googletest/include",
-        "-Iexternal/gtest/googletest",
-    ],
-    linkstatic = 1,
-    deps = [
-        "//agents/inference_agent:inference_agent_lib",
-        "//commons:commons_lib",
-        "//tests/cpp/test_commons/mocks:mock_atom_db_lib",
-        "//tests/cpp/test_commons/mocks:mock_service_bus_lib",
         "@com_github_google_googletest//:gtest_main",
     ],
 )
@@ -1070,6 +1057,7 @@ cc_test(
         "//agents/command_router/http_api:command_router_http_api",
         "//agents/command_router/http_api:command_router_http_api_config",
         "//agents/command_router/http_api:command_router_http_api_singleton",
+        "//agents/command_router/http_api:http_command_proxy_factory",
         "//agents/query_engine:query_answer",
         "//atomdb:atomdb_singleton",
         "//commons/processor:processor_lib",

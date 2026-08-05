@@ -11,7 +11,7 @@ using namespace commons;
 namespace command_router {
 
 struct HttpAPISettings {
-    size_t max_concurrent_executions = 100;
+    // Max admitted executions not yet finished.
     size_t max_queued_executions = 500;
     size_t max_events_per_execution = CommandExecution::DEFAULT_MAX_EVENTS;
     unsigned long execution_retention_ms = 15 * 60 * 1000;

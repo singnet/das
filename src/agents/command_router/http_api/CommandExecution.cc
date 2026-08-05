@@ -5,13 +5,10 @@ using namespace commons;
 using namespace command_router;
 
 CommandExecution::CommandExecution(const string& execution_id,
-                                   const string& command_type,
-                                   const string& command_text,
+                                   const string& command,
+                                   const json& params,
                                    size_t max_events)
-    : execution_id(execution_id),
-      command_type(command_type),
-      command_text(command_text),
-      max_events(max_events) {
+    : execution_id(execution_id), command(command), params(params), max_events(max_events) {
     if (this->max_events == 0) {
         RAISE_ERROR("max_events must be greater than 0");
     }
@@ -125,7 +122,11 @@ void CommandExecution::publish_event_locked(const json& payload) {
     this->cv_.notify_all();
 }
 
-json CommandExecution::lifecycle_event_locked() const {
+json CommandExecution::make_envelope_locked(const string& command, json params) const {
+    return {{"command", command}, {"params", std::move(params)}};
+}
+
+json CommandExecution::status_params_locked() const {
     return {{"execution_id", this->execution_id}, {"status", status_to_string(this->status_)}};
 }
 
@@ -138,17 +139,21 @@ void CommandExecution::stamp_finished_at_locked() {
 void CommandExecution::mark_running() {
     lock_guard<mutex> lock(this->mtx_);
     this->status_ = ExecutionStatus::RUNNING;
-    this->publish_event_locked(this->lifecycle_event_locked());
+    this->publish_event_locked(
+        this->make_envelope_locked(COMMAND_EXECUTION_STATUS, this->status_params_locked()));
 }
 
-void CommandExecution::publish_chunk(int seq, const vector<string>& data) {
+void CommandExecution::publish_chunk(int seq, const json& data) {
     lock_guard<mutex> lock(this->mtx_);
+    if (!data.is_array()) {
+        RAISE_ERROR("Chunk data must be a JSON array");
+    }
     this->received_count_ += static_cast<int>(data.size());
-    this->publish_event_locked({{"execution_id", this->execution_id},
-                                {"type", "chunk"},
-                                {"seq", seq},
-                                {"data", data},
-                                {"received_count", this->received_count_}});
+    json params = {{"execution_id", this->execution_id},
+                   {"seq", seq},
+                   {"answers", data},
+                   {"received_count", this->received_count_}};
+    this->publish_event_locked(this->make_envelope_locked(COMMAND_QUERY_ANSWERS, std::move(params)));
 }
 
 void CommandExecution::mark_completed(unsigned long duration_ms, int total_items) {
@@ -157,10 +162,10 @@ void CommandExecution::mark_completed(unsigned long duration_ms, int total_items
     this->total_items_ = total_items;
     this->status_ = ExecutionStatus::COMPLETED;
     this->stamp_finished_at_locked();
-    auto event = this->lifecycle_event_locked();
-    event["duration_ms"] = duration_ms;
-    event["total_items"] = total_items;
-    this->publish_event_locked(event);
+    json params = this->status_params_locked();
+    params["duration_ms"] = duration_ms;
+    params["total_items"] = total_items;
+    this->publish_event_locked(this->make_envelope_locked(COMMAND_EXECUTION_STATUS, std::move(params)));
 }
 
 void CommandExecution::mark_error(const string& message) {
@@ -168,16 +173,17 @@ void CommandExecution::mark_error(const string& message) {
     this->error_message_ = message;
     this->status_ = ExecutionStatus::ERROR;
     this->stamp_finished_at_locked();
-    auto event = this->lifecycle_event_locked();
-    event["message"] = message;
-    this->publish_event_locked(event);
+    json params = this->status_params_locked();
+    params["message"] = message;
+    this->publish_event_locked(this->make_envelope_locked(COMMAND_EXECUTION_STATUS, std::move(params)));
 }
 
 void CommandExecution::mark_aborted() {
     lock_guard<mutex> lock(this->mtx_);
     this->status_ = ExecutionStatus::ABORTED;
     this->stamp_finished_at_locked();
-    this->publish_event_locked(this->lifecycle_event_locked());
+    this->publish_event_locked(
+        this->make_envelope_locked(COMMAND_EXECUTION_STATUS, this->status_params_locked()));
 }
 
 void CommandExecution::mark_error_unless_terminal(const string& message) {
@@ -188,9 +194,9 @@ void CommandExecution::mark_error_unless_terminal(const string& message) {
     this->error_message_ = message;
     this->status_ = ExecutionStatus::ERROR;
     this->stamp_finished_at_locked();
-    auto event = this->lifecycle_event_locked();
-    event["message"] = message;
-    this->publish_event_locked(event);
+    json params = this->status_params_locked();
+    params["message"] = message;
+    this->publish_event_locked(this->make_envelope_locked(COMMAND_EXECUTION_STATUS, std::move(params)));
 }
 
 void CommandExecution::mark_aborted_unless_terminal() {
@@ -200,5 +206,6 @@ void CommandExecution::mark_aborted_unless_terminal() {
     }
     this->status_ = ExecutionStatus::ABORTED;
     this->stamp_finished_at_locked();
-    this->publish_event_locked(this->lifecycle_event_locked());
+    this->publish_event_locked(
+        this->make_envelope_locked(COMMAND_EXECUTION_STATUS, this->status_params_locked()));
 }

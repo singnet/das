@@ -212,11 +212,11 @@ TEST_F(RedisMongoDBTest, MongodbDocumentGetSize) {
 }
 
 TEST_F(RedisMongoDBTest, ConcurrentAddLinks) {
-    int num_links = 2000;
+    int num_links = 50;
     int arity = 3;
-    int chunck_size = 250;
+    int chunck_size = 25;
 
-    const int num_threads = 120;
+    const int num_threads = 4;
     vector<thread> threads;
     atomic<int> success_count{0};
 

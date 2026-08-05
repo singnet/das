@@ -19,13 +19,31 @@ class TestValue : public HandleTrie::TrieValue {
     unsigned int count;
     TestValue(int count = 1) { this->count = count; }
     void merge(TrieValue* other) {}
+    void* get_stored_object(bool clone) {
+        if (clone) {
+            unsigned int* cloned_count = new unsigned int[1];
+            cloned_count[0] = this->count;
+            return (void*) cloned_count;
+        } else {
+            return (void*) &(this->count);
+        }
+    }
 };
 
 class AccumulatorValue : public HandleTrie::TrieValue {
    public:
     unsigned int count;
     AccumulatorValue() { this->count = 1; }
-    void merge(TrieValue* other) { count += ((AccumulatorValue*) other)->count; }
+    void merge(TrieValue* other) { this->count += ((AccumulatorValue*) other)->count; }
+    void* get_stored_object(bool clone) {
+        if (clone) {
+            unsigned int* cloned_count = new unsigned int[1];
+            cloned_count[0] = this->count;
+            return (void*) cloned_count;
+        } else {
+            return (void*) &(this->count);
+        }
+    }
 };
 
 char R_TLB[16] = {
@@ -73,6 +91,15 @@ TEST(HandleTrieTest, basics) {
     value = (TestValue*) trie.lookup("ABCD");
     EXPECT_TRUE(value != NULL);
     EXPECT_TRUE(value->count == 3);
+    // -- begin -- test lookup_stored_object() just in this first test case
+    unsigned int* check_count = (unsigned int*) trie.lookup_stored_object("ABCD", false);
+    EXPECT_TRUE(*check_count == 3);
+    EXPECT_TRUE(check_count == &(((TestValue*) value)->count));
+    check_count = (unsigned int*) trie.lookup_stored_object("ABCD", true);
+    EXPECT_TRUE(*check_count == 3);
+    EXPECT_TRUE(check_count != &(((TestValue*) value)->count));
+    delete[] check_count;
+    // -- end --
     value = (TestValue*) trie.lookup("ABCF");
     EXPECT_TRUE(value == NULL);
 
@@ -464,6 +491,7 @@ void producer2(HandleTrie* trie, unsigned int n_insertions, string* handles) {
     for (unsigned int i = 0; i < n_insertions; i++) {
         string s = handles[rand() % HANDLE_SPACE_SIZE];
         value = new AccumulatorValue();
+        LOG_DEBUG("Producing: " + s);
         trie->insert(s, value);
     }
 }
@@ -472,6 +500,30 @@ void visitor2(HandleTrie* trie, unsigned int n_visits, string* handles) {
     for (unsigned int i = 0; i < n_visits; i++) {
         string s = handles[rand() % HANDLE_SPACE_SIZE];
         trie->lookup(s);
+    }
+}
+
+void visitor_stored_object(HandleTrie* trie, unsigned int n_visits, string* handles) {
+    for (unsigned int i = 0; i < n_visits; i++) {
+        string s = handles[rand() % HANDLE_SPACE_SIZE];
+        LOG_DEBUG("Trying to visit: " + s);
+        unsigned int* check_count = (unsigned int*) trie->lookup_stored_object(s, true);
+        if (check_count != NULL) {
+            LOG_DEBUG("Visiting: " + s);
+            EXPECT_TRUE(*check_count < 1000000);
+            delete[] check_count;
+        }
+    }
+}
+
+void remover(HandleTrie* trie, unsigned int n_removals, string* handles) {
+    for (unsigned int i = 0; i < n_removals; i++) {
+        string s = handles[rand() % HANDLE_SPACE_SIZE];
+        LOG_DEBUG("Checking existence of: " + s);
+        if (trie->exists(s)) {
+            LOG_DEBUG("Removing: " + s);
+            trie->remove(s);
+        }
     }
 }
 
@@ -534,6 +586,48 @@ TEST(HandleTrieTest, multithread_limited_handle_set) {
             delete trie;
             producers.clear();
             visitors.clear();
+        }
+    }
+}
+
+TEST(HandleTrieTest, multithread_limited_handle_set_with_deletion) {
+    string handles[HANDLE_SPACE_SIZE];
+    for (unsigned int i = 0; i < HANDLE_SPACE_SIZE; i++) {
+        handles[i] = random_handle();
+    }
+    vector<thread*> producers;
+    vector<thread*> visitors;
+    vector<thread*> removers;
+    unsigned int n_insertions = 100000;
+    unsigned int n_visits = 100000;
+    unsigned int n_removals = 10000;
+    int n_removers = 10;
+    for (int n_producers : {2, 10, 100}) {
+        for (int n_visitors : {2, 10, 100}) {
+            unsigned int key_size = HANDLE_HASH_SIZE - 1;
+            HandleTrie* trie = new HandleTrie(key_size);
+            for (int i = 0; i < n_producers; i++) {
+                producers.push_back(new thread(&producer2, trie, n_insertions, handles));
+            }
+            for (int i = 0; i < n_visitors; i++) {
+                visitors.push_back(new thread(&visitor_stored_object, trie, n_visits, handles));
+            }
+            for (int i = 0; i < n_removers; i++) {
+                removers.push_back(new thread(&remover, trie, n_removals, handles));
+            }
+            for (thread* t : producers) {
+                t->join();
+            }
+            for (thread* t : visitors) {
+                t->join();
+            }
+            for (thread* t : removers) {
+                t->join();
+            }
+            delete trie;
+            producers.clear();
+            visitors.clear();
+            removers.clear();
         }
     }
 }

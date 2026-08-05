@@ -7,6 +7,7 @@
 #include "InMemoryDBAPITypes.h"
 #include "Link.h"
 #include "LinkSchema.h"
+#include "Merger.h"
 #include "Node.h"
 #include "Utils.h"
 

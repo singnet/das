@@ -12,6 +12,7 @@
 
 #include "AtomDBSingleton.h"
 #include "Link.h"
+#include "Merger.h"
 #include "MorkDB.h"
 #include "Node.h"
 #include "RedisMongoDB.h"

@@ -6,10 +6,19 @@
 #include <vector>
 
 #include "BusCommandRouterProxy.h"
+#include "nlohmann/json.hpp"
 
 using namespace std;
 
+using json = nlohmann::json;
+
 namespace command_router {
+
+struct PollStreamResult {
+    bool ok = false;
+    bool is_count_only = false;
+    int count_only_total = 0;
+};
 
 /**
  * Polls a BusCommandRouterProxy and delivers results in HTTP-friendly chunks.
@@ -23,7 +32,7 @@ class BusCommandRouterProxyStreamPoller {
      * Poll router_proxy until the command finishes, is aborted, or fails.
      *
      * For command_type "query" and "evolution", answers are popped from the proxy
-     * and forwarded in batches of at most items_per_chunk strings. For "get" and
+     * and forwarded in batches of at most items_per_chunk JSON values. For "get" and
      * "set", a single chunk is emitted once the proxy response is ready.
      *
      * @param router_proxy Proxy already issued on the service bus.
@@ -32,19 +41,19 @@ class BusCommandRouterProxyStreamPoller {
      *                        Must be at least 1.
      * @param should_abort Optional callback; when it returns true, the proxy is aborted
      *                     and on_aborted is invoked.
-     * @param on_chunk Called with each batch of serialized answers or response payload.
+     * @param on_chunk Called with a JSON array of QueryAnswer objects or response payload.
      * @param on_error Called with an error message on validation, proxy, or unknown
      *                 command failures.
      * @param on_aborted Called when polling stops because should_abort returned true.
-     * @return true when the command completed without error; false otherwise.
+     * @return Result status; count-only totals are returned when is_count_only is true.
      */
-    static bool poll_stream(const shared_ptr<BusCommandRouterProxy>& router_proxy,
-                            const string& command_type,
-                            size_t items_per_chunk,
-                            const function<bool()>& should_abort,
-                            const function<void(const vector<string>& chunk)>& on_chunk,
-                            const function<void(const string& error)>& on_error,
-                            const function<void()>& on_aborted);
+    static PollStreamResult poll_stream(const shared_ptr<BusCommandRouterProxy>& router_proxy,
+                                        const string& command_type,
+                                        size_t items_per_chunk,
+                                        const function<bool()>& should_abort,
+                                        const function<void(const json& chunk)>& on_chunk,
+                                        const function<void(const string& error)>& on_error,
+                                        const function<void()>& on_aborted);
 
    private:
     BusCommandRouterProxyStreamPoller() = delete;

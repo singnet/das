@@ -36,8 +36,11 @@ class BusCommandRouterProxy : public BaseQueryProxy {
     string params_response;
     string set_param_ack;
     bool routed_flag;
+    bool count_received = false;
 
    private:
+    void count_answer(const vector<string>& args);
+
     mutex api_mutex;
 };
 

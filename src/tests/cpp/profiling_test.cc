@@ -1,8 +1,7 @@
-#include "Utils.h"
-#include "gtest/gtest.h"
-
 #define LOG_LEVEL DEBUG_LEVEL
 #include "Logger.h"
+#include "Utils.h"
+#include "gtest/gtest.h"
 
 using namespace commons;
 using namespace std;

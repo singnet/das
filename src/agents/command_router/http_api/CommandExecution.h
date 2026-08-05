@@ -22,8 +22,8 @@ enum ExecutionStatus { PENDING, RUNNING, COMPLETED, ERROR, ABORTED };
  * @brief In-memory state for one asynchronous command run.
  *
  * Holds status, progress counters, and a JSON event log (events) consumed by
- * GET /executions/{id} and WebSocket replay. Status transitions always emit a
- * lifecycle event so clients can rely on status in the stream.
+ * GET /executions/{id} and WebSocket replay. Stream events use the same envelope
+ * as HTTP requests: { "command": ..., "params": ... }.
  *
  * Thread-safe: callers do not need to lock mtx; public methods synchronize internally.
  */
@@ -31,9 +31,13 @@ class CommandExecution {
    public:
     static constexpr size_t DEFAULT_MAX_EVENTS = 10000;
 
+    /** WebSocket / stream command names (same envelope as HTTP requests). */
+    static constexpr const char* COMMAND_QUERY_ANSWERS = "query_answers";
+    static constexpr const char* COMMAND_EXECUTION_STATUS = "execution_status";
+
     CommandExecution(const string& execution_id,
-                     const string& command_type,
-                     const string& command_text,
+                     const string& command,
+                     const json& params,
                      size_t max_events = DEFAULT_MAX_EVENTS);
     ~CommandExecution() = default;
 
@@ -44,8 +48,8 @@ class CommandExecution {
     static bool is_terminal(ExecutionStatus status);
 
     string execution_id;
-    string command_type;
-    string command_text;
+    string command;
+    json params;
     size_t max_events;
 
     ExecutionStatus status() const;
@@ -75,19 +79,19 @@ class CommandExecution {
     /** @brief True when terminal and finished_at_ms is older than retention_ms. */
     bool is_retention_expired(unsigned long now_ms, unsigned long retention_ms) const;
 
-    /** @brief Append a chunk event and update received_count. */
-    void publish_chunk(int seq, const vector<string>& data);
+    /** @brief Append a query_answers event and update received_count. @p data must be a JSON array. */
+    void publish_chunk(int seq, const json& data);
 
-    /** @brief PENDING -> RUNNING; emits a lifecycle event. */
+    /** @brief PENDING -> RUNNING; emits an execution_status event. */
     void mark_running();
 
-    /** @brief -> COMPLETED; sets duration/totals and emits a lifecycle event. */
+    /** @brief -> COMPLETED; sets duration/totals and emits an execution_status event. */
     void mark_completed(unsigned long duration_ms, int total_items);
 
-    /** @brief -> ERROR; sets error_message and emits a lifecycle event. */
+    /** @brief -> ERROR; sets error_message and emits an execution_status event. */
     void mark_error(const string& message);
 
-    /** @brief -> ABORTED; emits a lifecycle event. */
+    /** @brief -> ABORTED; emits an execution_status event. */
     void mark_aborted();
 
     void mark_error_unless_terminal(const string& message);
@@ -108,7 +112,8 @@ class CommandExecution {
 
     void publish_event_locked(const json& payload);
     void stamp_finished_at_locked();
-    json lifecycle_event_locked() const;
+    json make_envelope_locked(const string& command, json params) const;
+    json status_params_locked() const;
 };
 
 }  // namespace command_router

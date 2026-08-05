@@ -13,6 +13,7 @@
 #include "ProcessorFactory.h"
 #include "Properties.h"
 #include "RemoteAtomDB.h"
+#include "ServiceBusSingleton.h"
 #include "SystemParametersSingleton.h"
 #include "Utils.h"
 
@@ -117,8 +118,6 @@ int main(int argc, char* argv[]) {
         AtomDBSingleton::init(atomdb_config);
 
         if (Helper::processor_type_from_string(cmd_args[Helper::SERVICE]) ==
-                mains::ProcessorType::INFERENCE_AGENT ||
-            Helper::processor_type_from_string(cmd_args[Helper::SERVICE]) ==
                 mains::ProcessorType::EVOLUTION_AGENT ||
             Helper::processor_type_from_string(cmd_args[Helper::SERVICE]) ==
                 mains::ProcessorType::COMMAND_ROUTER) {

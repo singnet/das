@@ -111,7 +111,7 @@ jobs:
 
       - name: Execute Unit Test Suite
         working-directory: ./src
-        run: ./scripts/bazel_exec.sh test --show_progress --cache_test_results=no //tests/cpp/...
+        run: ./scripts/bazel_exec.sh test --noshow_progress --cache_test_results=no //tests/cpp/...
 
       - name: Build production binaries
         working-directory: ./src
