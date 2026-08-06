@@ -49,7 +49,11 @@ TEST(LinkCreation, link_creator_function) {
     EXPECT_EQ(proxy1.link_creation(make_shared<QueryAnswer>("blahhh", 0.5)).visited, true);
     EXPECT_EQ(proxy1.link_creation(make_shared<QueryAnswer>("blahh", 1.0)).visited, true);
 
-    EXPECT_THROW(LinkCreationProxy proxy2({""}, "link_creation_test", LinkCreatorRegistry::REMOTE_FUNCTION, make_shared<TestLinkCreator>()), runtime_error);
+    EXPECT_THROW(LinkCreationProxy proxy2({""},
+                                          "link_creation_test",
+                                          LinkCreatorRegistry::REMOTE_FUNCTION,
+                                          make_shared<TestLinkCreator>()),
+                 runtime_error);
 }
 
 TEST(LinkCreation, proxy_object) {
@@ -64,4 +68,3 @@ TEST(LinkCreation, proxy_object) {
     cout << "tokens3: " << Utils::join(tokens3) << endl;
     EXPECT_EQ(tokens1, tokens3);
 }
-

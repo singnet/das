@@ -109,17 +109,16 @@ void LinkCreationProcessor::remove_processor_thread(const string& stoppable_thre
 
 void LinkCreationProcessor::link_creation(shared_ptr<StoppableThread> monitor,
                                           shared_ptr<LinkCreationProxy> proxy) {
-
     STACK_TRACE();
     unsigned int count_created = 0;
     unsigned int unproductive_visit = 0;
     unsigned int visit_attempts = 0;
     shared_ptr<QueryAnswer> query_answer;
     LinkCreationStats stats;
-    while (! (monitor->stopped() || proxy->stop_criteria_met())) {
+    while (!(monitor->stopped() || proxy->stop_criteria_met())) {
         // Starting one round of link creation
         auto pm_proxy = issue_link_creation_query(nullptr);
-        while (! (monitor->stopped())) {
+        while (!(monitor->stopped())) {
             // Draining query results
             if ((query_answer = proxy->pop()) == nullptr) {
                 if (proxy->finished()) {
@@ -127,24 +126,29 @@ void LinkCreationProcessor::link_creation(shared_ptr<StoppableThread> monitor,
                 }
                 Utils::sleep();
             } else {
-                LOG_DEBUG("Processing query answer " + to_string(count_created) + ": " + query_answer->to_string(USE_MORK));
+                LOG_DEBUG("Processing query answer " + to_string(count_created) + ": " +
+                          query_answer->to_string(USE_MORK));
                 stats = proxy->link_creation(query_answer);
                 if (stats.created > 0) {
                     count_created++;
                     unproductive_visit = 0;
                     visit_attempts = 0;
-                    if (count_created >= proxy->parameters.get<unsigned int>(LinkCreationProxy::MAX_SUCCESSFUL_CREATION_PER_ROUND)) {
+                    if (count_created >= proxy->parameters.get<unsigned int>(
+                                             LinkCreationProxy::MAX_SUCCESSFUL_CREATION_PER_ROUND)) {
                         break;
                     }
                 } else if (stats.visited) {
                     unproductive_visit++;
                     visit_attempts = 0;
-                    if (unproductive_visit >= proxy->parameters.get<unsigned int>(LinkCreationProxy::MAX_UNPRODUCTIVE_VISITS_PER_ROUND)) {
+                    if (unproductive_visit >=
+                        proxy->parameters.get<unsigned int>(
+                            LinkCreationProxy::MAX_UNPRODUCTIVE_VISITS_PER_ROUND)) {
                         break;
                     }
                 } else {
                     visit_attempts++;
-                    if (visit_attempts >= proxy->parameters.get<unsigned int>(LinkCreationProxy::MAX_VISIT_ATTEMPTS_PER_ROUND)) {
+                    if (visit_attempts >= proxy->parameters.get<unsigned int>(
+                                              LinkCreationProxy::MAX_VISIT_ATTEMPTS_PER_ROUND)) {
                         break;
                     }
                 }

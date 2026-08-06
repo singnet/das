@@ -50,7 +50,7 @@ class LinkCreationProxy : public BaseQueryProxy {
     virtual void untokenize(vector<string>& tokens);
 
     /**
-     * Create or update one or more links using the passed QueryAnswer. 
+     * Create or update one or more links using the passed QueryAnswer.
      *
      * @param answer QueryAnswer to be used in link creation
      * @return a LinkCreationStats object with statistics about actual link creation
