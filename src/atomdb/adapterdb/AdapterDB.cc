@@ -310,6 +310,8 @@ void AdapterDB::persistence_setup() {
 }
 
 void AdapterDB::atomdb_backend_setup() {
+    // TODO: create_backend(): raw AtomDB on purpose. Wrapping nested RemoteAtomDB/AdapterDB stores with
+    // ProtectedAtomDB is still under discussion.
     auto atomdb_backend_config =
         this->config.at_path("adapterdb.atomdb_backend").get_or<JsonConfig>(JsonConfig());
     string atomdb_backend_type = atomdb_backend_config.at_path("type").get_or<string>("");

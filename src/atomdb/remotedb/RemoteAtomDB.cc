@@ -37,8 +37,12 @@ RemoteAtomDB::RemoteAtomDB(const JsonConfig& peers_config) {
             if (local_context.empty()) {
                 local_context = context;
             }
+            // TODO: create_backend(): raw AtomDB on purpose. Wrapping nested RemoteAtomDB/AdapterDB
+            // stores with ProtectedAtomDB is still under discussion.
             local_persistence = AtomDBFactory::create_backend(local_persistence_config, local_context);
         }
+        // TODO: create_backend(): raw AtomDB on purpose. Wrapping nested RemoteAtomDB/AdapterDB stores
+        // with ProtectedAtomDB is still under discussion.
         remote_db_[uid] = make_shared<RemoteAtomDBPeer>(
             AtomDBFactory::create_backend(peer_config, context), local_persistence, uid);
     }
@@ -60,6 +64,15 @@ bool RemoteAtomDB::composite_type_enabled() const {
         "RemoteAtomDB derives composite_type_enabled() from peers (true if any peer has it enabled)");
     for (auto& [uid, peer] : this->remote_db_) {
         if (peer->composite_type_enabled()) {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool RemoteAtomDB::is_protected() const {
+    for (auto& [uid, peer] : remote_db_) {
+        if (peer->is_protected()) {
             return true;
         }
     }
