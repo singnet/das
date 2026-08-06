@@ -2,6 +2,7 @@
 
 #include "InMemoryDB.h"
 #include "MorkDB.h"
+#include "ProtectedAtomDB.h"
 #include "RedisMongoDB.h"
 #include "Utils.h"
 
@@ -33,6 +34,14 @@ shared_ptr<AtomDB> AtomDBFactory::create_backend(const JsonConfig& config, const
 }
 
 shared_ptr<AtomDB> AtomDBFactory::wrap_if_protected(shared_ptr<AtomDB> backend) {
-    // AtomDBFactory::wrap_if_protected() is not implemented yet.
-    return backend;
+    if (!backend) {
+        RAISE_ERROR("AtomDBFactory::wrap_if_protected() received null backend");
+    }
+    if (!backend->is_protected()) {
+        return backend;
+    }
+    if (dynamic_pointer_cast<ProtectedAtomDB>(backend)) {
+        return backend;
+    }
+    return shared_ptr<AtomDB>(new ProtectedAtomDB(backend));
 }

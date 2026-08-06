@@ -40,6 +40,11 @@ bool RemoteAtomDBPeer::composite_type_enabled() const {
     return local_persistence_ && local_persistence_->composite_type_enabled();
 }
 
+bool RemoteAtomDBPeer::is_protected() const {
+    return (local_persistence_ && local_persistence_->is_protected()) ||
+           (atomdb_ && atomdb_->is_protected());
+}
+
 shared_ptr<Atom> RemoteAtomDBPeer::get_atom(const string& handle) {
     auto atom = cache_.get_atom(handle);
     if (atom) return atom;

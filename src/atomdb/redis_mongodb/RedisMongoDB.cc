@@ -31,6 +31,7 @@ uint RedisMongoDB::REDIS_CHUNK_SIZE;
 string RedisMongoDB::MONGODB_DB_NAME;
 string RedisMongoDB::MONGODB_NODES_COLLECTION_NAME;
 string RedisMongoDB::MONGODB_LINKS_COLLECTION_NAME;
+string RedisMongoDB::MONGODB_CONFIG_COLLECTION_NAME;
 string RedisMongoDB::MONGODB_PATTERN_INDEX_SCHEMA_COLLECTION_NAME;
 string RedisMongoDB::MONGODB_FIELD_NAME[MONGODB_FIELD::size];
 uint RedisMongoDB::MONGODB_CHUNK_SIZE;
@@ -39,7 +40,8 @@ RedisMongoDB::RedisMongoDB(const string& context, bool skip_redis, const JsonCon
     : context(context),
       skip_redis_(skip_redis),
       composite_type_enabled_(config.at_path("composite_type_enabled").get_or<bool>(true)),
-      cluster_flag(false) {
+      cluster_flag(false),
+      protected_flag(false) {
     initialize_statics(context);
     mongodb_setup(config);
     load_pattern_index_schema();
@@ -54,6 +56,8 @@ RedisMongoDB::~RedisMongoDB() {
 }
 
 bool RedisMongoDB::allow_nested_indexing() { return false; }
+
+bool RedisMongoDB::is_protected() const { return this->protected_flag; }
 
 void RedisMongoDB::redis_setup(const JsonConfig& config) {
     if (skip_redis_) return;
@@ -105,6 +109,7 @@ void RedisMongoDB::mongodb_setup(const JsonConfig& config) {
             bsoncxx::builder::basic::make_document(bsoncxx::builder::basic::kvp("ping", 1));
         mongodb.run_command(ping_cmd.view());
         LOG_INFO("Connected to MongoDB at " << address);
+        load_protected_flag();
     } catch (const std::exception& e) {
         RAISE_ERROR(e.what());
     }
@@ -1228,6 +1233,14 @@ void RedisMongoDB::add_pattern_index_schema(const string& tokens,
     this->pattern_index_schema_map[this->pattern_index_schema_next_priority] =
         make_tuple(move(tokens_vector), index_entries);
     this->pattern_index_schema_next_priority++;
+}
+
+void RedisMongoDB::load_protected_flag() {
+    auto conn = this->mongodb_pool->acquire();
+    auto config_collection = (*conn)[MONGODB_DB_NAME][MONGODB_CONFIG_COLLECTION_NAME];
+    auto config_doc = config_collection.find_one(
+        bsoncxx::builder::basic::make_document(bsoncxx::builder::basic::kvp("protected", true)));
+    this->protected_flag = static_cast<bool>(config_doc);
 }
 
 void RedisMongoDB::load_pattern_index_schema() {

@@ -32,6 +32,7 @@ class RedisMongoDB : public AtomDB {
 
     bool allow_nested_indexing() override;
     bool composite_type_enabled() const override { return this->composite_type_enabled_; }
+    bool is_protected() const override;
 
     static string REDIS_PATTERNS_PREFIX;
     static string REDIS_OUTGOING_PREFIX;
@@ -40,6 +41,7 @@ class RedisMongoDB : public AtomDB {
     static string MONGODB_DB_NAME;
     static string MONGODB_NODES_COLLECTION_NAME;
     static string MONGODB_LINKS_COLLECTION_NAME;
+    static string MONGODB_CONFIG_COLLECTION_NAME;
     static string MONGODB_PATTERN_INDEX_SCHEMA_COLLECTION_NAME;
     static string MONGODB_FIELD_NAME[MONGODB_FIELD::size];
     static uint MONGODB_CHUNK_SIZE;
@@ -52,6 +54,7 @@ class RedisMongoDB : public AtomDB {
         MONGODB_DB_NAME = context + "das";
         MONGODB_NODES_COLLECTION_NAME = context + "nodes";
         MONGODB_LINKS_COLLECTION_NAME = context + "links";
+        MONGODB_CONFIG_COLLECTION_NAME = context + "config";
         MONGODB_PATTERN_INDEX_SCHEMA_COLLECTION_NAME = context + "pattern_index_schema";
         MONGODB_FIELD_NAME[MONGODB_FIELD::ID] = "_id";
         MONGODB_FIELD_NAME[MONGODB_FIELD::TARGETS] = "targets";
@@ -154,6 +157,7 @@ class RedisMongoDB : public AtomDB {
     bool skip_redis_;
     bool composite_type_enabled_;
     bool cluster_flag;
+    bool protected_flag;
     RedisContextPool* redis_pool;
     mongocxx::pool* mongodb_pool;
     atomic<uint> patterns_next_score{0};
@@ -196,6 +200,7 @@ class RedisMongoDB : public AtomDB {
     void update_incoming_set(const string& key, const string& value);
 
     void load_pattern_index_schema();
+    void load_protected_flag();
     vector<string> match_pattern_index_schema(const Link* link);
     vector<vector<string>> index_entries_combinations(unsigned int arity);
 
