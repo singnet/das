@@ -677,8 +677,7 @@ void InMemoryDB::add_incoming_set_unlocked(const string& target_handle, const st
     }
 }
 
-void InMemoryDB::delete_incoming_set_unlocked(const string& target_handle,
-                                              const string& link_handle) {
+void InMemoryDB::delete_incoming_set_unlocked(const string& target_handle, const string& link_handle) {
     auto trie = incoming_sets_trie();
     auto incoming_set_trie_value = dynamic_cast<HandleSetTrieValue*>(trie->lookup(target_handle));
     if (incoming_set_trie_value != NULL) {

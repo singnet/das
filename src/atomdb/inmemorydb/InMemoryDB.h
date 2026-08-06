@@ -116,7 +116,9 @@ class InMemoryDB : public AtomDB {
     bool delete_node_unlocked(const string& handle, bool delete_link_targets);
     bool delete_link_unlocked(const string& handle, bool delete_link_targets);
 
-    static void add_pattern_to(HandleTrie& trie, const string& pattern_handle, const string& atom_handle);
+    static void add_pattern_to(HandleTrie& trie,
+                               const string& pattern_handle,
+                               const string& atom_handle);
     void delete_pattern_unlocked(const string& pattern_handle, const string& atom_handle);
     void add_incoming_set_unlocked(const string& target_handle, const string& link_handle);
     void delete_incoming_set_unlocked(const string& target_handle, const string& link_handle);
