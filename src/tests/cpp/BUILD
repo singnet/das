@@ -852,7 +852,7 @@ cc_test(
 
 cc_test(
     name = "atomdb_factory_test",
-    size = "small",
+    size = "medium",
     srcs = ["atomdb_factory_test.cc"],
     copts = [
         "-Iexternal/gtest/googletest/include",
@@ -869,6 +869,8 @@ cc_test(
     deps = [
         "//atomdb:atomdb_factory",
         "//atomdb/inmemorydb:inmemorydb_lib",
+        "//atomdb/morkdb:morkdb_lib",
+        "//tests/cpp/test_commons:test_atomdb_json_config",
         "//tests/cpp/test_commons/mocks:mock_atom_db_lib",
         "@com_github_google_googletest//:gtest_main",
         "@mbedtls",

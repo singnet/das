@@ -7,6 +7,8 @@
 #include "InMemoryDB.h"
 #include "JsonConfig.h"
 #include "MockAtomDB.h"
+#include "MorkDB.h"
+#include "TestAtomDBJsonConfig.h"
 
 using namespace atomdb;
 using namespace commons;
@@ -32,6 +34,32 @@ TEST(AtomDBFactoryTest, CreateInMemoryDB) {
     auto db = AtomDBFactory::create(config_with_type("inmemorydb"), "factory_test_");
     ASSERT_NE(db, nullptr);
     EXPECT_NE(dynamic_pointer_cast<InMemoryDB>(db), nullptr);
+}
+
+TEST(AtomDBFactoryTest, CreateBackendMorkDB) {
+    auto backend =
+        AtomDBFactory::create_backend(test_atomdb_json_config("morkdb"), "factory_mork_backend_");
+    ASSERT_NE(backend, nullptr);
+    EXPECT_NE(dynamic_pointer_cast<MorkDB>(backend), nullptr);
+}
+
+TEST(AtomDBFactoryTest, CreateMorkDB) {
+    auto db = AtomDBFactory::create(test_atomdb_json_config("morkdb"), "factory_mork_create_");
+    ASSERT_NE(db, nullptr);
+    EXPECT_NE(dynamic_pointer_cast<MorkDB>(db), nullptr);
+}
+
+TEST(AtomDBFactoryTest, CreateAndCreateBackendAreCompatibleForMorkDB) {
+    auto config = test_atomdb_json_config("morkdb");
+    auto backend = AtomDBFactory::create_backend(config, "factory_mork_compat_");
+    auto created = AtomDBFactory::create(config, "factory_mork_compat_");
+
+    ASSERT_NE(backend, nullptr);
+    ASSERT_NE(created, nullptr);
+    EXPECT_NE(dynamic_pointer_cast<MorkDB>(backend), nullptr);
+    EXPECT_NE(dynamic_pointer_cast<MorkDB>(created), nullptr);
+    // wrap_if_protected is currently a no-op, so create keeps the backend type.
+    EXPECT_EQ(AtomDBFactory::wrap_if_protected(backend).get(), backend.get());
 }
 
 TEST(AtomDBFactoryTest, CreateBackendRejectsMissingAndUnknownTypes) {

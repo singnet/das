@@ -26,7 +26,7 @@ RemoteAtomDB::RemoteAtomDB(const JsonConfig& peers_config) {
 
         string context = peer_config.at_path("context").get_or<string>("");
         if (context.empty()) {
-            context = "remotedb_";
+            context = "remotedb_" + uid;
         }
 
         shared_ptr<AtomDB> local_persistence = nullptr;
