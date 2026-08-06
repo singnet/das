@@ -61,6 +61,7 @@ cc_library(
         "//atomdb:atomdb_factory",
         "//atomdb:atomdb_singleton",
         "//atomdb/adapterdb:adapterdb_lib",
+        "//atomdb/auth:protected_atomdb_lib",
         "//atomdb/redis_mongodb:redis_mongodb_lib",
         "//atomdb/remotedb:remotedb_lib",
         "//commons:commons_lib",

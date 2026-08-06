@@ -251,6 +251,13 @@ TEST_P(AdapterDBTest, ReloadDoesNotThrowAndKeepsBackendUsable) {
     });
 }
 
+TEST_P(AdapterDBTest, IsProtectedDelegatesToBackend) {
+    auto db = create_current_adapter();
+    ASSERT_NE(db, nullptr);
+
+    EXPECT_EQ(db->is_protected(), backend->is_protected());
+}
+
 TEST_P(AdapterDBTest, NeedsSyncIsNotImplemented) {
     auto db = create_current_adapter();
     ASSERT_NE(db, nullptr);

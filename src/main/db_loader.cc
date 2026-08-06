@@ -14,6 +14,7 @@
 #include "JsonConfigParser.h"
 #include "MettaParser.h"
 #include "MettaParserActions.h"
+#include "ProtectedAtomDB.h"
 #include "RedisMongoDB.h"
 #include "RemoteAtomDB.h"
 #include "Utils.h"
@@ -212,6 +213,9 @@ int main(int argc, char* argv[]) {
 
     } else {
         auto atomdb = AtomDBSingleton::get_instance();
+        if (auto protected_db = dynamic_pointer_cast<ProtectedAtomDB>(atomdb)) {
+            atomdb = protected_db->get_backend();
+        }
         auto db = dynamic_pointer_cast<RedisMongoDB>(atomdb);
         if (db != nullptr) {
             try {

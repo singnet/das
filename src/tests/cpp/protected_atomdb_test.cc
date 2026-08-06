@@ -33,6 +33,13 @@ TEST(ProtectedAtomDBTest, BackendIsNotProtected) {
     EXPECT_FALSE(backend->is_protected());
 }
 
+TEST(ProtectedAtomDBTest, ExposesWrappedBackend) {
+    auto backend = make_shared<InMemoryDB>("protected_backend_access_");
+    ProtectedAtomDB db(backend);
+
+    EXPECT_EQ(db.get_backend().get(), backend.get());
+}
+
 TEST(ProtectedAtomDBTest, DelegatesCapabilityFlagsToBackend) {
     auto backend = make_shared<InMemoryDB>("protected_flags_");
     ProtectedAtomDB db(backend);

@@ -27,6 +27,15 @@ class ProtectedAtomDB : public AtomDB {
      */
     explicit ProtectedAtomDB(shared_ptr<AtomDB> backend);
 
+    /**
+     * @brief Returns the wrapped backend.
+     *
+     * Every method inherited from AtomDB rejects calls made without a public_key, including the
+     * HandleDecoder interface (get_atom(handle)). Callers that need the concrete backend type or a
+     * usable HandleDecoder must go through the backend returned here.
+     */
+    shared_ptr<AtomDB> get_backend() const;
+
     bool allow_nested_indexing() override;
     bool composite_type_enabled() const override;
     bool is_protected() const override;
