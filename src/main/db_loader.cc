@@ -77,13 +77,11 @@ int main(int argc, char* argv[]) {
     if (atomdb_type == "remotedb") {
         auto remote_peers_config =
             atomdb_config.at_path("remote_peers").get_or<JsonConfig>(JsonConfig());
-        AtomDBSingleton::provide(
-            AtomDBFactory::wrap_if_protected(shared_ptr<AtomDB>(new RemoteAtomDB(remote_peers_config))));
+        AtomDBSingleton::provide(shared_ptr<AtomDB>(new RemoteAtomDB(remote_peers_config)));
     } else if (atomdb_type == "adapterdb") {
-        AtomDBSingleton::provide(
-            AtomDBFactory::wrap_if_protected(shared_ptr<AtomDB>(new AdapterDB(atomdb_config))));
+        AtomDBSingleton::provide(shared_ptr<AtomDB>(new AdapterDB(atomdb_config)));
     } else {
-        AtomDBSingleton::provide(AtomDBFactory::create(atomdb_config, context));
+        AtomDBSingleton::provide(AtomDBFactory::create_backend(atomdb_config, context));
     }
 
     signal(SIGINT, &ctrl_c_handler);
