@@ -1,5 +1,6 @@
 #include "ProtectedAtomDB.h"
 
+#include "Logger.h"
 #include "Utils.h"
 
 using namespace atomdb;
@@ -12,6 +13,7 @@ ProtectedAtomDB::ProtectedAtomDB(shared_ptr<AtomDB> backend) : backend(std::move
     if (this->backend == nullptr) {
         RAISE_ERROR("ProtectedAtomDB requires a non-null backend AtomDB");
     }
+    LOG_INFO("ProtectedAtomDB initialized!");
 }
 
 // --------------------------------------------------------------------------------
