@@ -113,7 +113,7 @@ void RemoteAtomDB::finalize_peer_lists() {
 }
 
 bool RemoteAtomDB::composite_type_enabled() const {
-    LOG_ERROR(
+    LOG_DEBUG(
         "RemoteAtomDB derives composite_type_enabled() from peers (true if any peer has it enabled)");
     for (auto& [uid, peer] : remote_db_) {
         if (peer->composite_type_enabled()) {

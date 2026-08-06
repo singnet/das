@@ -427,6 +427,14 @@ TEST_F(RemoteAtomDBPeerTest, AtomsCount) {
 
     EXPECT_EQ(peer_->atom_count(), 4);
     EXPECT_EQ(peer_->empty(), false);
+
+    // Read-cache warming must not inflate the count: the read cache is a view of atoms
+    // that already live elsewhere (here: the remote backend).
+    auto remote_only = new Node("Symbol", "\"remote_only\"");
+    string remote_only_handle = remote_->add_node(remote_only);
+    ASSERT_NE(peer_->get_atom(remote_only_handle), nullptr);
+    ASSERT_NE(peer_->get_cached_atom(remote_only_handle), nullptr);
+    EXPECT_EQ(peer_->atom_count(), 4);
 }
 
 // =============================================================================
@@ -1121,6 +1129,9 @@ TEST(RemoteAtomDBFederationTest, ConcurrentAddAndReleaseLosesNoWrites) {
     constexpr int kWriters = 4;
     constexpr int kAddsPerWriter = 25;
     atomic<bool> start{false};
+    // gtest assertions in worker threads only abort that thread; collect failures and
+    // assert from the main thread after join.
+    atomic<int> add_failures{0};
     vector<thread> writers;
     writers.reserve(kWriters);
 
@@ -1131,7 +1142,9 @@ TEST(RemoteAtomDBFederationTest, ConcurrentAddAndReleaseLosesNoWrites) {
             for (int i = 0; i < kAddsPerWriter; ++i) {
                 auto node =
                     make_unique<Node>("Symbol", "\"race_" + to_string(w) + "_" + to_string(i) + "\"");
-                ASSERT_FALSE(peer->add_node(node.get()).empty());
+                if (peer->add_node(node.get()).empty()) {
+                    add_failures.fetch_add(1);
+                }
                 if ((i % 5) == 0) {
                     peer->release_cache();
                 }
@@ -1151,6 +1164,8 @@ TEST(RemoteAtomDBFederationTest, ConcurrentAddAndReleaseLosesNoWrites) {
     start.store(true, memory_order_release);
     for (auto& t : writers) t.join();
     releaser.join();
+
+    EXPECT_EQ(add_failures.load(), 0);
 
     // Final flush after all writers finish.
     peer->release_cache();

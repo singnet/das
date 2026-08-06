@@ -70,7 +70,12 @@ shared_ptr<Atom> RemoteAtomDBPeer::get_atom(const string& handle) {
         if (atom) {
             LOG_DEBUG("[RemoteDB(" << uid_ << ")] get_atom(" << handle
                                    << ") <- local_persistence (warmed into read_cache)");
-            rc->add_atom(atom.get());
+            // Warm only once: local wins over read_cache on this path anyway, so re-cloning
+            // the atom into the trie on every hit would be pure churn. The warmed copy still
+            // serves query_for_targets and the facade cache probes.
+            if (!rc->atom_exists(handle)) {
+                rc->add_atom(atom.get());
+            }
             return atom;
         }
     }
@@ -460,40 +465,38 @@ bool RemoteAtomDBPeer::delete_link(const string& handle, bool delete_link_target
     return wb_ok || rc_ok || local_ok;
 }
 
+// Batch deletes count distinct handles removed from at least one layer. The layers overlap
+// (a handle can live in write buffer, read cache and local persistence at once), so summing
+// per-layer counts would over-report.
+
 uint RemoteAtomDBPeer::delete_atoms(const vector<string>& handles, bool delete_link_targets) {
     if (is_readonly()) return 0;
 
-    uint wb_count = write_buffer()->delete_atoms(handles, delete_link_targets);
-    uint rc_count = read_cache()->delete_atoms(handles, delete_link_targets);
-    uint local_count = local_persistence_->delete_atoms(handles, delete_link_targets);
-    if (wb_count > 0 || rc_count > 0 || local_count > 0) {
-        invalidate_fetched_templates();
+    uint deleted = 0;
+    for (const auto& handle : handles) {
+        if (delete_atom(handle, delete_link_targets)) deleted++;
     }
-    return wb_count + rc_count + local_count;
+    return deleted;
 }
 
 uint RemoteAtomDBPeer::delete_nodes(const vector<string>& handles, bool delete_link_targets) {
     if (is_readonly()) return 0;
 
-    uint wb_count = write_buffer()->delete_nodes(handles, delete_link_targets);
-    uint rc_count = read_cache()->delete_nodes(handles, delete_link_targets);
-    uint local_count = local_persistence_->delete_nodes(handles, delete_link_targets);
-    if (wb_count > 0 || rc_count > 0 || local_count > 0) {
-        invalidate_fetched_templates();
+    uint deleted = 0;
+    for (const auto& handle : handles) {
+        if (delete_node(handle, delete_link_targets)) deleted++;
     }
-    return wb_count + rc_count + local_count;
+    return deleted;
 }
 
 uint RemoteAtomDBPeer::delete_links(const vector<string>& handles, bool delete_link_targets) {
     if (is_readonly()) return 0;
 
-    uint wb_count = write_buffer()->delete_links(handles, delete_link_targets);
-    uint rc_count = read_cache()->delete_links(handles, delete_link_targets);
-    uint local_count = local_persistence_->delete_links(handles, delete_link_targets);
-    if (wb_count > 0 || rc_count > 0 || local_count > 0) {
-        invalidate_fetched_templates();
+    uint deleted = 0;
+    for (const auto& handle : handles) {
+        if (delete_link(handle, delete_link_targets)) deleted++;
     }
-    return wb_count + rc_count + local_count;
+    return deleted;
 }
 
 void RemoteAtomDBPeer::re_index_patterns(bool flush_patterns) {
@@ -506,8 +509,14 @@ void RemoteAtomDBPeer::re_index_patterns(bool flush_patterns) {
     }
 }
 
+// Counts define the peer's atom population as write_buffer + local_persistence (dirty +
+// durable). The read cache is excluded: it is a non-authoritative view of atoms that already
+// live in local persistence or on the remote backend, so including it would double-count.
+// Note: a staged update of an atom that already exists locally is still counted twice; the
+// result is an upper bound, not an exact distinct count.
+
 size_t RemoteAtomDBPeer::node_count() const {
-    size_t count = write_buffer()->node_count() + read_cache()->node_count();
+    size_t count = write_buffer()->node_count();
     if (local_persistence_) {
         count += local_persistence_->node_count();
     }
@@ -515,7 +524,7 @@ size_t RemoteAtomDBPeer::node_count() const {
 }
 
 size_t RemoteAtomDBPeer::link_count() const {
-    size_t count = write_buffer()->link_count() + read_cache()->link_count();
+    size_t count = write_buffer()->link_count();
     if (local_persistence_) {
         count += local_persistence_->link_count();
     }
@@ -523,7 +532,7 @@ size_t RemoteAtomDBPeer::link_count() const {
 }
 
 size_t RemoteAtomDBPeer::atom_count() const {
-    size_t count = write_buffer()->atom_count() + read_cache()->atom_count();
+    size_t count = write_buffer()->atom_count();
     if (local_persistence_) {
         count += local_persistence_->atom_count();
     }

@@ -137,8 +137,10 @@ class RemoteAtomDBPeer : public AtomDB, public processor::ThreadMethod {
     unordered_set<string> fetched_link_templates_;
     unique_ptr<processor::DedicatedThread> cleanup_thread_;
 
-    // Guards only pointer swaps and fetched_link_templates_. Never held across
-    // InMemoryDB / local_persistence_ / atomdb_ I/O.
+    // Guards pointer swaps and fetched_link_templates_. Never held across backend
+    // (local_persistence_ / atomdb_) I/O. It IS held across cheap in-memory InMemoryDB
+    // metadata calls (atom_count in release paths); that is safe because InMemoryDB never
+    // acquires peer_mutex_, so no lock cycle exists — keep it that way.
     mutable mutex peer_mutex_;
 
     static constexpr double CRITICAL_RAM_THRESHOLD = 0.1;  // 10% - cleanup when below this
