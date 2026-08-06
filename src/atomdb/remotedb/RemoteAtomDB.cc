@@ -66,6 +66,15 @@ bool RemoteAtomDB::composite_type_enabled() const {
     return false;
 }
 
+bool RemoteAtomDB::is_protected() const {
+    for (auto& [uid, peer] : remote_db_) {
+        if (peer->is_protected()) {
+            return true;
+        }
+    }
+    return false;
+}
+
 void RemoteAtomDB::derive_nested_indexing() {
     // Derive the aggregated nested-indexing capability from the peers. A single global boolean
     // cannot describe a heterogeneous result set, so mixed configurations are normalized to the
