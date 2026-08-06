@@ -8,6 +8,7 @@ cc_library(
     deps = [
         ":atomdb",
         ":atomdb_api_types",
+        ":atomdb_factory",
         ":atomdb_singleton",
         ":atomdbutils",
         "//atomdb/adapterdb:adapterdb_lib",
@@ -15,6 +16,20 @@ cc_library(
         "//atomdb/morkdb:morkdb_lib",
         "//atomdb/redis_mongodb:redis_mongodb_lib",
         "//atomdb/remotedb:remotedb_lib",
+    ],
+)
+
+cc_library(
+    name = "atomdb_factory",
+    srcs = ["AtomDBFactory.cc"],
+    hdrs = ["AtomDBFactory.h"],
+    includes = ["."],
+    deps = [
+        ":atomdb",
+        "//atomdb/inmemorydb",
+        "//atomdb/morkdb",
+        "//atomdb/redis_mongodb",
+        "//commons:commons_lib",
     ],
 )
 
@@ -56,10 +71,9 @@ cc_library(
     hdrs = ["AtomDBSingleton.h"],
     includes = ["."],
     deps = [
+        ":atomdb_factory",
         "//atomdb:atomdb_api_types",
         "//atomdb/adapterdb",
-        "//atomdb/morkdb",
-        "//atomdb/redis_mongodb",
         "//atomdb/remotedb:remotedb_lib",
         "//commons:commons_lib",
     ],

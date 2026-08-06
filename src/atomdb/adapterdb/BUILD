@@ -17,8 +17,7 @@ cc_library(
     includes = ["."],
     deps = [
         "//atomdb",
-        "//atomdb/morkdb",
-        "//atomdb/redis_mongodb",
+        "//atomdb:atomdb_factory",
         "//atomdb/remotedb:remotedb_lib",
         "//commons:commons_lib",
         "//commons/atoms:atoms_lib",
