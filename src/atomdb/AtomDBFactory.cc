@@ -2,6 +2,7 @@
 
 #include "InMemoryDB.h"
 #include "MorkDB.h"
+#include "ProtectedAtomDB.h"
 #include "RedisMongoDB.h"
 #include "Utils.h"
 
