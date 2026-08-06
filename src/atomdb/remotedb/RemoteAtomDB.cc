@@ -37,8 +37,12 @@ RemoteAtomDB::RemoteAtomDB(const JsonConfig& peers_config) {
             if (local_context.empty()) {
                 local_context = context;
             }
+            // TODO: create_backend(): raw AtomDB on purpose. Wrapping nested RemoteAtomDB/AdapterDB
+            // stores with ProtectedAtomDB is still under discussion.
             local_persistence = AtomDBFactory::create_backend(local_persistence_config, local_context);
         }
+        // TODO: create_backend(): raw AtomDB on purpose. Wrapping nested RemoteAtomDB/AdapterDB stores
+        // with ProtectedAtomDB is still under discussion.
         remote_db_[uid] = make_shared<RemoteAtomDBPeer>(
             AtomDBFactory::create_backend(peer_config, context), local_persistence, uid);
     }
