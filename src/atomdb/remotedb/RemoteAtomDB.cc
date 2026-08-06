@@ -68,36 +68,35 @@ RemoteAtomDB::RemoteAtomDB(const JsonConfig& peers_config) {
     }
 
     LOG_INFO("RemoteAtomDB initialized with " << remote_db_.size() << " remote peers");
-    derive_nested_indexing();
+    finalize_peer_lists();
 }
 
 RemoteAtomDB::RemoteAtomDB(map<string, shared_ptr<RemoteAtomDBPeer>> peers)
     : remote_db_(std::move(peers)) {
     LOG_INFO("RemoteAtomDB initialized with " << remote_db_.size() << " pre-built peers");
-    derive_nested_indexing();
+    finalize_peer_lists();
 }
 
 RemoteAtomDB::~RemoteAtomDB() = default;
 
-bool RemoteAtomDB::composite_type_enabled() const {
-    LOG_ERROR(
-        "RemoteAtomDB derives composite_type_enabled() from peers (true if any peer has it enabled)");
-    for (auto& [uid, peer] : remote_db_) {
-        if (peer->composite_type_enabled()) {
-            return true;
-        }
-    }
-    return false;
-}
+void RemoteAtomDB::finalize_peer_lists() {
+    writable_peers_.clear();
+    readonly_peers_.clear();
+    writable_peers_.reserve(remote_db_.size());
+    readonly_peers_.reserve(remote_db_.size());
 
-void RemoteAtomDB::derive_nested_indexing() {
-    // Derive the aggregated nested-indexing capability from the peers. A single global boolean
-    // cannot describe a heterogeneous result set, so mixed configurations are normalized to the
-    // lowest common denominator (false: the query engine re-matches every handle locally).
     unsigned int nested_peers = 0;
     for (auto& [uid, peer] : remote_db_) {
+        if (peer->is_readonly()) {
+            readonly_peers_.emplace_back(uid, peer);
+        } else {
+            writable_peers_.emplace_back(uid, peer);
+        }
         if (peer->allow_nested_indexing()) nested_peers++;
     }
+
+    // Derive aggregated nested-indexing. A single global boolean cannot describe a
+    // heterogeneous result set, so mixed configs are normalized to false.
     if (!remote_db_.empty() && nested_peers == remote_db_.size()) {
         nested_indexing_ = true;
     } else {
@@ -113,13 +112,23 @@ void RemoteAtomDB::derive_nested_indexing() {
     }
 }
 
+bool RemoteAtomDB::composite_type_enabled() const {
+    LOG_ERROR(
+        "RemoteAtomDB derives composite_type_enabled() from peers (true if any peer has it enabled)");
+    for (auto& [uid, peer] : remote_db_) {
+        if (peer->composite_type_enabled()) {
+            return true;
+        }
+    }
+    return false;
+}
+
 bool RemoteAtomDB::allow_nested_indexing() { return nested_indexing_; }
 
 shared_ptr<Atom> RemoteAtomDB::get_atom(const string& handle) {
-    // Writable peers first: their cache/local_persistence are the source of truth for
-    // updated custom attributes (strength) that share a content-addressed handle.
-    for (auto& [uid, peer] : remote_db_) {
-        if (peer->is_readonly()) continue;
+    // Writable peers first: their write buffer / local_persistence are the source of truth
+    // for updated custom attributes (strength) that share a content-addressed handle.
+    for (auto& [uid, peer] : writable_peers_) {
         auto atom = peer->get_atom(handle);
         if (atom) {
             LOG_DEBUG("get_atom(" << handle << ") fetched from writable peer [" << uid << "]");
@@ -128,13 +137,11 @@ shared_ptr<Atom> RemoteAtomDB::get_atom(const string& handle) {
     }
 
     // Readonly peers: cache probe then escalate to remote backends (base KB hot path).
-    for (auto& [uid, peer] : remote_db_) {
-        if (!peer->is_readonly()) continue;
+    for (auto& [uid, peer] : readonly_peers_) {
         auto atom = peer->get_cached_atom(handle);
         if (atom) return atom;
     }
-    for (auto& [uid, peer] : remote_db_) {
-        if (!peer->is_readonly()) continue;
+    for (auto& [uid, peer] : readonly_peers_) {
         auto atom = peer->get_atom(handle);
         if (atom) {
             LOG_DEBUG("get_atom(" << handle << ") fetched from [" << uid << "]");
@@ -163,8 +170,7 @@ vector<shared_ptr<Atom>> RemoteAtomDB::get_matching_atoms(bool is_toplevel, Atom
         auto atoms = peer->get_matching_atoms(is_toplevel, key);
         for (const auto& atom : atoms) {
             string h = atom->handle();
-            if (seen.find(h) == seen.end()) {
-                seen.insert(h);
+            if (seen.insert(h).second) {
                 result.push_back(atom);
             }
         }
@@ -270,52 +276,45 @@ bool RemoteAtomDB::link_exists(const string& handle) {
     return false;
 }
 
-set<string> RemoteAtomDB::atoms_exist(const vector<string>& handles) {
+namespace {
+
+template <typename PeerExistFn>
+set<string> fanout_exist(const map<string, shared_ptr<RemoteAtomDBPeer>>& peers,
+                         const vector<string>& handles,
+                         PeerExistFn peer_exist) {
     set<string> result;
     set<string> remaining(handles.begin(), handles.end());
 
-    for (auto& [uid, peer] : remote_db_) {
+    for (auto& [uid, peer] : peers) {
         if (remaining.empty()) break;
         vector<string> to_check(remaining.begin(), remaining.end());
-        auto found = peer->atoms_exist(to_check);
+        auto found = peer_exist(*peer, to_check);
         for (const auto& h : found) {
             result.insert(h);
             remaining.erase(h);
         }
     }
     return result;
+}
+
+}  // namespace
+
+set<string> RemoteAtomDB::atoms_exist(const vector<string>& handles) {
+    return fanout_exist(remote_db_, handles, [](RemoteAtomDBPeer& p, const vector<string>& h) {
+        return p.atoms_exist(h);
+    });
 }
 
 set<string> RemoteAtomDB::nodes_exist(const vector<string>& handles) {
-    set<string> result;
-    set<string> remaining(handles.begin(), handles.end());
-
-    for (auto& [uid, peer] : remote_db_) {
-        if (remaining.empty()) break;
-        vector<string> to_check(remaining.begin(), remaining.end());
-        auto found = peer->nodes_exist(to_check);
-        for (const auto& h : found) {
-            result.insert(h);
-            remaining.erase(h);
-        }
-    }
-    return result;
+    return fanout_exist(remote_db_, handles, [](RemoteAtomDBPeer& p, const vector<string>& h) {
+        return p.nodes_exist(h);
+    });
 }
 
 set<string> RemoteAtomDB::links_exist(const vector<string>& handles) {
-    set<string> result;
-    set<string> remaining(handles.begin(), handles.end());
-
-    for (auto& [uid, peer] : remote_db_) {
-        if (remaining.empty()) break;
-        vector<string> to_check(remaining.begin(), remaining.end());
-        auto found = peer->links_exist(to_check);
-        for (const auto& h : found) {
-            result.insert(h);
-            remaining.erase(h);
-        }
-    }
-    return result;
+    return fanout_exist(remote_db_, handles, [](RemoteAtomDBPeer& p, const vector<string>& h) {
+        return p.links_exist(h);
+    });
 }
 
 string RemoteAtomDB::add_atom(const atoms::Atom* atom, const atoms::Merger* merger) {

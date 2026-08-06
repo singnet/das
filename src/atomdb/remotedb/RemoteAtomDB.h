@@ -3,6 +3,7 @@
 #include <map>
 #include <memory>
 #include <string>
+#include <vector>
 
 #include "AtomDB.h"
 #include "JsonConfig.h"
@@ -14,8 +15,12 @@ namespace atomdb {
 
 /**
  * RemoteAtomDB connects to multiple remote AtomDBs via RemoteAtomDBPeer instances.
- * Each peer maintains its own optional cache, remote connection, and optional local persistence.
- * The constructor expects a JSON config with connection info for each remote peer.
+ * Each peer maintains its own write buffer, read cache, remote connection, and optional
+ * local persistence. The constructor expects a JSON config with connection info for each
+ * remote peer.
+ *
+ * The peer map is immutable after construction. writable_peers_ / readonly_peers_ are
+ * derived once at construction so hot paths do not re-check is_readonly().
  */
 class RemoteAtomDB : public AtomDB {
    public:
@@ -82,11 +87,14 @@ class RemoteAtomDB : public AtomDB {
     void release_caches(const LinkSchema& link_schema, bool persist = true, bool force = false);
 
    private:
-    // Derives the aggregated nested-indexing capability from the current peers. Shared by both
-    // constructors so the config and DI paths stay consistent.
-    void derive_nested_indexing();
+    // Derives the aggregated nested-indexing capability and writable/readonly peer lists.
+    // Shared by both constructors so the config and DI paths stay consistent.
+    void finalize_peer_lists();
 
     map<string, shared_ptr<RemoteAtomDBPeer>> remote_db_;
+    // Immutable after construction (peer map never changes).
+    vector<pair<string, shared_ptr<RemoteAtomDBPeer>>> writable_peers_;
+    vector<pair<string, shared_ptr<RemoteAtomDBPeer>>> readonly_peers_;
     // Aggregated nested-indexing capability, derived from peers at construction. True only when
     // every peer supports nested indexing; mixed configurations are normalized to false.
     bool nested_indexing_ = false;

@@ -20,10 +20,14 @@ namespace atomdb {
 /**
  * In-memory AtomDB backed by HandleTries.
  *
- * Thread-safety: all public methods are serialized by an internal recursive mutex, so an
- * InMemoryDB instance can be shared across threads without external locking. The mutex is
- * recursive because public methods call each other (e.g. delete_link -> delete_atom, and
- * re_index_patterns' visitor calls back into add_pattern / match_pattern_index_schema).
+ * Thread-safety:
+ * - Pure reads (get_*, query_*, *_exist(s), counts, get_all_atoms) take no InMemoryDB lock.
+ *   HandleTrie's hand-over-hand per-node locking makes each trie operation safe on its own.
+ * - Mutations (add_*, delete_*, re_index_patterns, drop_all, add_pattern_index_schema) are
+ *   serialized by a plain write_mutex_ so the three tries stay mutually consistent.
+ *
+ * Relaxed guarantee: a concurrent reader may briefly observe an atom before its pattern /
+ * incoming-set index entries exist (writes stay atomic w.r.t. each other).
  */
 class InMemoryDB : public AtomDB {
    public:
@@ -84,31 +88,40 @@ class InMemoryDB : public AtomDB {
     vector<shared_ptr<Atom>> get_all_atoms();
     void drop_all();
 
+    void add_pattern(const string& pattern_handle, const string& atom_handle);
+    vector<string> match_pattern_index_schema(const Link* link);
+
    private:
+    // Unlocked helpers — caller must hold write_mutex_ (except pure-read helpers).
+    string add_node_unlocked(const atoms::Node* node, const atoms::Merger* merger);
+    vector<string> add_nodes_unlocked(const vector<atoms::Node*>& nodes,
+                                      bool is_transactional,
+                                      const atoms::Merger* merger);
+    vector<string> add_links_unlocked(const vector<atoms::Link*>& links,
+                                      bool is_transactional,
+                                      const atoms::Merger* merger);
+
+    bool delete_atom_unlocked(const string& handle, bool delete_link_targets);
+    bool delete_node_unlocked(const string& handle, bool delete_link_targets);
+    bool delete_link_unlocked(const string& handle, bool delete_link_targets);
+
+    void add_pattern_unlocked(const string& pattern_handle, const string& atom_handle);
+    void delete_pattern_unlocked(const string& pattern_handle, const string& atom_handle);
+    void add_incoming_set_unlocked(const string& target_handle, const string& link_handle);
+    void delete_incoming_set_unlocked(const string& target_handle, const string& link_handle);
+    vector<string> match_pattern_index_schema_unlocked(const Link* link);
+    vector<vector<string>> index_entries_combinations(unsigned int arity);
+    void add_pattern_index_schema(const string& tokens, const vector<vector<string>>& index_entries);
+
     string context_;
-    // Serializes all public methods (see class comment). Recursive: public methods re-enter
-    // each other and LinkSchema::match may call back into this AtomDB on the same thread.
-    mutable recursive_mutex api_mutex_;
+    // Serializes mutations across the three tries. Reads rely on HandleTrie locking alone.
+    mutable mutex write_mutex_;
     HandleTrie* atoms_trie_;          // Stores handle -> Atom*
     HandleTrie* pattern_index_trie_;  // Stores pattern_handle -> set of atom handles
     HandleTrie* incoming_sets_trie_;  // Stores target_handle -> set of link handles that reference it
 
     map<int, tuple<vector<string>, vector<vector<string>>>> pattern_index_schema_map;
     int pattern_index_schema_next_priority{1};
-
-    // Helper methods
-   public:
-    void add_pattern(const string& pattern_handle, const string& atom_handle);
-    vector<string> match_pattern_index_schema(const Link* link);
-
-   private:
-    void delete_pattern(const string& pattern_handle, const string& atom_handle);
-    void add_incoming_set(const string& target_handle, const string& link_handle);
-    void delete_incoming_set(const string& target_handle, const string& link_handle);
-    void update_incoming_set(const string& target_handle, const string& link_handle);
-
-    void add_pattern_index_schema(const string& tokens, const vector<vector<string>>& index_entries);
-    vector<vector<string>> index_entries_combinations(unsigned int arity);
 };
 
 }  // namespace atomdb

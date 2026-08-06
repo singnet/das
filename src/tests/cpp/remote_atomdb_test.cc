@@ -1,11 +1,15 @@
 #include <gtest/gtest.h>
 
 #include <algorithm>
+#include <atomic>
+#include <chrono>
 #include <cstdlib>
 #include <fstream>
 #include <map>
 #include <memory>
+#include <stdexcept>
 #include <string>
+#include <thread>
 #include <vector>
 
 #include "Assignment.h"
@@ -270,8 +274,10 @@ TEST_F(RemoteAtomDBPeerTest, FetchAndRelease) {
 
     peer_->release(link_schema);
 
-    EXPECT_TRUE(local_->atom_exists(link1_handle));
-    EXPECT_TRUE(local_->atom_exists(link2_handle));
+    // Fetch only warms the disposable read_cache; release drops it without copying into
+    // local_persistence. Atoms remain reachable via the remote backend.
+    EXPECT_FALSE(local_->atom_exists(link1_handle));
+    EXPECT_FALSE(local_->atom_exists(link2_handle));
     EXPECT_EQ(peer_->get_cached_atom(link1_handle), nullptr);
 
     auto after_release = peer_->get_atom(link1_handle);
@@ -1007,6 +1013,156 @@ TEST(RemoteAtomDBFederationTest, StagedStrengthUpdateVisibleBeforeFlush) {
     EXPECT_DOUBLE_EQ(flushed->custom_attributes.get_or<double>("strength", -1.0), 0.942654);
     EXPECT_DOUBLE_EQ(peer3_local->get_atom(handle)->custom_attributes.get_or<double>("strength", -1.0),
                      0.942654);
+}
+
+TEST(RemoteAtomDBFederationTest, NonStagedPrefersLocalOverStaleCache) {
+    // Reader warmed a weak copy into cache. Another writer updates local_persistence.
+    // get_atom must not keep serving the stale cache entry when the handle is not staged.
+    auto peer3_remote = make_shared<InMemoryDB>("stale_cache_peer3_remote_");
+    auto peer3_local = make_shared<InMemoryDB>("stale_cache_peer3_local_");
+
+    auto a = new Node("Symbol", "\"staleA\"");
+    auto b = new Node("Symbol", "\"staleB\"");
+    auto implication = new Node("Symbol", "Implication");
+    string a_h = peer3_local->add_node(a);
+    string b_h = peer3_local->add_node(b);
+    string impl_h = peer3_local->add_node(implication);
+
+    auto weak = make_shared<Link>(
+        "Expression", vector<string>{impl_h, a_h, b_h}, true, Properties{{"strength", 0.5}});
+    string handle = peer3_local->add_link(weak.get());
+    ASSERT_FALSE(handle.empty());
+
+    map<string, shared_ptr<RemoteAtomDBPeer>> peers;
+    peers["peer3"] = make_shared<RemoteAtomDBPeer>(peer3_remote, peer3_local, "peer3");
+    auto db = make_shared<RemoteAtomDB>(peers);
+
+    auto warmed = db->get_atom(handle);
+    ASSERT_NE(warmed, nullptr);
+    EXPECT_DOUBLE_EQ(warmed->custom_attributes.get_or<double>("strength", -1.0), 0.5);
+
+    auto strong = make_shared<Link>(
+        "Expression", vector<string>{impl_h, a_h, b_h}, true, Properties{{"strength", 0.942654}});
+    ASSERT_EQ(strong->handle(), handle);
+    ASSERT_EQ(peer3_local->add_link(strong.get()), handle);
+
+    auto refreshed = db->get_atom(handle);
+    ASSERT_NE(refreshed, nullptr);
+    EXPECT_DOUBLE_EQ(refreshed->custom_attributes.get_or<double>("strength", -1.0), 0.942654);
+}
+
+namespace {
+// local_persistence stub whose writes fail while `failing` is set. Used to verify that a
+// failed flush re-stages dirty atoms instead of losing them.
+class FlakyInMemoryDB : public InMemoryDB {
+   public:
+    explicit FlakyInMemoryDB(const string& context) : InMemoryDB(context) {}
+
+    atomic<bool> failing{false};
+
+    vector<string> add_atoms(const vector<atoms::Atom*>& atoms,
+                             bool is_transactional = false,
+                             const atoms::Merger* merger = NULL) override {
+        throw_if_failing();
+        return InMemoryDB::add_atoms(atoms, is_transactional, merger);
+    }
+    vector<string> add_nodes(const vector<atoms::Node*>& nodes,
+                             bool is_transactional = false,
+                             const atoms::Merger* merger = NULL) override {
+        throw_if_failing();
+        return InMemoryDB::add_nodes(nodes, is_transactional, merger);
+    }
+    vector<string> add_links(const vector<atoms::Link*>& links,
+                             bool is_transactional = false,
+                             const atoms::Merger* merger = NULL) override {
+        throw_if_failing();
+        return InMemoryDB::add_links(links, is_transactional, merger);
+    }
+
+   private:
+    void throw_if_failing() {
+        if (failing.load()) {
+            throw runtime_error("simulated backend outage");
+        }
+    }
+};
+}  // namespace
+
+TEST(RemoteAtomDBFederationTest, FailedFlushRestagesDirtyAtoms) {
+    auto remote = make_shared<InMemoryDB>("flaky_remote_");
+    auto local = make_shared<FlakyInMemoryDB>("flaky_local_");
+    auto peer = make_shared<RemoteAtomDBPeer>(remote, local, "flaky_peer");
+
+    auto human = new Node("Symbol", "\"human\"");
+    string human_handle = peer->add_node(human);
+    ASSERT_FALSE(human_handle.empty());
+
+    // Backend down: flush fails, dirty atom must be re-staged, not lost.
+    local->failing.store(true);
+    peer->release_cache();
+    EXPECT_FALSE(local->node_exists(human_handle));
+    EXPECT_NE(peer->get_cached_atom(human_handle), nullptr);
+    EXPECT_TRUE(peer->node_exists(human_handle));
+
+    // Backend back up: next release persists the re-staged atom.
+    local->failing.store(false);
+    peer->release_cache();
+    EXPECT_TRUE(local->node_exists(human_handle));
+    EXPECT_EQ(peer->get_cached_atom(human_handle), nullptr);
+}
+
+TEST(RemoteAtomDBFederationTest, ConcurrentAddAndReleaseLosesNoWrites) {
+    // Adds racing release_cache() must never drop dirty writes. Every handle lands in
+    // local_persistence after a final release once writers finish.
+    auto peer3_remote = make_shared<InMemoryDB>("race_peer3_remote_");
+    auto peer3_local = make_shared<InMemoryDB>("race_peer3_local_");
+    auto peer = make_shared<RemoteAtomDBPeer>(peer3_remote, peer3_local, "peer3");
+
+    constexpr int kWriters = 4;
+    constexpr int kAddsPerWriter = 25;
+    atomic<bool> start{false};
+    vector<thread> writers;
+    writers.reserve(kWriters);
+
+    for (int w = 0; w < kWriters; ++w) {
+        writers.emplace_back([&, w]() {
+            while (!start.load(memory_order_acquire)) {
+            }
+            for (int i = 0; i < kAddsPerWriter; ++i) {
+                auto node =
+                    make_unique<Node>("Symbol", "\"race_" + to_string(w) + "_" + to_string(i) + "\"");
+                ASSERT_FALSE(peer->add_node(node.get()).empty());
+                if ((i % 5) == 0) {
+                    peer->release_cache();
+                }
+            }
+        });
+    }
+
+    thread releaser([&]() {
+        while (!start.load(memory_order_acquire)) {
+        }
+        for (int i = 0; i < 40; ++i) {
+            peer->release_cache();
+            this_thread::sleep_for(chrono::milliseconds(1));
+        }
+    });
+
+    start.store(true, memory_order_release);
+    for (auto& t : writers) t.join();
+    releaser.join();
+
+    // Final flush after all writers finish.
+    peer->release_cache();
+
+    for (int w = 0; w < kWriters; ++w) {
+        for (int i = 0; i < kAddsPerWriter; ++i) {
+            auto probe =
+                make_unique<Node>("Symbol", "\"race_" + to_string(w) + "_" + to_string(i) + "\"");
+            EXPECT_TRUE(peer3_local->node_exists(probe->handle()))
+                << "missing handle for race_" << w << "_" << i;
+        }
+    }
 }
 
 int main(int argc, char** argv) {
