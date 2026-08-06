@@ -8,6 +8,10 @@
 #include "ServiceBus.h"
 #include "ServiceBusSingleton.h"
 
+// Note to reviewer: left here to help in a follow-up refactor regarding the use of MORK
+// instead of Redis+Mongo
+#define USE_MORK ((bool) false)
+
 using namespace link_creation_agent;
 using namespace query_engine;
 using namespace atoms;
@@ -31,7 +35,7 @@ shared_ptr<BusCommandProxy> LinkCreationProcessor::factory_empty_proxy() {
 }
 
 void LinkCreationProcessor::run_command(shared_ptr<BusCommandProxy> proxy) {
-    lock_guard<mutex> semaphore(this->query_threads_mutex);
+    lock_guard<mutex> semaphore(this->thread_management_mutex);
     auto link_creation_proxy = dynamic_pointer_cast<LinkCreationProxy>(proxy);
     if (link_creation_proxy == nullptr) {
         RAISE_ERROR("Invalid BusCommandProxy instance");
@@ -39,7 +43,7 @@ void LinkCreationProcessor::run_command(shared_ptr<BusCommandProxy> proxy) {
     string thread_id = "thread<" + proxy->my_id() + "_" + std::to_string(proxy->get_serial()) + ">";
     LOG_DEBUG("Starting new thread: " << thread_id << " to run command: <" << proxy->get_command()
                                       << ">");
-    if (this->query_threads.find(thread_id) != this->query_threads.end()) {
+    if (this->processor_threads.find(thread_id) != this->processor_threads.end()) {
         RAISE_ERROR("Invalid thread id: " + thread_id);
     } else {
         shared_ptr<StoppableThread> stoppable_thread = make_shared<StoppableThread>(thread_id);
@@ -47,7 +51,7 @@ void LinkCreationProcessor::run_command(shared_ptr<BusCommandProxy> proxy) {
                                             this,
                                             stoppable_thread,
                                             link_creation_proxy));
-        this->query_threads[thread_id] = stoppable_thread;
+        this->processor_threads[thread_id] = stoppable_thread;
     }
 }
 
@@ -77,12 +81,12 @@ void LinkCreationProcessor::thread_process_one_query(shared_ptr<StoppableThread>
     // Release freed heap to the OS
     malloc_trim(0);
 #endif
-    // Self-reap: detach this finished thread and drop it from query_threads immediately, so a
+    // Self-reap: detach this finished thread and drop it from processor_threads immediately, so a
     // burst that finishes while the node is idle returns to baseline without waiting for the next
     // command. A thread cannot join itself, hence detach instead of join.
     {
-        lock_guard<mutex> semaphore(this->query_threads_mutex);
-        this->query_threads.erase(monitor->get_id());
+        lock_guard<mutex> semaphore(this->thread_management_mutex);
+        this->processor_threads.erase(monitor->get_id());
         monitor->detach();
     }
     LOG_DEBUG("Command finished: <" << proxy->get_command() << ">");
@@ -94,16 +98,62 @@ shared_ptr<PatternMatchingQueryProxy> LinkCreationProcessor::issue_link_creation
     return nullptr;
 }
 
-void LinkCreationProcessor::remove_query_thread(const string& stoppable_thread_id) {
-    lock_guard<mutex> semaphore(this->query_threads_mutex);
-    auto iterator = this->query_threads.find(stoppable_thread_id);
-    if (iterator == this->query_threads.end()) {
+void LinkCreationProcessor::remove_processor_thread(const string& stoppable_thread_id) {
+    lock_guard<mutex> semaphore(this->thread_management_mutex);
+    auto iterator = this->processor_threads.find(stoppable_thread_id);
+    if (iterator == this->processor_threads.end()) {
         RAISE_ERROR("Attempt to remove a StoppableThread that doesn't exist: " + stoppable_thread_id);
     }
-    this->query_threads.erase(iterator);
+    this->processor_threads.erase(iterator);
 }
 
 void LinkCreationProcessor::link_creation(shared_ptr<StoppableThread> monitor,
                                           shared_ptr<LinkCreationProxy> proxy) {
-    // TBD
+
+    STACK_TRACE();
+    unsigned int count_created = 0;
+    unsigned int unproductive_visit = 0;
+    unsigned int visit_attempts = 0;
+    shared_ptr<QueryAnswer> query_answer;
+    LinkCreationStats stats;
+    while (! (monitor->stopped() || proxy->stop_criteria_met())) {
+        // Starting one round of link creation
+        auto pm_proxy = issue_link_creation_query(nullptr);
+        while (! (monitor->stopped())) {
+            // Draining query results
+            if ((query_answer = proxy->pop()) == nullptr) {
+                if (proxy->finished()) {
+                    break;
+                }
+                Utils::sleep();
+            } else {
+                LOG_DEBUG("Processing query answer " + to_string(count_created) + ": " + query_answer->to_string(USE_MORK));
+                stats = proxy->link_creation(query_answer);
+                if (stats.created > 0) {
+                    count_created++;
+                    unproductive_visit = 0;
+                    visit_attempts = 0;
+                    if (count_created >= proxy->parameters.get<unsigned int>(LinkCreationProxy::MAX_SUCCESSFUL_CREATION_PER_ROUND)) {
+                        break;
+                    }
+                } else if (stats.visited) {
+                    unproductive_visit++;
+                    visit_attempts = 0;
+                    if (unproductive_visit >= proxy->parameters.get<unsigned int>(LinkCreationProxy::MAX_UNPRODUCTIVE_VISITS_PER_ROUND)) {
+                        break;
+                    }
+                } else {
+                    visit_attempts++;
+                    if (visit_attempts >= proxy->parameters.get<unsigned int>(LinkCreationProxy::MAX_VISIT_ATTEMPTS_PER_ROUND)) {
+                        break;
+                    }
+                }
+            }
+        }
+        if (!pm_proxy->finished()) {
+            pm_proxy->abort();
+        }
+        proxy->inc_round_count();
+    }
+    LOG_DEBUG("Built " + to_string(count_created) + " links");
 }

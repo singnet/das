@@ -17,9 +17,8 @@ using namespace das_test;
 
 class TestLinkCreator : public LinkCreator {
    public:
-    virtual pair<unsigned int, unsigned int> create(shared_ptr<QueryAnswer> query_answer) {
-        return make_pair((unsigned int) round(query_answer->importance),
-                         (unsigned int) round(query_answer->importance));
+    virtual LinkCreationStats create(shared_ptr<QueryAnswer> query_answer) {
+        return LinkCreationStats(false, round(query_answer->importance), 0);
     }
 };
 
@@ -40,30 +39,17 @@ TEST(LinkCreation, link_creator_function) {
     bus->register_processor(processor);
 
     LinkCreationProxy proxy1({""}, "link_creation_test", "unit_test");
-    EXPECT_EQ(proxy1.link_creation(make_shared<QueryAnswer>("blah", 0.0)),
-              make_pair((unsigned int) 4, (unsigned int) 4));
-    EXPECT_EQ(proxy1.link_creation(make_shared<QueryAnswer>("blahhh", 0.5)),
-              make_pair((unsigned int) 6, (unsigned int) 6));
-    EXPECT_EQ(proxy1.link_creation(make_shared<QueryAnswer>("blahh", 1.0)),
-              make_pair((unsigned int) 5, (unsigned int) 5));
-    LinkCreationProxy proxy2({""},
-                             "link_creation_test",
-                             LinkCreatorRegistry::REMOTE_FUNCTION,
-                             make_shared<TestLinkCreator>());
-    EXPECT_EQ(proxy2.link_creation(make_shared<QueryAnswer>("blah", 0.0)),
-              make_pair((unsigned int) 0, (unsigned int) 0));
-    EXPECT_EQ(proxy2.link_creation(make_shared<QueryAnswer>("blahhh", 0.4)),
-              make_pair((unsigned int) 0, (unsigned int) 0));
-    EXPECT_EQ(proxy2.link_creation(make_shared<QueryAnswer>("blahh", 0.9)),
-              make_pair((unsigned int) 1, (unsigned int) 1));
-    vector<string> tokens;
-    proxy2.tokenize(tokens);
-    LinkCreationProxy proxy3;
-    proxy3.untokenize(tokens);
-    EXPECT_FALSE(proxy1.is_link_creation_function_remote());
-    EXPECT_FALSE(proxy2.is_link_creation_function_remote());
-    EXPECT_TRUE(proxy3.is_link_creation_function_remote());
-    EXPECT_THROW(proxy3.link_creation(make_shared<QueryAnswer>("blah", 0.0)), runtime_error);
+    EXPECT_EQ(proxy1.link_creation(make_shared<QueryAnswer>("blah", 0.0)).created, 4);
+    EXPECT_EQ(proxy1.link_creation(make_shared<QueryAnswer>("blahhh", 0.5)).created, 6);
+    EXPECT_EQ(proxy1.link_creation(make_shared<QueryAnswer>("blahh", 1.0)).created, 5);
+    EXPECT_EQ(proxy1.link_creation(make_shared<QueryAnswer>("blah", 0.0)).updated, 5);
+    EXPECT_EQ(proxy1.link_creation(make_shared<QueryAnswer>("blahhh", 0.5)).updated, 7);
+    EXPECT_EQ(proxy1.link_creation(make_shared<QueryAnswer>("blahh", 1.0)).updated, 6);
+    EXPECT_EQ(proxy1.link_creation(make_shared<QueryAnswer>("blah", 0.0)).visited, true);
+    EXPECT_EQ(proxy1.link_creation(make_shared<QueryAnswer>("blahhh", 0.5)).visited, true);
+    EXPECT_EQ(proxy1.link_creation(make_shared<QueryAnswer>("blahh", 1.0)).visited, true);
+
+    EXPECT_THROW(LinkCreationProxy proxy2({""}, "link_creation_test", LinkCreatorRegistry::REMOTE_FUNCTION, make_shared<TestLinkCreator>()), runtime_error);
 }
 
 TEST(LinkCreation, proxy_object) {
@@ -78,3 +64,4 @@ TEST(LinkCreation, proxy_object) {
     cout << "tokens3: " << Utils::join(tokens3) << endl;
     EXPECT_EQ(tokens1, tokens3);
 }
+

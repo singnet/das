@@ -10,13 +10,10 @@ using namespace link_creation_agent;
 // -------------------------------------------------------------------------------------------------
 // Constructors, destructors and initialization
 
-string LinkCreationProxy::PROCESS_QUERY_ANSWER = "process_query_answer";
-string LinkCreationProxy::PROCESS_QUERY_ANSWER_RESPONSE = "process_query_answer_response";
-
-string LinkCreationProxy::MAX_SUCCESSFUL_CREATES_PER_ROUND = "max_successful_creates_per_round";
+string LinkCreationProxy::MAX_SUCCESSFUL_CREATION_PER_ROUND = "max_successful_creation_per_round";
+string LinkCreationProxy::MAX_UNPRODUCTIVE_VISITS_PER_ROUND = "max_unproductive_visits_per_round";
+string LinkCreationProxy::MAX_VISIT_ATTEMPTS_PER_ROUND = "max_visit_attempts_per_round";
 string LinkCreationProxy::MAX_ROUNDS = "max_rounds";
-string LinkCreationProxy::MAX_VISITS_PER_ROUND = "max_visits_per_round";
-string LinkCreationProxy::MAX_UNPRODUCTIVE_ANSWERS_PER_ROUND = "max_unproductive_answers_per_round";
 
 LinkCreationProxy::LinkCreationProxy() {
     // constructor typically used in processor
@@ -42,7 +39,6 @@ LinkCreationProxy::~LinkCreationProxy() {}
 void LinkCreationProxy::init() {
     this->command = ServiceBus::LINK_CREATION;
     this->link_creation_function_object = shared_ptr<LinkCreator>(nullptr);
-    this->ongoing_remote_link_creation = false;
     this->round_count = 0;
 }
 
@@ -82,20 +78,20 @@ void LinkCreationProxy::untokenize(vector<string>& tokens) {
     tokens.erase(tokens.begin(), tokens.begin() + 1);
 }
 
-pair<unsigned int, unsigned int> LinkCreationProxy::link_creation(shared_ptr<QueryAnswer> answer) {
+LinkCreationStats LinkCreationProxy::link_creation(shared_ptr<QueryAnswer> answer) {
+    LinkCreationStats stats;
     if (this->link_creator_function_tag == "") {
         RAISE_ERROR("Invalid empty link creation function tag");
-        return make_pair(0, 0);  // just to avoid compilation warnings
     } else if (this->link_creation_function_object == nullptr) {
         if (this->link_creator_function_tag == LinkCreatorRegistry::REMOTE_FUNCTION) {
             RAISE_ERROR("Invalid call to remote function");
         } else {
             RAISE_ERROR("Link creation function is not set up");
         }
-        return make_pair(0, 0);  // just to avoid compilation warnings
     } else {
-        return this->link_creation_function_object->create(answer);
+        stats = this->link_creation_function_object->create(answer);
     }
+    return stats;
 }
 
 bool LinkCreationProxy::stop_criteria_met() {
@@ -105,6 +101,9 @@ bool LinkCreationProxy::stop_criteria_met() {
 
 void LinkCreationProxy::set_link_creator_function_tag(const string& tag) {
     lock_guard<mutex> semaphore(this->api_mutex);
+    if (tag == LinkCreatorRegistry::REMOTE_FUNCTION) {
+        RAISE_ERROR("Remote evaluation of link creators is not implemented yet.");
+    }
     if ((this->link_creator_function_tag != "") && (tag != this->link_creator_function_tag)) {
         RAISE_ERROR("Invalid reset of link creation function: " + this->link_creator_function_tag +
                     " --> " + tag);
@@ -119,28 +118,15 @@ void LinkCreationProxy::set_link_creator_function_tag(const string& tag) {
     }
 }
 
+void LinkCreationProxy::inc_round_count() {
+    lock_guard<mutex> semaphore(this->api_mutex);
+    this->round_count++;
+}
+
 bool LinkCreationProxy::is_link_creation_function_remote() {
     lock_guard<mutex> semaphore(this->api_mutex);
     return (this->link_creation_function_object == nullptr) &&
            (this->link_creator_function_tag == LinkCreatorRegistry::REMOTE_FUNCTION);
-}
-
-void LinkCreationProxy::remote_link_creation(const vector<string>& answer_bundle) {
-    lock_guard<mutex> semaphore(this->api_mutex);
-    this->ongoing_remote_link_creation = true;
-    this->remote_link_creation_result.clear();
-    to_remote_peer(PROCESS_QUERY_ANSWER, answer_bundle);
-}
-
-bool LinkCreationProxy::remote_link_creation_finished() {
-    lock_guard<mutex> semaphore(this->api_mutex);
-    return !this->ongoing_remote_link_creation;
-}
-
-vector<pair<unsigned int, unsigned int>> LinkCreationProxy::get_remotely_created_links() {
-    lock_guard<mutex> semaphore(this->api_mutex);
-    // This method doesn't return a reference to avoid concurrency hazard
-    return this->remote_link_creation_result;
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -151,51 +137,8 @@ bool LinkCreationProxy::from_remote_peer(const string& command, const vector<str
                                  << this->my_id());
     if (BaseQueryProxy::from_remote_peer(command, args)) {
         return true;
-    } else if (command == PROCESS_QUERY_ANSWER) {
-        process_query_answer(args);
-        return true;
-    } else if (command == PROCESS_QUERY_ANSWER_RESPONSE) {
-        process_query_answer_response(args);
-        return true;
     } else {
         RAISE_ERROR("Invalid LinkCreationProxy command: <" + command + ">");
         return false;
-    }
-}
-
-void LinkCreationProxy::process_query_answer(const vector<string>& args) {
-    lock_guard<mutex> semaphore(this->api_mutex);
-    if (!this->is_aborting()) {
-        if (args.size() == 0) {
-            RAISE_ERROR("Invalid empty query answer bundle");
-        } else {
-            vector<string> bundle;
-            for (auto tokens : args) {
-                shared_ptr<QueryAnswer> query_answer = make_shared<QueryAnswer>();
-                query_answer->untokenize(tokens);
-                pair<unsigned int, unsigned int> stats = link_creation(query_answer);
-                bundle.push_back(std::to_string(stats.first) + " " + std::to_string(stats.second));
-            }
-            to_remote_peer(PROCESS_QUERY_ANSWER_RESPONSE, bundle);
-        }
-    }
-}
-
-void LinkCreationProxy::process_query_answer_response(const vector<string>& args) {
-    lock_guard<mutex> semaphore(this->api_mutex);
-    if (!this->is_aborting()) {
-        if (args.size() == 0) {
-            RAISE_ERROR("Invalid empty link creation answer bundle");
-        } else {
-            for (const string& value_str : args) {
-                vector<string> value_vector = Utils::split(value_str);
-                if ((value_vector.size() != 2) || (value_vector[0] == "") || (value_vector[1] == "")) {
-                    RAISE_ERROR("Invalid link creation answer: <" + value_str + ">");
-                }
-                this->remote_link_creation_result.push_back(make_pair(
-                    Utils::string_to_uint(value_vector[0]), Utils::string_to_uint(value_vector[1])));
-            }
-            this->ongoing_remote_link_creation = false;
-        }
     }
 }
