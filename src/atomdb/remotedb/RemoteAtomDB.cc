@@ -37,10 +37,10 @@ RemoteAtomDB::RemoteAtomDB(const JsonConfig& peers_config) {
             if (local_context.empty()) {
                 local_context = context;
             }
-            local_persistence = AtomDBFactory::create(local_persistence_config, local_context);
+            local_persistence = AtomDBFactory::create_backend(local_persistence_config, local_context);
         }
         remote_db_[uid] = make_shared<RemoteAtomDBPeer>(
-            AtomDBFactory::create(peer_config, context), local_persistence, uid);
+            AtomDBFactory::create_backend(peer_config, context), local_persistence, uid);
     }
 
     LOG_INFO("RemoteAtomDB initialized with " << remote_db_.size() << " remote peers");

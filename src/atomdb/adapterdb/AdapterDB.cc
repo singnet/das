@@ -319,11 +319,10 @@ void AdapterDB::atomdb_backend_setup() {
         this->config.at_path("adapterdb.atomdb_backend").get_or<JsonConfig>(JsonConfig());
     string atomdb_backend_type = atomdb_backend_config.at_path("type").get_or<string>("");
     if (atomdb_backend_type == "remotedb") {
-        this->atomdb_backend = AtomDBFactory::wrap_if_protected(
-            shared_ptr<AtomDB>(new RemoteAtomDB(atomdb_backend_config)));
+        this->atomdb_backend = shared_ptr<AtomDB>(new RemoteAtomDB(atomdb_backend_config));
     } else if (atomdb_backend_type == "morkdb" || atomdb_backend_type == "redismongodb" ||
                atomdb_backend_type == "inmemorydb") {
-        this->atomdb_backend = AtomDBFactory::create(atomdb_backend_config);
+        this->atomdb_backend = AtomDBFactory::create_backend(atomdb_backend_config);
     } else {
         RAISE_ERROR("Invalid AtomDB type: " + atomdb_backend_type);
     }
