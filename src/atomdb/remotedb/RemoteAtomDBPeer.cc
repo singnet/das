@@ -70,12 +70,8 @@ shared_ptr<Atom> RemoteAtomDBPeer::get_atom(const string& handle) {
         if (atom) {
             LOG_DEBUG("[RemoteDB(" << uid_ << ")] get_atom(" << handle
                                    << ") <- local_persistence (warmed into read_cache)");
-            // Warm only once: local wins over read_cache on this path anyway, so re-cloning
-            // the atom into the trie on every hit would be pure churn. The warmed copy still
-            // serves query_for_targets and the facade cache probes.
-            if (!rc->atom_exists(handle)) {
-                rc->add_atom(atom.get());
-            }
+            // Deliberately re-warm on EVERY hit, not just the first one.
+            rc->add_atom(atom.get());
             return atom;
         }
     }
@@ -765,18 +761,18 @@ void RemoteAtomDBPeer::release(const LinkSchema& link_schema, bool persist, bool
 
     if (persist) {
         if (schema_cached || force || has_dirty_writes) {
-            LOG_INFO("[RemoteDB(" << uid_ << ")] release(" << link_schema.handle()
+            LOG_INFO("[RemoteDB(" << uid_ << ")] release(" << link_schema.to_string()
                                   << ") flushing write buffer" << (force ? " (forced)" : ""));
             release_cache();
             return;
         }
         if (!is_readonly() && has_cached_atoms) {
-            LOG_INFO("[RemoteDB(" << uid_ << ")] release(" << link_schema.handle()
+            LOG_INFO("[RemoteDB(" << uid_ << ")] release(" << link_schema.to_string()
                                   << ") clearing read cache (no dirty writes)");
             release_cache();
             return;
         }
-        LOG_DEBUG("[RemoteDB(" << uid_ << ")] release(" << link_schema.handle()
+        LOG_DEBUG("[RemoteDB(" << uid_ << ")] release(" << link_schema.to_string()
                                << ") no-op (schema not cached, no dirty writes, empty or readonly)");
         return;
     }
@@ -785,7 +781,7 @@ void RemoteAtomDBPeer::release(const LinkSchema& link_schema, bool persist, bool
         lock_guard<mutex> lock(peer_mutex_);
         fetched_link_templates_.erase(link_schema.handle());
     } else {
-        LOG_DEBUG("[RemoteDB(" << uid_ << ")] release(" << link_schema.handle()
+        LOG_DEBUG("[RemoteDB(" << uid_ << ")] release(" << link_schema.to_string()
                                << ") cache already released");
     }
 }

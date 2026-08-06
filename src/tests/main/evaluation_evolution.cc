@@ -294,7 +294,7 @@ static shared_ptr<PatternMatchingQueryProxy> issue_context_creation_query(
 }
 
 static void flush_remote_link_template_cache(bool force = false) {
-    if (auto remote_db = dynamic_pointer_cast<RemoteAtomDB>(db); remote_db != nullptr) {
+    if (auto remote_db = dynamic_pointer_cast<RemoteAtomDB>(db)) {
         auto link_schema =
             LinkSchema({LINK_TEMPLATE, EXPRESSION, "3", VARIABLE, "V1", VARIABLE, "V2", VARIABLE, "V3"});
         remote_db->release_caches(link_schema, true, force);

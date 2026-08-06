@@ -59,17 +59,15 @@ class HandleSetTrieValue : public HandleTrie::TrieValue {
 
 namespace {
 shared_ptr<Atom> clone_atom(const Atom* atom) {
-    if (atom == nullptr) {
-        return nullptr;
-    }
-
-    if (atom->arity() == 0) {
-        auto node = dynamic_cast<const Node*>(atom);
-        return (node != nullptr) ? make_shared<Node>(*node) : nullptr;
-    }
-
     auto link = dynamic_cast<const Link*>(atom);
-    return (link != nullptr) ? make_shared<Link>(*link) : nullptr;
+    if (link != nullptr) {
+        return make_shared<Link>(*link);
+    }
+    auto node = dynamic_cast<const Node*>(atom);
+    if (node != nullptr) {
+        return make_shared<Node>(*node);
+    }
+    return nullptr;
 }
 
 shared_ptr<HandleTrie> make_trie() { return make_shared<HandleTrie>(HANDLE_HASH_SIZE - 1); }
