@@ -19,8 +19,6 @@ ProtectedAtomDB::ProtectedAtomDB(shared_ptr<AtomDB> backend) : backend(std::move
 // --------------------------------------------------------------------------------
 // Public methods
 
-shared_ptr<AtomDB> ProtectedAtomDB::get_backend() const { return this->backend; }
-
 shared_ptr<Atom> ProtectedAtomDB::get_atom(const string& handle, const string& public_key) {
     RAISE_ERROR("ProtectedAtomDB::get_atom(handle, public_key) is not implemented yet");
 }
