@@ -16,6 +16,17 @@ using namespace atoms;
 
 namespace atomdb {
 
+enum class AtomDBType { RedisMongoDB, MorkDB, InMemoryDB, RemoteAtomDB, AdapterDB };
+
+inline AtomDBType parse_atomdb_type(const string& type) {
+    if (type == "redismongodb") return AtomDBType::RedisMongoDB;
+    if (type == "morkdb") return AtomDBType::MorkDB;
+    if (type == "inmemorydb") return AtomDBType::InMemoryDB;
+    if (type == "remotedb") return AtomDBType::RemoteAtomDB;
+    if (type == "adapterdb") return AtomDBType::AdapterDB;
+    RAISE_ERROR("Unsupported atomdb.type: " + type);
+}
+
 class AtomDB : public HandleDecoder {
    public:
     AtomDB() = default;

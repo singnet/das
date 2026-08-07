@@ -7,9 +7,11 @@
 #include <sstream>
 #include <utility>
 
-#include "AtomDBFactory.h"
+#include "InMemoryDB.h"
 #include "InMemoryDBAPITypes.h"
 #include "Logger.h"
+#include "MorkDB.h"
+#include "RedisMongoDB.h"
 #include "Utils.h"
 
 using namespace atomdb;
@@ -18,38 +20,53 @@ using namespace commons;
 
 using json = nlohmann::json;
 
-RemoteAtomDB::RemoteAtomDB(const JsonConfig& peers_config) {
-    for (auto& entry : peers_config) {
-        auto peer_config = JsonConfig(entry);
-        string uid = peer_config.at_path("uid").get_or<string>("");
-        if (uid.empty()) continue;
+// namespace {
 
-        string context = peer_config.at_path("context").get_or<string>("");
-        if (context.empty()) {
-            context = "remotedb_" + uid;
-        }
+// shared_ptr<AtomDB> create_atomdb_from_config(const JsonConfig& config) {
+//     string uid = config.at_path("uid").get_or<string>("");
+//     string type = config.at_path("type").get_or<string>("");
+//     string context = config.at_path("context").get_or<string>("");
 
-        shared_ptr<AtomDB> local_persistence = nullptr;
-        auto local_persistence_config =
-            peer_config.at_path("local_persistence").get_or<JsonConfig>(JsonConfig());
-        if (!local_persistence_config.empty()) {
-            string local_context = local_persistence_config.at_path("context").get_or<string>(context);
-            if (local_context.empty()) {
-                local_context = context;
-            }
-            // TODO: create_backend(): raw AtomDB on purpose. Wrapping nested RemoteAtomDB/AdapterDB
-            // stores with ProtectedAtomDB is still under discussion.
-            local_persistence = AtomDBFactory::create_backend(local_persistence_config, local_context);
-        }
-        // TODO: create_backend(): raw AtomDB on purpose. Wrapping nested RemoteAtomDB/AdapterDB stores
-        // with ProtectedAtomDB is still under discussion.
-        remote_db_[uid] = make_shared<RemoteAtomDBPeer>(
-            AtomDBFactory::create_backend(peer_config, context), local_persistence, uid);
-    }
+//     if (type == "inmemorydb") {
+//         return make_shared<InMemoryDB>(context.empty() ? "remotedb_" : context);
+//     }
 
-    LOG_INFO("RemoteAtomDB initialized with " << remote_db_.size() << " remote peers");
-    derive_nested_indexing();
-}
+//     if (type == "redismongodb") {
+//         RedisMongoDB::initialize_statics(context);
+//         auto atomdb = make_shared<RedisMongoDB>(context, false, config);
+//         return atomdb;
+//     }
+
+//     if (type == "morkdb") {
+//         auto atomdb = make_shared<MorkDB>(context, config);
+//         return atomdb;
+//     }
+
+//     RAISE_ERROR("Unknown AtomDB type for peer " + uid + ": " + type);
+//     return nullptr;
+// }
+
+// }  // namespace
+
+// RemoteAtomDB::RemoteAtomDB(const JsonConfig& peers_config) {
+//     for (auto& entry : peers_config) {
+//         auto peer_config = JsonConfig(entry);
+//         string uid = peer_config.at_path("uid").get_or<string>("");
+//         if (uid.empty()) continue;
+
+//         shared_ptr<AtomDB> local_persistence = nullptr;
+//         auto local_persistence_config =
+//             peer_config.at_path("local_persistence").get_or<JsonConfig>(JsonConfig());
+//         if (!local_persistence_config.empty()) {
+//             local_persistence = create_atomdb_from_config(local_persistence_config);
+//         }
+//         remote_db_[uid] = make_shared<RemoteAtomDBPeer>(
+//             create_atomdb_from_config(peer_config), local_persistence, uid);
+//     }
+
+//     LOG_INFO("RemoteAtomDB initialized with " << remote_db_.size() << " remote peers");
+//     derive_nested_indexing();
+// }
 
 RemoteAtomDB::RemoteAtomDB(map<string, shared_ptr<RemoteAtomDBPeer>> peers)
     : remote_db_(std::move(peers)) {
@@ -64,15 +81,6 @@ bool RemoteAtomDB::composite_type_enabled() const {
         "RemoteAtomDB derives composite_type_enabled() from peers (true if any peer has it enabled)");
     for (auto& [uid, peer] : this->remote_db_) {
         if (peer->composite_type_enabled()) {
-            return true;
-        }
-    }
-    return false;
-}
-
-bool RemoteAtomDB::is_protected() const {
-    for (auto& [uid, peer] : remote_db_) {
-        if (peer->is_protected()) {
             return true;
         }
     }

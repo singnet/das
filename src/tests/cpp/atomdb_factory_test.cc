@@ -6,8 +6,8 @@
 #include "AtomDBFactory.h"
 #include "InMemoryDB.h"
 #include "JsonConfig.h"
-#include "MockAtomDB.h"
 #include "MorkDB.h"
+#include "RemoteAtomDB.h"
 #include "TestAtomDBJsonConfig.h"
 
 using namespace atomdb;
@@ -22,13 +22,19 @@ JsonConfig config_with_type(const string& type) {
     return config;
 }
 
-}  // namespace
-
-TEST(AtomDBFactoryTest, CreateBackendInMemoryDB) {
-    auto backend = AtomDBFactory::create_backend(config_with_type("inmemorydb"), "factory_test_");
-    ASSERT_NE(backend, nullptr);
-    EXPECT_NE(dynamic_pointer_cast<InMemoryDB>(backend), nullptr);
+JsonConfig remotedb_config_with_inmemory_peers() {
+    nlohmann::json json;
+    json["type"] = "remotedb";
+    json["remote_peers"] = nlohmann::json::array(
+        {{{"uid", "peer1"}, {"type", "inmemorydb"}, {"context", "factory_remote_peer1_"}},
+         {{"uid", "peer2"},
+          {"type", "inmemorydb"},
+          {"context", "factory_remote_peer2_"},
+          {"local_persistence", {{"type", "inmemorydb"}, {"context", "factory_remote_peer2_local_"}}}}});
+    return JsonConfig(json);
 }
+
+}  // namespace
 
 TEST(AtomDBFactoryTest, CreateInMemoryDB) {
     auto db = AtomDBFactory::create(config_with_type("inmemorydb"), "factory_test_");
@@ -36,11 +42,10 @@ TEST(AtomDBFactoryTest, CreateInMemoryDB) {
     EXPECT_NE(dynamic_pointer_cast<InMemoryDB>(db), nullptr);
 }
 
-TEST(AtomDBFactoryTest, CreateBackendMorkDB) {
-    auto backend =
-        AtomDBFactory::create_backend(test_atomdb_json_config("morkdb"), "factory_mork_backend_");
-    ASSERT_NE(backend, nullptr);
-    EXPECT_NE(dynamic_pointer_cast<MorkDB>(backend), nullptr);
+TEST(AtomDBFactoryTest, CreateInMemoryDBWithoutWrap) {
+    auto db = AtomDBFactory::create(config_with_type("inmemorydb"), "factory_test_nowrap_", false);
+    ASSERT_NE(db, nullptr);
+    EXPECT_NE(dynamic_pointer_cast<InMemoryDB>(db), nullptr);
 }
 
 TEST(AtomDBFactoryTest, CreateMorkDB) {
@@ -49,45 +54,58 @@ TEST(AtomDBFactoryTest, CreateMorkDB) {
     EXPECT_NE(dynamic_pointer_cast<MorkDB>(db), nullptr);
 }
 
-TEST(AtomDBFactoryTest, CreateAndCreateBackendAreCompatibleForMorkDB) {
+TEST(AtomDBFactoryTest, CreateWithAndWithoutWrapAreCompatibleWhileWrapIsNoOp) {
     auto config = test_atomdb_json_config("morkdb");
-    auto backend = AtomDBFactory::create_backend(config, "factory_mork_compat_");
-    auto created = AtomDBFactory::create(config, "factory_mork_compat_");
+    auto wrapped = AtomDBFactory::create(config, "factory_mork_wrap_", true);
+    auto unwrapped = AtomDBFactory::create(config, "factory_mork_unwrap_", false);
 
-    ASSERT_NE(backend, nullptr);
-    ASSERT_NE(created, nullptr);
-    EXPECT_NE(dynamic_pointer_cast<MorkDB>(backend), nullptr);
-    EXPECT_NE(dynamic_pointer_cast<MorkDB>(created), nullptr);
-    // wrap_if_protected is currently a no-op, so create keeps the backend type.
-    EXPECT_EQ(AtomDBFactory::wrap_if_protected(backend).get(), backend.get());
-}
-
-TEST(AtomDBFactoryTest, CreateBackendRejectsMissingAndUnknownTypes) {
-    EXPECT_THROW(AtomDBFactory::create_backend(JsonConfig()), runtime_error);
-    EXPECT_THROW(AtomDBFactory::create_backend(config_with_type("")), runtime_error);
-    EXPECT_THROW(AtomDBFactory::create_backend(config_with_type("unknown")), runtime_error);
-    EXPECT_THROW(AtomDBFactory::create_backend(config_with_type("remotedb")), runtime_error);
-    EXPECT_THROW(AtomDBFactory::create_backend(config_with_type("adapterdb")), runtime_error);
-}
-
-TEST(AtomDBFactoryTest, WrapIfProtectedNullReturnsNull) {
-    EXPECT_EQ(AtomDBFactory::wrap_if_protected(nullptr), nullptr);
-}
-
-TEST(AtomDBFactoryTest, WrapIfProtectedReturnsSameInstance) {
-    auto backend = make_shared<AtomDBMock>();
-
-    auto wrapped = AtomDBFactory::wrap_if_protected(backend);
-    EXPECT_EQ(wrapped.get(), backend.get());
-}
-
-TEST(AtomDBFactoryTest, WrapIfProtectedIsIdempotent) {
-    auto backend = make_shared<AtomDBMock>();
-
-    auto wrapped = AtomDBFactory::wrap_if_protected(backend);
     ASSERT_NE(wrapped, nullptr);
-    EXPECT_EQ(wrapped.get(), backend.get());
+    ASSERT_NE(unwrapped, nullptr);
+    // wrap_if_protected is currently a no-op, so both paths keep the concrete backend type.
+    EXPECT_NE(dynamic_pointer_cast<MorkDB>(wrapped), nullptr);
+    EXPECT_NE(dynamic_pointer_cast<MorkDB>(unwrapped), nullptr);
+}
 
-    auto wrapped_again = AtomDBFactory::wrap_if_protected(wrapped);
-    EXPECT_EQ(wrapped_again.get(), wrapped.get());
+TEST(AtomDBFactoryTest, CreateRejectsMissingAndUnknownTypes) {
+    EXPECT_THROW(AtomDBFactory::create(JsonConfig()), runtime_error);
+    EXPECT_THROW(AtomDBFactory::create(config_with_type("")), runtime_error);
+    EXPECT_THROW(AtomDBFactory::create(config_with_type("unknown")), runtime_error);
+}
+
+TEST(AtomDBFactoryTest, CreateRemoteAtomDBAssemblesPeers) {
+    auto db = AtomDBFactory::create(remotedb_config_with_inmemory_peers(), "", false);
+    ASSERT_NE(db, nullptr);
+
+    auto remote_db = dynamic_pointer_cast<RemoteAtomDB>(db);
+    ASSERT_NE(remote_db, nullptr);
+
+    const auto& peers = remote_db->get_remote_dbs();
+    EXPECT_EQ(peers.size(), 2u);
+    EXPECT_NE(peers.find("peer1"), peers.end());
+    EXPECT_NE(peers.find("peer2"), peers.end());
+    // peer1 has no local_persistence; peer2 does.
+    EXPECT_TRUE(peers.at("peer1")->is_readonly());
+    EXPECT_FALSE(peers.at("peer2")->is_readonly());
+}
+
+TEST(AtomDBFactoryTest, CreateRemoteAtomDBWithEmptyPeers) {
+    JsonConfig config;
+    config["type"] = "remotedb";
+    config["remote_peers"] = nlohmann::json::array();
+
+    auto db = AtomDBFactory::create(config, "", false);
+    ASSERT_NE(db, nullptr);
+
+    auto remote_db = dynamic_pointer_cast<RemoteAtomDB>(db);
+    ASSERT_NE(remote_db, nullptr);
+    EXPECT_TRUE(remote_db->get_remote_dbs().empty());
+}
+
+TEST(AtomDBFactoryTest, CreateAdapterDBRequiresBackendType) {
+    JsonConfig config;
+    config["type"] = "adapterdb";
+    config["adapterdb"] = nlohmann::json::object();
+
+    // Missing adapterdb.atomdb_backend.type makes create_basic_atomdb fail via parse_atomdb_type.
+    EXPECT_THROW(AtomDBFactory::create(config, "", false), runtime_error);
 }

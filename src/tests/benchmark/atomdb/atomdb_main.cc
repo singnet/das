@@ -12,7 +12,6 @@
 #include <vector>
 
 #include "AtomDB.h"
-#include "AtomDBFactory.h"
 #include "JsonConfig.h"
 #include "RedisMongoDB.h"
 #include "Utils.h"
@@ -54,7 +53,7 @@ void setup() { RedisMongoDB::initialize_statics(); }
 shared_ptr<AtomDB> factory_create_atomdb(string type, const JsonConfig& atomdb_config) {
     JsonConfig config = atomdb_config;
     config["type"] = type;
-    return AtomDBFactory::create_backend(config);
+    return AtomDBFactory::create(config, "", false);
 }
 
 int main(int argc, char** argv) {

@@ -40,7 +40,8 @@ class MockDecoder : public HandleDecoder {
 class RedisMongoDBTestEnvironment : public ::testing::Environment {
    public:
     void SetUp() override {
-        auto atomdb = AtomDBFactory::create_backend(test_atomdb_json_config(), "test_");
+        auto atomdb = AtomDBFactory::create(test_atomdb_json_config(), "test_", false);
+        ASSERT_NE(dynamic_pointer_cast<RedisMongoDB>(atomdb), nullptr);
         AtomDBSingleton::provide(atomdb);
         load_animals_data();
     }
@@ -1194,7 +1195,7 @@ TEST_F(RedisMongoDBTest, CompositeTypeEnabledFlag) {
     auto config_default = test_atomdb_json_config();
     config_default.erase("composite_type_enabled");
     auto db_default =
-        dynamic_pointer_cast<RedisMongoDB>(AtomDBFactory::create_backend(config_default, "test_"));
+        dynamic_pointer_cast<RedisMongoDB>(AtomDBFactory::create(config_default, "test_", false));
     ASSERT_NE(db_default, nullptr);
     EXPECT_TRUE(db_default->composite_type_enabled());
 
@@ -1218,7 +1219,7 @@ TEST_F(RedisMongoDBTest, CompositeTypeEnabledFlag) {
     auto config_disabled = test_atomdb_json_config();
     config_disabled["composite_type_enabled"] = false;
     auto db_disabled =
-        dynamic_pointer_cast<RedisMongoDB>(AtomDBFactory::create_backend(config_disabled, "test_"));
+        dynamic_pointer_cast<RedisMongoDB>(AtomDBFactory::create(config_disabled, "test_", false));
     ASSERT_NE(db_disabled, nullptr);
     EXPECT_FALSE(db_disabled->composite_type_enabled());
 

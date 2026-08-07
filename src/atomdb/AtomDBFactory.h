@@ -19,16 +19,24 @@ namespace atomdb {
 class AtomDBFactory {
    public:
     /**
-     * @brief Creates a backend and wraps it with ProtectedAtomDB when is_protected().
+     * @brief Creates a AtomDB and wraps it with ProtectedAtomDB when is_protected().
      */
-    static shared_ptr<AtomDB> create(const JsonConfig& config, const string& context = "");
+    static shared_ptr<AtomDB> create(const JsonConfig& config,
+                                     const string& context = "",
+                                     bool should_wrap = true);
 
+   private:
     /**
-     * @brief Creates a concrete backend without authorization wrapping.
-     *
-     * Supported types: redismongodb, morkdb, inmemorydb.
+     * @brief Creates a concrete AtomDB without authorization wrapping.
      */
-    static shared_ptr<AtomDB> create_backend(const JsonConfig& config, const string& context = "");
+    static shared_ptr<AtomDB> create_atomdb(const JsonConfig& config, const string& context = "");
+
+    // Supported types: redismongodb, morkdb, inmemorydb.
+    static shared_ptr<AtomDB> create_basic_atomdb(const JsonConfig& config, const string& context = "");
+
+    // Supported types: remotedb, adapterdb.
+    static shared_ptr<AtomDB> create_composite_atomdb(const JsonConfig& config,
+                                                      const string& context = "");
 
     /**
      * @brief Wraps backend with ProtectedAtomDB when protected and not already wrapped.

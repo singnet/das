@@ -34,7 +34,7 @@ inline AdapterDbType parse_adapter_db_type(const string& value) {
 
 class AdapterDB : public AtomDB {
    public:
-    explicit AdapterDB(const JsonConfig& config);
+    // explicit AdapterDB(const JsonConfig& config);
     AdapterDB(const JsonConfig& config, shared_ptr<AtomDB> backend);  // for testing
     ~AdapterDB() override;
 
@@ -128,10 +128,10 @@ class AdapterDB : public AtomDB {
      */
     void persistence_setup();
 
-    /**
-     * @brief Initializes the AtomDB backend according to the configuration.
-     */
-    void atomdb_backend_setup();
+    // /**
+    //  * @brief Initializes the AtomDB backend according to the configuration.
+    //  */
+    // void atomdb_backend_setup();
 
     bool is_backend_ready() const;
 
