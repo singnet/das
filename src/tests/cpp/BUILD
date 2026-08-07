@@ -868,6 +868,7 @@ cc_test(
     linkstatic = 1,
     deps = [
         "//atomdb:atomdb_factory",
+        "//atomdb/adapterdb:adapterdb_lib",
         "//atomdb/inmemorydb:inmemorydb_lib",
         "//atomdb/morkdb:morkdb_lib",
         "//atomdb/remotedb:remotedb_lib",

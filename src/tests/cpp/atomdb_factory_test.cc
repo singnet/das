@@ -1,16 +1,23 @@
 #include <gtest/gtest.h>
 
+#include <cstdio>
+#include <fstream>
 #include <memory>
 #include <string>
 
+#include "AdapterDB.h"
 #include "AtomDBFactory.h"
 #include "InMemoryDB.h"
 #include "JsonConfig.h"
 #include "MorkDB.h"
+#include "Node.h"
 #include "RemoteAtomDB.h"
 #include "TestAtomDBJsonConfig.h"
+#include "Utils.h"
+#include "expression_hasher.h"
 
 using namespace atomdb;
+using namespace atoms;
 using namespace commons;
 using namespace std;
 
@@ -101,11 +108,67 @@ TEST(AtomDBFactoryTest, CreateRemoteAtomDBWithEmptyPeers) {
     EXPECT_TRUE(remote_db->get_remote_dbs().empty());
 }
 
+TEST(AtomDBFactoryTest, CreateRemoteAtomDBRejectsPeerWithoutUid) {
+    nlohmann::json json;
+    json["type"] = "remotedb";
+    json["remote_peers"] = nlohmann::json::array(
+        {{{"type", "inmemorydb"}, {"context", "factory_remote_missing_uid_"}},
+         {{"uid", "peer_ok"}, {"type", "inmemorydb"}, {"context", "factory_remote_ok_"}}});
+
+    EXPECT_THROW(AtomDBFactory::create(JsonConfig(json), "", false), runtime_error);
+}
+
 TEST(AtomDBFactoryTest, CreateAdapterDBRequiresBackendType) {
-    JsonConfig config;
-    config["type"] = "adapterdb";
-    config["adapterdb"] = nlohmann::json::object();
+    JsonConfig missing_backend;
+    missing_backend["type"] = "adapterdb";
+    missing_backend["adapterdb"] = nlohmann::json::object();
 
     // Missing adapterdb.atomdb_backend.type makes create_basic_atomdb fail via parse_atomdb_type.
-    EXPECT_THROW(AtomDBFactory::create(config, "", false), runtime_error);
+    EXPECT_THROW(AtomDBFactory::create(missing_backend, "", false), runtime_error);
+
+    // Valid adapterdb.atomdb_backend: factory constructs AdapterDB and delegates AtomDB ops.
+    string mapping_path = "/tmp/atomdb_factory_adapterdb_mapping.metta";
+    string unique_marker = "factory_adapter_" + to_string(Utils::get_current_time_millis()) + "_" +
+                           compute_hash(const_cast<char*>("atomdb_factory_adapterdb"));
+    {
+        ofstream mapping_file(mapping_path);
+        mapping_file << "; " << unique_marker << "\n";
+        mapping_file << "(Similarity \"ent\" $h)\n";
+        mapping_file << "(Inheritance \"human\" $m)\n";
+    }
+
+    auto mork_client = make_shared<MorkClient>("localhost:40032");
+    const string similarity_seed = "(Similarity \"ent\" \"human\")";
+    const string inheritance_seed = "(Inheritance \"human\" \"mammal\")";
+    if (mork_client->get(similarity_seed, similarity_seed).empty()) {
+        mork_client->post(similarity_seed);
+    }
+    if (mork_client->get(inheritance_seed, inheritance_seed).empty()) {
+        mork_client->post(inheritance_seed);
+    }
+
+    nlohmann::json json;
+    json["type"] = "adapterdb";
+    json["adapterdb"] = {
+        {"type", "mork"},
+        {"context_mapping_paths", nlohmann::json::array({mapping_path})},
+        {"database_credentials", {{"host", "localhost"}, {"port", 40032}}},
+        {"persistence", {{"reuse_mongodb", true}}},
+        {"export_metta_on_mapping", {{"enabled", false}, {"output_dir", "/tmp"}}},
+        {"atomdb_backend", test_atomdb_json_config("morkdb").get_json()},
+    };
+
+    auto db = AtomDBFactory::create(JsonConfig(json), "factory_adapterdb_", false);
+    ASSERT_NE(db, nullptr);
+
+    auto adapter_db = dynamic_pointer_cast<AdapterDB>(db);
+    ASSERT_NE(adapter_db, nullptr);
+
+    Node node("Symbol", "FactoryAdapterDBDelegationNode");
+    string handle = adapter_db->add_node(&node);
+    EXPECT_FALSE(handle.empty());
+    EXPECT_TRUE(adapter_db->node_exists(handle));
+    ASSERT_NE(adapter_db->get_node(handle), nullptr);
+
+    remove(mapping_path.c_str());
 }
