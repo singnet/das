@@ -79,6 +79,7 @@ void LinkCreationProxy::untokenize(vector<string>& tokens) {
 }
 
 LinkCreationStats LinkCreationProxy::link_creation(shared_ptr<QueryAnswer> answer) {
+    lock_guard<mutex> semaphore(this->api_mutex);
     LinkCreationStats stats;
     if (this->link_creator_function_tag == "") {
         RAISE_ERROR("Invalid empty link creation function tag");
