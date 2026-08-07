@@ -258,7 +258,7 @@ cc_test(
 
 cc_test(
     name = "query_answer_test",
-    size = "small",
+    size = "medium",
     srcs = [
         "query_answer_test.cc",
         "test_utils.cc",
@@ -1057,6 +1057,7 @@ cc_test(
         "//agents/command_router/http_api:command_router_http_api",
         "//agents/command_router/http_api:command_router_http_api_config",
         "//agents/command_router/http_api:command_router_http_api_singleton",
+        "//agents/command_router/http_api:http_command_proxy_factory",
         "//agents/query_engine:query_answer",
         "//atomdb:atomdb_singleton",
         "//commons/processor:processor_lib",

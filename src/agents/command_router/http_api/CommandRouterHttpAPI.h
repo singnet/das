@@ -1,7 +1,6 @@
 #pragma once
 
 #include <atomic>
-#include <condition_variable>
 #include <functional>
 #include <memory>
 #include <mutex>
@@ -32,14 +31,14 @@ class BusCommandRouterProcessor;
  * @brief HTTP + WebSocket server for command execution.
  *
  * Routes:
- *   POST /command-router/executions          — run get/set synchronously, or schedule query/evolution
+ *   POST /command-router/executions          — schedule a command ({command, params})
  *   GET  /command-router/executions/{id}     — poll status
  *   POST /command-router/executions/{id}/cancel — request cancel
  *   WS   /command-router/ws/{id}             — stream JSON events
  *
- * Command execution uses the registered BusCommandRouterProcessor via in-process proxy
- * dispatch (dispatch_http_command). All HTTP requests share one router parameter store
- * (http_requestor_id), matching how busclient reuses the same endpoint across commands.
+ * The HTTP layer only unpacks the top-level envelope {command, params}. Command-specific
+ * interpretation of params is delegated to the matching command handler (e.g. query).
+ * WebSocket stream events use the same {command, params} envelope.
  *
  * Runs on a DedicatedThread: thread_one_step() blocks in listen() until stop().
  * Each accepted command is enqueued on thread_pool so the listener stays free.
@@ -47,14 +46,14 @@ class BusCommandRouterProcessor;
  */
 class CommandRouterHttpAPI : public processor::Processor, public processor::ThreadMethod {
    public:
-    static const unordered_set<string> VALID_COMMAND_TYPES;
+    static const unordered_set<string> VALID_COMMAND;
 
     /**
      * @brief Construct a CommandRouterHttpAPI.
      * @param host        Hostname to bind.
      * @param port        Port to bind.
      * @param thread_pool Runs command work off the HTTP listener thread.
-     * @param settings    Concurrency, queue, event-buffer, and retention limits.
+     * @param settings    Queue, event-buffer, and retention limits.
      */
     CommandRouterHttpAPI(const string& host,
                          int port,
@@ -94,8 +93,6 @@ class CommandRouterHttpAPI : public processor::Processor, public processor::Thre
     atomic<bool> shutting_down{false};
     unordered_map<string, shared_ptr<CommandExecution>> executions;
     mutex executions_mtx;
-    condition_variable execution_slots_cv;
-    size_t running_executions = 0;
     size_t pending_executions = 0;
 
     /** @brief Register all /command-router/ HTTP and WebSocket handlers. */
@@ -106,30 +103,31 @@ class CommandRouterHttpAPI : public processor::Processor, public processor::Thre
     /** @brief Thread-pool entry point; catches errors and marks the execution failed. */
     void run_execution(const shared_ptr<CommandExecution>& exec);
 
-    /** @brief Run command_type/command_text and publish chunk/lifecycle events. */
+    /** @brief Run command/params and publish chunk/lifecycle events. */
     void run_execution_inner(const shared_ptr<CommandExecution>& exec);
 
     /** @brief Dispatch a router command and poll its response stream. */
-    PollStreamResult execute_router_command(const string& command_type,
-                                            const string& command_text,
+    PollStreamResult execute_router_command(const string& command,
+                                            const json& params,
                                             const function<bool()>& should_abort,
                                             const function<void(const json& chunk)>& on_chunk,
                                             const function<void(const string& error)>& on_error,
                                             const function<void()>& on_aborted);
-
-    static bool is_sync_command_type(const string& command_type);
 
     /** @brief Remove finished executions from the executions map. */
     void cleanup_finished_executions();
 
     string generate_execution_id();
 
-    /** @brief Check if the command_type is valid. (Allowed values: query, evolution, get, set) */
-    bool is_valid_command_type(const string& command_type) const;
+    /** @brief Check if the command is valid. (Allowed values: query) */
+    bool is_valid_command(const string& command) const;
 
-    /** @brief Check limits and register a pending execution. */
-    enum class AdmitResult { Admitted, ConcurrentLimit, QueueFull };
+    /** @brief Check queue limit and register a pending execution. */
+    enum class AdmitResult { Admitted, QueueFull };
     AdmitResult try_admit_execution(const shared_ptr<CommandExecution>& exec);
+
+    /** @brief Decrement pending_executions after an execution leaves the in-flight set. */
+    void release_pending_execution();
 
     /** @brief Set response status and JSON body. */
     void set_json_response(httplib::Response& res, int status_code, const json& payload);
