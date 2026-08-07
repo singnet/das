@@ -1,9 +1,6 @@
 #include "AtomDBSingleton.h"
 
-#include "AdapterDB.h"
-#include "MorkDB.h"
-#include "RedisMongoDB.h"
-#include "RemoteAtomDB.h"
+#include "AtomDBFactory.h"
 #include "Utils.h"
 
 using namespace atomdb;
@@ -19,24 +16,18 @@ void AtomDBSingleton::init(const JsonConfig& atomdb_config) {
     if (AtomDBSingleton::initialized) {
         RAISE_ERROR(
             "AtomDBSingleton already initialized. AtomDBSingleton::init() should be called only once.");
-    } else {
-        auto atomdb_type = atomdb_config.at_path("type").get_or<string>("");
-        if (atomdb_type == "morkdb") {
-            AtomDBSingleton::atom_db = shared_ptr<AtomDB>(new MorkDB("", atomdb_config));
-        } else if (atomdb_type == "redismongodb") {
-            AtomDBSingleton::atom_db = shared_ptr<AtomDB>(new RedisMongoDB("", false, atomdb_config));
-        } else if (atomdb_type == "remotedb") {
-            auto remote_peers_config =
-                atomdb_config.at_path("remote_peers").get_or<JsonConfig>(JsonConfig());
-            AtomDBSingleton::atom_db = shared_ptr<AtomDB>(new RemoteAtomDB(remote_peers_config));
-        } else if (atomdb_type == "adapterdb") {
-            AtomDBSingleton::atom_db = shared_ptr<AtomDB>(new AdapterDB(atomdb_config));
-        } else {
-            RAISE_ERROR("Invalid AtomDB type: " + atomdb_type);
-        }
-
-        AtomDBSingleton::initialized = true;
     }
+
+    shared_ptr<AtomDB> atomdb;
+
+    try {
+        atomdb = AtomDBFactory::create(atomdb_config);
+    } catch (const exception& e) {
+        RAISE_ERROR("AtomDBSingleton::init() failed to create AtomDB: " + string(e.what()));
+    }
+
+    AtomDBSingleton::atom_db = atomdb;
+    AtomDBSingleton::initialized = true;
 }
 
 shared_ptr<AtomDB> AtomDBSingleton::get_instance() {

@@ -10,6 +10,7 @@
 #include <string>
 #include <vector>
 
+#include "AtomDBFactory.h"
 #include "AtomDBSingleton.h"
 #include "Link.h"
 #include "Merger.h"
@@ -56,7 +57,9 @@ class AdapterDBTestBase : public ::testing::Test {
     shared_ptr<RedisMongoDB> backend;
 
     void SetUpBackend() {
-        backend = make_shared<RedisMongoDB>("adapter_test", false, test_atomdb_json_config());
+        auto atomdb = AtomDBFactory::create(test_atomdb_json_config(), "adapter_test", false);
+        backend = dynamic_pointer_cast<RedisMongoDB>(atomdb);
+        ASSERT_NE(backend, nullptr);
     }
 
     JsonConfig build_adapter_config(const string& mapping_path,

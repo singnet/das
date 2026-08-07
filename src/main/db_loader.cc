@@ -8,12 +8,12 @@
 #include <vector>
 
 #include "AdapterDB.h"
+#include "AtomDBFactory.h"
 #include "AtomDBSingleton.h"
 #include "JsonConfig.h"
 #include "JsonConfigParser.h"
 #include "MettaParser.h"
 #include "MettaParserActions.h"
-#include "MorkDB.h"
 #include "RedisMongoDB.h"
 #include "RemoteAtomDB.h"
 #include "Utils.h"
@@ -72,20 +72,27 @@ int main(int argc, char* argv[]) {
     JsonConfig json_config = JsonConfigParser::load(config_path);
     auto atomdb_config = json_config.at_path("atomdb").get_or<JsonConfig>(JsonConfig());
 
-    auto atomdb_type = atomdb_config.at_path("type").get_or<string>("");
-    if (atomdb_type == "redismongodb") {
-        AtomDBSingleton::provide(make_shared<RedisMongoDB>(context, false, atomdb_config));
-    } else if (atomdb_type == "morkdb") {
-        AtomDBSingleton::provide(make_shared<MorkDB>(context, atomdb_config));
-    } else if (atomdb_type == "remotedb") {
-        auto remote_peers_config =
-            atomdb_config.at_path("remote_peers").get_or<JsonConfig>(JsonConfig());
-        AtomDBSingleton::provide(make_shared<RemoteAtomDB>(remote_peers_config));
-    } else if (atomdb_type == "adapterdb") {
-        AtomDBSingleton::provide(make_shared<AdapterDB>(atomdb_config));
-    } else {
-        RAISE_ERROR("Invalid AtomDB type: " + atomdb_type);
-    }
+    auto atomdb = AtomDBFactory::create(
+        atomdb_config,
+        context,
+        false);  // Create the AtomDB instance without wrapping it in a protected wrapper
+
+    AtomDBSingleton::provide(atomdb);
+
+    // auto atomdb_type = atomdb_config.at_path("type").get_or<string>("");
+    // if (atomdb_type == "redismongodb") {
+    //     AtomDBSingleton::provide(make_shared<RedisMongoDB>(context, false, atomdb_config));
+    // } else if (atomdb_type == "morkdb") {
+    //     AtomDBSingleton::provide(make_shared<MorkDB>(context, atomdb_config));
+    // } else if (atomdb_type == "remotedb") {
+    //     auto remote_peers_config =
+    //         atomdb_config.at_path("remote_peers").get_or<JsonConfig>(JsonConfig());
+    //     AtomDBSingleton::provide(make_shared<RemoteAtomDB>(remote_peers_config));
+    // } else if (atomdb_type == "adapterdb") {
+    //     AtomDBSingleton::provide(make_shared<AdapterDB>(atomdb_config));
+    // } else {
+    //     RAISE_ERROR("Invalid AtomDB type: " + atomdb_type);
+    // }
 
     signal(SIGINT, &ctrl_c_handler);
     signal(SIGTERM, &ctrl_c_handler);
