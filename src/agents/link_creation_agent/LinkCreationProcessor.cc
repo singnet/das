@@ -5,6 +5,7 @@
 #endif
 
 #include "Logger.h"
+#include "PatternMatchingQueryProxy.h"
 #include "ServiceBus.h"
 #include "ServiceBusSingleton.h"
 
@@ -95,7 +96,10 @@ void LinkCreationProcessor::thread_process_one_query(shared_ptr<StoppableThread>
 shared_ptr<PatternMatchingQueryProxy> LinkCreationProcessor::issue_link_creation_query(
     shared_ptr<LinkCreationProxy> proxy) {
     // TBD
-    return nullptr;
+    vector<string> args;
+    string context = "";
+    auto pm_proxy = make_shared<PatternMatchingQueryProxy>(args, context);
+    return pm_proxy;
 }
 
 void LinkCreationProcessor::remove_processor_thread(const string& stoppable_thread_id) {
@@ -117,11 +121,11 @@ void LinkCreationProcessor::link_creation(shared_ptr<StoppableThread> monitor,
     LinkCreationStats stats;
     while (!(monitor->stopped() || proxy->stop_criteria_met())) {
         // Starting one round of link creation
-        auto pm_proxy = issue_link_creation_query(nullptr);
+        auto pm_proxy = issue_link_creation_query(proxy);
         while (!(monitor->stopped())) {
             // Draining query results
-            if ((query_answer = proxy->pop()) == nullptr) {
-                if (proxy->finished()) {
+            if ((query_answer = pm_proxy->pop()) == nullptr) {
+                if (pm_proxy->finished()) {
                     break;
                 }
                 Utils::sleep();
