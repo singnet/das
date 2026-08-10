@@ -15,11 +15,9 @@ namespace atomdb {
 /**
  * RemoteAtomDB connects to multiple remote AtomDBs via RemoteAtomDBPeer instances.
  * Each peer maintains its own cache, remote connection, and local persistence.
- * The constructor expects a JSON config with connection info for each remote peer.
  */
 class RemoteAtomDB : public AtomDB {
    public:
-    // explicit RemoteAtomDB(const JsonConfig& peers_config);
     /**
      * Dependency-injection constructor for pre-built peers.
      * Primarily used by tests to federate controllable backends without live config/connection.

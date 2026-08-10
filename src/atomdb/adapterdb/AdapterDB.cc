@@ -30,11 +30,6 @@ string AdapterDB::MONGODB_ADAPTER_COLLECTION_NAME = "adapterdb";
 //  Construction / destruction
 // ==============================
 
-// AdapterDB::AdapterDB(const JsonConfig& config) : config(config) {
-//     this->atomdb_backend_setup();
-//     this->initialize();
-// }
-
 atomdb::AdapterDB::AdapterDB(const JsonConfig& config, std::shared_ptr<AtomDB> backend)
     : config(config), atomdb_backend(backend) {
     this->initialize(true);
