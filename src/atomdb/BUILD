@@ -11,11 +11,6 @@ cc_library(
         ":atomdb_factory",
         ":atomdb_singleton",
         ":atomdbutils",
-        "//atomdb/adapterdb:adapterdb_lib",
-        "//atomdb/inmemorydb:inmemorydb_lib",
-        "//atomdb/morkdb:morkdb_lib",
-        "//atomdb/redis_mongodb:redis_mongodb_lib",
-        "//atomdb/remotedb:remotedb_lib",
     ],
 )
 
@@ -26,10 +21,10 @@ cc_library(
     includes = ["."],
     deps = [
         ":atomdb",
-        "//atomdb/adapterdb",
-        "//atomdb/inmemorydb",
-        "//atomdb/morkdb",
-        "//atomdb/redis_mongodb",
+        "//atomdb/adapterdb:adapterdb_lib",
+        "//atomdb/inmemorydb:inmemorydb_lib",
+        "//atomdb/morkdb:morkdb_lib",
+        "//atomdb/redis_mongodb:redis_mongodb_lib",
         "//atomdb/remotedb:remotedb_lib",
         "//commons:commons_lib",
     ],

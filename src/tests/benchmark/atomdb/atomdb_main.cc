@@ -53,7 +53,7 @@ void setup() { RedisMongoDB::initialize_statics(); }
 shared_ptr<AtomDB> factory_create_atomdb(string type, const JsonConfig& atomdb_config) {
     JsonConfig config = atomdb_config;
     config["type"] = type;
-    return AtomDBFactory::create(config, "", false);
+    return AtomDBFactory::create(config);
 }
 
 int main(int argc, char** argv) {

@@ -17,16 +17,7 @@ void AtomDBSingleton::init(const JsonConfig& atomdb_config) {
         RAISE_ERROR(
             "AtomDBSingleton already initialized. AtomDBSingleton::init() should be called only once.");
     }
-
-    shared_ptr<AtomDB> atomdb;
-
-    try {
-        atomdb = AtomDBFactory::create(atomdb_config);
-    } catch (const exception& e) {
-        RAISE_ERROR("AtomDBSingleton::init() failed to create AtomDB: " + string(e.what()));
-    }
-
-    AtomDBSingleton::atom_db = atomdb;
+    AtomDBSingleton::atom_db = AtomDBFactory::create(atomdb_config);
     AtomDBSingleton::initialized = true;
 }
 

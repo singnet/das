@@ -383,7 +383,7 @@ class RemoteAtomDBTest : public ::testing::Test {
             << (std::getenv("TEST_SRCDIR") ? std::getenv("TEST_SRCDIR") : "unset") << ")";
         auto json_config = load_config(config_path_);
         json_config["type"] = "remotedb";
-        auto db = AtomDBFactory::create(json_config, "", false);
+        auto db = AtomDBFactory::create(json_config, "");
         db_ = dynamic_pointer_cast<RemoteAtomDB>(db);
         ASSERT_NE(db_, nullptr);
     }
@@ -481,7 +481,7 @@ class RemoteAtomDBConfigTest : public ::testing::Test {
         ASSERT_FALSE(config_path_.empty()) << "Could not find tests/assets/remotedb_config_single.json";
         auto json_config = load_config(config_path_);
         json_config["type"] = "remotedb";
-        auto db = AtomDBFactory::create(json_config, "", false);
+        auto db = AtomDBFactory::create(json_config, "");
         db_ = dynamic_pointer_cast<RemoteAtomDB>(db);
         ASSERT_NE(db_, nullptr);
     }

@@ -13,65 +13,56 @@ using namespace commons;
 // --------------------------------------------------------------------------------
 // Public methods
 
-shared_ptr<AtomDB> AtomDBFactory::create(const JsonConfig& config,
-                                         const string& context,
-                                         bool should_wrap) {
-    auto atomdb = create_atomdb(config, context);
-    if (should_wrap) {
-        return wrap_if_protected(atomdb);
+shared_ptr<AtomDB> AtomDBFactory::create(const JsonConfig& config, const string& context) {
+    auto atomdb_type = config.at_path("type").get_or<string>("");
+
+    AtomDBType type = AtomDB::string_to_type(atomdb_type);
+
+    shared_ptr<AtomDB> atomdb;
+
+    if (type == AtomDBType::RedisMongoDB || type == AtomDBType::MorkDB ||
+        type == AtomDBType::InMemoryDB) {
+        atomdb = create_basic_atomdb(config, context);
+    } else if (type == AtomDBType::RemoteAtomDB || type == AtomDBType::AdapterDB) {
+        atomdb = create_composite_atomdb(config, context);
+    } else {
+        RAISE_ERROR("AtomDBFactory: unsupported AtomDB type: " + atomdb_type);
     }
-    return atomdb;
+
+    return wrap_if_protected(atomdb);
 }
 
 // --------------------------------------------------------------------------------
 // Private methods
 
-shared_ptr<AtomDB> AtomDBFactory::create_atomdb(const JsonConfig& config, const string& context) {
-    auto atomdb_type = config.at_path("type").get_or<string>("");
-
-    AtomDBType type = parse_atomdb_type(atomdb_type);
-
-    if (type == AtomDBType::RedisMongoDB || type == AtomDBType::MorkDB ||
-        type == AtomDBType::InMemoryDB) {
-        return create_basic_atomdb(config, context);
-    }
-
-    if (type == AtomDBType::RemoteAtomDB || type == AtomDBType::AdapterDB) {
-        return create_composite_atomdb(config, context);
-    }
-
-    RAISE_ERROR("AtomDBFactory: unsupported AtomDB type: " + atomdb_type);
-
-    return shared_ptr<AtomDB>{};
-}
-
 shared_ptr<AtomDB> AtomDBFactory::create_basic_atomdb(const JsonConfig& config, const string& context) {
     auto atomdb_type = config.at_path("type").get_or<string>("");
 
-    AtomDBType type = parse_atomdb_type(atomdb_type);
+    AtomDBType type = AtomDB::string_to_type(atomdb_type);
+
+    shared_ptr<AtomDB> atomdb;
 
     if (type == AtomDBType::RedisMongoDB) {
-        return shared_ptr<AtomDB>(new RedisMongoDB(context, false, config));
+        // make_shared cannot access RedisMongoDB's private ctor; friend can via new.
+        atomdb = shared_ptr<RedisMongoDB>(new RedisMongoDB(context, false, config));
+    } else if (type == AtomDBType::MorkDB) {
+        atomdb = make_shared<MorkDB>(context, config);
+    } else if (type == AtomDBType::InMemoryDB) {
+        atomdb = make_shared<InMemoryDB>(context.empty() ? "inmemorydb_" : context);
+    } else {
+        RAISE_ERROR("AtomDBFactory: '" + atomdb_type + "' is not a basic AtomDB type");
     }
 
-    if (type == AtomDBType::MorkDB) {
-        return shared_ptr<AtomDB>(new MorkDB(context, config));
-    }
-
-    if (type == AtomDBType::InMemoryDB) {
-        return shared_ptr<AtomDB>(new InMemoryDB(context.empty() ? "inmemorydb_" : context));
-    }
-
-    RAISE_ERROR("AtomDBFactory: '" + atomdb_type + "' is not a basic AtomDB type");
-
-    return shared_ptr<AtomDB>{};
+    return atomdb;
 }
 
 shared_ptr<AtomDB> AtomDBFactory::create_composite_atomdb(const JsonConfig& config,
                                                           const string& context) {
     auto atomdb_type = config.at_path("type").get_or<string>("");
 
-    AtomDBType type = parse_atomdb_type(atomdb_type);
+    AtomDBType type = AtomDB::string_to_type(atomdb_type);
+
+    shared_ptr<AtomDB> atomdb;
 
     if (type == AtomDBType::RemoteAtomDB) {
         auto remote_peers_config = config.at_path("remote_peers").get_or<JsonConfig>(JsonConfig());
@@ -105,7 +96,7 @@ shared_ptr<AtomDB> AtomDBFactory::create_composite_atomdb(const JsonConfig& conf
                 create_basic_atomdb(peer_config, peer_context), local_persistence, uid);
         }
 
-        return shared_ptr<AtomDB>(new RemoteAtomDB(remote_peers));
+        return make_shared<RemoteAtomDB>(remote_peers);
     }
 
     if (type == AtomDBType::AdapterDB) {
@@ -113,13 +104,13 @@ shared_ptr<AtomDB> AtomDBFactory::create_composite_atomdb(const JsonConfig& conf
         auto atomdb_backend_config =
             config.at_path("adapterdb.atomdb_backend").get_or<JsonConfig>(JsonConfig());
         auto basic_atomdb = create_basic_atomdb(atomdb_backend_config, context);
-        return shared_ptr<AtomDB>(new AdapterDB(config, basic_atomdb));
+        return make_shared<AdapterDB>(config, basic_atomdb);
     }
 
-    return shared_ptr<AtomDB>{};
+    return atomdb;
 }
 
-shared_ptr<AtomDB> AtomDBFactory::wrap_if_protected(shared_ptr<AtomDB> backend) {
+shared_ptr<AtomDB> AtomDBFactory::wrap_if_protected(shared_ptr<AtomDB> atomdb) {
     // AtomDBFactory::wrap_if_protected() is not implemented yet.
-    return backend;
+    return atomdb;
 }
