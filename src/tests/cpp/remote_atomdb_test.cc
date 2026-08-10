@@ -9,6 +9,7 @@
 #include <vector>
 
 #include "Assignment.h"
+#include "AtomDBFactory.h"
 #include "InMemoryDB.h"
 #include "InMemoryDBAPITypes.h"
 #include "JsonConfig.h"
@@ -381,8 +382,10 @@ class RemoteAtomDBTest : public ::testing::Test {
             << "Could not find tests/assets/remotedb_config.json (TEST_SRCDIR="
             << (std::getenv("TEST_SRCDIR") ? std::getenv("TEST_SRCDIR") : "unset") << ")";
         auto json_config = load_config(config_path_);
-        auto remote_peers_val = json_config.at_path("remote_peers").get_or<JsonConfig>(JsonConfig());
-        db_ = make_shared<RemoteAtomDB>(remote_peers_val);
+        json_config["type"] = "remotedb";
+        auto db = AtomDBFactory::create(json_config, "");
+        db_ = dynamic_pointer_cast<RemoteAtomDB>(db);
+        ASSERT_NE(db_, nullptr);
     }
 
     void TearDown() override {}
@@ -477,8 +480,10 @@ class RemoteAtomDBConfigTest : public ::testing::Test {
         config_path_ = resolve_config_path("remotedb_config_single.json");
         ASSERT_FALSE(config_path_.empty()) << "Could not find tests/assets/remotedb_config_single.json";
         auto json_config = load_config(config_path_);
-        auto remote_peers_val = json_config.at_path("remote_peers").get_or<JsonConfig>(JsonConfig());
-        db_ = make_shared<RemoteAtomDB>(remote_peers_val);
+        json_config["type"] = "remotedb";
+        auto db = AtomDBFactory::create(json_config, "");
+        db_ = dynamic_pointer_cast<RemoteAtomDB>(db);
+        ASSERT_NE(db_, nullptr);
     }
 
     void TearDown() override {}

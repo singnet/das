@@ -1,17 +1,24 @@
 #include <gtest/gtest.h>
 
+#include <cstdio>
+#include <fstream>
 #include <memory>
 #include <string>
 
+#include "AdapterDB.h"
 #include "AtomDBFactory.h"
 #include "InMemoryDB.h"
 #include "JsonConfig.h"
-#include "MockAtomDB.h"
 #include "MorkDB.h"
+#include "Node.h"
+#include "RemoteAtomDB.h"
 #include "ProtectedAtomDB.h"
 #include "TestAtomDBJsonConfig.h"
+#include "Utils.h"
+#include "expression_hasher.h"
 
 using namespace atomdb;
+using namespace atoms;
 using namespace commons;
 using namespace std;
 
@@ -23,25 +30,24 @@ JsonConfig config_with_type(const string& type) {
     return config;
 }
 
-}  // namespace
-
-TEST(AtomDBFactoryTest, CreateBackendInMemoryDB) {
-    auto backend = AtomDBFactory::create_backend(config_with_type("inmemorydb"), "factory_test_");
-    ASSERT_NE(backend, nullptr);
-    EXPECT_NE(dynamic_pointer_cast<InMemoryDB>(backend), nullptr);
+JsonConfig remotedb_config_with_inmemory_peers() {
+    nlohmann::json json;
+    json["type"] = "remotedb";
+    json["remote_peers"] = nlohmann::json::array(
+        {{{"uid", "peer1"}, {"type", "inmemorydb"}, {"context", "factory_remote_peer1_"}},
+         {{"uid", "peer2"},
+          {"type", "inmemorydb"},
+          {"context", "factory_remote_peer2_"},
+          {"local_persistence", {{"type", "inmemorydb"}, {"context", "factory_remote_peer2_local_"}}}}});
+    return JsonConfig(json);
 }
+
+}  // namespace
 
 TEST(AtomDBFactoryTest, CreateInMemoryDB) {
     auto db = AtomDBFactory::create(config_with_type("inmemorydb"), "factory_test_");
     ASSERT_NE(db, nullptr);
     EXPECT_NE(dynamic_pointer_cast<InMemoryDB>(db), nullptr);
-}
-
-TEST(AtomDBFactoryTest, CreateBackendMorkDB) {
-    auto backend =
-        AtomDBFactory::create_backend(test_atomdb_json_config("morkdb"), "factory_mork_backend_");
-    ASSERT_NE(backend, nullptr);
-    EXPECT_NE(dynamic_pointer_cast<MorkDB>(backend), nullptr);
 }
 
 TEST(AtomDBFactoryTest, CreateMorkDB) {
@@ -50,65 +56,104 @@ TEST(AtomDBFactoryTest, CreateMorkDB) {
     EXPECT_NE(dynamic_pointer_cast<MorkDB>(db), nullptr);
 }
 
-TEST(AtomDBFactoryTest, CreateAndCreateBackendAreCompatibleForMorkDB) {
-    auto config = test_atomdb_json_config("morkdb");
-    auto backend = AtomDBFactory::create_backend(config, "factory_mork_compat_");
-    auto created = AtomDBFactory::create(config, "factory_mork_compat_");
+TEST(AtomDBFactoryTest, CreateRejectsMissingAndUnknownTypes) {
+    EXPECT_THROW(AtomDBFactory::create(JsonConfig()), runtime_error);
+    EXPECT_THROW(AtomDBFactory::create(config_with_type("")), runtime_error);
+    EXPECT_THROW(AtomDBFactory::create(config_with_type("unknown")), runtime_error);
+}
 
-    ASSERT_NE(backend, nullptr);
-    ASSERT_NE(created, nullptr);
-    EXPECT_NE(dynamic_pointer_cast<MorkDB>(backend), nullptr);
-    // create() only wraps when the backend is protected.
-    if (backend->is_protected()) {
-        EXPECT_NE(dynamic_pointer_cast<ProtectedAtomDB>(created), nullptr);
-        EXPECT_TRUE(created->is_protected());
-    } else {
-        EXPECT_NE(dynamic_pointer_cast<MorkDB>(created), nullptr);
-        EXPECT_EQ(AtomDBFactory::wrap_if_protected(backend).get(), backend.get());
+TEST(AtomDBFactoryTest, CreateRemoteAtomDBAssemblesPeers) {
+    auto db = AtomDBFactory::create(remotedb_config_with_inmemory_peers(), "");
+    ASSERT_NE(db, nullptr);
+
+    auto remote_db = dynamic_pointer_cast<RemoteAtomDB>(db);
+    ASSERT_NE(remote_db, nullptr);
+
+    const auto& peers = remote_db->get_remote_dbs();
+    EXPECT_EQ(peers.size(), 2u);
+    EXPECT_NE(peers.find("peer1"), peers.end());
+    EXPECT_NE(peers.find("peer2"), peers.end());
+    // peer1 has no local_persistence; peer2 does.
+    EXPECT_TRUE(peers.at("peer1")->is_readonly());
+    EXPECT_FALSE(peers.at("peer2")->is_readonly());
+}
+
+TEST(AtomDBFactoryTest, CreateRemoteAtomDBWithEmptyPeers) {
+    JsonConfig config;
+    config["type"] = "remotedb";
+    config["remote_peers"] = nlohmann::json::array();
+
+    auto db = AtomDBFactory::create(config, "");
+    ASSERT_NE(db, nullptr);
+
+    auto remote_db = dynamic_pointer_cast<RemoteAtomDB>(db);
+    ASSERT_NE(remote_db, nullptr);
+    EXPECT_TRUE(remote_db->get_remote_dbs().empty());
+}
+
+TEST(AtomDBFactoryTest, CreateRemoteAtomDBRejectsPeerWithoutUid) {
+    nlohmann::json json;
+    json["type"] = "remotedb";
+    json["remote_peers"] = nlohmann::json::array(
+        {{{"type", "inmemorydb"}, {"context", "factory_remote_missing_uid_"}},
+         {{"uid", "peer_ok"}, {"type", "inmemorydb"}, {"context", "factory_remote_ok_"}}});
+
+    EXPECT_THROW(AtomDBFactory::create(JsonConfig(json), ""), runtime_error);
+}
+
+TEST(AtomDBFactoryTest, CreateAdapterDBRequiresBackendType) {
+    JsonConfig missing_backend;
+    missing_backend["type"] = "adapterdb";
+    missing_backend["adapterdb"] = nlohmann::json::object();
+
+    // Missing adapterdb.atomdb_backend.type makes create_basic_atomdb fail via AtomDB::string_to_type.
+    EXPECT_THROW(AtomDBFactory::create(missing_backend, ""), runtime_error);
+
+    // Valid adapterdb.atomdb_backend: factory constructs AdapterDB and delegates AtomDB ops.
+    string mapping_path = "/tmp/atomdb_factory_adapterdb_mapping.metta";
+    string unique_marker = "factory_adapter_" + to_string(Utils::get_current_time_millis()) + "_" +
+                           compute_hash(const_cast<char*>("atomdb_factory_adapterdb"));
+    {
+        ofstream mapping_file(mapping_path);
+        mapping_file << "; " << unique_marker << "\n";
+        mapping_file << "(Similarity \"ent\" $h)\n";
+        mapping_file << "(Inheritance \"human\" $m)\n";
     }
-}
 
-TEST(AtomDBFactoryTest, CreateBackendRejectsMissingAndUnknownTypes) {
-    EXPECT_THROW(AtomDBFactory::create_backend(JsonConfig()), runtime_error);
-    EXPECT_THROW(AtomDBFactory::create_backend(config_with_type("")), runtime_error);
-    EXPECT_THROW(AtomDBFactory::create_backend(config_with_type("unknown")), runtime_error);
-    EXPECT_THROW(AtomDBFactory::create_backend(config_with_type("remotedb")), runtime_error);
-    EXPECT_THROW(AtomDBFactory::create_backend(config_with_type("adapterdb")), runtime_error);
-}
+    auto mork_client = make_shared<MorkClient>("localhost:40032");
+    const string similarity_seed = "(Similarity \"ent\" \"human\")";
+    const string inheritance_seed = "(Inheritance \"human\" \"mammal\")";
+    if (mork_client->get(similarity_seed, similarity_seed).empty()) {
+        mork_client->post(similarity_seed);
+    }
+    if (mork_client->get(inheritance_seed, inheritance_seed).empty()) {
+        mork_client->post(inheritance_seed);
+    }
 
-TEST(AtomDBFactoryTest, WrapIfProtectedNullThrows) {
-    EXPECT_THROW(AtomDBFactory::wrap_if_protected(nullptr), runtime_error);
-}
+    nlohmann::json json;
+    json["type"] = "adapterdb";
+    json["adapterdb"] = {
+        {"type", "mork"},
+        {"context_mapping_paths", nlohmann::json::array({mapping_path})},
+        {"database_credentials", {{"host", "localhost"}, {"port", 40032}}},
+        {"persistence", {{"reuse_mongodb", true}}},
+        {"export_metta_on_mapping", {{"enabled", false}, {"output_dir", "/tmp"}}},
+        {"atomdb_backend", test_atomdb_json_config("morkdb").get_json()},
+    };
 
-TEST(AtomDBFactoryTest, WrapIfProtectedLeavesUnprotectedBackend) {
-    auto backend = make_shared<AtomDBMock>();
+    auto db = AtomDBFactory::create(JsonConfig(json), "factory_adapterdb_");
+    ASSERT_NE(db, nullptr);
 
-    auto wrapped = AtomDBFactory::wrap_if_protected(backend);
-    EXPECT_EQ(wrapped.get(), backend.get());
-    EXPECT_FALSE(wrapped->is_protected());
-}
+    auto adapter_db = dynamic_pointer_cast<AdapterDB>(db);
+    ASSERT_NE(adapter_db, nullptr);
 
-TEST(AtomDBFactoryTest, WrapIfProtectedWrapsProtectedBackend) {
-    auto backend = make_shared<::testing::NiceMock<AtomDBMock>>();
-    EXPECT_CALL(*backend, is_protected()).WillRepeatedly(::testing::Return(true));
+    Node node("Symbol", "FactoryAdapterDBDelegationNode");
+    string handle = adapter_db->add_node(&node);
+    EXPECT_FALSE(handle.empty());
+    EXPECT_TRUE(adapter_db->node_exists(handle));
+    ASSERT_NE(adapter_db->get_node(handle), nullptr);
 
-    auto wrapped = AtomDBFactory::wrap_if_protected(backend);
-    ASSERT_NE(wrapped, nullptr);
-    EXPECT_NE(wrapped.get(), backend.get());
-    EXPECT_NE(dynamic_pointer_cast<ProtectedAtomDB>(wrapped), nullptr);
-    EXPECT_TRUE(wrapped->is_protected());
-}
-
-TEST(AtomDBFactoryTest, WrapIfProtectedIsIdempotent) {
-    auto backend = make_shared<::testing::NiceMock<AtomDBMock>>();
-    EXPECT_CALL(*backend, is_protected()).WillRepeatedly(::testing::Return(true));
-
-    auto wrapped = AtomDBFactory::wrap_if_protected(backend);
-    ASSERT_NE(wrapped, nullptr);
-    EXPECT_NE(dynamic_pointer_cast<ProtectedAtomDB>(wrapped), nullptr);
-
-    auto wrapped_again = AtomDBFactory::wrap_if_protected(wrapped);
-    EXPECT_EQ(wrapped_again.get(), wrapped.get());
+    remove(mapping_path.c_str());
 }
 
 TEST(AtomDBFactoryTest, CreateInMemoryDBIsNotProtected) {

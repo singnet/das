@@ -24,8 +24,9 @@ cc_library(
     deps = [
         "//atomdb",
         "//atomdb:atomdb_api_types",
-        "//atomdb:atomdb_factory",
         "//atomdb/inmemorydb:inmemorydb_api_types",
+        "//atomdb/morkdb:morkdb_lib",
+        "//atomdb/redis_mongodb:redis_mongodb_lib",
         "//commons:commons_lib",
         "//commons/atoms:atoms_lib",
         "//commons/processor:processor_lib",

@@ -23,10 +23,8 @@ using namespace std;
 class RedisMongoDBTestEnvironment : public ::testing::Environment {
    public:
     void SetUp() override {
-        auto atomdb = AtomDBFactory::create_backend(test_atomdb_json_config(), "test2_");
-        auto db = dynamic_pointer_cast<RedisMongoDB>(atomdb);
-        ASSERT_NE(db, nullptr);
-        db->drop_all();
+        auto atomdb = AtomDBFactory::create(test_atomdb_json_config(), "test2_");
+        ASSERT_NE(dynamic_pointer_cast<RedisMongoDB>(atomdb), nullptr);
         AtomDBSingleton::provide(atomdb);
     }
 

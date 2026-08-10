@@ -7,7 +7,6 @@
 #include <thread>
 #include <vector>
 
-#include "AdapterDB.h"
 #include "AtomDBFactory.h"
 #include "AtomDBSingleton.h"
 #include "JsonConfig.h"
@@ -15,7 +14,6 @@
 #include "MettaParser.h"
 #include "MettaParserActions.h"
 #include "RedisMongoDB.h"
-#include "RemoteAtomDB.h"
 #include "Utils.h"
 
 #define LOG_LEVEL INFO_LEVEL
@@ -72,16 +70,9 @@ int main(int argc, char* argv[]) {
     JsonConfig json_config = JsonConfigParser::load(config_path);
     auto atomdb_config = json_config.at_path("atomdb").get_or<JsonConfig>(JsonConfig());
 
-    auto atomdb_type = atomdb_config.at_path("type").get_or<string>("");
-    if (atomdb_type == "remotedb") {
-        auto remote_peers_config =
-            atomdb_config.at_path("remote_peers").get_or<JsonConfig>(JsonConfig());
-        AtomDBSingleton::provide(shared_ptr<AtomDB>(new RemoteAtomDB(remote_peers_config)));
-    } else if (atomdb_type == "adapterdb") {
-        AtomDBSingleton::provide(shared_ptr<AtomDB>(new AdapterDB(atomdb_config)));
-    } else {
-        AtomDBSingleton::provide(AtomDBFactory::create_backend(atomdb_config, context));
-    }
+    auto atomdb = AtomDBFactory::create(atomdb_config, context);
+
+    AtomDBSingleton::provide(atomdb);
 
     signal(SIGINT, &ctrl_c_handler);
     signal(SIGTERM, &ctrl_c_handler);
