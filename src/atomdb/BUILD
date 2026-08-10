@@ -11,8 +11,8 @@ cc_library(
         ":atomdb_factory",
         ":atomdb_singleton",
         ":atomdbutils",
+        ":protected_atomdb",
         "//atomdb/adapterdb:adapterdb_lib",
-        "//atomdb/auth:protected_atomdb_lib",
         "//atomdb/inmemorydb:inmemorydb_lib",
         "//atomdb/morkdb:morkdb_lib",
         "//atomdb/redis_mongodb:redis_mongodb_lib",
@@ -27,8 +27,8 @@ cc_library(
     includes = ["."],
     deps = [
         ":atomdb",
+        ":protected_atomdb",
         "//atomdb/adapterdb:adapterdb_lib",
-        "//atomdb/auth:protected_atomdb_lib",
         "//atomdb/inmemorydb:inmemorydb_lib",
         "//atomdb/morkdb:morkdb_lib",
         "//atomdb/redis_mongodb:redis_mongodb_lib",
@@ -78,5 +78,18 @@ cc_library(
         ":atomdb_factory",
         "//atomdb:atomdb_api_types",
         "//commons:commons_lib",
+    ],
+)
+
+cc_library(
+    name = "protected_atomdb",
+    srcs = ["ProtectedAtomDB.cc"],
+    hdrs = ["ProtectedAtomDB.h"],
+    includes = ["."],
+    deps = [
+        ":atomdb",
+        ":atomdb_api_types",
+        "//commons:commons_lib",
+        "//commons/atoms:atoms_lib",
     ],
 )

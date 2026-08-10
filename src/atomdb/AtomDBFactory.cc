@@ -112,6 +112,14 @@ shared_ptr<AtomDB> AtomDBFactory::create_composite_atomdb(const JsonConfig& conf
 }
 
 shared_ptr<AtomDB> AtomDBFactory::wrap_if_protected(shared_ptr<AtomDB> atomdb) {
-    // AtomDBFactory::wrap_if_protected() is not implemented yet.
-    return atomdb;
+    if (!atomdb) {
+        RAISE_ERROR("AtomDBFactory::wrap_if_protected() received null atomdb");
+    }
+    if (!atomdb->is_protected()) {
+        return atomdb;
+    }
+    if (dynamic_pointer_cast<ProtectedAtomDB>(atomdb)) {
+        return atomdb;
+    }
+    return make_shared<ProtectedAtomDB>(atomdb);
 }

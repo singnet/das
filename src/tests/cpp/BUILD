@@ -860,7 +860,7 @@ cc_test(
     ],
     linkstatic = 1,
     deps = [
-        "//atomdb/auth:protected_atomdb_lib",
+        "//atomdb:protected_atomdb",
         "//atomdb/inmemorydb:inmemorydb_lib",
         "//commons/atoms:atoms_lib",
         "@com_github_google_googletest//:gtest_main",
@@ -885,8 +885,8 @@ cc_test(
     linkstatic = 1,
     deps = [
         "//atomdb:atomdb_factory",
+        "//atomdb:protected_atomdb",
         "//atomdb/adapterdb:adapterdb_lib",
-        "//atomdb/auth:protected_atomdb_lib",
         "//atomdb/inmemorydb:inmemorydb_lib",
         "//atomdb/morkdb:morkdb_lib",
         "//atomdb/remotedb:remotedb_lib",
