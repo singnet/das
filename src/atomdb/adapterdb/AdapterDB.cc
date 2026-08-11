@@ -305,21 +305,6 @@ void AdapterDB::persistence_setup() {
     }
 }
 
-// void AdapterDB::atomdb_backend_setup() {
-//     auto atomdb_backend_config =
-//         this->config.at_path("adapterdb.atomdb_backend").get_or<JsonConfig>(JsonConfig());
-//     string atomdb_backend_type = atomdb_backend_config.at_path("type").get_or<string>("");
-//     if (atomdb_backend_type == "morkdb") {
-//         this->atomdb_backend = shared_ptr<AtomDB>(new MorkDB("", atomdb_backend_config));
-//     } else if (atomdb_backend_type == "redismongodb") {
-//         this->atomdb_backend = shared_ptr<AtomDB>(new RedisMongoDB("", false, atomdb_backend_config));
-//     } else if (atomdb_backend_type == "remotedb") {
-//         this->atomdb_backend = shared_ptr<AtomDB>(new RemoteAtomDB(atomdb_backend_config));
-//     } else {
-//         RAISE_ERROR("Invalid AtomDB type: " + atomdb_backend_type);
-//     }
-// }
-
 bool AdapterDB::is_backend_ready() const { return this->backend_ready.load(); }
 
 void AdapterDB::ensure_backend_ready() const {
