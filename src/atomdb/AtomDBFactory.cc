@@ -97,15 +97,15 @@ shared_ptr<AtomDB> AtomDBFactory::create_composite_atomdb(const JsonConfig& conf
                 create_basic_atomdb(peer_config, peer_context), local_persistence, uid);
         }
 
-        return make_shared<RemoteAtomDB>(remote_peers);
-    }
-
-    if (type == AtomDBType::AdapterDB) {
+        atomdb = make_shared<RemoteAtomDB>(remote_peers);
+    } else if (type == AtomDBType::AdapterDB) {
         // The backend AtomDB in AdapterDB could be RemoteAtomDB ?
         auto atomdb_backend_config =
             config.at_path("adapterdb.atomdb_backend").get_or<JsonConfig>(JsonConfig());
         auto basic_atomdb = create_basic_atomdb(atomdb_backend_config, context);
-        return make_shared<AdapterDB>(config, basic_atomdb);
+        atomdb = make_shared<AdapterDB>(config, basic_atomdb);
+    } else {
+        RAISE_ERROR("AtomDBFactory: '" + atomdb_type + "' is not a composite AtomDB type");
     }
 
     return atomdb;

@@ -147,12 +147,11 @@ class RedisMongoDB : public AtomDB {
     void build_composite_type_entries_map(const vector<atoms::Link*>& links,
                                           map<string, vector<string>>& composite_type_entries_map);
 
-   private:
+   protected:
     friend class AtomDBFactory;
-    friend class MorkDB;
-
     RedisMongoDB(const string& context, bool skip_redis, const JsonConfig& config);
 
+   private:
     string context;
     bool skip_redis_;
     bool composite_type_enabled_;

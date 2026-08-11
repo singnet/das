@@ -8,7 +8,6 @@
 #include <vector>
 
 #include "AtomDBFactory.h"
-#include "AtomDBSingleton.h"
 #include "JsonConfig.h"
 #include "JsonConfigParser.h"
 #include "MettaParser.h"
@@ -72,8 +71,6 @@ int main(int argc, char* argv[]) {
 
     auto atomdb = AtomDBFactory::create(atomdb_config, context);
 
-    AtomDBSingleton::provide(atomdb);
-
     signal(SIGINT, &ctrl_c_handler);
     signal(SIGTERM, &ctrl_c_handler);
 
@@ -121,7 +118,6 @@ int main(int argc, char* argv[]) {
                 (static_cast<size_t>(i + 1) * lines.size()) / static_cast<size_t>(num_threads);
 
             threads.emplace_back([&, start_line, end_line, i]() -> void {
-                auto thread_atomdb = AtomDBSingleton::get_instance();
                 vector<Atom*> batch_atoms;
                 vector<shared_ptr<MettaParserActions>> parser_actions_list;
                 size_t thread_atoms_count = 0;
@@ -162,7 +158,7 @@ int main(int argc, char* argv[]) {
                             thread_atoms_count++;
 
                             if (batch_atoms.size() >= static_cast<size_t>(chunk_size)) {
-                                thread_atomdb->add_atoms(batch_atoms, true);
+                                atomdb->add_atoms(batch_atoms, true);
                                 batch_atoms.clear();
                                 if (parser_actions_list.size() > 10) {
                                     parser_actions_list.erase(parser_actions_list.begin(),
@@ -177,7 +173,7 @@ int main(int argc, char* argv[]) {
                 }
 
                 if (!batch_atoms.empty()) {
-                    thread_atomdb->add_atoms(batch_atoms, true);
+                    atomdb->add_atoms(batch_atoms, true);
                 }
 
                 total_atoms_processed += thread_atoms_count;
@@ -200,7 +196,6 @@ int main(int argc, char* argv[]) {
         STOP_WATCH_FINISH(db_loader_from_file, "DBLoaderFromFile");
 
     } else {
-        auto atomdb = AtomDBSingleton::get_instance();
         auto db = dynamic_pointer_cast<RedisMongoDB>(atomdb);
         if (db != nullptr) {
             try {
@@ -221,8 +216,6 @@ int main(int argc, char* argv[]) {
 
         for (int i = 0; i < num_threads; i++) {
             threads.emplace_back([&, thread_id = i, links_per_thread, remainder]() -> void {
-                auto thread_db = AtomDBSingleton::get_instance();
-
                 vector<Link*> links;
                 vector<Node*> nodes;
 
@@ -267,8 +260,8 @@ int main(int argc, char* argv[]) {
                     links.push_back(link_with_nested);
 
                     if (j % chunk_size == 0) {
-                        thread_db->add_nodes(nodes, true);
-                        thread_db->add_links(links, true);
+                        atomdb->add_nodes(nodes, true);
+                        atomdb->add_links(links, true);
                         nodes.clear();
                         links.clear();
                     }
@@ -277,12 +270,12 @@ int main(int argc, char* argv[]) {
                 if (!nodes.empty()) {
                     LOG_INFO("[" + to_string(thread_id) + "] Final - Adding " + to_string(nodes.size()) +
                              " nodes");
-                    thread_db->add_nodes(nodes, true);
+                    atomdb->add_nodes(nodes, true);
                 }
                 if (!links.empty()) {
                     LOG_INFO("[" + to_string(thread_id) + "] Final - Adding " + to_string(links.size()) +
                              " links");
-                    thread_db->add_links(links, true);
+                    atomdb->add_links(links, true);
                 }
 
                 // clang-format off
@@ -294,7 +287,7 @@ int main(int argc, char* argv[]) {
                 });
                 // clang-format on
 
-                auto result = thread_db->query_for_pattern(link_schema);
+                auto result = atomdb->query_for_pattern(link_schema);
                 if (result->size() != 2) {
                     RAISE_ERROR("[" + to_string(thread_id) + "] Expected 2 results, got " +
                                 to_string(result->size()));
