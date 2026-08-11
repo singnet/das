@@ -62,7 +62,7 @@ class AdapterDBTestBase : public ::testing::Test {
     shared_ptr<RedisMongoDB> backend;
 
     void SetUpBackend() {
-        auto atomdb = AtomDBFactory::create(test_atomdb_json_config(), "adapter_test");
+        auto atomdb = AtomDBFactory::create(test_atomdb_json_config(), back_context);
         backend = dynamic_pointer_cast<RedisMongoDB>(atomdb);
         ASSERT_NE(backend, nullptr);
     }
