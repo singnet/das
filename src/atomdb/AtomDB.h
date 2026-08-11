@@ -44,8 +44,9 @@ class AtomDB : public HandleDecoder {
                 return "remotedb";
             case AtomDBType::AdapterDB:
                 return "adapterdb";
+            default:
+                RAISE_ERROR("Unsupported AtomDBType");
         }
-        RAISE_ERROR("Unsupported AtomDBType");
     }
 
     virtual bool allow_nested_indexing() = 0;
