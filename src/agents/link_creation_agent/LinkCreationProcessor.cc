@@ -95,10 +95,21 @@ void LinkCreationProcessor::thread_process_one_query(shared_ptr<StoppableThread>
 
 shared_ptr<PatternMatchingQueryProxy> LinkCreationProcessor::issue_link_creation_query(
     shared_ptr<LinkCreationProxy> proxy) {
-    // TBD
-    vector<string> args;
-    string context = "";
-    auto pm_proxy = make_shared<PatternMatchingQueryProxy>(args, context);
+    auto pm_proxy = make_shared<PatternMatchingQueryProxy>(proxy->get_query_tokens(), proxy->get_context());
+    pm_proxy->parameters[BaseQueryProxy::ATTENTION_CORRELATION] = (unsigned int) proxy->parameters.get<unsigned int>(BaseQueryProxy::ATTENTION_CORRELATION);
+    pm_proxy->parameters[BaseQueryProxy::ATTENTION_UPDATE] = (unsigned int) proxy->parameters.get<unsigned int>(BaseQueryProxy::ATTENTION_UPDATE);
+    pm_proxy->parameters[BaseQueryProxy::UNIQUE_ASSIGNMENT_FLAG] = (bool) proxy->parameters.get<bool>(BaseQueryProxy::UNIQUE_ASSIGNMENT_FLAG);
+    pm_proxy->parameters[BaseQueryProxy::USE_LINK_TEMPLATE_CACHE] = (bool) proxy->parameters.get<bool>(BaseQueryProxy::USE_LINK_TEMPLATE_CACHE);
+    pm_proxy->parameters[BaseQueryProxy::ALLOW_INCOMPLETE_CHAIN_PATH] = (bool) proxy->parameters.get<bool>(BaseQueryProxy::ALLOW_INCOMPLETE_CHAIN_PATH);
+    pm_proxy->parameters[BaseQueryProxy::ATTENTION_FOCUS_STRICTNESS] = (double) proxy->parameters.get<double>(LinkCreationProxy::ATTENTION_FOCUS_STRICTNESS);
+    pm_proxy->parameters[PatternMatchingQueryProxy::DISREGARD_IMPORTANCE_FLAG] = (bool) proxy->parameters.get<bool>(PatternMatchingQueryProxy::DISREGARD_IMPORTANCE_FLAG);
+    pm_proxy->parameters[PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG] = (bool) proxy->parameters.get<bool>(PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG);
+    pm_proxy->parameters[PatternMatchingQueryProxy::MAX_ANSWERS] = (unsigned int) proxy->parameters.get<unsigned int>(PatternMatchingQueryProxy::MAX_ANSWERS);
+    pm_proxy->parameters[BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS] = (proxy->get_query_tokens().size() == 1);
+    pm_proxy->parameters[BaseQueryProxy::POPULATE_METTA_MAPPING] = USE_MORK;
+    pm_proxy->parameters[PatternMatchingQueryProxy::UNIQUE_VALUE_FLAG] = (bool) proxy->parameters.get<bool>(PatternMatchingQueryProxy::UNIQUE_VALUE_FLAG);
+
+    ServiceBusSingleton::get_instance()->issue_bus_command(pm_proxy);
     return pm_proxy;
 }
 

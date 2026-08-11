@@ -14,6 +14,7 @@ string LinkCreationProxy::MAX_SUCCESSFUL_CREATION_PER_ROUND = "max_successful_cr
 string LinkCreationProxy::MAX_UNPRODUCTIVE_VISITS_PER_ROUND = "max_unproductive_visits_per_round";
 string LinkCreationProxy::MAX_VISIT_ATTEMPTS_PER_ROUND = "max_visit_attempts_per_round";
 string LinkCreationProxy::MAX_ROUNDS = "max_rounds";
+string LinkCreationProxy::ATTENTION_FOCUS_STRICTNESS = "attention_focus_strictness";
 
 LinkCreationProxy::LinkCreationProxy() {
     // constructor typically used in processor

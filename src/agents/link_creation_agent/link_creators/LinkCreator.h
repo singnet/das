@@ -3,6 +3,7 @@
 #include <set>
 #include <string>
 
+#include "AtomDBSingleton.h"
 #include "QueryAnswer.h"
 
 using namespace std;
@@ -51,9 +52,11 @@ class LinkCreationStats {
 class LinkCreator {
    public:
     /**
-     * Empty constructor.
+     * Constructor.
      */
-    LinkCreator() : _context("") {}
+    LinkCreator() : _context("") {
+        this->atomdb = AtomDBSingleton::get_instance();
+    }
 
     /**
      * Empty destructor.
@@ -92,11 +95,12 @@ class LinkCreator {
      * creating links just to discover later on that they have already been inserted into the
      * AtomDB.
      */
-    void reset_visited() { this->_visited.clear(); }
+    inline void reset_visited() { this->_visited.clear(); }
 
    protected:
+    shared_ptr<AtomDB> atomdb;
+    static double LINK_CREATION_STRENGTH_THRESHOLD;
     inline void visit(const string& key) { this->_visited.insert(key); }
-
     inline bool visited(const string& key) { return (this->_visited.find(key) != this->_visited.end()); }
 
    private:
