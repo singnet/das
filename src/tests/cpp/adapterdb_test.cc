@@ -109,15 +109,34 @@ class AdapterDBTestBase : public ::testing::Test {
         mongocxx::client client{mongocxx::uri{"mongodb://admin:admin@localhost:40021"}};
         auto collection =
             client[context + AdapterDB::MONGODB_DB_NAME][AdapterDB::MONGODB_ADAPTER_COLLECTION_NAME];
-        auto reply = collection.find_one(bsoncxx::builder::basic::make_document(
-            bsoncxx::builder::basic::kvp("_id", context_id)));
+        auto reply = collection.find_one(
+            bsoncxx::builder::basic::make_document(bsoncxx::builder::basic::kvp("_id", context_id)));
         return reply != bsoncxx::v_noabi::stdx::nullopt;
+    }
+
+    static void drop_context_database(const string& context) {
+        MongoInitializer::initialize();
+        mongocxx::client client{mongocxx::uri{"mongodb://admin:admin@localhost:40021"}};
+        client[context + AdapterDB::MONGODB_DB_NAME].drop();
     }
 };
 
-TEST_F(AdapterDBTestBase, DistinctContextsIsolateMappingMetadata) {
+class AdapterDBContextIsolationTest : public AdapterDBTestBase {
+   protected:
+    string mapping_path;
+    string context_a;
+    string context_b;
+
+    void TearDown() override {
+        remove(mapping_path.c_str());
+        drop_context_database(context_a);
+        drop_context_database(context_b);
+    }
+};
+
+TEST_F(AdapterDBContextIsolationTest, DistinctContextsIsolateMappingMetadata) {
     string suffix = to_string(Utils::get_current_time_millis());
-    string mapping_path = "/tmp/adapterdb_context_isolation_" + suffix + ".sql";
+    mapping_path = "/tmp/adapterdb_context_isolation_" + suffix + ".sql";
     string mapping_content = "-- context isolation " + suffix +
                              "\n"
                              "SELECT o.organism_id as public_organism__organism_id,\n"
@@ -128,8 +147,8 @@ TEST_F(AdapterDBTestBase, DistinctContextsIsolateMappingMetadata) {
         file << mapping_content;
     }
     string context_id = compute_hash((char*) mapping_content.c_str());
-    string context_a = "iso_a_" + suffix + "_";
-    string context_b = "iso_b_" + suffix + "_";
+    context_a = "iso_a_" + suffix + "_";
+    context_b = "iso_b_" + suffix + "_";
 
     nlohmann::json creds = {{"host", "localhost"},
                             {"port", 5433},
@@ -149,8 +168,6 @@ TEST_F(AdapterDBTestBase, DistinctContextsIsolateMappingMetadata) {
     ASSERT_NE(adapter_b, nullptr);
     EXPECT_TRUE(mapping_metadata_exists(context_a, context_id));
     EXPECT_TRUE(mapping_metadata_exists(context_b, context_id));
-
-    remove(mapping_path.c_str());
 }
 
 class AdapterDBTest : public AdapterDBTestBase, public ::testing::WithParamInterface<AdapterTestParams> {
