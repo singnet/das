@@ -34,9 +34,10 @@ inline AdapterDbType parse_adapter_db_type(const string& value) {
 
 class AdapterDB : public AtomDB {
    public:
-    AdapterDB(const JsonConfig& config, shared_ptr<AtomDB> backend);
+    AdapterDB(const JsonConfig& config, shared_ptr<AtomDB> backend, const string& context = "");
     ~AdapterDB() override;
 
+    static const string MONGODB_DB_NAME;
     static string MONGODB_ADAPTER_COLLECTION_NAME;
 
     /**
@@ -111,11 +112,14 @@ class AdapterDB : public AtomDB {
 
    private:
     AdapterDbType adapter_type;
+    string context;
     JsonConfig config;
     shared_ptr<AtomDB> atomdb_backend;
     atomic<bool> backend_ready{false};
     mutex mtx;
     mongocxx::pool* mongodb_pool;
+
+    string mongodb_db_name() const;
 
     void initialize(bool skip_atomdb_backend_empty = false);
 
