@@ -1,6 +1,8 @@
 #include <gtest/gtest.h>
 
 #include <atomic>
+#include <bsoncxx/builder/basic/document.hpp>
+#include <bsoncxx/builder/basic/kvp.hpp>
 #include <cstring>
 #include <iostream>
 #include <memory>
@@ -8,6 +10,7 @@
 #include <vector>
 
 #include "Atom.h"
+#include "AtomDBFactory.h"
 #include "AtomDBSingleton.h"
 #include "Hasher.h"
 #include "Link.h"
@@ -37,8 +40,9 @@ class MockDecoder : public HandleDecoder {
 class RedisMongoDBTestEnvironment : public ::testing::Environment {
    public:
     void SetUp() override {
-        auto atomdb = new RedisMongoDB("test_", false, test_atomdb_json_config());
-        AtomDBSingleton::provide(shared_ptr<AtomDB>(atomdb));
+        auto atomdb = AtomDBFactory::create(test_atomdb_json_config(), "test_");
+        ASSERT_NE(dynamic_pointer_cast<RedisMongoDB>(atomdb), nullptr);
+        AtomDBSingleton::provide(atomdb);
         load_animals_data();
     }
 
@@ -1190,7 +1194,8 @@ TEST_F(RedisMongoDBTest, CompositeTypeEnabledFlag) {
 
     auto config_default = test_atomdb_json_config();
     config_default.erase("composite_type_enabled");
-    auto db_default = make_shared<RedisMongoDB>("test_", false, config_default);
+    auto db_default = dynamic_pointer_cast<RedisMongoDB>(AtomDBFactory::create(config_default, "test_"));
+    ASSERT_NE(db_default, nullptr);
     EXPECT_TRUE(db_default->composite_type_enabled());
 
     vector<Node*> enabled_nodes = {new Node("Symbol", "CompositeTypeEnabled-A"),
@@ -1212,7 +1217,9 @@ TEST_F(RedisMongoDBTest, CompositeTypeEnabledFlag) {
 
     auto config_disabled = test_atomdb_json_config();
     config_disabled["composite_type_enabled"] = false;
-    auto db_disabled = make_shared<RedisMongoDB>("test_", false, config_disabled);
+    auto db_disabled =
+        dynamic_pointer_cast<RedisMongoDB>(AtomDBFactory::create(config_disabled, "test_"));
+    ASSERT_NE(db_disabled, nullptr);
     EXPECT_FALSE(db_disabled->composite_type_enabled());
 
     vector<Node*> disabled_nodes = {new Node("Symbol", "CompositeTypeDisabled-A"),

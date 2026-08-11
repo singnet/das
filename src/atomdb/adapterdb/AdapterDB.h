@@ -34,10 +34,7 @@ inline AdapterDbType parse_adapter_db_type(const string& value) {
 
 class AdapterDB : public AtomDB {
    public:
-    explicit AdapterDB(const JsonConfig& config, const string& context = "");
-    AdapterDB(const JsonConfig& config,
-              shared_ptr<AtomDB> backend,
-              const string& context = "");  // for testing
+    AdapterDB(const JsonConfig& config, shared_ptr<AtomDB> backend, const string& context = "");
     ~AdapterDB() override;
 
     static const string MONGODB_DB_NAME;
@@ -133,11 +130,6 @@ class AdapterDB : public AtomDB {
      * database and mapping files.
      */
     void persistence_setup();
-
-    /**
-     * @brief Initializes the AtomDB backend according to the configuration.
-     */
-    void atomdb_backend_setup();
 
     bool is_backend_ready() const;
 

@@ -8,13 +8,10 @@
 #include "DatabaseOrchestrator.h"
 #include "DedicatedThread.h"
 #include "MongoInitializer.h"
-#include "MorkDB.h"
 #include "MorkMappingStrategy.h"
 #include "PostgresMappingStrategy.h"
 #include "PostgresWrapper.h"
 #include "Processor.h"
-#include "RedisMongoDB.h"
-#include "RemoteAtomDB.h"
 #include "Utils.h"
 #include "expression_hasher.h"
 #include "processor/ThreadPool.h"
@@ -34,15 +31,7 @@ string AdapterDB::MONGODB_ADAPTER_COLLECTION_NAME = "adapterdb";
 //  Construction / destruction
 // ==============================
 
-AdapterDB::AdapterDB(const JsonConfig& config, const string& context)
-    : context(context), config(config) {
-    this->atomdb_backend_setup();
-    this->initialize();
-}
-
-atomdb::AdapterDB::AdapterDB(const JsonConfig& config,
-                             std::shared_ptr<AtomDB> backend,
-                             const string& context)
+AdapterDB::AdapterDB(const JsonConfig& config, std::shared_ptr<AtomDB> backend, const string& context)
     : context(context), config(config), atomdb_backend(backend) {
     this->initialize(true);
 }
@@ -231,6 +220,8 @@ size_t AdapterDB::atom_count() const {
 //  Private
 // ==============================
 
+string AdapterDB::mongodb_db_name() const { return this->context + MONGODB_DB_NAME; }
+
 void AdapterDB::initialize(bool skip_atomdb_backend_empty) {
     this->validate_adapterdb_type();
 
@@ -313,24 +304,6 @@ void AdapterDB::persistence_setup() {
         RAISE_ERROR(e.what());
     }
 }
-
-void AdapterDB::atomdb_backend_setup() {
-    auto atomdb_backend_config =
-        this->config.at_path("adapterdb.atomdb_backend").get_or<JsonConfig>(JsonConfig());
-    string atomdb_backend_type = atomdb_backend_config.at_path("type").get_or<string>("");
-    if (atomdb_backend_type == "morkdb") {
-        this->atomdb_backend = shared_ptr<AtomDB>(new MorkDB(this->context, atomdb_backend_config));
-    } else if (atomdb_backend_type == "redismongodb") {
-        this->atomdb_backend =
-            shared_ptr<AtomDB>(new RedisMongoDB(this->context, false, atomdb_backend_config));
-    } else if (atomdb_backend_type == "remotedb") {
-        this->atomdb_backend = shared_ptr<AtomDB>(new RemoteAtomDB(atomdb_backend_config));
-    } else {
-        RAISE_ERROR("Invalid AtomDB type: " + atomdb_backend_type);
-    }
-}
-
-string AdapterDB::mongodb_db_name() const { return this->context + MONGODB_DB_NAME; }
 
 bool AdapterDB::is_backend_ready() const { return this->backend_ready.load(); }
 
