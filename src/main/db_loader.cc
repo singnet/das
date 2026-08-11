@@ -82,7 +82,7 @@ int main(int argc, char* argv[]) {
             atomdb_config.at_path("remote_peers").get_or<JsonConfig>(JsonConfig());
         AtomDBSingleton::provide(make_shared<RemoteAtomDB>(remote_peers_config));
     } else if (atomdb_type == "adapterdb") {
-        AtomDBSingleton::provide(make_shared<AdapterDB>(atomdb_config));
+        AtomDBSingleton::provide(make_shared<AdapterDB>(atomdb_config, context));
     } else {
         RAISE_ERROR("Invalid AtomDB type: " + atomdb_type);
     }

@@ -53,10 +53,11 @@ void seed_mork_adapter_test_data() {
 
 class AdapterDBTestBase : public ::testing::Test {
    protected:
+    static constexpr const char* back_context = "adapter_test";
     shared_ptr<RedisMongoDB> backend;
 
     void SetUpBackend() {
-        backend = make_shared<RedisMongoDB>("adapter_test", false, test_atomdb_json_config());
+        backend = make_shared<RedisMongoDB>(back_context, false, test_atomdb_json_config());
     }
 
     JsonConfig build_adapter_config(const string& mapping_path,
@@ -91,7 +92,7 @@ class AdapterDBTestBase : public ::testing::Test {
                                          bool reuse_mongodb = true) {
         auto config = build_adapter_config(
             mapping_path, adapter_type, db_credentials, backend_type, reuse_mongodb);
-        return make_shared<AdapterDB>(config, backend);
+        return make_shared<AdapterDB>(config, backend, back_context);
     }
 };
 
