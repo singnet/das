@@ -7,6 +7,7 @@
 #include <thread>
 #include <vector>
 
+#include "AtomDBFactory.h"
 #include "AtomDBSingleton.h"
 #include "Hasher.h"
 #include "Link.h"
@@ -22,9 +23,9 @@ using namespace std;
 class RedisMongoDBTestEnvironment : public ::testing::Environment {
    public:
     void SetUp() override {
-        auto atomdb = new RedisMongoDB("test2_", false, test_atomdb_json_config());
-        atomdb->drop_all();
-        AtomDBSingleton::provide(shared_ptr<AtomDB>(atomdb));
+        auto atomdb = AtomDBFactory::create(test_atomdb_json_config(), "test2_");
+        ASSERT_NE(dynamic_pointer_cast<RedisMongoDB>(atomdb), nullptr);
+        AtomDBSingleton::provide(atomdb);
     }
 
     void TearDown() override {

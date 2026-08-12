@@ -28,7 +28,6 @@ enum MONGODB_FIELD { ID = 0, NAME, TARGETS, NAMED_TYPE, size };
 
 class RedisMongoDB : public AtomDB {
    public:
-    RedisMongoDB(const string& context, bool skip_redis, const JsonConfig& config);
     ~RedisMongoDB();
 
     bool allow_nested_indexing() override;
@@ -144,6 +143,10 @@ class RedisMongoDB : public AtomDB {
     map<string, string> composite_type_hashes_map;
     void build_composite_type_entries_map(const vector<atoms::Link*>& links,
                                           map<string, vector<string>>& composite_type_entries_map);
+
+   protected:
+    friend class AtomDBFactory;
+    RedisMongoDB(const string& context, bool skip_redis, const JsonConfig& config);
 
    private:
     string context;

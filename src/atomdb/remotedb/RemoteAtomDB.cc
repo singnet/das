@@ -23,54 +23,6 @@ using namespace commons;
 
 using json = nlohmann::json;
 
-namespace {
-
-shared_ptr<AtomDB> create_atomdb_from_config(const JsonConfig& config) {
-    string uid = config.at_path("uid").get_or<string>("");
-    string type = config.at_path("type").get_or<string>("");
-    string context = config.at_path("context").get_or<string>("");
-
-    if (type == "inmemorydb") {
-        return make_shared<InMemoryDB>(context.empty() ? "remotedb_" : context);
-    }
-
-    if (type == "redismongodb") {
-        RedisMongoDB::initialize_statics(context);
-        auto atomdb = make_shared<RedisMongoDB>(context, false, config);
-        return atomdb;
-    }
-
-    if (type == "morkdb") {
-        auto atomdb = make_shared<MorkDB>(context, config);
-        return atomdb;
-    }
-
-    RAISE_ERROR("Unknown AtomDB type for peer " + uid + ": " + type);
-    return nullptr;
-}
-
-}  // namespace
-
-RemoteAtomDB::RemoteAtomDB(const JsonConfig& peers_config) {
-    for (auto& entry : peers_config) {
-        auto peer_config = JsonConfig(entry);
-        string uid = peer_config.at_path("uid").get_or<string>("");
-        if (uid.empty()) continue;
-
-        shared_ptr<AtomDB> local_persistence = nullptr;
-        auto local_persistence_config =
-            peer_config.at_path("local_persistence").get_or<JsonConfig>(JsonConfig());
-        if (!local_persistence_config.empty()) {
-            local_persistence = create_atomdb_from_config(local_persistence_config);
-        }
-        remote_db_[uid] = make_shared<RemoteAtomDBPeer>(
-            create_atomdb_from_config(peer_config), local_persistence, uid);
-    }
-
-    LOG_INFO("RemoteAtomDB initialized with " << remote_db_.size() << " remote peers");
-    finalize_peer_lists();
-}
-
 RemoteAtomDB::RemoteAtomDB(map<string, shared_ptr<RemoteAtomDBPeer>> peers)
     : remote_db_(std::move(peers)) {
     LOG_INFO("RemoteAtomDB initialized with " << remote_db_.size() << " pre-built peers");

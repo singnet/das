@@ -851,6 +851,34 @@ cc_test(
 )
 
 cc_test(
+    name = "atomdb_factory_test",
+    size = "medium",
+    srcs = ["atomdb_factory_test.cc"],
+    copts = [
+        "-Iexternal/gtest/googletest/include",
+        "-Iexternal/gtest/googletest",
+    ],
+    linkopts = [
+        "-L/usr/local/lib",
+        "-lhiredis_cluster",
+        "-lhiredis",
+        "-lmongocxx",
+        "-lbsoncxx",
+    ],
+    linkstatic = 1,
+    deps = [
+        "//atomdb:atomdb_factory",
+        "//atomdb/adapterdb:adapterdb_lib",
+        "//atomdb/inmemorydb:inmemorydb_lib",
+        "//atomdb/morkdb:morkdb_lib",
+        "//atomdb/remotedb:remotedb_lib",
+        "//tests/cpp/test_commons:test_atomdb_json_config",
+        "@com_github_google_googletest//:gtest_main",
+        "@mbedtls",
+    ],
+)
+
+cc_test(
     name = "atomdbutils_test",
     size = "small",
     srcs = ["atomdbutils_test.cc"],
@@ -895,6 +923,7 @@ cc_test(
     ],
     linkstatic = 1,
     deps = [
+        "//atomdb:atomdb_factory",
         "//atomdb/inmemorydb:inmemorydb_lib",
         "//atomdb/remotedb:remotedb_lib",
         "//commons/atoms:atoms_lib",
