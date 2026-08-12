@@ -978,7 +978,6 @@ TEST_F(InMemoryDBTest, AddLinksSkipIfExistsMergerReturnsEmptyHandleSlots) {
 }
 
 TEST_F(InMemoryDBTest, GetAccessPermissionsReturnsEmpty) {
-    // Backends without authorization storage must return an empty list.
     auto permissions = db->get_access_permissions();
     EXPECT_TRUE(permissions.empty());
 }
