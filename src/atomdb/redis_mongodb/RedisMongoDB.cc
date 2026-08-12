@@ -887,7 +887,7 @@ vector<string> RedisMongoDB::add_nodes(const vector<atoms::Node*>& nodes,
                     if (!merger->merge(existing_node.get(), node)) {
                         // Do not persist, but keep existing in the transactional
                         // composite-type map so later links can resolve this target.
-                        if (this->composite_type_enabled_ && is_transactional) {
+                        if (this->composite_type_enabled() && is_transactional) {
                             lock_guard<mutex> composite_type_hashes_map_lock(
                                 this->composite_type_hashes_map_mutex);
                             this->composite_type_hashes_map[handle] = existing_node->named_type_hash();
@@ -907,7 +907,7 @@ vector<string> RedisMongoDB::add_nodes(const vector<atoms::Node*>& nodes,
             auto mongodb_doc = atomdb_api_types::MongodbDocument(node);
             documents.push_back(mongodb_doc.value());
             handles.push_back(node->handle());
-            if (this->composite_type_enabled_ && is_transactional) {
+            if (this->composite_type_enabled() && is_transactional) {
                 lock_guard<mutex> composite_type_hashes_map_lock(this->composite_type_hashes_map_mutex);
                 this->composite_type_hashes_map[node->handle()] = node->named_type_hash();
             }
@@ -919,7 +919,7 @@ vector<string> RedisMongoDB::add_nodes(const vector<atoms::Node*>& nodes,
             const atoms::Node* to_store = batch_merged[handle].get();
             auto mongodb_doc = atomdb_api_types::MongodbDocument(to_store);
             documents.push_back(mongodb_doc.value());
-            if (this->composite_type_enabled_ && is_transactional) {
+            if (this->composite_type_enabled() && is_transactional) {
                 lock_guard<mutex> composite_type_hashes_map_lock(this->composite_type_hashes_map_mutex);
                 this->composite_type_hashes_map[handle] = to_store->named_type_hash();
             }
@@ -937,14 +937,14 @@ vector<string> RedisMongoDB::add_links(const vector<atoms::Link*>& links,
                                        bool is_transactional,
                                        const atoms::Merger* merger) {
     if (links.empty()) {
-        if (this->composite_type_enabled_ && is_transactional) {
+        if (this->composite_type_enabled() && is_transactional) {
             lock_guard<mutex> composite_type_hashes_map_lock(this->composite_type_hashes_map_mutex);
             this->composite_type_hashes_map.clear();
         }
         return {};
     }
 
-    if (this->composite_type_enabled_ && !is_transactional) {
+    if (this->composite_type_enabled() && !is_transactional) {
         this->check_existing_targets(links);
     }
 
@@ -1010,7 +1010,7 @@ vector<string> RedisMongoDB::add_links(const vector<atoms::Link*>& links,
     // Derive transactional composite-type metadata from bookkeeping links (final merged
     // objects plus rejected-but-existing ones), not from the raw input batch alone.
     map<string, vector<string>> composite_type_entries_map;
-    if (this->composite_type_enabled_ && is_transactional) {
+    if (this->composite_type_enabled() && is_transactional) {
         this->build_composite_type_entries_map(links_for_composite, composite_type_entries_map);
     }
 
@@ -1042,7 +1042,7 @@ vector<string> RedisMongoDB::add_links(const vector<atoms::Link*>& links,
         }
 
         optional<atomdb_api_types::MongodbDocument> mongodb_doc;
-        if (!this->composite_type_enabled_) {
+        if (!this->composite_type_enabled()) {
             static const vector<string> empty_composite_type;
             mongodb_doc.emplace(to_store, "", empty_composite_type, false);
         } else if (is_transactional) {
@@ -1080,7 +1080,7 @@ vector<string> RedisMongoDB::add_links(const vector<atoms::Link*>& links,
     set_next_score_with_context(
         ctx, REDIS_INCOMING_PREFIX + ":next_score", this->incoming_set_next_score.load());
 
-    if (this->composite_type_enabled_ && is_transactional) {
+    if (this->composite_type_enabled() && is_transactional) {
         lock_guard<mutex> composite_type_hashes_map_lock(this->composite_type_hashes_map_mutex);
         this->composite_type_hashes_map.clear();
     }
