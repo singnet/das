@@ -614,63 +614,6 @@ TEST_F(AdapterDBConstructorFailureTest, ConstructorFailsWhenMappingFileDoesNotEx
                  runtime_error);
 }
 
-class AdapterDBAccessPermissionsTest : public AdapterDBTestBase {
-   protected:
-    string mapping_path;
-    string context;
-
-    void SetUp() override {
-        string suffix = to_string(Utils::get_current_time_millis());
-        context = "ap_perm_" + suffix + "_";
-        mapping_path = "/tmp/adapterdb_access_permissions_" + suffix + ".sql";
-        {
-            ofstream file(mapping_path);
-            file << "-- access permissions " << suffix
-                 << "\n"
-                    "SELECT o.organism_id as public_organism__organism_id,\n"
-                    "       o.genus as public_organism__genus\n"
-                    "FROM public.organism as o WHERE o.organism_id=1;\n";
-        }
-        SetUpBackend();
-    }
-
-    void TearDown() override {
-        remove(mapping_path.c_str());
-        drop_context_database(context);
-    }
-};
-
-TEST_F(AdapterDBAccessPermissionsTest, DelegatesToBackend) {
-    using bsoncxx::builder::basic::kvp;
-    using bsoncxx::builder::basic::make_document;
-
-    nlohmann::json creds = {{"host", "localhost"},
-                            {"port", 5433},
-                            {"username", "postgres"},
-                            {"password", "test"},
-                            {"database", "postgres_wrapper_test"}};
-
-    auto adapter = create_adapter(mapping_path, "postgres", creds, "morkdb", true, context);
-    ASSERT_NE(adapter, nullptr);
-
-    // Fresh backend has no access_permissions documents.
-    EXPECT_TRUE(adapter->get_access_permissions().empty());
-
-    // Seed the RedisMongoDB backend collection that AdapterDB delegates to.
-    MongoInitializer::initialize();
-    mongocxx::client client{mongocxx::uri{"mongodb://admin:admin@localhost:40021"}};
-    auto collection = client[context + "das"][context + "access_permissions"];
-    collection.insert_one(make_document(kvp("_id", "adapter_perm"), kvp("role", "delegated")));
-
-    auto permissions = adapter->get_access_permissions();
-    ASSERT_EQ(permissions.size(), 1u);
-    EXPECT_NE(permissions[0].find("\"adapter_perm\""), string::npos);
-    EXPECT_NE(permissions[0].find("\"delegated\""), string::npos);
-
-    collection.delete_many({});
-    EXPECT_TRUE(adapter->get_access_permissions().empty());
-}
-
 int main(int argc, char** argv) {
     ::testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();

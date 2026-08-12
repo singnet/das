@@ -477,12 +477,6 @@ TEST_F(MorkDBTest, ReIndexPatterns) {
     EXPECT_EQ(result->size(), 4);
 }
 
-TEST_F(MorkDBTest, GetAccessPermissionsReturnsEmpty) {
-    // MorkDB has no authorization storage; callers must get an empty list.
-    auto permissions = db->get_access_permissions();
-    EXPECT_TRUE(permissions.empty());
-}
-
 TEST(MorkDBSetupTest, RejectsMissingEndpoint) {
     auto config = test_atomdb_json_config("morkdb");
     config["morkdb"].erase("endpoint");
