@@ -1,0 +1,26 @@
+#pragma once
+
+#include <string>
+
+#include "AuthorizationEntry.h"
+
+using namespace std;
+
+namespace atomdb {
+
+/** @brief Storage interface for authorization writes. */
+class AuthorizationPersistence {
+   public:
+    virtual ~AuthorizationPersistence() = default;
+
+    /** @brief Persists one entry under public_key (creating the document if needed). */
+    virtual void save(const string& public_key, const AuthorizationEntry& entry) = 0;
+
+    /** @brief Removes the entry identified by handle from public_key's document. */
+    virtual void remove(const string& public_key, const string& handle) = 0;
+
+    /** @brief Removes the whole document for public_key. */
+    virtual void remove_all(const string& public_key) = 0;
+};
+
+}  // namespace atomdb
