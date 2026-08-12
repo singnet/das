@@ -42,9 +42,9 @@ class AuthorizationEntry {
     vector<string> tokenize() const;
 
    private:
-    LinkSchema schema;
-    bool read;
-    bool write;
+    LinkSchema _schema;
+    bool _read;
+    bool _write;
 };
 
 }  // namespace atomdb

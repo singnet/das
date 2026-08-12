@@ -26,10 +26,9 @@ class AtomDB;
 class AuthorizationManagement {
    public:
     /**
-     * @brief Builds the in-RAM AuthorizationManifest.
+     * @brief Builds the in-RAM AuthorizationManifest from atomdb->get_access_permissions().
      *
-     * @param atomdb AtomDB used to read access_permissions documents once
-     *        AtomDB::get_access_permissions() is available. Until then the manifest starts empty.
+     * @param atomdb AtomDB used to read access_permissions JSON documents and as HandleDecoder.
      * @param persistence Storage used by authorize() and revoke*(). May be null when the atomdb
      *        has no authorization storage; administration then fails.
      */
@@ -83,6 +82,9 @@ class AuthorizationManagement {
     bool matches_entry(const AuthorizationEntry& entry,
                        const string& handle,
                        HandleDecoder& decoder) const;
+
+    /** @brief Parses one JSON document from AtomDB::get_access_permissions() into a Document. */
+    static AuthorizationManifest::Document parse_access_permissions_document(const string& json);
 };
 
 }  // namespace atomdb

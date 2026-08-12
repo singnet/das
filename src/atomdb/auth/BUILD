@@ -50,5 +50,6 @@ cc_library(
         "//atomdb",
         "//commons:commons_lib",
         "//commons/atoms:atoms_lib",
+        "@nlohmann_json//:json",
     ],
 )

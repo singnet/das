@@ -1,5 +1,7 @@
 #include "AuthorizationManagement.h"
 
+#include <nlohmann/json.hpp>
+
 #include "Assignment.h"
 #include "AtomDB.h"
 #include "Link.h"
@@ -8,6 +10,7 @@
 using namespace atomdb;
 using namespace atoms;
 using namespace commons;
+using json = nlohmann::json;
 
 // --------------------------------------------------------------------------------
 // Constructors
@@ -18,8 +21,9 @@ AuthorizationManagement::AuthorizationManagement(shared_ptr<AtomDB> atomdb,
     if (this->atomdb == nullptr) {
         RAISE_ERROR("AuthorizationManagement requires a non-null atomdb AtomDB");
     }
-    // Bootstrap from AtomDB::get_access_permissions() once that API exists on AtomDB.
-    // Until then the in-RAM manifest starts empty and is filled only by authorize().
+    for (const auto& document_json : this->atomdb->get_access_permissions()) {
+        this->manifest.set(this->parse_access_permissions_document(document_json));
+    }
 }
 
 // --------------------------------------------------------------------------------
@@ -118,4 +122,43 @@ bool AuthorizationManagement::matches_entry(const AuthorizationEntry& entry,
     Assignment assignment;
     LinkSchema schema = entry.schema();
     return schema.match(handle, assignment, decoder);
+}
+
+AuthorizationManifest::Document AuthorizationManagement::parse_access_permissions_document(
+    const string& document_json) {
+    json j = json::parse(document_json);
+    AuthorizationManifest::Document document;
+
+    if (j.contains("public_key") && j["public_key"].is_string()) {
+        document.public_key = j["public_key"].get<string>();
+    } else if (j.contains("_id") && j["_id"].is_string()) {
+        document.public_key = j["_id"].get<string>();
+    }
+
+    if (j.contains("full_access") && j["full_access"].is_boolean()) {
+        document.full_access = j["full_access"].get<bool>();
+    }
+
+    if (j.contains("allowed_schemas") && j["allowed_schemas"].is_array()) {
+        for (const auto& item : j["allowed_schemas"]) {
+            if (!item.is_object() || !item.contains("tokens") || !item["tokens"].is_array()) {
+                continue;
+            }
+            vector<string> tokens;
+            for (const auto& token : item["tokens"]) {
+                if (token.is_string()) {
+                    tokens.push_back(token.get<string>());
+                }
+            }
+            if (tokens.empty()) {
+                continue;
+            }
+            bool read = item.contains("read") && item["read"].is_boolean() && item["read"].get<bool>();
+            bool write =
+                item.contains("write") && item["write"].is_boolean() && item["write"].get<bool>();
+            document.entries.emplace_back(tokens, read, write);
+        }
+    }
+
+    return document;
 }
