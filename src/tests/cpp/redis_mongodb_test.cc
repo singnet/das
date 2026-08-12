@@ -1173,12 +1173,10 @@ TEST_F(RedisMongoDBTest, CompositeHashDisabledSkipsTargetChecks) {
     EXPECT_THROW(db->add_links({link}), runtime_error);
 
     // Same Redis/Mongo namespace, composite_type_enabled=false: skip checks and persist the link.
-    auto json = nlohmann::json();
-    json["type"] = "redismongodb";
-    json["composite_type_enabled"] = false;
-    json["redis"] = {{"endpoint", "localhost:40020"}, {"cluster", false}};
-    json["mongodb"] = {{"endpoint", "localhost:40021"}, {"username", "admin"}, {"password", "admin"}};
-    auto local_db = make_shared<RedisMongoDB>("test_", false, commons::JsonConfig(json));
+    auto config = test_atomdb_json_config();
+    config["composite_type_enabled"] = false;
+    auto local_db = dynamic_pointer_cast<RedisMongoDB>(AtomDBFactory::create(config, "test_"));
+    ASSERT_NE(local_db, nullptr);
 
     auto handles = local_db->add_links({link});
     ASSERT_EQ(handles.size(), 1);
