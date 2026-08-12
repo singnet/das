@@ -90,7 +90,9 @@ class InMemoryDB : public AtomDB {
 
     void re_index_patterns(bool flush_patterns = true) override;
 
+    /** Returns deep clones of every stored atom. */
     vector<shared_ptr<Atom>> get_all_atoms();
+    /** Removes all stored atoms and resets all indexes. */
     void drop_all();
 
     void add_pattern(const string& pattern_handle, const string& atom_handle);
