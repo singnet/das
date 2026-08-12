@@ -1354,6 +1354,51 @@ TEST_F(RedisMongoDBTest, TransactionalRejectedMergeStillBooksCompositeType) {
     delete nested;
 }
 
+TEST_F(RedisMongoDBTest, GetAccessPermissionsEmptyCollection) {
+    auto pool = db->get_mongo_pool();
+    auto conn = pool->acquire();
+    auto collection =
+        (*conn)[RedisMongoDB::MONGODB_DB_NAME][RedisMongoDB::MONGODB_ACCESS_PERMISSIONS_COLLECTION_NAME];
+    collection.delete_many({});
+
+    auto permissions = db->get_access_permissions();
+    EXPECT_TRUE(permissions.empty());
+}
+
+TEST_F(RedisMongoDBTest, GetAccessPermissionsReturnsStoredDocuments) {
+    using bsoncxx::builder::basic::kvp;
+    using bsoncxx::builder::basic::make_document;
+
+    auto pool = db->get_mongo_pool();
+    auto conn = pool->acquire();
+    auto collection =
+        (*conn)[RedisMongoDB::MONGODB_DB_NAME][RedisMongoDB::MONGODB_ACCESS_PERMISSIONS_COLLECTION_NAME];
+    collection.delete_many({});
+
+    collection.insert_one(make_document(kvp("_id", "perm_admin"), kvp("role", "admin")));
+    collection.insert_one(make_document(kvp("_id", "perm_reader"), kvp("role", "reader")));
+
+    auto permissions = db->get_access_permissions();
+    ASSERT_EQ(permissions.size(), 2u);
+
+    // Documents are returned as opaque JSON strings; auth layer parses them.
+    bool found_admin = false;
+    bool found_reader = false;
+    for (const auto& doc : permissions) {
+        if (doc.find("\"perm_admin\"") != string::npos && doc.find("\"admin\"") != string::npos) {
+            found_admin = true;
+        }
+        if (doc.find("\"perm_reader\"") != string::npos && doc.find("\"reader\"") != string::npos) {
+            found_reader = true;
+        }
+    }
+    EXPECT_TRUE(found_admin);
+    EXPECT_TRUE(found_reader);
+
+    collection.delete_many({});
+    EXPECT_TRUE(db->get_access_permissions().empty());
+}
+
 int main(int argc, char** argv) {
     ::testing::InitGoogleTest(&argc, argv);
     ::testing::AddGlobalTestEnvironment(new RedisMongoDBTestEnvironment());

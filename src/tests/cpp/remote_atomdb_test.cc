@@ -315,6 +315,11 @@ TEST_F(RemoteAtomDBPeerTest, ReleaseWithoutLocalPersistence) {
     ASSERT_NE(atom, nullptr);
 }
 
+TEST_F(RemoteAtomDBPeerTest, GetAccessPermissionsEmptyWhenBackendsHaveNone) {
+    // InMemoryDB backends have no auth storage.
+    EXPECT_TRUE(peer_->get_access_permissions().empty());
+}
+
 TEST_F(RemoteAtomDBPeerTest, AtomsCount) {
     EXPECT_EQ(peer_->atom_count(), 0);
     EXPECT_EQ(peer_->empty(), true);
@@ -544,6 +549,18 @@ class CompositeTypeEnabledInMemoryDB : public InMemoryDB {
     bool composite_type_enabled() const override { return true; }
 };
 
+// In-memory backend that returns fixed access_permissions documents.
+class AccessPermissionsInMemoryDB : public InMemoryDB {
+   public:
+    AccessPermissionsInMemoryDB(const string& context, vector<string> documents)
+        : InMemoryDB(context), documents_(std::move(documents)) {}
+
+    vector<string> get_access_permissions() const override { return documents_; }
+
+   private:
+    vector<string> documents_;
+};
+
 // Builds an Inheritance(x, "mammal") pattern that matches two links in the
 // helper-populated backends below.
 static LinkSchema inheritance_mammal_schema() {
@@ -715,6 +732,67 @@ TEST(RemoteAtomDBFederationTest, CacheFirstProbingAcrossPeers) {
 
     // A handle present in no peer resolves to nullptr.
     EXPECT_EQ(db->get_atom("ffffffffffffffffffffffffffffffff"), nullptr);
+}
+
+TEST(RemoteAtomDBFederationTest, GetAccessPermissionsEmptyWithNoPeers) {
+    map<string, shared_ptr<RemoteAtomDBPeer>> peers;
+    auto db = make_shared<RemoteAtomDB>(peers);
+    EXPECT_TRUE(db->get_access_permissions().empty());
+}
+
+TEST(RemoteAtomDBPeerAccessPermissionsTest, AggregatesLocalThenRemote) {
+    auto remote =
+        make_shared<AccessPermissionsInMemoryDB>("perm_remote_", vector<string>{"{\"src\":\"remote\"}"});
+    auto local =
+        make_shared<AccessPermissionsInMemoryDB>("perm_local_", vector<string>{"{\"src\":\"local\"}"});
+    auto peer = make_shared<RemoteAtomDBPeer>(remote, local, "perm_peer");
+
+    auto docs = peer->get_access_permissions();
+    ASSERT_EQ(docs.size(), 2u);
+    EXPECT_EQ(docs[0], "{\"src\":\"local\"}");
+    EXPECT_EQ(docs[1], "{\"src\":\"remote\"}");
+}
+
+TEST(RemoteAtomDBPeerAccessPermissionsTest, RemoteOnlyWhenLocalIsNull) {
+    auto remote = make_shared<AccessPermissionsInMemoryDB>("remote_only_",
+                                                           vector<string>{"{\"src\":\"remote_only\"}"});
+    auto peer = make_shared<RemoteAtomDBPeer>(remote, nullptr, "remote_only_peer");
+
+    auto docs = peer->get_access_permissions();
+    ASSERT_EQ(docs.size(), 1u);
+    EXPECT_EQ(docs[0], "{\"src\":\"remote_only\"}");
+}
+
+TEST(RemoteAtomDBPeerAccessPermissionsTest, SkipsEmptySides) {
+    auto remote = make_shared<AccessPermissionsInMemoryDB>("skip_remote_",
+                                                           vector<string>{"{\"a\":1}", "{\"b\":2}"});
+    auto local = make_shared<AccessPermissionsInMemoryDB>("skip_local_", vector<string>{});
+    auto peer = make_shared<RemoteAtomDBPeer>(remote, local, "skip_empty_peer");
+
+    auto docs = peer->get_access_permissions();
+    ASSERT_EQ(docs.size(), 2u);
+    EXPECT_EQ(docs[0], "{\"a\":1}");
+    EXPECT_EQ(docs[1], "{\"b\":2}");
+}
+
+TEST(RemoteAtomDBFederationTest, GetAccessPermissionsAggregatesAcrossPeers) {
+    auto backend1 =
+        make_shared<AccessPermissionsInMemoryDB>("fed_perm1_", vector<string>{"{\"peer\":\"1\"}"});
+    auto backend2 = make_shared<AccessPermissionsInMemoryDB>(
+        "fed_perm2_", vector<string>{"{\"peer\":\"2a\"}", "{\"peer\":\"2b\"}"});
+
+    map<string, shared_ptr<RemoteAtomDBPeer>> peers;
+    peers["peer1"] = make_shared<RemoteAtomDBPeer>(backend1, nullptr, "peer1");
+    peers["peer2"] = make_shared<RemoteAtomDBPeer>(backend2, nullptr, "peer2");
+    auto db = make_shared<RemoteAtomDB>(peers);
+
+    auto docs = db->get_access_permissions();
+    ASSERT_EQ(docs.size(), 3u);
+
+    // map iteration is ordered by key: peer1 then peer2.
+    EXPECT_EQ(docs[0], "{\"peer\":\"1\"}");
+    EXPECT_EQ(docs[1], "{\"peer\":\"2a\"}");
+    EXPECT_EQ(docs[2], "{\"peer\":\"2b\"}");
 }
 
 int main(int argc, char** argv) {
