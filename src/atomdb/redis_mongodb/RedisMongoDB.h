@@ -32,6 +32,7 @@ class RedisMongoDB : public AtomDB {
 
     bool allow_nested_indexing() override;
     bool composite_type_enabled() const override { return this->composite_type_enabled_; }
+    vector<string> get_access_permissions() const override;
 
     static string REDIS_PATTERNS_PREFIX;
     static string REDIS_OUTGOING_PREFIX;
@@ -41,6 +42,7 @@ class RedisMongoDB : public AtomDB {
     static string MONGODB_NODES_COLLECTION_NAME;
     static string MONGODB_LINKS_COLLECTION_NAME;
     static string MONGODB_PATTERN_INDEX_SCHEMA_COLLECTION_NAME;
+    static string MONGODB_ACCESS_PERMISSIONS_COLLECTION_NAME;
     static string MONGODB_FIELD_NAME[MONGODB_FIELD::size];
     static uint MONGODB_CHUNK_SIZE;
 
@@ -53,6 +55,7 @@ class RedisMongoDB : public AtomDB {
         MONGODB_NODES_COLLECTION_NAME = context + "nodes";
         MONGODB_LINKS_COLLECTION_NAME = context + "links";
         MONGODB_PATTERN_INDEX_SCHEMA_COLLECTION_NAME = context + "pattern_index_schema";
+        MONGODB_ACCESS_PERMISSIONS_COLLECTION_NAME = context + "access_permissions";
         MONGODB_FIELD_NAME[MONGODB_FIELD::ID] = "_id";
         MONGODB_FIELD_NAME[MONGODB_FIELD::TARGETS] = "targets";
         MONGODB_FIELD_NAME[MONGODB_FIELD::NAME] = "name";

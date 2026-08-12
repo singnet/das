@@ -52,6 +52,14 @@ class AtomDB : public HandleDecoder {
     virtual bool allow_nested_indexing() = 0;
     virtual bool composite_type_enabled() const = 0;
 
+    /**
+     * @brief Returns the access_permissions documents stored by this backend as JSON strings.
+     *
+     * Backends without authorization storage return an empty list. The AtomDB layer does not
+     * interpret the documents; callers in the auth layer parse them.
+     */
+    virtual vector<string> get_access_permissions() const = 0;
+
     virtual shared_ptr<Atom> get_atom(const string& handle) = 0;  // HandleDecoder interface
     virtual shared_ptr<Node> get_node(const string& handle) = 0;
     virtual shared_ptr<Link> get_link(const string& handle) = 0;

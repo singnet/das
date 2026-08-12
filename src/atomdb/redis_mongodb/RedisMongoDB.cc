@@ -32,6 +32,7 @@ string RedisMongoDB::MONGODB_DB_NAME;
 string RedisMongoDB::MONGODB_NODES_COLLECTION_NAME;
 string RedisMongoDB::MONGODB_LINKS_COLLECTION_NAME;
 string RedisMongoDB::MONGODB_PATTERN_INDEX_SCHEMA_COLLECTION_NAME;
+string RedisMongoDB::MONGODB_ACCESS_PERMISSIONS_COLLECTION_NAME;
 string RedisMongoDB::MONGODB_FIELD_NAME[MONGODB_FIELD::size];
 uint RedisMongoDB::MONGODB_CHUNK_SIZE;
 
@@ -54,6 +55,15 @@ RedisMongoDB::~RedisMongoDB() {
 }
 
 bool RedisMongoDB::allow_nested_indexing() { return false; }
+vector<string> RedisMongoDB::get_access_permissions() const {
+    vector<string> documents;
+    auto conn = this->mongodb_pool->acquire();
+    auto collection = (*conn)[MONGODB_DB_NAME][MONGODB_ACCESS_PERMISSIONS_COLLECTION_NAME];
+    for (const auto& view : collection.find({})) {
+        documents.push_back(bsoncxx::to_json(view));
+    }
+    return documents;
+}
 
 void RedisMongoDB::redis_setup(const JsonConfig& config) {
     if (skip_redis_) return;
