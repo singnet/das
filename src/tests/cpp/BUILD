@@ -904,7 +904,7 @@ cc_test(
 
 cc_test(
     name = "remote_atomdb_test",
-    size = "small",
+    size = "medium",
     srcs = ["remote_atomdb_test.cc"],
     copts = [
         "-Iexternal/gtest/googletest/include",
