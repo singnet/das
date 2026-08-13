@@ -115,10 +115,8 @@ shared_ptr<AtomDB> AtomDBFactory::wrap_if_protected(shared_ptr<AtomDB> atomdb) {
     if (!atomdb) {
         RAISE_ERROR("AtomDBFactory::wrap_if_protected() received null atomdb");
     }
-    if (!atomdb->is_protected()) {
-        return atomdb;
-    }
-    if (dynamic_pointer_cast<ProtectedAtomDB>(atomdb)) {
+    if (atomdb->is_protected() == atomdb_api_types::ProtectionMode::UNPROTECTED ||
+        dynamic_pointer_cast<ProtectedAtomDB>(atomdb)) {
         return atomdb;
     }
     return make_shared<ProtectedAtomDB>(atomdb);

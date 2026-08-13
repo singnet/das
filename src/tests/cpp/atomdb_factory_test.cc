@@ -11,8 +11,8 @@
 #include "JsonConfig.h"
 #include "MorkDB.h"
 #include "Node.h"
-#include "RemoteAtomDB.h"
 #include "ProtectedAtomDB.h"
+#include "RemoteAtomDB.h"
 #include "TestAtomDBJsonConfig.h"
 #include "Utils.h"
 #include "expression_hasher.h"
@@ -21,6 +21,8 @@ using namespace atomdb;
 using namespace atoms;
 using namespace commons;
 using namespace std;
+
+using atomdb_api_types::ProtectionMode;
 
 namespace {
 
@@ -159,6 +161,6 @@ TEST(AtomDBFactoryTest, CreateAdapterDBRequiresBackendType) {
 TEST(AtomDBFactoryTest, CreateInMemoryDBIsNotProtected) {
     auto db = AtomDBFactory::create(config_with_type("inmemorydb"), "factory_unprotected_");
     ASSERT_NE(db, nullptr);
-    EXPECT_FALSE(db->is_protected());
+    EXPECT_EQ(db->is_protected(), ProtectionMode::UNPROTECTED);
     EXPECT_EQ(dynamic_pointer_cast<ProtectedAtomDB>(db), nullptr);
 }

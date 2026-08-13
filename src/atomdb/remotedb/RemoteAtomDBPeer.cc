@@ -40,9 +40,17 @@ bool RemoteAtomDBPeer::composite_type_enabled() const {
     return local_persistence_ && local_persistence_->composite_type_enabled();
 }
 
-bool RemoteAtomDBPeer::is_protected() const {
-    return (local_persistence_ && local_persistence_->is_protected()) ||
-           (atomdb_ && atomdb_->is_protected());
+atomdb_api_types::ProtectionMode RemoteAtomDBPeer::is_protected() const {
+    if (local_persistence_) {
+        auto mode = local_persistence_->is_protected();
+        if (mode != atomdb_api_types::ProtectionMode::UNPROTECTED) {
+            return mode;
+        }
+    }
+    if (atomdb_) {
+        return atomdb_->is_protected();
+    }
+    return atomdb_api_types::ProtectionMode::UNPROTECTED;
 }
 
 shared_ptr<Atom> RemoteAtomDBPeer::get_atom(const string& handle) {

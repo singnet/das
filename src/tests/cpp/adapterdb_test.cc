@@ -102,7 +102,7 @@ class AdapterDBTestBase : public ::testing::Test {
             mapping_path, adapter_type, db_credentials, backend_type, reuse_mongodb);
         shared_ptr<AtomDB> atomdb_backend = backend;
         if (!atomdb_backend || context != back_context) {
-            atomdb_backend = make_shared<RedisMongoDB>(context, false, test_atomdb_json_config());
+            atomdb_backend = AtomDBFactory::create(test_atomdb_json_config(), context);
         }
         return make_shared<AdapterDB>(config, atomdb_backend, context);
     }

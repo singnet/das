@@ -57,7 +57,10 @@ RedisMongoDB::~RedisMongoDB() {
 
 bool RedisMongoDB::allow_nested_indexing() { return false; }
 
-bool RedisMongoDB::is_protected() const { return this->protected_flag; }
+atomdb_api_types::ProtectionMode RedisMongoDB::is_protected() const {
+    return this->protected_flag ? atomdb_api_types::ProtectionMode::PROTECTED
+                                : atomdb_api_types::ProtectionMode::UNPROTECTED;
+}
 
 void RedisMongoDB::redis_setup(const JsonConfig& config) {
     if (skip_redis_) return;

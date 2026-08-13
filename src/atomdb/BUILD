@@ -12,6 +12,7 @@ cc_library(
         ":atomdb_singleton",
         ":atomdbutils",
         ":protected_atomdb",
+        ":public_key",
         "//atomdb/adapterdb:adapterdb_lib",
         "//atomdb/inmemorydb:inmemorydb_lib",
         "//atomdb/morkdb:morkdb_lib",
@@ -82,6 +83,16 @@ cc_library(
 )
 
 cc_library(
+    name = "public_key",
+    srcs = ["PublicKey.cc"],
+    hdrs = ["PublicKey.h"],
+    includes = ["."],
+    deps = [
+        "//commons:commons_lib",
+    ],
+)
+
+cc_library(
     name = "protected_atomdb",
     srcs = ["ProtectedAtomDB.cc"],
     hdrs = ["ProtectedAtomDB.h"],
@@ -89,6 +100,7 @@ cc_library(
     deps = [
         ":atomdb",
         ":atomdb_api_types",
+        ":public_key",
         "//commons:commons_lib",
         "//commons/atoms:atoms_lib",
     ],

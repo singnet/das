@@ -32,7 +32,7 @@ class RedisMongoDB : public AtomDB {
 
     bool allow_nested_indexing() override;
     bool composite_type_enabled() const override { return this->composite_type_enabled_; }
-    bool is_protected() const override;
+    atomdb_api_types::ProtectionMode is_protected() const override;
 
     static string REDIS_PATTERNS_PREFIX;
     static string REDIS_OUTGOING_PREFIX;
