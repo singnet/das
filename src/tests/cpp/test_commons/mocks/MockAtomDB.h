@@ -5,6 +5,7 @@
 
 using namespace std;
 using namespace atomdb;
+using atomdb_api_types::ProtectionMode;
 
 class MockAtomDocument : public atomdb_api_types::AtomDocument {
    public:
@@ -25,7 +26,7 @@ class AtomDBMock : public AtomDB {
    public:
     MOCK_METHOD(bool, allow_nested_indexing, (), (override));
     MOCK_METHOD(bool, composite_type_enabled, (), (const, override));
-    MOCK_METHOD(bool, is_protected, (), (const, override));
+    MOCK_METHOD(ProtectionMode, is_protected, (), (const, override));
     MOCK_METHOD(shared_ptr<Atom>, get_atom, (const string& handle), (override));
     MOCK_METHOD(shared_ptr<Node>, get_node, (const string& handle), (override));
     MOCK_METHOD(shared_ptr<Link>, get_link, (const string& handle), (override));
@@ -95,7 +96,7 @@ class AtomDBMock : public AtomDB {
 
     AtomDBMock() {
         ON_CALL(*this, composite_type_enabled()).WillByDefault(::testing::Return(true));
-        ON_CALL(*this, is_protected()).WillByDefault(::testing::Return(false));
+        ON_CALL(*this, is_protected()).WillByDefault(::testing::Return(ProtectionMode::UNPROTECTED));
         ON_CALL(*this, get_atom(testing::_))
             .WillByDefault(::testing::Return(make_shared<Node>("Node", "TestNode")));
         ON_CALL(*this, get_node(testing::_))

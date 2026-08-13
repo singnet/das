@@ -39,13 +39,13 @@ bool RemoteAtomDB::composite_type_enabled() const {
     return false;
 }
 
-bool RemoteAtomDB::is_protected() const {
+atomdb_api_types::ProtectionMode RemoteAtomDB::is_protected() const {
     for (auto& [uid, peer] : remote_db_) {
-        if (peer->is_protected()) {
-            return true;
+        if (peer->is_protected() != atomdb_api_types::ProtectionMode::UNPROTECTED) {
+            return atomdb_api_types::ProtectionMode::FORWARD;
         }
     }
-    return false;
+    return atomdb_api_types::ProtectionMode::UNPROTECTED;
 }
 
 void RemoteAtomDB::derive_nested_indexing() {

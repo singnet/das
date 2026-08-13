@@ -65,7 +65,7 @@ bool AdapterDB::composite_type_enabled() const {
     return this->atomdb_backend->composite_type_enabled();
 }
 
-bool AdapterDB::is_protected() const {
+atomdb_api_types::ProtectionMode AdapterDB::is_protected() const {
     this->ensure_backend_ready();
     return this->atomdb_backend->is_protected();
 }

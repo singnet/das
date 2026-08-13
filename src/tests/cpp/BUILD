@@ -861,6 +861,7 @@ cc_test(
     linkstatic = 1,
     deps = [
         "//atomdb:protected_atomdb",
+        "//atomdb:public_key",
         "//atomdb/inmemorydb:inmemorydb_lib",
         "//commons/atoms:atoms_lib",
         "@com_github_google_googletest//:gtest_main",

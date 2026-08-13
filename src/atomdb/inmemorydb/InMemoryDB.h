@@ -23,7 +23,9 @@ class InMemoryDB : public AtomDB {
 
     bool allow_nested_indexing() override;
     bool composite_type_enabled() const override { return false; }
-    bool is_protected() const override { return false; }
+    atomdb_api_types::ProtectionMode is_protected() const override {
+        return atomdb_api_types::ProtectionMode::UNPROTECTED;
+    }
 
     shared_ptr<Atom> get_atom(const string& handle) override;
     shared_ptr<Node> get_node(const string& handle) override;
