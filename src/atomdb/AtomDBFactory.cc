@@ -76,22 +76,14 @@ shared_ptr<AtomDB> AtomDBFactory::create_composite_atomdb(const JsonConfig& conf
                 RAISE_ERROR("AtomDBFactory: remote peer is missing a non-empty uid");
             }
 
-            string peer_context = peer_config.at_path("context").get_or<string>("");
-            if (peer_context.empty()) {
-                peer_context = "remotedb_" + uid;
-            }
-
             shared_ptr<AtomDB> local_persistence = nullptr;
             auto local_persistence_config =
                 peer_config.at_path("local_persistence").get_or<JsonConfig>(JsonConfig());
             if (!local_persistence_config.empty()) {
-                string local_context =
-                    local_persistence_config.at_path("context").get_or<string>(peer_context);
-                if (local_context.empty()) {
-                    local_context = peer_context;
-                }
+                string local_context = local_persistence_config.at_path("context").get_or<string>("");
                 local_persistence = create_basic_atomdb(local_persistence_config, local_context);
             }
+            string peer_context = peer_config.at_path("context").get_or<string>("");
             remote_peers[uid] = make_shared<RemoteAtomDBPeer>(
                 create_basic_atomdb(peer_config, peer_context), local_persistence, uid);
         }

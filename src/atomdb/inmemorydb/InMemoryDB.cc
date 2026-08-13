@@ -577,10 +577,12 @@ void InMemoryDB::drop_all() {
     auto fresh_atoms = make_trie();
     auto fresh_patterns = make_trie();
     auto fresh_incoming = make_trie();
-    lock_guard<mutex> ptr_lock(trie_ptr_mutex_);
-    atoms_trie_ = fresh_atoms;
-    pattern_index_trie_ = fresh_patterns;
-    incoming_sets_trie_ = fresh_incoming;
+    {
+        lock_guard<mutex> ptr_lock(trie_ptr_mutex_);
+        atoms_trie_ = move(fresh_atoms);
+        pattern_index_trie_ = move(fresh_patterns);
+        incoming_sets_trie_ = move(fresh_incoming);
+    }
 }
 
 void InMemoryDB::re_index_patterns(bool flush_patterns) {
