@@ -29,6 +29,7 @@ class LinkCreationProxy : public BaseQueryProxy {
     static string MAX_VISIT_ATTEMPTS_PER_ROUND;
     static string MAX_ROUNDS;
     static string ATTENTION_FOCUS_STRICTNESS;
+    static string LINK_CREATION_STRENGTH_THRESHOLD;
 
     LinkCreationProxy();
 

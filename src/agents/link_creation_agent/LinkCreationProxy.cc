@@ -15,6 +15,7 @@ string LinkCreationProxy::MAX_UNPRODUCTIVE_VISITS_PER_ROUND = "max_unproductive_
 string LinkCreationProxy::MAX_VISIT_ATTEMPTS_PER_ROUND = "max_visit_attempts_per_round";
 string LinkCreationProxy::MAX_ROUNDS = "max_rounds";
 string LinkCreationProxy::ATTENTION_FOCUS_STRICTNESS = "attention_focus_strictness";
+string LinkCreationProxy::LINK_CREATION_STRENGTH_THRESHOLD = "link_creation_strength_threshold";
 
 LinkCreationProxy::LinkCreationProxy() {
     // constructor typically used in processor
@@ -116,6 +117,7 @@ void LinkCreationProxy::set_link_creator_function_tag(const string& tag) {
         this->link_creator_function_tag = tag;
         if (tag != LinkCreatorRegistry::REMOTE_FUNCTION) {
             this->link_creation_function_object = LinkCreatorRegistry::function(tag);
+            this->link_creation_function_object->strength_threshold(this->parameters.get<double>(LINK_CREATION_STRENGTH_THRESHOLD));
         }
     }
 }

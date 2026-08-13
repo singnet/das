@@ -97,15 +97,26 @@ class LinkCreator {
      */
     inline void reset_visited() { this->_visited.clear(); }
 
+    /**
+     * Set the strength threshold value for link creation. Links with strength below this value will
+     * not be actually added to the atomdb.
+     *
+     * @param value New value for sytrength threshold
+     */
+    inline double strength_threshold(double value) { this->_strength_threshold = value; }
+
    protected:
     shared_ptr<AtomDB> atomdb;
-    static double LINK_CREATION_STRENGTH_THRESHOLD;
+    HandleDecoder* decoder;
     inline void visit(const string& key) { this->_visited.insert(key); }
     inline bool visited(const string& key) { return (this->_visited.find(key) != this->_visited.end()); }
+    inline double strength_threshold() { return this->_strength_threshold; }
+    inline HandleDecoder* decoder() { return static_pointer_cast<HandleDecoder>(atomdb).get(); }
 
    private:
     set<string> _visited;
     string _context;
+    double _strength_threshold;
 };
 
 }  // namespace link_creators
