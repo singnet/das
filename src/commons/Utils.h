@@ -12,7 +12,6 @@
 #include <string>
 #include <vector>
 
-
 #include "Logger.h"
 
 using namespace std;
@@ -111,20 +110,17 @@ class StackTrace {
 };
 
 class Random {
-
    public:
-
-   /**
-    * Use p[assed seed to initialize a pseudo-rando number generator used  in all Utils'
-    * methods with random behavior.* If seed == 0, the machine clock is used instead.
-    */
+    /**
+     * Use p[assed seed to initialize a pseudo-rando number generator used  in all Utils'
+     * methods with random behavior.* If seed == 0, the machine clock is used instead.
+     */
     static void init(unsigned int seed);
     static void lock_random_generator();
     static void unlock_random_generator();
     static std::mt19937* get_random_generator();
 
    private:
-
     static std::mt19937* random_generator;
     static mutex random_generator_mutex;
 };

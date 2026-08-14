@@ -12,7 +12,6 @@
 using namespace std;
 using namespace commons;
 
-
 void f1() {
     STACK_TRACE();
     RAISE_ERROR("Error in f1()");
@@ -109,7 +108,8 @@ TEST(UtilsTest, flip_coin) {
 }
 
 TEST(UtilsTest, uint_rand) {
-    for (pair<unsigned int, unsigned int> p : vector<pair<unsigned int, unsigned int>>({{0, 1} , {0, 2}, {0, 3}, {2, 3}, {2, 4}, {2, 5}, {105, 1200}})) {
+    for (pair<unsigned int, unsigned int> p : vector<pair<unsigned int, unsigned int>>(
+             {{0, 1}, {0, 2}, {0, 3}, {2, 3}, {2, 4}, {2, 5}, {105, 1200}})) {
         for (unsigned int i = 0; i < 10000; i++) {
             unsigned int closed_lower = p.first;
             unsigned int open_upper = p.second;

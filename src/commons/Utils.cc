@@ -47,7 +47,8 @@ bool Utils::flip_coin(double true_probability) {
 
 unsigned int Utils::uint_rand(unsigned int closed_lower_bound, unsigned int open_upper_bound) {
     if (open_upper_bound <= closed_lower_bound) {
-        RAISE_ERROR("Invalid bounds: [" + std::to_string(closed_lower_bound) + ", " + std::to_string(open_upper_bound) + ")");
+        RAISE_ERROR("Invalid bounds: [" + std::to_string(closed_lower_bound) + ", " +
+                    std::to_string(open_upper_bound) + ")");
     }
     int delta = open_upper_bound - closed_lower_bound;
     std::uniform_int_distribution<unsigned int> distribution(0, delta - 1);
@@ -510,19 +511,23 @@ void Random::init(unsigned int seed) {
     random_generator_mutex.lock();
     if (Random::random_generator == NULL) {
         if (seed == 0) {
-            random_generator = new std::mt19937(std::chrono::system_clock::now().time_since_epoch().count());
+            random_generator =
+                new std::mt19937(std::chrono::system_clock::now().time_since_epoch().count());
         } else {
             random_generator = new std::mt19937(seed);
         }
     } else {
-        RAISE_ERROR("commons::Random already initialized. commons::Random::init() should be called only once.");
+        RAISE_ERROR(
+            "commons::Random already initialized. commons::Random::init() should be called only once.");
     }
     random_generator_mutex.unlock();
 }
 
 void Random::lock_random_generator() {
     if (Random::random_generator == NULL) {
-        RAISE_ERROR("commons::Random is not initialized. Call commons::Random::init(seed) before using random numbers.");
+        RAISE_ERROR(
+            "commons::Random is not initialized. Call commons::Random::init(seed) before using random "
+            "numbers.");
     } else {
         random_generator_mutex.lock();
     }
@@ -530,7 +535,9 @@ void Random::lock_random_generator() {
 
 void Random::unlock_random_generator() {
     if (Random::random_generator == NULL) {
-        RAISE_ERROR("commons::Random is not initialized. Call commons::Random::init(seed) before using random numbers.");
+        RAISE_ERROR(
+            "commons::Random is not initialized. Call commons::Random::init(seed) before using random "
+            "numbers.");
     } else {
         random_generator_mutex.unlock();
     }
@@ -538,7 +545,9 @@ void Random::unlock_random_generator() {
 
 std::mt19937* Random::get_random_generator() {
     if (Random::random_generator == NULL) {
-        RAISE_ERROR("commons::Random is not initialized. Call commons::Random::init(seed) before using random numbers.");
+        RAISE_ERROR(
+            "commons::Random is not initialized. Call commons::Random::init(seed) before using random "
+            "numbers.");
     }
     return random_generator;
 }
