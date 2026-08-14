@@ -227,7 +227,7 @@ vector<string> MorkDB::add_links(const vector<atoms::Link*>& links,
         return {};
     }
 
-    if (!is_transactional) {
+    if (this->composite_type_enabled() && !is_transactional) {
         this->check_existing_targets(links);
     }
 
