@@ -219,7 +219,6 @@ static string answer_path_to_string(QueryAnswer* query_answer) {
 }
 
 TEST(ChainOperatorTest, allow_concatenation) {
-    Random::init(0);
     if (!RUN_allow_concatenation) return;
 
     shared_ptr<Link> ab_link(new Link(LINK_TYPE, {" ", "a", "b"}));
@@ -690,5 +689,6 @@ TEST(ChainOperatorTest, basics) {
 int main(int argc, char** argv) {
     ::testing::InitGoogleTest(&argc, argv);
     ::testing::AddGlobalTestEnvironment(new ChainOperatorTestEnvironment());
+    Random::init(0);
     return RUN_ALL_TESTS();
 }

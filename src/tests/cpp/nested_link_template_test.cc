@@ -17,7 +17,6 @@ using namespace query_engine;
 using namespace query_element;
 
 TEST(LinkTemplate, basics) {
-    Random::init(0);
     AtomDBSingleton::init(test_atomdb_json_config());
 
     const string expression = "Expression";
@@ -83,4 +82,10 @@ TEST(LinkTemplate, nested_variables) {
         }
     }
     EXPECT_EQ(count, 1);
+}
+
+int main(int argc, char** argv) {
+    ::testing::InitGoogleTest(&argc, argv);
+    Random::init(0);
+    return RUN_ALL_TESTS();
 }

@@ -37,12 +37,20 @@ void Utils::error(string msg, bool throw_flag, bool log_flag) {
 }
 
 bool Utils::flip_coin(double true_probability) {
-    long f = 1000;
-    std::uniform_int_distribution<unsigned int> distribution(0, f);
-    Random::lock_random_generator();
-    unsigned int number = distribution(*Random::get_random_generator());
-    Random::unlock_random_generator();
-    return (number < lround(true_probability * f));
+    bool answer = false;
+    if ((true_probability > 1.0) || (true_probability < 0.0)) {
+        RAISE_ERROR("true_probability is supposed to be in [0, 1]");
+    } else {
+        if (true_probability > 0.0) {
+            long f = 1000;
+            std::uniform_int_distribution<unsigned int> distribution(0, f - 1);
+            Random::lock_random_generator();
+            unsigned int number = distribution(*Random::get_random_generator());
+            Random::unlock_random_generator();
+            answer = (number < lround(true_probability * f));
+        }
+    }
+    return answer;
 }
 
 unsigned int Utils::uint_rand(unsigned int closed_lower_bound, unsigned int open_upper_bound) {
@@ -50,7 +58,7 @@ unsigned int Utils::uint_rand(unsigned int closed_lower_bound, unsigned int open
         RAISE_ERROR("Invalid bounds: [" + std::to_string(closed_lower_bound) + ", " +
                     std::to_string(open_upper_bound) + ")");
     }
-    int delta = open_upper_bound - closed_lower_bound;
+    unsigned int delta = open_upper_bound - closed_lower_bound;
     std::uniform_int_distribution<unsigned int> distribution(0, delta - 1);
     Random::lock_random_generator();
     unsigned int number = distribution(*Random::get_random_generator());
@@ -516,11 +524,12 @@ void Random::init(unsigned int seed) {
         } else {
             random_generator = new std::mt19937(seed);
         }
+        random_generator_mutex.unlock();
     } else {
+        random_generator_mutex.unlock();
         RAISE_ERROR(
             "commons::Random already initialized. commons::Random::init() should be called only once.");
     }
-    random_generator_mutex.unlock();
 }
 
 void Random::lock_random_generator() {

@@ -24,7 +24,6 @@ class TestDecoder : public HandleDecoder {
 };
 
 TEST(QueryAnswer, assignments_basics) {
-    Random::init(0);
     Assignment mapping0;
 
     // Tests assign()
@@ -689,4 +688,10 @@ TEST(QueryAnswer, rewrite_query) {
     map<string, QueryAnswerElement> replacements = {{"v1", element1}, {"v3", element2}};
     answer.rewrite_query(original_query, replacements, new_query);
     EXPECT_EQ(expected, new_query);
+}
+
+int main(int argc, char** argv) {
+    ::testing::InitGoogleTest(&argc, argv);
+    Random::init(0);
+    return RUN_ALL_TESTS();
 }

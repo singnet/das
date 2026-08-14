@@ -20,7 +20,6 @@ class TestSharedQueue : public SharedQueue {
 };
 
 TEST(WorkerThreads, basics) {
-    Random::init(0);
     dasproto::HandleCount* handle_count;
     dasproto::HandleList* handle_list;
 
@@ -210,4 +209,10 @@ TEST(WorkerThreads, hebbian_network_updater_stress) {
     delete pool;
     delete stimulus;
     delete correlation;
+}
+
+int main(int argc, char** argv) {
+    ::testing::InitGoogleTest(&argc, argv);
+    Random::init(0);
+    return RUN_ALL_TESTS();
 }

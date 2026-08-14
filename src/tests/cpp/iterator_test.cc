@@ -25,7 +25,6 @@ class TestQueryElement : public QueryElement {
 };
 
 TEST(Iterator, basics) {
-    Random::init(0);
     string client_id = "no_query_element";
     auto dummy = make_shared<TestQueryElement>(client_id);
     Iterator query_answer_iterator(dummy);
@@ -118,4 +117,10 @@ TEST(Iterator, link_template_integration) {
     EXPECT_TRUE(monkey_flag);
     EXPECT_TRUE(chimp_flag);
     EXPECT_TRUE(ent_flag);
+}
+
+int main(int argc, char** argv) {
+    ::testing::InitGoogleTest(&argc, argv);
+    Random::init(0);
+    return RUN_ALL_TESTS();
 }

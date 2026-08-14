@@ -84,7 +84,6 @@ void visitor3(HandleTrie* trie, unsigned int n) {
 }
 
 TEST(HandleTrieTest, basics) {
-    Random::init(0);
     HandleTrie trie(4);
     TestValue* value;
 
@@ -769,4 +768,10 @@ TEST(HandleTrieTest, remove_after_merge) {
     // Verify it's gone
     value = (AccumulatorValue*) trie.lookup("ABCD");
     EXPECT_TRUE(value == NULL);
+}
+
+int main(int argc, char** argv) {
+    ::testing::InitGoogleTest(&argc, argv);
+    Random::init(0);
+    return RUN_ALL_TESTS();
 }

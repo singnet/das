@@ -12,8 +12,6 @@ using namespace processor;
 using namespace commons;
 
 TEST(ProcessorTest, basics) {
-    Random::init(0);
-
     Processor p1("blah");
     EXPECT_THROW(Processor p2(""), runtime_error);
     EXPECT_EQ(p1.to_string(), "blah");
@@ -217,4 +215,10 @@ TEST(ProcessorTest, thread_pool) {
             }
         }
     }
+}
+
+int main(int argc, char** argv) {
+    ::testing::InitGoogleTest(&argc, argv);
+    Random::init(0);
+    return RUN_ALL_TESTS();
 }

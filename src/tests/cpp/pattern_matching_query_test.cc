@@ -267,7 +267,6 @@ void check_query_chain(const string& query_tag,
 }
 
 TEST(PatternMatchingQuery, queries) {
-    Random::init(0);
     AtomDBSingleton::init(test_atomdb_json_config());
     init_test_system_parameters_singleton();
     ServiceBus::initialize_statics({}, 40200, 40299);
@@ -607,4 +606,10 @@ TEST(PatternMatchingQuery, queries) {
     EXPECT_EQ(count, 1U);
 
     // clang-format on
+}
+
+int main(int argc, char** argv) {
+    ::testing::InitGoogleTest(&argc, argv);
+    Random::init(0);
+    return RUN_ALL_TESTS();
 }

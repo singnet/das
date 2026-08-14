@@ -16,7 +16,6 @@ using namespace query_engine;
 using namespace query_element;
 
 TEST(LinkTemplate, basics) {
-    Random::init(0);
     string server_node_id = "SERVER";
     QueryNodeServer server_node(server_node_id);
 
@@ -72,4 +71,10 @@ TEST(LinkTemplate, basics) {
     EXPECT_TRUE(monkey_flag);
     EXPECT_TRUE(chimp_flag);
     EXPECT_TRUE(ent_flag);
+}
+
+int main(int argc, char** argv) {
+    ::testing::InitGoogleTest(&argc, argv);
+    Random::init(0);
+    return RUN_ALL_TESTS();
 }

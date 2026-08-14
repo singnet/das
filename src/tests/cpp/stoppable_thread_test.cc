@@ -17,7 +17,6 @@ using namespace commons;
 // burst of workers completes, the map must drain to empty WITHOUT any external/non-worker reaping
 // trigger.
 TEST(StoppableThread, self_reap_burst_then_idle) {
-    Random::init(0);
     map<string, shared_ptr<StoppableThread>> threads;
     mutex threads_mutex;
     atomic<int> completed{0};

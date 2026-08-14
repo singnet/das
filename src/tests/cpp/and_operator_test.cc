@@ -65,7 +65,6 @@ void check_query_answer(string tag,
 }
 
 TEST(AndOperator, basics) {
-    Random::init(0);
     auto source1 = make_shared<TestSource>();
     auto source2 = make_shared<TestSource>();
     auto and_operator = make_shared<And<2>>(array<shared_ptr<QueryElement>, 2>({source1, source2}));
@@ -484,4 +483,10 @@ TEST(AndOperator, not_operator_5) {
     Utils::sleep(SLEEP_DURATION);
     EXPECT_TRUE(sink.empty());
     EXPECT_TRUE(sink.finished());
+}
+
+int main(int argc, char** argv) {
+    ::testing::InitGoogleTest(&argc, argv);
+    Random::init(0);
+    return RUN_ALL_TESTS();
 }
