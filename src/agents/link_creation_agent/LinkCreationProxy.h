@@ -23,16 +23,11 @@ class LinkCreationProxy : public BaseQueryProxy {
     // ---------------------------------------------------------------------------------------------
     // Constructors, destructors and static state
 
-    // Commands allowed at the proxy level (caller <--> processor)
-    static string PROCESS_QUERY_ANSWER;  // Delivers a bundle with QueryAnswer objects to process
-    static string PROCESS_QUERY_ANSWER_RESPONSE;  // Delivers the answer for a previous
-                                                  // PROCESS_QUERY_ANSWER command
-
     // LCA command's optional parameters
-    static string MAX_SUCCESSFUL_CREATES_PER_ROUND;
+    static string MAX_SUCCESSFUL_CREATION_PER_ROUND;
+    static string MAX_UNPRODUCTIVE_VISITS_PER_ROUND;
+    static string MAX_VISIT_ATTEMPTS_PER_ROUND;
     static string MAX_ROUNDS;
-    static string MAX_VISITS_PER_ROUND;
-    static string MAX_UNPRODUCTIVE_ANSWERS_PER_ROUND;
 
     LinkCreationProxy();
 
@@ -55,12 +50,12 @@ class LinkCreationProxy : public BaseQueryProxy {
     virtual void untokenize(vector<string>& tokens);
 
     /**
-     * Create or update one or more links using the passed QueryAnswer. The actual number of links
-     * <created, updated> is returned in a pair.
+     * Create or update one or more links using the passed QueryAnswer.
      *
      * @param answer QueryAnswer to be used in link creation
+     * @return a LinkCreationStats object with statistics about actual link creation
      */
-    pair<unsigned int, unsigned int> link_creation(shared_ptr<QueryAnswer> answer);
+    LinkCreationStats link_creation(shared_ptr<QueryAnswer> answer);
 
     /**
      * Return true iff the one or more of the stop criteria have been met.
@@ -68,6 +63,11 @@ class LinkCreationProxy : public BaseQueryProxy {
      * @return true iff the one or more of the stop criteria have been met.
      */
     bool stop_criteria_met();
+
+    /**
+     * Increments the count of rounds by 1.
+     */
+    void inc_round_count();
 
     /**
      * Returns a string representation with all command parameter values.
@@ -83,26 +83,6 @@ class LinkCreationProxy : public BaseQueryProxy {
      */
     bool is_link_creation_function_remote();
 
-    /**
-     * Send a request to peer in order to execute the link creator function
-     * aswer bundle
-     */
-    void remote_link_creation(const vector<string>& answer_bundle);
-
-    /**
-     * Returns a vector of statistics about remotely created links.
-     *
-     * @return a vector of statistics about remotely created links.
-     */
-    vector<pair<unsigned int, unsigned int>> get_remotely_created_links();
-
-    /**
-     * Returns true iff there's no remote link creator function is going on
-     *
-     * @return true iff there's no remote link creator function is going on
-     */
-    bool remote_link_creation_finished();
-
     // ---------------------------------------------------------------------------------------------
     // Virtual superclass API and the piggyback methods called by it
 
@@ -115,20 +95,6 @@ class LinkCreationProxy : public BaseQueryProxy {
      * @param args RPC command's arguments
      */
     virtual bool from_remote_peer(const string& command, const vector<string>& args) override;
-
-    /**
-     * Remotelly create links using QueryAnswers
-     *
-     * @param args a bundle of tokenized QueryAnswers.
-     */
-    void process_query_answer(const vector<string>& args);
-
-    /**
-     * Response of a create_links() command
-     *
-     * @param args a bundle of <unsigned int, unsigned int> pairs
-     */
-    void process_query_answer_response(const vector<string>& args);
 
     /**
      * Packs mandatory LCA parameters in token array.
@@ -149,7 +115,6 @@ class LinkCreationProxy : public BaseQueryProxy {
     mutex api_mutex;
     string link_creator_function_tag;
     bool ongoing_remote_link_creation;
-    vector<pair<unsigned int, unsigned int>> remote_link_creation_result;
     unsigned int round_count;
 };
 
