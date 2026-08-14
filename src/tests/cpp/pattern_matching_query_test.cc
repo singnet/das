@@ -267,6 +267,7 @@ void check_query_chain(const string& query_tag,
 }
 
 TEST(PatternMatchingQuery, queries) {
+    Random::init(0);
     AtomDBSingleton::init(test_atomdb_json_config());
     init_test_system_parameters_singleton();
     ServiceBus::initialize_statics({}, 40200, 40299);

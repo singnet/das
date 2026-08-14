@@ -24,6 +24,7 @@ class TestDecoder : public HandleDecoder {
 };
 
 TEST(QueryAnswer, assignments_basics) {
+    Random::init(0);
     Assignment mapping0;
 
     // Tests assign()

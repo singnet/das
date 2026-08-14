@@ -20,6 +20,7 @@ class TestSharedQueue : public SharedQueue {
 };
 
 TEST(WorkerThreads, basics) {
+    Random::init(0);
     dasproto::HandleCount* handle_count;
     dasproto::HandleList* handle_list;
 

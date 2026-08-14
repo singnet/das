@@ -16,6 +16,7 @@ using namespace query_engine;
 using namespace query_element;
 
 TEST(LinkTemplate, basics) {
+    Random::init(0);
     string server_node_id = "SERVER";
     QueryNodeServer server_node(server_node_id);
 

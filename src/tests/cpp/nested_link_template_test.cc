@@ -17,6 +17,7 @@ using namespace query_engine;
 using namespace query_element;
 
 TEST(LinkTemplate, basics) {
+    Random::init(0);
     AtomDBSingleton::init(test_atomdb_json_config());
 
     const string expression = "Expression";

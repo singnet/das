@@ -84,6 +84,7 @@ void visitor3(HandleTrie* trie, unsigned int n) {
 }
 
 TEST(HandleTrieTest, basics) {
+    Random::init(0);
     HandleTrie trie(4);
     TestValue* value;
 

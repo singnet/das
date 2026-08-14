@@ -25,6 +25,7 @@ class TestQueryElement : public QueryElement {
 };
 
 TEST(Iterator, basics) {
+    Random::init(0);
     string client_id = "no_query_element";
     auto dummy = make_shared<TestQueryElement>(client_id);
     Iterator query_answer_iterator(dummy);

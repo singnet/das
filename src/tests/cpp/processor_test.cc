@@ -12,6 +12,8 @@ using namespace processor;
 using namespace commons;
 
 TEST(ProcessorTest, basics) {
+    Random::init(0);
+
     Processor p1("blah");
     EXPECT_THROW(Processor p2(""), runtime_error);
     EXPECT_EQ(p1.to_string(), "blah");

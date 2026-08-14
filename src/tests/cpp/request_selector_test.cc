@@ -12,6 +12,7 @@ class TestMessage {
 };
 
 TEST(RequestSelectorTest, even_thread_count) {
+    Random::init(0);
     SharedQueue* stimulus = new SharedQueue(1);
     SharedQueue* correlation = new SharedQueue(1);
 

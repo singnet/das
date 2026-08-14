@@ -79,6 +79,7 @@ int main(int argc, char* argv[]) {
                 cmd_args[Helper::PORTS_RANGE] = ports_val.get<string>();
             }
         }
+        Random::init(0);
 
         // Peers join the query-engine bus mesh (agents.query.endpoint) unless overridden.
         if (cmd_args.find(Helper::BUS_ENDPOINT) == cmd_args.end() && service_name != "query-engine") {
