@@ -1354,6 +1354,23 @@ TEST_F(RedisMongoDBTest, TransactionalRejectedMergeStillBooksCompositeType) {
     delete nested;
 }
 
+TEST_F(RedisMongoDBTest, IsProtectedFollowsPersistedConfig) {
+    using bsoncxx::builder::basic::kvp;
+    using bsoncxx::builder::basic::make_document;
+
+    EXPECT_EQ(db->is_protected(), atomdb_api_types::ProtectionMode::UNPROTECTED);
+
+    auto conn = db->get_mongo_pool()->acquire();
+    auto collection =
+        (*conn)[RedisMongoDB::MONGODB_DB_NAME][RedisMongoDB::MONGODB_CONFIG_COLLECTION_NAME];
+    collection.insert_one(make_document(kvp("protected", true)));
+
+    auto loaded = AtomDBFactory::create(test_atomdb_json_config(), "test_");
+    EXPECT_EQ(loaded->is_protected(), atomdb_api_types::ProtectionMode::PROTECTED);
+
+    collection.delete_many({});
+}
+
 int main(int argc, char** argv) {
     ::testing::InitGoogleTest(&argc, argv);
     ::testing::AddGlobalTestEnvironment(new RedisMongoDBTestEnvironment());
