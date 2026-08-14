@@ -1367,6 +1367,7 @@ TEST_F(RedisMongoDBTest, GetAccessPermissionsEmptyCollection) {
 
 TEST_F(RedisMongoDBTest, GetAccessPermissionsReturnsStoredDocuments) {
     using bsoncxx::builder::basic::kvp;
+    using bsoncxx::builder::basic::make_array;
     using bsoncxx::builder::basic::make_document;
 
     auto pool = db->get_mongo_pool();
@@ -1375,21 +1376,48 @@ TEST_F(RedisMongoDBTest, GetAccessPermissionsReturnsStoredDocuments) {
         (*conn)[RedisMongoDB::MONGODB_DB_NAME][RedisMongoDB::MONGODB_ACCESS_PERMISSIONS_COLLECTION_NAME];
     collection.delete_many({});
 
-    collection.insert_one(make_document(kvp("_id", "perm_admin"), kvp("role", "admin")));
-    collection.insert_one(make_document(kvp("_id", "perm_reader"), kvp("role", "reader")));
+    auto similarity_tokens = make_array(
+        "LINK_TEMPLATE", "Expression", "2", "NODE", "Symbol", "Similarity", "VARIABLE", "VARIABLE");
+    collection.insert_one(make_document(kvp("_id", "key_admin"),
+                                        kvp("public_key", "key_admin"),
+                                        kvp("full_access", true),
+                                        kvp("allowed_schemas", make_array())));
+    collection.insert_one(make_document(
+        kvp("_id", "key_reader"),
+        kvp("public_key", "key_reader"),
+        kvp("full_access", false),
+        kvp("allowed_schemas",
+            make_array(make_document(
+                kvp("tokens", similarity_tokens), kvp("read", true), kvp("write", false))))));
 
     auto permissions = db->get_access_permissions();
     ASSERT_EQ(permissions.size(), 2u);
 
-    // Documents are returned as opaque JSON strings; auth layer parses them.
     bool found_admin = false;
     bool found_reader = false;
     for (const auto& doc : permissions) {
-        if (doc.find("\"perm_admin\"") != string::npos && doc.find("\"admin\"") != string::npos) {
+        ASSERT_NE(doc, nullptr);
+        if (doc->public_key() == "key_admin") {
             found_admin = true;
+            EXPECT_TRUE(doc->full_access());
+            EXPECT_TRUE(doc->entries().empty());
         }
-        if (doc.find("\"perm_reader\"") != string::npos && doc.find("\"reader\"") != string::npos) {
+        if (doc->public_key() == "key_reader") {
             found_reader = true;
+            EXPECT_FALSE(doc->full_access());
+            ASSERT_EQ(doc->entries().size(), 1u);
+            EXPECT_TRUE(doc->entries()[0].read());
+            EXPECT_FALSE(doc->entries()[0].write());
+            vector<string> expected_tokens = {"LINK_TEMPLATE",
+                                              "Expression",
+                                              "2",
+                                              "NODE",
+                                              "Symbol",
+                                              "Similarity",
+                                              "VARIABLE",
+                                              "VARIABLE"};
+            LinkSchema expected_schema(expected_tokens);
+            EXPECT_EQ(doc->entries()[0].schema().handle(), expected_schema.handle());
         }
     }
     EXPECT_TRUE(found_admin);
@@ -1397,6 +1425,25 @@ TEST_F(RedisMongoDBTest, GetAccessPermissionsReturnsStoredDocuments) {
 
     collection.delete_many({});
     EXPECT_TRUE(db->get_access_permissions().empty());
+}
+
+TEST_F(RedisMongoDBTest, GetAccessPermissionsRejectsInvalidDocument) {
+    using bsoncxx::builder::basic::kvp;
+    using bsoncxx::builder::basic::make_array;
+    using bsoncxx::builder::basic::make_document;
+
+    auto pool = db->get_mongo_pool();
+    auto conn = pool->acquire();
+    auto collection =
+        (*conn)[RedisMongoDB::MONGODB_DB_NAME][RedisMongoDB::MONGODB_ACCESS_PERMISSIONS_COLLECTION_NAME];
+    collection.delete_many({});
+
+    collection.insert_one(make_document(
+        kvp("_id", "key_broken"), kvp("full_access", false), kvp("allowed_schemas", make_array())));
+
+    EXPECT_THROW(db->get_access_permissions(), runtime_error);
+
+    collection.delete_many({});
 }
 
 int main(int argc, char** argv) {

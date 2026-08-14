@@ -38,8 +38,9 @@ bool RemoteAtomDB::composite_type_enabled() const {
     }
     return false;
 }
-vector<string> RemoteAtomDB::get_access_permissions() const {
-    vector<string> documents;
+vector<shared_ptr<atomdb_api_types::AccessPermissionDocument>> RemoteAtomDB::get_access_permissions()
+    const {
+    vector<shared_ptr<atomdb_api_types::AccessPermissionDocument>> documents;
     for (auto& [uid, peer] : remote_db_) {
         auto peer_documents = peer->get_access_permissions();
         documents.insert(documents.end(), peer_documents.begin(), peer_documents.end());

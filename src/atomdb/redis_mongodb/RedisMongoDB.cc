@@ -55,12 +55,15 @@ RedisMongoDB::~RedisMongoDB() {
 }
 
 bool RedisMongoDB::allow_nested_indexing() { return false; }
-vector<string> RedisMongoDB::get_access_permissions() const {
-    vector<string> documents;
+
+vector<shared_ptr<atomdb_api_types::AccessPermissionDocument>> RedisMongoDB::get_access_permissions()
+    const {
+    vector<shared_ptr<atomdb_api_types::AccessPermissionDocument>> documents;
     auto conn = this->mongodb_pool->acquire();
     auto collection = (*conn)[MONGODB_DB_NAME][MONGODB_ACCESS_PERMISSIONS_COLLECTION_NAME];
     for (const auto& view : collection.find({})) {
-        documents.push_back(bsoncxx::to_json(view));
+        auto document = nlohmann::json::parse(bsoncxx::to_json(view));
+        documents.push_back(make_shared<atomdb_api_types::MongodbAccessPermissionDocument>(document));
     }
     return documents;
 }

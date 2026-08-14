@@ -30,7 +30,8 @@ class RemoteAtomDBPeer : public AtomDB, public processor::ThreadMethod {
 
     bool allow_nested_indexing() override;
     bool composite_type_enabled() const override;
-    vector<string> get_access_permissions() const override;
+    vector<shared_ptr<atomdb_api_types::AccessPermissionDocument>> get_access_permissions()
+        const override;
 
     shared_ptr<Atom> get_atom(const string& handle) override;
     shared_ptr<Node> get_node(const string& handle) override;

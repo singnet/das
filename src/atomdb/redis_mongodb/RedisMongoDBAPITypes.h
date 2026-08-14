@@ -7,6 +7,7 @@
 #include <mongocxx/client.hpp>
 #include <mongocxx/exception/exception.hpp>
 #include <mongocxx/uri.hpp>
+#include <nlohmann/json.hpp>
 #include <vector>
 
 #include "Atom.h"
@@ -96,6 +97,21 @@ class MongodbDocument : public AtomDocument {
 
    private:
     bsoncxx::v_noabi::stdx::optional<bsoncxx::v_noabi::document::value> document;
+};
+
+class MongodbAccessPermissionDocument : public AccessPermissionDocument {
+   public:
+    explicit MongodbAccessPermissionDocument(const nlohmann::json& document);
+    ~MongodbAccessPermissionDocument() override = default;
+
+    const string& public_key() const override;
+    bool full_access() const override;
+    const vector<AccessPermissionEntry>& entries() const override;
+
+   private:
+    string public_key_;
+    bool full_access_ = false;
+    vector<AccessPermissionEntry> entries_;
 };
 
 }  // namespace atomdb_api_types
