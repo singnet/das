@@ -1,8 +1,10 @@
 #include "MongoAuthorizationPersistence.h"
 
+#include "LinkSchema.h"
 #include "Utils.h"
 
 using namespace atomdb;
+using namespace atoms;
 using namespace commons;
 using bsoncxx::builder::basic::kvp;
 using bsoncxx::builder::basic::make_document;
@@ -28,7 +30,8 @@ MongoAuthorizationPersistence::MongoAuthorizationPersistence(mongocxx::pool* poo
 // --------------------------------------------------------------------------------
 // Public methods
 
-void MongoAuthorizationPersistence::save(const string& public_key, const AuthorizationEntry& entry) {
+void MongoAuthorizationPersistence::save(const string& public_key,
+                                         const atomdb_api_types::AccessPermissionEntry& entry) {
     auto conn = this->pool->acquire();
     auto collection = (*conn)[this->database_name][this->collection_name];
 
@@ -44,7 +47,7 @@ void MongoAuthorizationPersistence::save(const string& public_key, const Authori
             full_access = view["full_access"].get_bool().value;
         }
         if (view["allowed_schemas"] && view["allowed_schemas"].type() == bsoncxx::type::k_array) {
-            string entry_handle = entry.handle();
+            string entry_handle = entry.schema.handle();
             for (const auto& item : view["allowed_schemas"].get_array().value) {
                 if (item.type() != bsoncxx::type::k_document) {
                     continue;
@@ -110,7 +113,9 @@ void MongoAuthorizationPersistence::remove(const string& public_key, const strin
                         tokens.push_back(string(token.get_string().value));
                     }
                 }
-                if (!tokens.empty() && AuthorizationEntry(tokens, false, false).handle() == handle) {
+                if (!tokens.empty() &&
+                    atomdb_api_types::AccessPermissionEntry(tokens, false, false).schema.handle() ==
+                        handle) {
                     continue;
                 }
             }
@@ -141,13 +146,14 @@ void MongoAuthorizationPersistence::remove_all(const string& public_key) {
 // Private methods
 
 bsoncxx::document::value MongoAuthorizationPersistence::make_schema_item(
-    const AuthorizationEntry& entry) {
+    const atomdb_api_types::AccessPermissionEntry& entry) {
     auto tokens_array = bsoncxx::builder::basic::array{};
-    for (const auto& token : entry.tokenize()) {
+    LinkSchema schema = entry.schema;
+    for (const auto& token : schema.tokenize()) {
         tokens_array.append(token);
     }
-    return make_document(kvp("handle", entry.handle()),
+    return make_document(kvp("handle", entry.schema.handle()),
                          kvp("tokens", tokens_array),
-                         kvp("read", entry.allows(AuthorizationOperation::READ)),
-                         kvp("write", entry.allows(AuthorizationOperation::WRITE)));
+                         kvp("read", entry.read),
+                         kvp("write", entry.write));
 }

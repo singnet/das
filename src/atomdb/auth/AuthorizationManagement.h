@@ -4,7 +4,7 @@
 #include <string>
 
 #include "Atom.h"
-#include "AuthorizationEntry.h"
+#include "AtomDBAPITypes.h"
 #include "AuthorizationManifest.h"
 #include "AuthorizationPersistence.h"
 #include "HandleDecoder.h"
@@ -16,19 +16,18 @@ namespace atomdb {
 
 class AtomDB;
 
+enum class AuthorizationOperation { READ, WRITE };
+
 /**
  * @brief Authorization queries and administration.
  *
- * The manifest is loaded once in the constructor and kept in RAM; authorize() and revoke*() update both
- * the storage (through AuthorizationPersistence) and the in-RAM manifest, so no lookup ever hits the
- * database.
+ * The manifest is kept in RAM; authorize() and revoke*() update both the storage (through
+ * AuthorizationPersistence) and the in-RAM manifest.
  */
 class AuthorizationManagement {
    public:
     /**
-     * @brief Builds the in-RAM AuthorizationManifest from atomdb->get_access_permissions().
-     *
-     * @param atomdb AtomDB used to read access_permissions JSON documents and as HandleDecoder.
+     * @param atomdb AtomDB used as HandleDecoder.
      * @param persistence Storage used by authorize() and revoke*(). May be null when the atomdb
      *        has no authorization storage; administration then fails.
      */
@@ -59,12 +58,12 @@ class AuthorizationManagement {
     /**
      * @brief Grants one entry to public_key. Updates storage and the in-RAM manifest.
      */
-    void authorize(const string& public_key, const AuthorizationEntry& entry);
+    void authorize(const string& public_key, const atomdb_api_types::AccessPermissionEntry& entry);
 
     /**
      * @brief Revokes one entry from public_key.
      *
-     * @param handle AuthorizationEntry::handle(), i.e. the LinkSchema handle.
+     * @param handle AccessPermissionEntry::schema.handle(), i.e. the LinkSchema handle.
      */
     void revoke(const string& public_key, const string& handle);
 
@@ -78,13 +77,15 @@ class AuthorizationManagement {
     shared_ptr<AuthorizationPersistence> persistence;
     AuthorizationManifest manifest;
 
-    bool matches_entry(const AuthorizationEntry& entry, const Atom& atom, HandleDecoder& decoder) const;
-    bool matches_entry(const AuthorizationEntry& entry,
+    bool matches_entry(const atomdb_api_types::AccessPermissionEntry& entry,
+                       const Atom& atom,
+                       HandleDecoder& decoder) const;
+    bool matches_entry(const atomdb_api_types::AccessPermissionEntry& entry,
                        const string& handle,
                        HandleDecoder& decoder) const;
 
-    /** @brief Parses one JSON document from AtomDB::get_access_permissions() into a Document. */
-    static AuthorizationManifest::Document parse_access_permissions_document(const string& json);
+    static bool allows(const atomdb_api_types::AccessPermissionEntry& entry,
+                       AuthorizationOperation operation);
 };
 
 }  // namespace atomdb

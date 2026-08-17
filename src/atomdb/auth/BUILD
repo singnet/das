@@ -5,15 +5,15 @@ package(default_visibility = ["//visibility:public"])
 cc_library(
     name = "authorization_types",
     srcs = [
-        "AuthorizationEntry.cc",
         "AuthorizationManifest.cc",
     ],
     hdrs = [
-        "AuthorizationEntry.h",
         "AuthorizationManifest.h",
     ],
     includes = ["."],
     deps = [
+        "//atomdb:atomdb_api_types",
+        "//commons:commons_lib",
         "//commons/atoms:atoms_lib",
     ],
 )
@@ -24,6 +24,7 @@ cc_library(
     includes = ["."],
     deps = [
         ":authorization_types",
+        "//atomdb:atomdb_api_types",
     ],
 )
 
@@ -35,7 +36,9 @@ cc_library(
     deps = [
         ":authorization_persistence",
         ":authorization_types",
+        "//atomdb:atomdb_api_types",
         "//commons:commons_lib",
+        "//commons/atoms:atoms_lib",
     ],
 )
 
@@ -48,8 +51,8 @@ cc_library(
         ":authorization_persistence",
         ":authorization_types",
         "//atomdb",
+        "//atomdb:atomdb_api_types",
         "//commons:commons_lib",
         "//commons/atoms:atoms_lib",
-        "@nlohmann_json//:json",
     ],
 )

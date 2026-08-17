@@ -4,28 +4,34 @@
 
 using namespace atomdb;
 
-const vector<AuthorizationEntry> AuthorizationManifest::EMPTY_ENTRIES;
+const vector<atomdb_api_types::AccessPermissionEntry> AuthorizationManifest::EMPTY_ENTRIES;
 
 // --------------------------------------------------------------------------------
 // Public methods
 
-void AuthorizationManifest::set(const Document& document) {
-    this->documents[document.public_key] = document;
+void AuthorizationManifest::set(const atomdb_api_types::AccessPermissionDocument& document) {
+    auto it = this->documents.find(document.public_key);
+    if (it == this->documents.end()) {
+        this->documents.emplace(document.public_key, document);
+    } else {
+        it->second = document;
+    }
 }
 
-void AuthorizationManifest::add(const string& public_key, const AuthorizationEntry& entry) {
-    Document* document = this->find_document(public_key, "add");
+void AuthorizationManifest::add(const string& public_key,
+                                const atomdb_api_types::AccessPermissionEntry& entry) {
+    atomdb_api_types::AccessPermissionDocument* document = this->find_document(public_key, "add");
 
     if (document == nullptr) {
         this->create_document(public_key, entry);
         return;
     }
 
-    string entry_handle = entry.handle();
-    vector<AuthorizationEntry>& entries = document->entries;
+    string entry_handle = entry.schema.handle();
+    vector<atomdb_api_types::AccessPermissionEntry>& entries = document->entries;
 
     for (auto& existing : entries) {
-        if (existing.handle() == entry_handle) {
+        if (existing.schema.handle() == entry_handle) {
             existing = entry;
             return;
         }
@@ -35,14 +41,14 @@ void AuthorizationManifest::add(const string& public_key, const AuthorizationEnt
 }
 
 void AuthorizationManifest::remove(const string& public_key, const string& handle) {
-    Document* document = this->find_document(public_key, "remove");
+    atomdb_api_types::AccessPermissionDocument* document = this->find_document(public_key, "remove");
 
     if (document == nullptr) return;
 
-    vector<AuthorizationEntry>& entries = document->entries;
+    vector<atomdb_api_types::AccessPermissionEntry>& entries = document->entries;
 
     for (auto it = entries.begin(); it != entries.end(); ++it) {
-        if (it->handle() == handle) {
+        if (it->schema.handle() == handle) {
             entries.erase(it);
             return;
         }
@@ -56,15 +62,17 @@ bool AuthorizationManifest::is_registered(const string& public_key) const {
 }
 
 bool AuthorizationManifest::full_access(const string& public_key) {
-    Document* document = this->find_document(public_key, "full_access");
+    atomdb_api_types::AccessPermissionDocument* document =
+        this->find_document(public_key, "full_access");
     if (document == nullptr) {
         return false;
     }
     return document->full_access;
 }
 
-const vector<AuthorizationEntry>& AuthorizationManifest::entries(const string& public_key) {
-    Document* document = this->find_document(public_key, "entries");
+const vector<atomdb_api_types::AccessPermissionEntry>& AuthorizationManifest::entries(
+    const string& public_key) {
+    atomdb_api_types::AccessPermissionDocument* document = this->find_document(public_key, "entries");
     if (document == nullptr) {
         return EMPTY_ENTRIES;
     }
@@ -74,16 +82,14 @@ const vector<AuthorizationEntry>& AuthorizationManifest::entries(const string& p
 // --------------------------------------------------------------------------------
 // Private methods
 
-void AuthorizationManifest::create_document(const string& public_key, const AuthorizationEntry& entry) {
-    Document document;
-    document.public_key = public_key;
-    document.full_access = false;
-    document.entries.push_back(entry);
-    this->documents[public_key] = document;
+void AuthorizationManifest::create_document(const string& public_key,
+                                            const atomdb_api_types::AccessPermissionEntry& entry) {
+    this->documents.emplace(public_key,
+                            atomdb_api_types::AccessPermissionDocument(public_key, false, {entry}));
 }
 
-AuthorizationManifest::Document* AuthorizationManifest::find_document(const string& public_key,
-                                                                      const string& caller) {
+atomdb_api_types::AccessPermissionDocument* AuthorizationManifest::find_document(
+    const string& public_key, const string& caller) {
     auto it = this->documents.find(public_key);
     if (it == this->documents.end()) {
         LOG_INFO("AuthorizationManifest::" + caller +

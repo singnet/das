@@ -2,7 +2,7 @@
 
 #include <string>
 
-#include "AuthorizationEntry.h"
+#include "AtomDBAPITypes.h"
 
 using namespace std;
 
@@ -14,7 +14,8 @@ class AuthorizationPersistence {
     virtual ~AuthorizationPersistence() = default;
 
     /** @brief Persists one entry under public_key (creating the document if needed). */
-    virtual void save(const string& public_key, const AuthorizationEntry& entry) = 0;
+    virtual void save(const string& public_key,
+                      const atomdb_api_types::AccessPermissionEntry& entry) = 0;
 
     /** @brief Removes the entry identified by handle from public_key's document. */
     virtual void remove(const string& public_key, const string& handle) = 0;

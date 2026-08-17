@@ -25,7 +25,8 @@ class MongoAuthorizationPersistence : public AuthorizationPersistence {
                                   const string& database_name,
                                   const string& collection_name);
 
-    void save(const string& public_key, const AuthorizationEntry& entry) override;
+    void save(const string& public_key,
+              const atomdb_api_types::AccessPermissionEntry& entry) override;
     void remove(const string& public_key, const string& handle) override;
     void remove_all(const string& public_key) override;
 
@@ -34,7 +35,8 @@ class MongoAuthorizationPersistence : public AuthorizationPersistence {
     string database_name;
     string collection_name;
 
-    bsoncxx::document::value make_schema_item(const AuthorizationEntry& entry);
+    bsoncxx::document::value make_schema_item(
+        const atomdb_api_types::AccessPermissionEntry& entry);
 };
 
 }  // namespace atomdb
