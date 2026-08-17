@@ -114,13 +114,8 @@ class AtomDB : public HandleDecoder {
 
     bool empty() const { return atom_count() == 0; }
 
-   protected:
-    // AdapterDB / RemoteAtomDBPeer call this on a composed AtomDB*, not on this.
-    friend class AdapterDB;
-    friend class RemoteAtomDBPeer;
-
-    virtual vector<shared_ptr<atomdb_api_types::AccessPermissionDocument>> get_access_permissions()
-        const = 0;
+    virtual vector<atomdb_api_types::AccessPermissionDocument> get_access_permissions(
+        const string& public_key) const = 0;
 };
 
 }  // namespace atomdb

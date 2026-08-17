@@ -31,11 +31,11 @@ RemoteAtomDB::RemoteAtomDB(map<string, shared_ptr<RemoteAtomDBPeer>> peers)
 
 RemoteAtomDB::~RemoteAtomDB() = default;
 
-vector<shared_ptr<atomdb_api_types::AccessPermissionDocument>> RemoteAtomDB::get_access_permissions()
-    const {
-    vector<shared_ptr<atomdb_api_types::AccessPermissionDocument>> documents;
+vector<atomdb_api_types::AccessPermissionDocument> RemoteAtomDB::get_access_permissions(
+    const string& public_key) const {
+    vector<atomdb_api_types::AccessPermissionDocument> documents;
     for (auto& [uid, peer] : remote_db_) {
-        auto peer_documents = peer->get_access_permissions();
+        auto peer_documents = peer->get_access_permissions(public_key);
         documents.insert(documents.end(), peer_documents.begin(), peer_documents.end());
     }
     return documents;

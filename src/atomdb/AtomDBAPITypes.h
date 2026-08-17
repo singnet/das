@@ -91,17 +91,22 @@ class AccessPermissionEntry {
     bool write_;
 };
 
-/**
- * One access permissions document: public_key, full_access, and a list of entries.
- */
+// Simple DTO (public_key + full_access + entries); concrete in this header like AccessPermissionEntry.
 class AccessPermissionDocument {
    public:
-    AccessPermissionDocument() {}
-    virtual ~AccessPermissionDocument() {}
+    AccessPermissionDocument(const string& public_key,
+                             bool full_access,
+                             const vector<AccessPermissionEntry>& entries)
+        : public_key_(public_key), full_access_(full_access), entries_(entries) {}
 
-    virtual const string& public_key() const = 0;
-    virtual bool full_access() const = 0;
-    virtual const vector<AccessPermissionEntry>& entries() const = 0;
+    const string& public_key() const { return this->public_key_; }
+    bool full_access() const { return this->full_access_; }
+    const vector<AccessPermissionEntry>& entries() const { return this->entries_; }
+
+   private:
+    string public_key_;
+    bool full_access_;
+    vector<AccessPermissionEntry> entries_;
 };
 
 }  // namespace atomdb_api_types

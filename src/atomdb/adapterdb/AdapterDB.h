@@ -61,8 +61,6 @@ class AdapterDB : public AtomDB {
      * @brief Whether the backend computes and stores composite type fields when adding atoms.
      */
     bool composite_type_enabled() const override;
-    vector<shared_ptr<atomdb_api_types::AccessPermissionDocument>> get_access_permissions()
-        const override;
 
     shared_ptr<Atom> get_atom(const string& handle) override;
     shared_ptr<Node> get_node(const string& handle) override;
@@ -111,6 +109,10 @@ class AdapterDB : public AtomDB {
     size_t node_count() const override;
     size_t link_count() const override;
     size_t atom_count() const override;
+
+    // TODO: review get_access_permissions() (public_key filtering / backend delegation).
+    vector<atomdb_api_types::AccessPermissionDocument> get_access_permissions(
+        const string& public_key) const override;
 
    private:
     AdapterDbType adapter_type;

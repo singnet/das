@@ -43,8 +43,6 @@ class RemoteAtomDBPeer : public AtomDB, public processor::ThreadMethod {
 
     bool allow_nested_indexing() override;
     bool composite_type_enabled() const override;
-    vector<shared_ptr<atomdb_api_types::AccessPermissionDocument>> get_access_permissions()
-        const override;
 
     shared_ptr<Atom> get_atom(const string& handle) override;
     shared_ptr<Node> get_node(const string& handle) override;
@@ -115,6 +113,10 @@ class RemoteAtomDBPeer : public AtomDB, public processor::ThreadMethod {
 
     const string& get_uid() const { return uid_; }
     bool is_readonly() const { return local_persistence_ == nullptr; }
+
+    // TODO: review get_access_permissions() (public_key filtering / local+remote aggregation).
+    vector<atomdb_api_types::AccessPermissionDocument> get_access_permissions(
+        const string& public_key) const override;
 
    private:
     shared_ptr<InMemoryDB> write_buffer() const;

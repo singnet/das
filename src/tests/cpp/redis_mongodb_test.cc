@@ -1398,7 +1398,7 @@ TEST_F(RedisMongoDBTest, GetAccessPermissionsEmptyCollection) {
         (*conn)[RedisMongoDB::MONGODB_DB_NAME][RedisMongoDB::MONGODB_ACCESS_PERMISSIONS_COLLECTION_NAME];
     collection.delete_many({});
 
-    auto permissions = db->get_access_permissions();
+    auto permissions = db->get_access_permissions("any_key");
     EXPECT_TRUE(permissions.empty());
 }
 
@@ -1427,46 +1427,32 @@ TEST_F(RedisMongoDBTest, GetAccessPermissionsReturnsStoredDocuments) {
             make_array(make_document(
                 kvp("tokens", similarity_tokens), kvp("read", true), kvp("write", false))))));
 
-    auto permissions = db->get_access_permissions();
-    ASSERT_EQ(permissions.size(), 2u);
+    auto admin_permissions = db->get_access_permissions("key_admin");
+    ASSERT_EQ(admin_permissions.size(), 1u);
+    EXPECT_EQ(admin_permissions[0].public_key(), "key_admin");
+    EXPECT_TRUE(admin_permissions[0].full_access());
+    EXPECT_TRUE(admin_permissions[0].entries().empty());
 
-    bool found_admin = false;
-    bool found_reader = false;
-    for (const auto& doc : permissions) {
-        ASSERT_NE(doc, nullptr);
-        if (doc->public_key() == "key_admin") {
-            found_admin = true;
-            EXPECT_TRUE(doc->full_access());
-            EXPECT_TRUE(doc->entries().empty());
-        }
-        if (doc->public_key() == "key_reader") {
-            found_reader = true;
-            EXPECT_FALSE(doc->full_access());
-            ASSERT_EQ(doc->entries().size(), 1u);
-            EXPECT_TRUE(doc->entries()[0].read());
-            EXPECT_FALSE(doc->entries()[0].write());
-            vector<string> expected_tokens = {"LINK_TEMPLATE",
-                                              "Expression",
-                                              "2",
-                                              "NODE",
-                                              "Symbol",
-                                              "Similarity",
-                                              "VARIABLE",
-                                              "VARIABLE"};
-            LinkSchema expected_schema(expected_tokens);
-            EXPECT_EQ(doc->entries()[0].schema().handle(), expected_schema.handle());
-        }
-    }
-    EXPECT_TRUE(found_admin);
-    EXPECT_TRUE(found_reader);
+    auto reader_permissions = db->get_access_permissions("key_reader");
+    ASSERT_EQ(reader_permissions.size(), 1u);
+    EXPECT_EQ(reader_permissions[0].public_key(), "key_reader");
+    EXPECT_FALSE(reader_permissions[0].full_access());
+    ASSERT_EQ(reader_permissions[0].entries().size(), 1u);
+    EXPECT_TRUE(reader_permissions[0].entries()[0].read());
+    EXPECT_FALSE(reader_permissions[0].entries()[0].write());
+    vector<string> expected_tokens = {
+        "LINK_TEMPLATE", "Expression", "2", "NODE", "Symbol", "Similarity", "VARIABLE", "VARIABLE"};
+    LinkSchema expected_schema(expected_tokens);
+    EXPECT_EQ(reader_permissions[0].entries()[0].schema().handle(), expected_schema.handle());
+
+    EXPECT_TRUE(db->get_access_permissions("missing_key").empty());
 
     collection.delete_many({});
-    EXPECT_TRUE(db->get_access_permissions().empty());
+    EXPECT_TRUE(db->get_access_permissions("key_admin").empty());
 }
 
 TEST_F(RedisMongoDBTest, GetAccessPermissionsRejectsInvalidDocument) {
     using bsoncxx::builder::basic::kvp;
-    using bsoncxx::builder::basic::make_array;
     using bsoncxx::builder::basic::make_document;
 
     auto pool = db->get_mongo_pool();
@@ -1476,9 +1462,9 @@ TEST_F(RedisMongoDBTest, GetAccessPermissionsRejectsInvalidDocument) {
     collection.delete_many({});
 
     collection.insert_one(make_document(
-        kvp("_id", "key_broken"), kvp("full_access", false), kvp("allowed_schemas", make_array())));
+        kvp("_id", "key_broken"), kvp("public_key", "key_broken"), kvp("full_access", false)));
 
-    EXPECT_THROW(db->get_access_permissions(), runtime_error);
+    EXPECT_THROW(db->get_access_permissions("key_broken"), runtime_error);
 
     collection.delete_many({});
 }

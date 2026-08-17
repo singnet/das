@@ -8,6 +8,7 @@
 #include <iostream>
 #include <map>
 #include <memory>
+#include <nlohmann/json.hpp>
 #include <optional>
 #include <string>
 
@@ -56,14 +57,66 @@ RedisMongoDB::~RedisMongoDB() {
 
 bool RedisMongoDB::allow_nested_indexing() { return false; }
 
-vector<shared_ptr<atomdb_api_types::AccessPermissionDocument>> RedisMongoDB::get_access_permissions()
-    const {
-    vector<shared_ptr<atomdb_api_types::AccessPermissionDocument>> documents;
+vector<atomdb_api_types::AccessPermissionDocument> RedisMongoDB::get_access_permissions(
+    const string& public_key) const {
+    using bsoncxx::builder::basic::kvp;
+    using bsoncxx::builder::basic::make_document;
+
+    vector<atomdb_api_types::AccessPermissionDocument> documents;
     auto conn = this->mongodb_pool->acquire();
     auto collection = (*conn)[MONGODB_DB_NAME][MONGODB_ACCESS_PERMISSIONS_COLLECTION_NAME];
-    for (const auto& view : collection.find({})) {
+    auto filter = make_document(kvp("public_key", public_key));
+
+    for (const auto& view : collection.find(filter.view())) {
         auto document = nlohmann::json::parse(bsoncxx::to_json(view));
-        documents.push_back(make_shared<atomdb_api_types::MongodbAccessPermissionDocument>(document));
+        if (!document.is_object()) {
+            RAISE_ERROR("AccessPermissionDocument must be a JSON object");
+        }
+        if (!document.contains("public_key") || !document["public_key"].is_string()) {
+            RAISE_ERROR("AccessPermissionDocument missing required string field 'public_key'");
+        }
+        if (!document.contains("full_access") || !document["full_access"].is_boolean()) {
+            RAISE_ERROR("AccessPermissionDocument missing required boolean field 'full_access'");
+        }
+        if (!document.contains("allowed_schemas") || !document["allowed_schemas"].is_array()) {
+            RAISE_ERROR("AccessPermissionDocument missing required array field 'allowed_schemas'");
+        }
+
+        vector<atomdb_api_types::AccessPermissionEntry> entries;
+        for (const auto& item : document["allowed_schemas"]) {
+            if (!item.is_object()) {
+                RAISE_ERROR("AccessPermissionDocument allowed_schemas item must be an object");
+            }
+            if (!item.contains("tokens") || !item["tokens"].is_array()) {
+                RAISE_ERROR(
+                    "AccessPermissionDocument allowed_schemas item missing required array field "
+                    "'tokens'");
+            }
+            if (!item.contains("read") || !item["read"].is_boolean()) {
+                RAISE_ERROR(
+                    "AccessPermissionDocument allowed_schemas item missing required boolean field "
+                    "'read'");
+            }
+            if (!item.contains("write") || !item["write"].is_boolean()) {
+                RAISE_ERROR(
+                    "AccessPermissionDocument allowed_schemas item missing required boolean field "
+                    "'write'");
+            }
+
+            vector<string> tokens;
+            for (const auto& token : item["tokens"]) {
+                if (!token.is_string() || token.get<string>().empty()) {
+                    RAISE_ERROR(
+                        "AccessPermissionDocument allowed_schemas tokens must be non-empty strings");
+                }
+                tokens.push_back(token.get<string>());
+            }
+
+            entries.emplace_back(tokens, item["read"].get<bool>(), item["write"].get<bool>());
+        }
+
+        documents.emplace_back(
+            document["public_key"].get<string>(), document["full_access"].get<bool>(), entries);
     }
     return documents;
 }

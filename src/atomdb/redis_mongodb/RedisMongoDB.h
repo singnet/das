@@ -32,8 +32,8 @@ class RedisMongoDB : public AtomDB {
 
     bool allow_nested_indexing() override;
     bool composite_type_enabled() const override { return this->composite_type_enabled_; }
-    vector<shared_ptr<atomdb_api_types::AccessPermissionDocument>> get_access_permissions()
-        const override;
+    vector<atomdb_api_types::AccessPermissionDocument> get_access_permissions(
+        const string& public_key) const override;
 
     static string REDIS_PATTERNS_PREFIX;
     static string REDIS_OUTGOING_PREFIX;
