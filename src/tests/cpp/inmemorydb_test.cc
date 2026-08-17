@@ -3,10 +3,12 @@
 #include <gtest/gtest.h>
 
 #include <algorithm>
+#include <atomic>
 #include <map>
 #include <memory>
 #include <set>
 #include <string>
+#include <thread>
 #include <vector>
 
 #include "Assignment.h"
@@ -1098,6 +1100,76 @@ TEST_F(InMemoryDBTest, AddLinksSkipIfExistsMergerReturnsEmptyHandleSlots) {
     delete existing;
     delete fresh;
     delete collision;
+}
+
+// Regression test: reads must stay safe (no use-after-free / torn reads) while writers
+// upsert and delete the very atoms and index entries being read. Readers snapshot atoms
+// (shared_ptr ref) and handle sets (copies) under the trie node lock; before that fix
+// this test crashed or triggered TSAN/ASAN reports.
+TEST_F(InMemoryDBTest, ConcurrentReadsSurviveDeletesAndUpserts) {
+    constexpr int kNodes = 8;
+    constexpr int kWriterIterations = 200;
+    constexpr int kReaderThreads = 4;
+
+    vector<string> node_handles;
+    for (int i = 0; i < kNodes; ++i) {
+        Node node("Symbol", "\"concurrent_node_" + to_string(i) + "\"");
+        node_handles.push_back(db->add_node(&node));
+    }
+
+    auto add_links = [&]() {
+        vector<string> link_handles;
+        for (int i = 0; i < kNodes; ++i) {
+            Link link("Expression", {node_handles[i], node_handles[(i + 1) % kNodes]});
+            link_handles.push_back(db->add_link(&link));
+        }
+        return link_handles;
+    };
+    vector<string> link_handles = add_links();  // stable: content-addressed handles
+
+    atomic<bool> stop{false};
+    atomic<int> reader_failures{0};
+
+    auto reader = [&]() {
+        while (!stop.load(memory_order_acquire)) {
+            for (int i = 0; i < kNodes; ++i) {
+                auto atom = db->get_atom(link_handles[i]);
+                if (atom != nullptr && atom->handle() != link_handles[i]) {
+                    reader_failures.fetch_add(1);
+                }
+                db->link_exists(link_handles[i]);
+                db->query_for_targets(link_handles[i]);
+                db->query_for_incoming_set(node_handles[i]);
+            }
+            db->get_all_atoms();
+        }
+    };
+
+    vector<thread> readers;
+    for (int t = 0; t < kReaderThreads; ++t) {
+        readers.emplace_back(reader);
+    }
+
+    // Writer: repeatedly upsert (in-place replace) and delete the links being read.
+    for (int iter = 0; iter < kWriterIterations; ++iter) {
+        add_links();  // upsert: AtomTrieValue::merge replaces the stored Link
+        for (int i = 0; i < kNodes; ++i) {
+            db->delete_link(link_handles[i], false);
+        }
+        add_links();
+    }
+
+    stop.store(true, memory_order_release);
+    for (auto& t : readers) {
+        t.join();
+    }
+
+    EXPECT_EQ(reader_failures.load(), 0);
+    EXPECT_EQ(db->atom_count(), static_cast<size_t>(2 * kNodes));
+    for (int i = 0; i < kNodes; ++i) {
+        EXPECT_TRUE(db->link_exists(link_handles[i]));
+        EXPECT_EQ(db->query_for_incoming_set(node_handles[i])->size(), 2u);
+    }
 }
 
 int main(int argc, char** argv) {

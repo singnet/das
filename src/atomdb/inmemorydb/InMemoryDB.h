@@ -27,6 +27,11 @@ namespace atomdb {
  * - Pure reads (get_*, query_*, *_exist(s), counts, get_all_atoms) take no InMemoryDB-wide
  *   lock. Each read atomically loads a Tries snapshot and relies on HandleTrie's
  *   hand-over-hand per-node locking for the traversal itself.
+ * - Value lifetime: readers never keep raw pointers into trie-owned storage. Atoms are
+ *   handed out as shared_ptr refs and handle sets as copies, both extracted under the
+ *   trie node lock (get_stored_object), so concurrent deletes/upserts of the same handle
+ *   cannot free data mid-read. Set mutations also run under the node lock (insert/merge
+ *   for adds, HandleTrie::update for removals).
  * - Mutations (add_*, delete_*, re_index_patterns, drop_all, add_pattern_index_schema) are
  *   serialized by write_mutex_ so the three tries stay mutually consistent and writers
  *   never insert into a trie that drop_all already retired.
