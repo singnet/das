@@ -41,6 +41,10 @@ class InMemoryDB : public AtomDB {
 
     bool allow_nested_indexing() override;
     bool composite_type_enabled() const override { return false; }
+    vector<atomdb_api_types::AccessPermissionDocument> get_access_permissions(
+        const atomdb_api_types::PublicKey& public_key) const override {
+        return {};
+    }
     atomdb_api_types::ProtectionMode is_protected() const override {
         return atomdb_api_types::ProtectionMode::UNPROTECTED;
     }

@@ -115,6 +115,9 @@ class RemoteAtomDBPeer : public AtomDB, public processor::ThreadMethod {
     const string& get_uid() const { return uid_; }
     bool is_readonly() const { return local_persistence_ == nullptr; }
 
+    vector<atomdb_api_types::AccessPermissionDocument> get_access_permissions(
+        const atomdb_api_types::PublicKey& public_key) const override;
+
    private:
     shared_ptr<InMemoryDB> write_buffer() const;
     shared_ptr<InMemoryDB> read_cache() const;

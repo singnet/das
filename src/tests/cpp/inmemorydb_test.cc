@@ -1100,6 +1100,11 @@ TEST_F(InMemoryDBTest, AddLinksSkipIfExistsMergerReturnsEmptyHandleSlots) {
     delete collision;
 }
 
+TEST_F(InMemoryDBTest, GetAccessPermissionsReturnsEmpty) {
+    auto permissions = db->get_access_permissions(PublicKey("any_key"));
+    EXPECT_TRUE(permissions.empty());
+}
+
 int main(int argc, char** argv) {
     ::testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();
