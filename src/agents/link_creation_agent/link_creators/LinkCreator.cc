@@ -3,10 +3,9 @@
 
 using namespace link_creators;
 
-shared_ptr<Link> LinkCreator::add_or_update_link(const vector<string>& targets,
-                                                 double strength,
-                                                 const string& context,
-                                                 bool& new_link_created_flag) {
+bool LinkCreator::add_or_update_link(const vector<string>& targets,
+                                     double strength,
+                                     const string& context) {
 
     STACK_TRACE();
     new_link_created_flag = false;
