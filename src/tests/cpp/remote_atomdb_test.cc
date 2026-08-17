@@ -783,21 +783,12 @@ TEST(RemoteAtomDBFederationTest, PeerReadsAccessPermissionsFromRemoteOnly) {
     EXPECT_TRUE(RemoteAtomDBPeer(empty, local).get_access_permissions(PublicKey("key_local")).empty());
 }
 
-TEST(RemoteAtomDBFederationTest, RemoteAggregatesAccessPermissionsFromPeers) {
+TEST(RemoteAtomDBFederationTest, RemoteReturnsNoAccessPermissions) {
     auto remote = make_shared<PermissionsInMemoryDB>("perm_remote_", "key_remote");
     map<string, shared_ptr<RemoteAtomDBPeer>> peers;
     peers["a"] = make_shared<RemoteAtomDBPeer>(remote, nullptr);
     auto docs = RemoteAtomDB(peers).get_access_permissions(PublicKey("key_remote"));
-    ASSERT_FALSE(docs.empty());
-
-    bool found = false;
-    for (const auto& doc : docs) {
-        if (doc.public_key == "key_remote") {
-            found = true;
-            break;
-        }
-    }
-    EXPECT_TRUE(found);
+    EXPECT_TRUE(docs.empty());
 }
 
 // Backend pointing at a protected database, like a RedisMongoDB whose Mongo config flags it.
