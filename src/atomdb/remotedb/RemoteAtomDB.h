@@ -80,9 +80,10 @@ class RemoteAtomDB : public AtomDB {
 
     void release_caches(const LinkSchema& link_schema, bool persist = true, bool force = false);
 
-    // TODO: review get_access_permissions() (public_key filtering / peer aggregation).
     vector<atomdb_api_types::AccessPermissionDocument> get_access_permissions(
-        const string& public_key) const override;
+        const atomdb_api_types::PublicKey& public_key) const override {
+        return {};
+    };
 
    private:
     // Derives the aggregated nested-indexing capability and writable/readonly peer lists.

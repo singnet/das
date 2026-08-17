@@ -10,6 +10,7 @@
 #include <stdexcept>
 #include <string>
 #include <thread>
+#include <variant>
 #include <vector>
 
 #include "Assignment.h"
@@ -752,43 +753,43 @@ class PermissionsInMemoryDB : public InMemoryDB {
         }
     }
 
-    vector<AccessPermissionDocument> get_access_permissions(const string& public_key) const override {
-        vector<AccessPermissionDocument> matched;
+    vector<AccessPermissionDocument> get_access_permissions(const PublicKey& public_key) const override {
+        if (!holds_alternative<string>(public_key.value)) {
+            return {};
+        }
+        const string& key = get<string>(public_key.value);
         for (const auto& document : documents_) {
-            if (document.public_key() == public_key) {
-                matched.push_back(document);
+            if (document.public_key == key) {
+                return {document};
             }
         }
-        return matched;
+        return {};
     }
 
    private:
     vector<AccessPermissionDocument> documents_;
 };
 
-TEST(RemoteAtomDBFederationTest, AggregatesAccessPermissions) {
+TEST(RemoteAtomDBFederationTest, PeerReadsAccessPermissionsFromRemoteOnly) {
     auto local = make_shared<PermissionsInMemoryDB>("perm_local_", "key_local");
     auto remote = make_shared<PermissionsInMemoryDB>("perm_remote_", "key_remote");
     auto empty = make_shared<PermissionsInMemoryDB>("perm_empty_");
 
-    auto docs = RemoteAtomDBPeer(remote, local).get_access_permissions("key_local");
+    auto docs = RemoteAtomDBPeer(remote, local).get_access_permissions(PublicKey("key_remote"));
     ASSERT_EQ(docs.size(), 1u);
-    EXPECT_EQ(docs[0].public_key(), "key_local");
+    EXPECT_EQ(docs[0].public_key, "key_remote");
 
-    docs = RemoteAtomDBPeer(remote, local).get_access_permissions("key_remote");
-    ASSERT_EQ(docs.size(), 1u);
-    EXPECT_EQ(docs[0].public_key(), "key_remote");
+    EXPECT_TRUE(RemoteAtomDBPeer(remote, local).get_access_permissions(PublicKey("key_local")).empty());
+    EXPECT_TRUE(RemoteAtomDBPeer(empty, local).get_access_permissions(PublicKey("key_local")).empty());
+}
 
-    docs = RemoteAtomDBPeer(empty, local).get_access_permissions("key_local");
-    ASSERT_EQ(docs.size(), 1u);
-    EXPECT_EQ(docs[0].public_key(), "key_local");
-
+TEST(RemoteAtomDBFederationTest, RemoteReturnsNoAccessPermissions) {
+    auto remote = make_shared<PermissionsInMemoryDB>("perm_remote_", "key_remote");
     map<string, shared_ptr<RemoteAtomDBPeer>> peers;
     peers["a"] = make_shared<RemoteAtomDBPeer>(remote, nullptr);
-    peers["b"] = make_shared<RemoteAtomDBPeer>(empty, nullptr);
-    docs = RemoteAtomDB(peers).get_access_permissions("key_remote");
+    auto docs = RemoteAtomDB(peers).get_access_permissions(PublicKey("key_remote"));
     ASSERT_EQ(docs.size(), 1u);
-    EXPECT_EQ(docs[0].public_key(), "key_remote");
+    EXPECT_EQ(docs[0].public_key, "key_remote");
 }
 
 TEST(RemoteAtomDBFederationTest, MetadataAggregationFromNestedPeer) {

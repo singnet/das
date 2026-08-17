@@ -1101,7 +1101,7 @@ TEST_F(InMemoryDBTest, AddLinksSkipIfExistsMergerReturnsEmptyHandleSlots) {
 }
 
 TEST_F(InMemoryDBTest, GetAccessPermissionsReturnsEmpty) {
-    auto permissions = db->get_access_permissions("any_key");
+    auto permissions = db->get_access_permissions(PublicKey("any_key"));
     EXPECT_TRUE(permissions.empty());
 }
 

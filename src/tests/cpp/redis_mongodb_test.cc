@@ -5,6 +5,7 @@
 #include <bsoncxx/builder/basic/kvp.hpp>
 #include <cstring>
 #include <iostream>
+#include <map>
 #include <memory>
 #include <nlohmann/json.hpp>
 #include <stdexcept>
@@ -24,8 +25,10 @@
 #include "TestAtomDBJsonConfig.h"
 #include "UntypedVariable.h"
 #include "Wildcard.h"
+#include "expression_hasher.h"
 
 using namespace atomdb;
+using namespace atomdb::atomdb_api_types;
 using namespace atoms;
 using namespace std;
 
@@ -1398,7 +1401,7 @@ TEST_F(RedisMongoDBTest, GetAccessPermissionsEmptyCollection) {
         (*conn)[RedisMongoDB::MONGODB_DB_NAME][RedisMongoDB::MONGODB_ACCESS_PERMISSIONS_COLLECTION_NAME];
     collection.delete_many({});
 
-    auto permissions = db->get_access_permissions("any_key");
+    auto permissions = db->get_access_permissions(PublicKey("any_key"));
     EXPECT_TRUE(permissions.empty());
 }
 
@@ -1415,40 +1418,43 @@ TEST_F(RedisMongoDBTest, GetAccessPermissionsReturnsStoredDocuments) {
 
     auto similarity_tokens = make_array(
         "LINK_TEMPLATE", "Expression", "2", "NODE", "Symbol", "Similarity", "VARIABLE", "VARIABLE");
-    collection.insert_one(make_document(kvp("_id", "key_admin"),
-                                        kvp("public_key", "key_admin"),
-                                        kvp("full_access", true),
-                                        kvp("allowed_schemas", make_array())));
+    string admin_id = compute_hash((char*) "key_admin");
+    string reader_id = compute_hash((char*) "key_reader");
     collection.insert_one(make_document(
-        kvp("_id", "key_reader"),
-        kvp("public_key", "key_reader"),
+        kvp("_id", admin_id), kvp("full_access", true), kvp("allowed_schemas", make_array())));
+    collection.insert_one(make_document(
+        kvp("_id", reader_id),
         kvp("full_access", false),
         kvp("allowed_schemas",
             make_array(make_document(
                 kvp("tokens", similarity_tokens), kvp("read", true), kvp("write", false))))));
 
-    auto admin_permissions = db->get_access_permissions("key_admin");
+    auto admin_permissions = db->get_access_permissions(PublicKey("key_admin"));
     ASSERT_EQ(admin_permissions.size(), 1u);
-    EXPECT_EQ(admin_permissions[0].public_key(), "key_admin");
-    EXPECT_TRUE(admin_permissions[0].full_access());
-    EXPECT_TRUE(admin_permissions[0].entries().empty());
+    EXPECT_EQ(admin_permissions[0].public_key, "key_admin");
+    EXPECT_TRUE(admin_permissions[0].full_access);
+    EXPECT_TRUE(admin_permissions[0].entries.empty());
 
-    auto reader_permissions = db->get_access_permissions("key_reader");
+    auto reader_permissions = db->get_access_permissions(PublicKey("key_reader"));
     ASSERT_EQ(reader_permissions.size(), 1u);
-    EXPECT_EQ(reader_permissions[0].public_key(), "key_reader");
-    EXPECT_FALSE(reader_permissions[0].full_access());
-    ASSERT_EQ(reader_permissions[0].entries().size(), 1u);
-    EXPECT_TRUE(reader_permissions[0].entries()[0].read());
-    EXPECT_FALSE(reader_permissions[0].entries()[0].write());
+    EXPECT_EQ(reader_permissions[0].public_key, "key_reader");
+    EXPECT_FALSE(reader_permissions[0].full_access);
+    ASSERT_EQ(reader_permissions[0].entries.size(), 1u);
+    EXPECT_TRUE(reader_permissions[0].entries[0].read);
+    EXPECT_FALSE(reader_permissions[0].entries[0].write);
     vector<string> expected_tokens = {
         "LINK_TEMPLATE", "Expression", "2", "NODE", "Symbol", "Similarity", "VARIABLE", "VARIABLE"};
     LinkSchema expected_schema(expected_tokens);
-    EXPECT_EQ(reader_permissions[0].entries()[0].schema().handle(), expected_schema.handle());
+    EXPECT_EQ(reader_permissions[0].entries[0].schema.handle(), expected_schema.handle());
 
-    EXPECT_TRUE(db->get_access_permissions("missing_key").empty());
+    auto map_permissions = db->get_access_permissions(
+        PublicKey(map<string, string>{{"peer_a", "key_admin"}, {"peer_b", "key_reader"}}));
+    ASSERT_EQ(map_permissions.size(), 2u);
+
+    EXPECT_TRUE(db->get_access_permissions(PublicKey("missing_key")).empty());
 
     collection.delete_many({});
-    EXPECT_TRUE(db->get_access_permissions("key_admin").empty());
+    EXPECT_TRUE(db->get_access_permissions(PublicKey("key_admin")).empty());
 }
 
 TEST_F(RedisMongoDBTest, GetAccessPermissionsRejectsInvalidDocument) {
@@ -1461,10 +1467,10 @@ TEST_F(RedisMongoDBTest, GetAccessPermissionsRejectsInvalidDocument) {
         (*conn)[RedisMongoDB::MONGODB_DB_NAME][RedisMongoDB::MONGODB_ACCESS_PERMISSIONS_COLLECTION_NAME];
     collection.delete_many({});
 
-    collection.insert_one(make_document(
-        kvp("_id", "key_broken"), kvp("public_key", "key_broken"), kvp("full_access", false)));
+    collection.insert_one(make_document(kvp("_id", string(compute_hash((char*) "key_broken"))),
+                                        kvp("full_access", false)));
 
-    EXPECT_THROW(db->get_access_permissions("key_broken"), runtime_error);
+    EXPECT_THROW(db->get_access_permissions(PublicKey("key_broken")), runtime_error);
 
     collection.delete_many({});
 }

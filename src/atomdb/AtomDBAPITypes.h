@@ -1,9 +1,11 @@
 #pragma once
 
 #include <algorithm>
+#include <map>
 #include <memory>
 #include <optional>
 #include <string>
+#include <variant>
 #include <vector>
 
 #include "Link.h"
@@ -72,41 +74,37 @@ class AtomDocument {
     virtual bool contains(const string& key) = 0;
 };
 
-// Simple DTO (schema + read/write); concrete in this header because it needs no specific implementation.
 class AccessPermissionEntry {
    public:
+    LinkSchema schema;
+    bool read;
+    bool write;
+
     AccessPermissionEntry(const LinkSchema& schema, bool read, bool write)
-        : schema_(schema), read_(read), write_(write) {}
+        : schema(schema), read(read), write(write) {}
 
     AccessPermissionEntry(const vector<string>& tokens, bool read, bool write)
-        : schema_(tokens), read_(read), write_(write) {}
-
-    const LinkSchema& schema() const { return this->schema_; }
-    bool read() const { return this->read_; }
-    bool write() const { return this->write_; }
-
-   private:
-    LinkSchema schema_;
-    bool read_;
-    bool write_;
+        : schema(tokens), read(read), write(write) {}
 };
 
-// Simple DTO (public_key + full_access + entries); concrete in this header like AccessPermissionEntry.
 class AccessPermissionDocument {
    public:
+    string public_key;
+    bool full_access;
+    vector<AccessPermissionEntry> entries;
+
     AccessPermissionDocument(const string& public_key,
                              bool full_access,
                              const vector<AccessPermissionEntry>& entries)
-        : public_key_(public_key), full_access_(full_access), entries_(entries) {}
+        : public_key(public_key), full_access(full_access), entries(entries) {}
+};
 
-    const string& public_key() const { return this->public_key_; }
-    bool full_access() const { return this->full_access_; }
-    const vector<AccessPermissionEntry>& entries() const { return this->entries_; }
+class PublicKey {
+   public:
+    variant<string, map<string, string>> value;
 
-   private:
-    string public_key_;
-    bool full_access_;
-    vector<AccessPermissionEntry> entries_;
+    explicit PublicKey(const string& key) : value(key) {}
+    explicit PublicKey(const map<string, string>& keys) : value(keys) {}
 };
 
 }  // namespace atomdb_api_types

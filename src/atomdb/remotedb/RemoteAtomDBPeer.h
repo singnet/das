@@ -116,7 +116,7 @@ class RemoteAtomDBPeer : public AtomDB, public processor::ThreadMethod {
 
     // TODO: review get_access_permissions() (public_key filtering / local+remote aggregation).
     vector<atomdb_api_types::AccessPermissionDocument> get_access_permissions(
-        const string& public_key) const override;
+        const atomdb_api_types::PublicKey& public_key) const override;
 
    private:
     shared_ptr<InMemoryDB> write_buffer() const;

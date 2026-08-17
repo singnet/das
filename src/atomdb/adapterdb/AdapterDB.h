@@ -112,7 +112,7 @@ class AdapterDB : public AtomDB {
 
     // TODO: review get_access_permissions() (public_key filtering / backend delegation).
     vector<atomdb_api_types::AccessPermissionDocument> get_access_permissions(
-        const string& public_key) const override;
+        const atomdb_api_types::PublicKey& public_key) const override;
 
    private:
     AdapterDbType adapter_type;
