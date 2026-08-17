@@ -64,6 +64,11 @@ bool AdapterDB::composite_type_enabled() const {
     this->ensure_backend_ready();
     return this->atomdb_backend->composite_type_enabled();
 }
+vector<atomdb_api_types::AccessPermissionDocument> AdapterDB::get_access_permissions(
+    const atomdb_api_types::PublicKey& public_key) const {
+    this->ensure_backend_ready();
+    return this->atomdb_backend->get_access_permissions(public_key);
+}
 
 atomdb_api_types::ProtectionMode AdapterDB::is_protected() const {
     this->ensure_backend_ready();
@@ -309,21 +314,6 @@ void AdapterDB::persistence_setup() {
         RAISE_ERROR(e.what());
     }
 }
-
-// void AdapterDB::atomdb_backend_setup() {
-//     auto atomdb_backend_config =
-//         this->config.at_path("adapterdb.atomdb_backend").get_or<JsonConfig>(JsonConfig());
-//     string atomdb_backend_type = atomdb_backend_config.at_path("type").get_or<string>("");
-//     if (atomdb_backend_type == "morkdb") {
-//         this->atomdb_backend = shared_ptr<AtomDB>(new MorkDB("", atomdb_backend_config));
-//     } else if (atomdb_backend_type == "redismongodb") {
-//         this->atomdb_backend = shared_ptr<AtomDB>(new RedisMongoDB("", false, atomdb_backend_config));
-//     } else if (atomdb_backend_type == "remotedb") {
-//         this->atomdb_backend = shared_ptr<AtomDB>(new RemoteAtomDB(atomdb_backend_config));
-//     } else {
-//         RAISE_ERROR("Invalid AtomDB type: " + atomdb_backend_type);
-//     }
-// }
 
 bool AdapterDB::is_backend_ready() const { return this->backend_ready.load(); }
 

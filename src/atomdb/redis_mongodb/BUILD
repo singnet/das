@@ -42,6 +42,7 @@ cc_library(
     deps = [
         "//atomdb:atomdb_api_types",
         "//commons/atoms:atoms_lib",
+        "@nlohmann_json//:json",
     ],
 )
 

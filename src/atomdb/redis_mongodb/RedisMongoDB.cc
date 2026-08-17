@@ -8,8 +8,10 @@
 #include <iostream>
 #include <map>
 #include <memory>
+#include <nlohmann/json.hpp>
 #include <optional>
 #include <string>
+#include <variant>
 
 #include "Hasher.h"
 #include "Link.h"
@@ -19,6 +21,7 @@
 #include "Node.h"
 #include "Properties.h"
 #include "Utils.h"
+#include "expression_hasher.h"
 
 using namespace atomdb;
 using namespace commons;
@@ -33,6 +36,7 @@ string RedisMongoDB::MONGODB_NODES_COLLECTION_NAME;
 string RedisMongoDB::MONGODB_LINKS_COLLECTION_NAME;
 string RedisMongoDB::MONGODB_CONFIG_COLLECTION_NAME;
 string RedisMongoDB::MONGODB_PATTERN_INDEX_SCHEMA_COLLECTION_NAME;
+string RedisMongoDB::MONGODB_ACCESS_PERMISSIONS_COLLECTION_NAME;
 string RedisMongoDB::MONGODB_FIELD_NAME[MONGODB_FIELD::size];
 uint RedisMongoDB::MONGODB_CHUNK_SIZE;
 
@@ -56,6 +60,82 @@ RedisMongoDB::~RedisMongoDB() {
 }
 
 bool RedisMongoDB::allow_nested_indexing() { return false; }
+
+vector<atomdb_api_types::AccessPermissionDocument> RedisMongoDB::get_access_permissions(
+    const atomdb_api_types::PublicKey& public_key) const {
+    vector<atomdb_api_types::AccessPermissionDocument> documents;
+
+    if (holds_alternative<string>(public_key.value)) {
+        auto document = this->load_access_permission_document(get<string>(public_key.value));
+        if (document.has_value()) {
+            documents.push_back(document.value());
+        }
+        return documents;
+    }
+
+    for (const auto& [peer_uid, key] : get<map<string, string>>(public_key.value)) {
+        auto document = this->load_access_permission_document(key);
+        if (document.has_value()) {
+            documents.push_back(document.value());
+        }
+    }
+    return documents;
+}
+
+optional<atomdb_api_types::AccessPermissionDocument> RedisMongoDB::load_access_permission_document(
+    const string& key) const {
+    string handle = compute_hash((char*) key.c_str());
+    auto access_permission_doc = this->get_document(handle, MONGODB_ACCESS_PERMISSIONS_COLLECTION_NAME);
+    if (access_permission_doc == nullptr) {
+        return nullopt;
+    }
+
+    auto mongodb_doc = dynamic_pointer_cast<atomdb_api_types::MongodbDocument>(access_permission_doc);
+    auto document = nlohmann::json::parse(bsoncxx::to_json(mongodb_doc->value().view()));
+    if (!document.is_object()) {
+        RAISE_ERROR("AccessPermissionDocument must be a JSON object");
+    }
+    if (!document.contains("full_access") || !document["full_access"].is_boolean()) {
+        RAISE_ERROR("AccessPermissionDocument missing required boolean field 'full_access'");
+    }
+    if (!document.contains("allowed_schemas") || !document["allowed_schemas"].is_array()) {
+        RAISE_ERROR("AccessPermissionDocument missing required array field 'allowed_schemas'");
+    }
+
+    vector<atomdb_api_types::AccessPermissionEntry> entries;
+    for (const auto& item : document["allowed_schemas"]) {
+        if (!item.is_object()) {
+            RAISE_ERROR("AccessPermissionDocument allowed_schemas item must be an object");
+        }
+        if (!item.contains("tokens") || !item["tokens"].is_array()) {
+            RAISE_ERROR(
+                "AccessPermissionDocument allowed_schemas item missing required array field "
+                "'tokens'");
+        }
+        if (!item.contains("read") || !item["read"].is_boolean()) {
+            RAISE_ERROR(
+                "AccessPermissionDocument allowed_schemas item missing required boolean field "
+                "'read'");
+        }
+        if (!item.contains("write") || !item["write"].is_boolean()) {
+            RAISE_ERROR(
+                "AccessPermissionDocument allowed_schemas item missing required boolean field "
+                "'write'");
+        }
+
+        vector<string> tokens;
+        for (const auto& token : item["tokens"]) {
+            if (!token.is_string() || token.get<string>().empty()) {
+                RAISE_ERROR("AccessPermissionDocument allowed_schemas tokens must be non-empty strings");
+            }
+            tokens.push_back(token.get<string>());
+        }
+
+        entries.emplace_back(tokens, item["read"].get<bool>(), item["write"].get<bool>());
+    }
+
+    return atomdb_api_types::AccessPermissionDocument(key, document["full_access"].get<bool>(), entries);
+}
 
 atomdb_api_types::ProtectionMode RedisMongoDB::is_protected() const {
     return this->protected_flag ? atomdb_api_types::ProtectionMode::PROTECTED
@@ -457,8 +537,8 @@ void RedisMongoDB::update_incoming_set(const string& key, const string& value) {
     }
 }
 
-shared_ptr<atomdb_api_types::AtomDocument> RedisMongoDB::get_document(const string& handle,
-                                                                      const string& collection_name) {
+shared_ptr<atomdb_api_types::AtomDocument> RedisMongoDB::get_document(
+    const string& handle, const string& collection_name) const {
     auto conn = this->mongodb_pool->acquire();
     auto mongodb_collection = (*conn)[MONGODB_DB_NAME][collection_name];
     auto reply = mongodb_collection.find_one(bsoncxx::v_noabi::builder::basic::make_document(
@@ -895,7 +975,7 @@ vector<string> RedisMongoDB::add_nodes(const vector<atoms::Node*>& nodes,
                     if (!merger->merge(existing_node.get(), node)) {
                         // Do not persist, but keep existing in the transactional
                         // composite-type map so later links can resolve this target.
-                        if (this->composite_type_enabled_ && is_transactional) {
+                        if (this->composite_type_enabled() && is_transactional) {
                             lock_guard<mutex> composite_type_hashes_map_lock(
                                 this->composite_type_hashes_map_mutex);
                             this->composite_type_hashes_map[handle] = existing_node->named_type_hash();
@@ -915,7 +995,7 @@ vector<string> RedisMongoDB::add_nodes(const vector<atoms::Node*>& nodes,
             auto mongodb_doc = atomdb_api_types::MongodbDocument(node);
             documents.push_back(mongodb_doc.value());
             handles.push_back(node->handle());
-            if (this->composite_type_enabled_ && is_transactional) {
+            if (this->composite_type_enabled() && is_transactional) {
                 lock_guard<mutex> composite_type_hashes_map_lock(this->composite_type_hashes_map_mutex);
                 this->composite_type_hashes_map[node->handle()] = node->named_type_hash();
             }
@@ -927,7 +1007,7 @@ vector<string> RedisMongoDB::add_nodes(const vector<atoms::Node*>& nodes,
             const atoms::Node* to_store = batch_merged[handle].get();
             auto mongodb_doc = atomdb_api_types::MongodbDocument(to_store);
             documents.push_back(mongodb_doc.value());
-            if (this->composite_type_enabled_ && is_transactional) {
+            if (this->composite_type_enabled() && is_transactional) {
                 lock_guard<mutex> composite_type_hashes_map_lock(this->composite_type_hashes_map_mutex);
                 this->composite_type_hashes_map[handle] = to_store->named_type_hash();
             }
@@ -945,14 +1025,14 @@ vector<string> RedisMongoDB::add_links(const vector<atoms::Link*>& links,
                                        bool is_transactional,
                                        const atoms::Merger* merger) {
     if (links.empty()) {
-        if (this->composite_type_enabled_ && is_transactional) {
+        if (this->composite_type_enabled() && is_transactional) {
             lock_guard<mutex> composite_type_hashes_map_lock(this->composite_type_hashes_map_mutex);
             this->composite_type_hashes_map.clear();
         }
         return {};
     }
 
-    if (!is_transactional) {
+    if (this->composite_type_enabled() && !is_transactional) {
         this->check_existing_targets(links);
     }
 
@@ -1018,7 +1098,7 @@ vector<string> RedisMongoDB::add_links(const vector<atoms::Link*>& links,
     // Derive transactional composite-type metadata from bookkeeping links (final merged
     // objects plus rejected-but-existing ones), not from the raw input batch alone.
     map<string, vector<string>> composite_type_entries_map;
-    if (this->composite_type_enabled_ && is_transactional) {
+    if (this->composite_type_enabled() && is_transactional) {
         this->build_composite_type_entries_map(links_for_composite, composite_type_entries_map);
     }
 
@@ -1050,7 +1130,7 @@ vector<string> RedisMongoDB::add_links(const vector<atoms::Link*>& links,
         }
 
         optional<atomdb_api_types::MongodbDocument> mongodb_doc;
-        if (!this->composite_type_enabled_) {
+        if (!this->composite_type_enabled()) {
             static const vector<string> empty_composite_type;
             mongodb_doc.emplace(to_store, "", empty_composite_type, false);
         } else if (is_transactional) {
@@ -1088,7 +1168,7 @@ vector<string> RedisMongoDB::add_links(const vector<atoms::Link*>& links,
     set_next_score_with_context(
         ctx, REDIS_INCOMING_PREFIX + ":next_score", this->incoming_set_next_score.load());
 
-    if (this->composite_type_enabled_ && is_transactional) {
+    if (this->composite_type_enabled() && is_transactional) {
         lock_guard<mutex> composite_type_hashes_map_lock(this->composite_type_hashes_map_mutex);
         this->composite_type_hashes_map.clear();
     }

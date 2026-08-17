@@ -1,14 +1,21 @@
 #pragma once
 
 #include <algorithm>
+#include <map>
+#include <memory>
 #include <optional>
+#include <string>
+#include <variant>
+#include <vector>
 
 #include "Link.h"
+#include "LinkSchema.h"
 #include "Node.h"
 #include "Utils.h"
 
 using namespace std;
 using namespace commons;
+using namespace atoms;
 
 namespace atomdb {
 namespace atomdb_api_types {
@@ -65,6 +72,39 @@ class AtomDocument {
     virtual bool get_bool(const string& key) = 0;
     virtual unsigned int get_size(const string& array_key) = 0;
     virtual bool contains(const string& key) = 0;
+};
+
+class AccessPermissionEntry {
+   public:
+    LinkSchema schema;
+    bool read;
+    bool write;
+
+    AccessPermissionEntry(const LinkSchema& schema, bool read, bool write)
+        : schema(schema), read(read), write(write) {}
+
+    AccessPermissionEntry(const vector<string>& tokens, bool read, bool write)
+        : schema(tokens), read(read), write(write) {}
+};
+
+class AccessPermissionDocument {
+   public:
+    string public_key;
+    bool full_access;
+    vector<AccessPermissionEntry> entries;
+
+    AccessPermissionDocument(const string& public_key,
+                             bool full_access,
+                             const vector<AccessPermissionEntry>& entries)
+        : public_key(public_key), full_access(full_access), entries(entries) {}
+};
+
+class PublicKey {
+   public:
+    variant<string, map<string, string>> value;
+
+    explicit PublicKey(const string& key) : value(key) {}
+    explicit PublicKey(const map<string, string>& keys) : value(keys) {}
 };
 
 /**

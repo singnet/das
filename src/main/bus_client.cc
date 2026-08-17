@@ -224,7 +224,7 @@ int main(int argc, char* argv[]) {
             shared_ptr<atomdb_broker::AtomDBProxy> atomdb_proxy =
                 dynamic_pointer_cast<atomdb_broker::AtomDBProxy>(proxy);
             if (action == atomdb_broker::AtomDBProxy::ADD_ATOMS) {
-                vector<string> response = atomdb_proxy->add_atoms(tokens, false);
+                vector<string> response = atomdb_proxy->add_atoms(tokens);
                 if (response.empty()) {
                     cout << "No answers" << endl;
                 } else {

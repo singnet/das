@@ -12,13 +12,16 @@ class UnitTestLinkCreator : public LinkCreator {
     UnitTestLinkCreator() {}
     ~UnitTestLinkCreator() {}
 
-    virtual pair<unsigned int, unsigned int> create(shared_ptr<QueryAnswer> query_answer) {
+    LinkCreationStats create(shared_ptr<QueryAnswer> query_answer) {
+        LinkCreationStats stats;
         if (query_answer == nullptr) {
             RAISE_ERROR("Invalid null query_answer");
         }
-        // Returns the (string) <size, size> of the first handle.
         unsigned int n = query_answer->get(0).size();
-        return make_pair(n, n);
+        stats.visited = true;
+        stats.created = n;
+        stats.updated = n + 1;
+        return stats;
     }
 };
 
