@@ -21,7 +21,6 @@
 #include "MettaMapping.h"
 #include "MockAnimalsData.h"
 #include "Node.h"
-#include "ProtectedAtomDB.h"
 #include "RedisMongoDB.h"
 #include "TestAtomDBJsonConfig.h"
 #include "UntypedVariable.h"
@@ -90,6 +89,12 @@ class LinkSchemaHandle : public LinkSchema {
 
    private:
     string fixed_handle;
+};
+
+class TestRedisMongoDB : public RedisMongoDB {
+   public:
+    TestRedisMongoDB(const string& context, const JsonConfig& config)
+        : RedisMongoDB(context, true, config) {}
 };
 
 TEST_F(RedisMongoDBTest, ConcurrentQueryForPattern) {
@@ -1476,20 +1481,34 @@ TEST_F(RedisMongoDBTest, GetAccessPermissionsRejectsInvalidDocument) {
     collection.delete_many({});
 }
 
-TEST_F(RedisMongoDBTest, IsProtectedFollowsPersistedConfig) {
+TEST_F(RedisMongoDBTest, IsProtectedWhenPersistedConfigIsTrue) {
     using bsoncxx::builder::basic::kvp;
     using bsoncxx::builder::basic::make_document;
-
-    EXPECT_EQ(db->is_protected(), atomdb_api_types::ProtectionMode::UNPROTECTED);
 
     auto conn = db->get_mongo_pool()->acquire();
     auto collection =
         (*conn)[RedisMongoDB::MONGODB_DB_NAME][RedisMongoDB::MONGODB_CONFIG_COLLECTION_NAME];
+    collection.delete_many({});
     collection.insert_one(make_document(kvp("protected", true)));
 
-    auto loaded = AtomDBFactory::create(test_atomdb_json_config(), "test_");
-    EXPECT_EQ(loaded->is_protected(), atomdb_api_types::ProtectionMode::PROTECTED);
-    EXPECT_NE(dynamic_pointer_cast<ProtectedAtomDB>(loaded), nullptr);
+    TestRedisMongoDB loaded("test_", test_atomdb_json_config());
+    EXPECT_EQ(loaded.is_protected(), atomdb_api_types::ProtectionMode::PROTECTED);
+
+    collection.delete_many({});
+}
+
+TEST_F(RedisMongoDBTest, IsProtectedWhenPersistedConfigOmitsField) {
+    using bsoncxx::builder::basic::kvp;
+    using bsoncxx::builder::basic::make_document;
+
+    auto conn = db->get_mongo_pool()->acquire();
+    auto collection =
+        (*conn)[RedisMongoDB::MONGODB_DB_NAME][RedisMongoDB::MONGODB_CONFIG_COLLECTION_NAME];
+    collection.delete_many({});
+    collection.insert_one(make_document(kvp("other", "value")));
+
+    TestRedisMongoDB loaded("test_", test_atomdb_json_config());
+    EXPECT_EQ(loaded.is_protected(), atomdb_api_types::ProtectionMode::UNPROTECTED);
 
     collection.delete_many({});
 }

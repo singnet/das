@@ -50,16 +50,16 @@ class ProtectedAtomDB : public AtomDB {
                                                 const atomdb_api_types::PublicKey& public_key);
 
     shared_ptr<atomdb_api_types::HandleSet> query_for_pattern(const LinkSchema& link_schema) override;
-    shared_ptr<atomdb_api_types::HandleSet> query_for_pattern(const LinkSchema& link_schema,
-                                                              const atomdb_api_types::PublicKey& public_key);
+    shared_ptr<atomdb_api_types::HandleSet> query_for_pattern(
+        const LinkSchema& link_schema, const atomdb_api_types::PublicKey& public_key);
 
     shared_ptr<atomdb_api_types::HandleList> query_for_targets(const string& handle) override;
-    shared_ptr<atomdb_api_types::HandleList> query_for_targets(const string& handle,
-                                                               const atomdb_api_types::PublicKey& public_key);
+    shared_ptr<atomdb_api_types::HandleList> query_for_targets(
+        const string& handle, const atomdb_api_types::PublicKey& public_key);
 
     shared_ptr<atomdb_api_types::HandleSet> query_for_incoming_set(const string& handle) override;
-    shared_ptr<atomdb_api_types::HandleSet> query_for_incoming_set(const string& handle,
-                                                                   const atomdb_api_types::PublicKey& public_key);
+    shared_ptr<atomdb_api_types::HandleSet> query_for_incoming_set(
+        const string& handle, const atomdb_api_types::PublicKey& public_key);
 
     bool atom_exists(const string& handle) override;
     bool atom_exists(const string& handle, const atomdb_api_types::PublicKey& public_key);
@@ -71,13 +71,16 @@ class ProtectedAtomDB : public AtomDB {
     bool link_exists(const string& handle, const atomdb_api_types::PublicKey& public_key);
 
     set<string> atoms_exist(const vector<string>& handles) override;
-    set<string> atoms_exist(const vector<string>& handles, const atomdb_api_types::PublicKey& public_key);
+    set<string> atoms_exist(const vector<string>& handles,
+                            const atomdb_api_types::PublicKey& public_key);
 
     set<string> nodes_exist(const vector<string>& handles) override;
-    set<string> nodes_exist(const vector<string>& handles, const atomdb_api_types::PublicKey& public_key);
+    set<string> nodes_exist(const vector<string>& handles,
+                            const atomdb_api_types::PublicKey& public_key);
 
     set<string> links_exist(const vector<string>& handles) override;
-    set<string> links_exist(const vector<string>& handles, const atomdb_api_types::PublicKey& public_key);
+    set<string> links_exist(const vector<string>& handles,
+                            const atomdb_api_types::PublicKey& public_key);
 
     string add_atom(const atoms::Atom* atom, const atoms::Merger* merger = NULL) override;
     string add_atom(const atoms::Atom* atom,

@@ -1105,9 +1105,7 @@ TEST_F(InMemoryDBTest, GetAccessPermissionsReturnsEmpty) {
     EXPECT_TRUE(permissions.empty());
 }
 
-TEST_F(InMemoryDBTest, IsUnprotected) {
-    EXPECT_EQ(db->is_protected(), ProtectionMode::UNPROTECTED);
-}
+TEST_F(InMemoryDBTest, IsUnprotected) { EXPECT_EQ(db->is_protected(), ProtectionMode::UNPROTECTED); }
 
 int main(int argc, char** argv) {
     ::testing::InitGoogleTest(&argc, argv);

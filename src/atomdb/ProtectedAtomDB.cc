@@ -19,26 +19,28 @@ ProtectedAtomDB::ProtectedAtomDB(shared_ptr<AtomDB> backend) : backend(std::move
 // --------------------------------------------------------------------------------
 // Public methods
 
-shared_ptr<Atom> ProtectedAtomDB::get_atom(const string& handle, const atomdb_api_types::PublicKey& public_key) {
+shared_ptr<Atom> ProtectedAtomDB::get_atom(const string& handle,
+                                           const atomdb_api_types::PublicKey& public_key) {
     RAISE_ERROR("ProtectedAtomDB::get_atom(handle, public_key) is not implemented yet");
 }
 
-shared_ptr<Node> ProtectedAtomDB::get_node(const string& handle, const atomdb_api_types::PublicKey& public_key) {
+shared_ptr<Node> ProtectedAtomDB::get_node(const string& handle,
+                                           const atomdb_api_types::PublicKey& public_key) {
     RAISE_ERROR("ProtectedAtomDB::get_node(handle, public_key) is not implemented yet");
 }
 
-shared_ptr<Link> ProtectedAtomDB::get_link(const string& handle, const atomdb_api_types::PublicKey& public_key) {
+shared_ptr<Link> ProtectedAtomDB::get_link(const string& handle,
+                                           const atomdb_api_types::PublicKey& public_key) {
     RAISE_ERROR("ProtectedAtomDB::get_link(handle, public_key) is not implemented yet");
 }
 
-vector<shared_ptr<Atom>> ProtectedAtomDB::get_matching_atoms(bool is_toplevel,
-                                                             Atom& key,
-                                                             const atomdb_api_types::PublicKey& public_key) {
+vector<shared_ptr<Atom>> ProtectedAtomDB::get_matching_atoms(
+    bool is_toplevel, Atom& key, const atomdb_api_types::PublicKey& public_key) {
     RAISE_ERROR("ProtectedAtomDB::get_matching_atoms(..., public_key) is not implemented yet");
 }
 
-shared_ptr<atomdb_api_types::HandleSet> ProtectedAtomDB::query_for_pattern(const LinkSchema& link_schema,
-                                                                           const atomdb_api_types::PublicKey& public_key) {
+shared_ptr<atomdb_api_types::HandleSet> ProtectedAtomDB::query_for_pattern(
+    const LinkSchema& link_schema, const atomdb_api_types::PublicKey& public_key) {
     RAISE_ERROR("ProtectedAtomDB::query_for_pattern(link_schema, public_key) is not implemented yet");
 }
 
@@ -64,15 +66,18 @@ bool ProtectedAtomDB::link_exists(const string& handle, const atomdb_api_types::
     RAISE_ERROR("ProtectedAtomDB::link_exists(handle, public_key) is not implemented yet");
 }
 
-set<string> ProtectedAtomDB::atoms_exist(const vector<string>& handles, const atomdb_api_types::PublicKey& public_key) {
+set<string> ProtectedAtomDB::atoms_exist(const vector<string>& handles,
+                                         const atomdb_api_types::PublicKey& public_key) {
     RAISE_ERROR("ProtectedAtomDB::atoms_exist(handles, public_key) is not implemented yet");
 }
 
-set<string> ProtectedAtomDB::nodes_exist(const vector<string>& handles, const atomdb_api_types::PublicKey& public_key) {
+set<string> ProtectedAtomDB::nodes_exist(const vector<string>& handles,
+                                         const atomdb_api_types::PublicKey& public_key) {
     RAISE_ERROR("ProtectedAtomDB::nodes_exist(handles, public_key) is not implemented yet");
 }
 
-set<string> ProtectedAtomDB::links_exist(const vector<string>& handles, const atomdb_api_types::PublicKey& public_key) {
+set<string> ProtectedAtomDB::links_exist(const vector<string>& handles,
+                                         const atomdb_api_types::PublicKey& public_key) {
     RAISE_ERROR("ProtectedAtomDB::links_exist(handles, public_key) is not implemented yet");
 }
 
@@ -151,7 +156,8 @@ uint ProtectedAtomDB::delete_links(const vector<string>& handles,
     RAISE_ERROR("ProtectedAtomDB::delete_links(handles, public_key) is not implemented yet");
 }
 
-void ProtectedAtomDB::re_index_patterns(const atomdb_api_types::PublicKey& public_key, bool flush_patterns) {
+void ProtectedAtomDB::re_index_patterns(const atomdb_api_types::PublicKey& public_key,
+                                        bool flush_patterns) {
     RAISE_ERROR("ProtectedAtomDB::re_index_patterns(public_key) is not implemented yet");
 }
 
