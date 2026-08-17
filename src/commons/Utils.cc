@@ -37,19 +37,51 @@ void Utils::error(string msg, bool throw_flag, bool log_flag) {
 }
 
 bool Utils::flip_coin(double true_probability) {
-    long f = 1000;
-    return (rand() % f) < lround(true_probability * f);
+    bool answer = false;
+    if ((true_probability > 1.0) || (true_probability < 0.0)) {
+        RAISE_ERROR("true_probability is supposed to be in [0, 1]");
+    } else {
+        if (true_probability > 0.0) {
+            long f = 1000;
+            std::uniform_int_distribution<unsigned int> distribution(0, f - 1);
+            Random::lock_random_generator();
+            unsigned int number = distribution(*Random::get_random_generator());
+            Random::unlock_random_generator();
+            answer = (number < lround(true_probability * f));
+        }
+    }
+    return answer;
 }
 
 unsigned int Utils::uint_rand(unsigned int closed_lower_bound, unsigned int open_upper_bound) {
     if (open_upper_bound <= closed_lower_bound) {
-        RAISE_ERROR("Invalid bounds");
+        RAISE_ERROR("Invalid bounds: [" + std::to_string(closed_lower_bound) + ", " +
+                    std::to_string(open_upper_bound) + ")");
     }
-    return (rand() % (open_upper_bound - closed_lower_bound)) + closed_lower_bound;
+    unsigned int delta = open_upper_bound - closed_lower_bound;
+    std::uniform_int_distribution<unsigned int> distribution(0, delta - 1);
+    Random::lock_random_generator();
+    unsigned int number = distribution(*Random::get_random_generator());
+    Random::unlock_random_generator();
+    return closed_lower_bound + number;
 }
 
 unsigned int Utils::uint_rand(unsigned int open_upper_bound) {
     return Utils::uint_rand(0, open_upper_bound);
+}
+
+string Utils::random_string(size_t length, const string& charset) {
+    const size_t size = charset.size();
+    string result;
+    for (size_t i = 0; i < length; i++) {
+        result += charset[Utils::uint_rand(size)];
+    }
+    return result;
+}
+
+string Utils::random_string(size_t length) {
+    string charset = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+    return random_string(length, charset);
 }
 
 void Utils::sleep(unsigned int milliseconds) {
@@ -139,20 +171,6 @@ string Utils::join(const vector<string>& tokens, char delimiter) {
             result += delimiter;
         }
         result += tokens[i];
-    }
-    return result;
-}
-
-string Utils::random_string(size_t length) {
-    string charset = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
-    return random_string(length, charset);
-}
-
-string Utils::random_string(size_t length, const string& charset) {
-    const size_t size = charset.size();
-    string result;
-    for (size_t i = 0; i < length; i++) {
-        result += charset[rand() % size];
     }
     return result;
 }
@@ -489,6 +507,58 @@ string MemoryFootprint::to_string() {
     }
     answer += "]}";
     return answer;
+}
+
+// --------------------------------------------------------------------------------
+// Random
+
+std::mt19937* Random::random_generator = NULL;
+mutex Random::random_generator_mutex;
+
+void Random::init(unsigned int seed) {
+    random_generator_mutex.lock();
+    if (Random::random_generator == NULL) {
+        if (seed == 0) {
+            random_generator =
+                new std::mt19937(std::chrono::system_clock::now().time_since_epoch().count());
+        } else {
+            random_generator = new std::mt19937(seed);
+        }
+        random_generator_mutex.unlock();
+    } else {
+        random_generator_mutex.unlock();
+        RAISE_ERROR(
+            "commons::Random already initialized. commons::Random::init() should be called only once.");
+    }
+}
+
+void Random::lock_random_generator() {
+    if (Random::random_generator == NULL) {
+        RAISE_ERROR(
+            "commons::Random is not initialized. Call commons::Random::init(seed) before using random "
+            "numbers.");
+    } else {
+        random_generator_mutex.lock();
+    }
+}
+
+void Random::unlock_random_generator() {
+    if (Random::random_generator == NULL) {
+        RAISE_ERROR(
+            "commons::Random is not initialized. Call commons::Random::init(seed) before using random "
+            "numbers.");
+    } else {
+        random_generator_mutex.unlock();
+    }
+}
+
+std::mt19937* Random::get_random_generator() {
+    if (Random::random_generator == NULL) {
+        RAISE_ERROR(
+            "commons::Random is not initialized. Call commons::Random::init(seed) before using random "
+            "numbers.");
+    }
+    return random_generator;
 }
 
 // --------------------------------------------------------------------------------

@@ -195,6 +195,7 @@ int main(int argc, char* argv[]) {
     string context = argv[4];
     string word_tag = argv[5];
     string atomdb_type_str = argv[6];
+    Random::init(0);
     AtomDBSingleton::init(test_atomdb_json_config(atomdb_type_str));
 
     run(client_id, server_id, ports_range.first, ports_range.second, context, word_tag);

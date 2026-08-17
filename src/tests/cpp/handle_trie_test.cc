@@ -769,3 +769,9 @@ TEST(HandleTrieTest, remove_after_merge) {
     value = (AccumulatorValue*) trie.lookup("ABCD");
     EXPECT_TRUE(value == NULL);
 }
+
+int main(int argc, char** argv) {
+    ::testing::InitGoogleTest(&argc, argv);
+    Random::init(0);
+    return RUN_ALL_TESTS();
+}

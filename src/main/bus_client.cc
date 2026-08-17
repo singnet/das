@@ -45,6 +45,7 @@ int main(int argc, char* argv[]) {
 
         JsonConfig json_config = JsonConfigParser::load(cmd_args[Helper::CONFIG]);
         SystemParametersSingleton::init(json_config);
+        Random::init(0);
 
         if (cmd_args.find(Helper::ENDPOINT) == cmd_args.end()) {
             cmd_args[Helper::ENDPOINT] = "localhost:40000";

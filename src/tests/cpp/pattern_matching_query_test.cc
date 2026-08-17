@@ -607,3 +607,9 @@ TEST(PatternMatchingQuery, queries) {
 
     // clang-format on
 }
+
+int main(int argc, char** argv) {
+    ::testing::InitGoogleTest(&argc, argv);
+    Random::init(0);
+    return RUN_ALL_TESTS();
+}

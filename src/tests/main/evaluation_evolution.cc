@@ -1470,6 +1470,7 @@ int main(int argc, char* argv[]) {
     SystemParametersSingleton::init(json_config);
     AtomDBSingleton::init(atomdb_config);
 
+    Random::init(0);
     db = AtomDBSingleton::get_instance();
     DECODER = static_pointer_cast<HandleDecoder>(db).get();
     ServiceBusSingleton::init(client_endpoint, server_endpoint, ports_range.first, ports_range.second);
