@@ -139,7 +139,7 @@ class Utils {
     static unsigned int uint_rand(unsigned int closed_lower_bound, unsigned int open_upper_bound);
     static string random_string(size_t length);
     static string random_string(size_t length, const string& charset);
-    template<class IteratorType>
+    template <class IteratorType>
     static void shuffle(IteratorType it1, IteratorType it2) {
         Random::lock_random_generator();
         std::shuffle(it1, it2, *Random::get_random_generator());

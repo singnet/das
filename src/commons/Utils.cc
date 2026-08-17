@@ -36,9 +36,7 @@ void Utils::error(string msg, bool throw_flag, bool log_flag) {
     }
 }
 
-void Utils::init_random(unsigned int seed) {
-    Random::init(seed);
-}
+void Utils::init_random(unsigned int seed) { Random::init(seed); }
 
 bool Utils::flip_coin(double true_probability) {
     bool answer = false;
