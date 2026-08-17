@@ -100,7 +100,9 @@ class InMemoryDB : public AtomDB {
 
     /** Returns deep clones of every stored atom. */
     vector<shared_ptr<Atom>> get_all_atoms();
-    /** Removes all stored atoms and resets all indexes. */
+    /** Removes all stored atoms and index entries. Pattern index schemas registered
+     *  via add_pattern_index_schema() are intentionally kept: they are configuration,
+     *  not data. */
     void drop_all();
 
     void add_pattern(const string& pattern_handle, const string& atom_handle);

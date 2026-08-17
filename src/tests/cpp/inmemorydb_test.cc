@@ -1172,6 +1172,138 @@ TEST_F(InMemoryDBTest, ConcurrentReadsSurviveDeletesAndUpserts) {
     }
 }
 
+// Covers the store_tries() publish path of drop_all(): readers holding a pre-swap
+// snapshot must keep a live trie (no use-after-free) while the writer swaps in fresh
+// bundles and repopulates. Only swap-surviving invariants are asserted — a reader may
+// legitimately see an empty or partially repopulated DB at any point.
+TEST_F(InMemoryDBTest, ConcurrentReadsSurviveDropAll) {
+    constexpr int kNodes = 8;
+    constexpr int kWriterIterations = 100;
+    constexpr int kReaderThreads = 4;
+
+    // Handles are content-addressed, so both vectors are computed once and never
+    // mutated again — readers index into them concurrently.
+    vector<string> node_handles;
+    for (int i = 0; i < kNodes; ++i) {
+        Node node("Symbol", "\"drop_all_node_" + to_string(i) + "\"");
+        node_handles.push_back(db->add_node(&node));
+    }
+    auto add_links = [&]() {
+        vector<string> link_handles;
+        for (int i = 0; i < kNodes; ++i) {
+            Link link("Expression", {node_handles[i], node_handles[(i + 1) % kNodes]});
+            link_handles.push_back(db->add_link(&link));
+        }
+        return link_handles;
+    };
+    const vector<string> link_handles = add_links();
+
+    atomic<bool> stop{false};
+    atomic<int> reader_failures{0};
+
+    auto reader = [&]() {
+        while (!stop.load(memory_order_acquire)) {
+            for (int i = 0; i < kNodes; ++i) {
+                auto atom = db->get_atom(link_handles[i]);
+                if (atom != nullptr && atom->handle() != link_handles[i]) {
+                    reader_failures.fetch_add(1);
+                }
+                db->query_for_targets(link_handles[i]);
+                db->query_for_incoming_set(node_handles[i]);
+            }
+            for (const auto& atom : db->get_all_atoms()) {
+                if (atom == nullptr) {
+                    reader_failures.fetch_add(1);
+                }
+            }
+        }
+    };
+
+    vector<thread> readers;
+    for (int t = 0; t < kReaderThreads; ++t) {
+        readers.emplace_back(reader);
+    }
+
+    // Writer: alternate wiping everything (publishes a fresh Tries bundle) with
+    // repopulating the same graph.
+    for (int iter = 0; iter < kWriterIterations; ++iter) {
+        db->drop_all();
+        for (int i = 0; i < kNodes; ++i) {
+            Node node("Symbol", "\"drop_all_node_" + to_string(i) + "\"");
+            db->add_node(&node);
+        }
+        add_links();
+    }
+
+    stop.store(true, memory_order_release);
+    for (auto& t : readers) {
+        t.join();
+    }
+
+    EXPECT_EQ(reader_failures.load(), 0);
+    EXPECT_EQ(db->atom_count(), static_cast<size_t>(2 * kNodes));
+    for (int i = 0; i < kNodes; ++i) {
+        EXPECT_TRUE(db->link_exists(link_handles[i]));
+    }
+}
+
+// Covers the store_tries() publish path of re_index_patterns(true): the pattern index
+// is rebuilt into a fresh trie and swapped in while readers query it. Since the atom
+// set never changes, readers must always observe a complete index — either the old or
+// the fully rebuilt one, never a torn/partial one.
+TEST_F(InMemoryDBTest, ConcurrentPatternQueriesSurviveReIndex) {
+    constexpr int kNodes = 8;
+    constexpr int kWriterIterations = 200;
+    constexpr int kReaderThreads = 4;
+
+    vector<string> node_handles;
+    for (int i = 0; i < kNodes; ++i) {
+        Node node("Symbol", "\"reindex_node_" + to_string(i) + "\"");
+        node_handles.push_back(db->add_node(&node));
+    }
+    for (int i = 0; i < kNodes; ++i) {
+        Link link("Expression", {node_handles[i], node_handles[(i + 1) % kNodes]});
+        db->add_link(&link);
+    }
+
+    atomic<bool> stop{false};
+    atomic<int> reader_failures{0};
+
+    auto reader = [&]() {
+        // Pattern (node_0, *): exactly one link in the ring has node_0 as first target.
+        LinkSchema link_schema({"LINK_TEMPLATE",
+                                "Expression",
+                                "2",
+                                "NODE",
+                                "Symbol",
+                                "\"reindex_node_0\"",
+                                "VARIABLE",
+                                "x"});
+        while (!stop.load(memory_order_acquire)) {
+            if (db->query_for_pattern(link_schema)->size() != 1) {
+                reader_failures.fetch_add(1);
+            }
+        }
+    };
+
+    vector<thread> readers;
+    for (int t = 0; t < kReaderThreads; ++t) {
+        readers.emplace_back(reader);
+    }
+
+    for (int iter = 0; iter < kWriterIterations; ++iter) {
+        db->re_index_patterns(true);
+    }
+
+    stop.store(true, memory_order_release);
+    for (auto& t : readers) {
+        t.join();
+    }
+
+    EXPECT_EQ(reader_failures.load(), 0);
+    EXPECT_EQ(db->atom_count(), static_cast<size_t>(2 * kNodes));
+}
+
 int main(int argc, char** argv) {
     ::testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();

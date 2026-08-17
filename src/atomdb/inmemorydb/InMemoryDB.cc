@@ -526,7 +526,7 @@ bool InMemoryDB::delete_link_unlocked(const Tries& tries,
     }
 
     auto link = dynamic_cast<Link*>(atom.get());
-    auto targets = link->targets;
+    const auto& targets = link->targets;
 
     vector<string> targets_to_delete;
 
