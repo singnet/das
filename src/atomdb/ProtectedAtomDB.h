@@ -6,10 +6,10 @@
 #include <vector>
 
 #include "AtomDB.h"
-#include "PublicKey.h"
 
 using namespace std;
 using namespace atoms;
+using namespace atomdb_api_types;
 
 namespace atomdb {
 

@@ -83,16 +83,6 @@ cc_library(
 )
 
 cc_library(
-    name = "public_key",
-    srcs = ["PublicKey.cc"],
-    hdrs = ["PublicKey.h"],
-    includes = ["."],
-    deps = [
-        "//commons:commons_lib",
-    ],
-)
-
-cc_library(
     name = "protected_atomdb",
     srcs = ["ProtectedAtomDB.cc"],
     hdrs = ["ProtectedAtomDB.h"],

@@ -9,9 +9,9 @@
 #include "Link.h"
 #include "Node.h"
 #include "ProtectedAtomDB.h"
-#include "PublicKey.h"
 
 using namespace atomdb;
+using namespace atomdb_api_types;
 using namespace atoms;
 using namespace std;
 
