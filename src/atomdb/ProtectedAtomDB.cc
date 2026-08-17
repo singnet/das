@@ -19,151 +19,151 @@ ProtectedAtomDB::ProtectedAtomDB(shared_ptr<AtomDB> backend) : backend(std::move
 // --------------------------------------------------------------------------------
 // Public methods
 
-shared_ptr<Atom> ProtectedAtomDB::get_atom(const string& handle, const PublicKey& public_key) {
+shared_ptr<Atom> ProtectedAtomDB::get_atom(const string& handle, const atomdb_api_types::PublicKey& public_key) {
     RAISE_ERROR("ProtectedAtomDB::get_atom(handle, public_key) is not implemented yet");
 }
 
-shared_ptr<Node> ProtectedAtomDB::get_node(const string& handle, const PublicKey& public_key) {
+shared_ptr<Node> ProtectedAtomDB::get_node(const string& handle, const atomdb_api_types::PublicKey& public_key) {
     RAISE_ERROR("ProtectedAtomDB::get_node(handle, public_key) is not implemented yet");
 }
 
-shared_ptr<Link> ProtectedAtomDB::get_link(const string& handle, const PublicKey& public_key) {
+shared_ptr<Link> ProtectedAtomDB::get_link(const string& handle, const atomdb_api_types::PublicKey& public_key) {
     RAISE_ERROR("ProtectedAtomDB::get_link(handle, public_key) is not implemented yet");
 }
 
 vector<shared_ptr<Atom>> ProtectedAtomDB::get_matching_atoms(bool is_toplevel,
                                                              Atom& key,
-                                                             const PublicKey& public_key) {
+                                                             const atomdb_api_types::PublicKey& public_key) {
     RAISE_ERROR("ProtectedAtomDB::get_matching_atoms(..., public_key) is not implemented yet");
 }
 
 shared_ptr<atomdb_api_types::HandleSet> ProtectedAtomDB::query_for_pattern(const LinkSchema& link_schema,
-                                                                           const PublicKey& public_key) {
+                                                                           const atomdb_api_types::PublicKey& public_key) {
     RAISE_ERROR("ProtectedAtomDB::query_for_pattern(link_schema, public_key) is not implemented yet");
 }
 
 shared_ptr<atomdb_api_types::HandleList> ProtectedAtomDB::query_for_targets(
-    const string& handle, const PublicKey& public_key) {
+    const string& handle, const atomdb_api_types::PublicKey& public_key) {
     RAISE_ERROR("ProtectedAtomDB::query_for_targets(handle, public_key) is not implemented yet");
 }
 
 shared_ptr<atomdb_api_types::HandleSet> ProtectedAtomDB::query_for_incoming_set(
-    const string& handle, const PublicKey& public_key) {
+    const string& handle, const atomdb_api_types::PublicKey& public_key) {
     RAISE_ERROR("ProtectedAtomDB::query_for_incoming_set(handle, public_key) is not implemented yet");
 }
 
-bool ProtectedAtomDB::atom_exists(const string& handle, const PublicKey& public_key) {
+bool ProtectedAtomDB::atom_exists(const string& handle, const atomdb_api_types::PublicKey& public_key) {
     RAISE_ERROR("ProtectedAtomDB::atom_exists(handle, public_key) is not implemented yet");
 }
 
-bool ProtectedAtomDB::node_exists(const string& handle, const PublicKey& public_key) {
+bool ProtectedAtomDB::node_exists(const string& handle, const atomdb_api_types::PublicKey& public_key) {
     RAISE_ERROR("ProtectedAtomDB::node_exists(handle, public_key) is not implemented yet");
 }
 
-bool ProtectedAtomDB::link_exists(const string& handle, const PublicKey& public_key) {
+bool ProtectedAtomDB::link_exists(const string& handle, const atomdb_api_types::PublicKey& public_key) {
     RAISE_ERROR("ProtectedAtomDB::link_exists(handle, public_key) is not implemented yet");
 }
 
-set<string> ProtectedAtomDB::atoms_exist(const vector<string>& handles, const PublicKey& public_key) {
+set<string> ProtectedAtomDB::atoms_exist(const vector<string>& handles, const atomdb_api_types::PublicKey& public_key) {
     RAISE_ERROR("ProtectedAtomDB::atoms_exist(handles, public_key) is not implemented yet");
 }
 
-set<string> ProtectedAtomDB::nodes_exist(const vector<string>& handles, const PublicKey& public_key) {
+set<string> ProtectedAtomDB::nodes_exist(const vector<string>& handles, const atomdb_api_types::PublicKey& public_key) {
     RAISE_ERROR("ProtectedAtomDB::nodes_exist(handles, public_key) is not implemented yet");
 }
 
-set<string> ProtectedAtomDB::links_exist(const vector<string>& handles, const PublicKey& public_key) {
+set<string> ProtectedAtomDB::links_exist(const vector<string>& handles, const atomdb_api_types::PublicKey& public_key) {
     RAISE_ERROR("ProtectedAtomDB::links_exist(handles, public_key) is not implemented yet");
 }
 
 string ProtectedAtomDB::add_atom(const atoms::Atom* atom,
-                                 const PublicKey& public_key,
+                                 const atomdb_api_types::PublicKey& public_key,
                                  const atoms::Merger* merger) {
     RAISE_ERROR("ProtectedAtomDB::add_atom(atom, public_key) is not implemented yet");
 }
 
 string ProtectedAtomDB::add_node(const atoms::Node* node,
-                                 const PublicKey& public_key,
+                                 const atomdb_api_types::PublicKey& public_key,
                                  const atoms::Merger* merger) {
     RAISE_ERROR("ProtectedAtomDB::add_node(node, public_key) is not implemented yet");
 }
 
 string ProtectedAtomDB::add_link(const atoms::Link* link,
-                                 const PublicKey& public_key,
+                                 const atomdb_api_types::PublicKey& public_key,
                                  const atoms::Merger* merger) {
     RAISE_ERROR("ProtectedAtomDB::add_link(link, public_key) is not implemented yet");
 }
 
 vector<string> ProtectedAtomDB::add_atoms(const vector<atoms::Atom*>& atom_list,
-                                          const PublicKey& public_key,
+                                          const atomdb_api_types::PublicKey& public_key,
                                           bool is_transactional,
                                           const atoms::Merger* merger) {
     RAISE_ERROR("ProtectedAtomDB::add_atoms(atom_list, public_key) is not implemented yet");
 }
 
 vector<string> ProtectedAtomDB::add_nodes(const vector<atoms::Node*>& nodes,
-                                          const PublicKey& public_key,
+                                          const atomdb_api_types::PublicKey& public_key,
                                           bool is_transactional,
                                           const atoms::Merger* merger) {
     RAISE_ERROR("ProtectedAtomDB::add_nodes(nodes, public_key) is not implemented yet");
 }
 
 vector<string> ProtectedAtomDB::add_links(const vector<atoms::Link*>& links,
-                                          const PublicKey& public_key,
+                                          const atomdb_api_types::PublicKey& public_key,
                                           bool is_transactional,
                                           const atoms::Merger* merger) {
     RAISE_ERROR("ProtectedAtomDB::add_links(links, public_key) is not implemented yet");
 }
 
 bool ProtectedAtomDB::delete_atom(const string& handle,
-                                  const PublicKey& public_key,
+                                  const atomdb_api_types::PublicKey& public_key,
                                   bool delete_link_targets) {
     RAISE_ERROR("ProtectedAtomDB::delete_atom(handle, public_key) is not implemented yet");
 }
 
 bool ProtectedAtomDB::delete_node(const string& handle,
-                                  const PublicKey& public_key,
+                                  const atomdb_api_types::PublicKey& public_key,
                                   bool delete_link_targets) {
     RAISE_ERROR("ProtectedAtomDB::delete_node(handle, public_key) is not implemented yet");
 }
 
 bool ProtectedAtomDB::delete_link(const string& handle,
-                                  const PublicKey& public_key,
+                                  const atomdb_api_types::PublicKey& public_key,
                                   bool delete_link_targets) {
     RAISE_ERROR("ProtectedAtomDB::delete_link(handle, public_key) is not implemented yet");
 }
 
 uint ProtectedAtomDB::delete_atoms(const vector<string>& handles,
-                                   const PublicKey& public_key,
+                                   const atomdb_api_types::PublicKey& public_key,
                                    bool delete_link_targets) {
     RAISE_ERROR("ProtectedAtomDB::delete_atoms(handles, public_key) is not implemented yet");
 }
 
 uint ProtectedAtomDB::delete_nodes(const vector<string>& handles,
-                                   const PublicKey& public_key,
+                                   const atomdb_api_types::PublicKey& public_key,
                                    bool delete_link_targets) {
     RAISE_ERROR("ProtectedAtomDB::delete_nodes(handles, public_key) is not implemented yet");
 }
 
 uint ProtectedAtomDB::delete_links(const vector<string>& handles,
-                                   const PublicKey& public_key,
+                                   const atomdb_api_types::PublicKey& public_key,
                                    bool delete_link_targets) {
     RAISE_ERROR("ProtectedAtomDB::delete_links(handles, public_key) is not implemented yet");
 }
 
-void ProtectedAtomDB::re_index_patterns(const PublicKey& public_key, bool flush_patterns) {
+void ProtectedAtomDB::re_index_patterns(const atomdb_api_types::PublicKey& public_key, bool flush_patterns) {
     RAISE_ERROR("ProtectedAtomDB::re_index_patterns(public_key) is not implemented yet");
 }
 
-size_t ProtectedAtomDB::node_count(const PublicKey& public_key) const {
+size_t ProtectedAtomDB::node_count(const atomdb_api_types::PublicKey& public_key) const {
     RAISE_ERROR("ProtectedAtomDB::node_count(public_key) is not implemented yet");
 }
 
-size_t ProtectedAtomDB::link_count(const PublicKey& public_key) const {
+size_t ProtectedAtomDB::link_count(const atomdb_api_types::PublicKey& public_key) const {
     RAISE_ERROR("ProtectedAtomDB::link_count(public_key) is not implemented yet");
 }
 
-size_t ProtectedAtomDB::atom_count(const PublicKey& public_key) const {
+size_t ProtectedAtomDB::atom_count(const atomdb_api_types::PublicKey& public_key) const {
     RAISE_ERROR("ProtectedAtomDB::atom_count(public_key) is not implemented yet");
 }
 
@@ -177,6 +177,11 @@ atomdb_api_types::ProtectionMode ProtectedAtomDB::is_protected() const {
         return atomdb_api_types::ProtectionMode::FORWARD;
     }
     return atomdb_api_types::ProtectionMode::PROTECTED;
+}
+
+vector<atomdb_api_types::AccessPermissionDocument> ProtectedAtomDB::get_access_permissions(
+    const atomdb_api_types::PublicKey& public_key) const {
+    return this->backend->get_access_permissions(public_key);
 }
 
 // --------------------------------------------------------------------------------

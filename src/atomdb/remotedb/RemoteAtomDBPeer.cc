@@ -61,11 +61,11 @@ void RemoteAtomDBPeer::invalidate_fetched_templates() {
 }
 
 atomdb_api_types::ProtectionMode RemoteAtomDBPeer::is_protected() const {
-    if (local_persistence_) {
-        auto mode = local_persistence_->is_protected();
-        if (mode != atomdb_api_types::ProtectionMode::UNPROTECTED) {
-            return mode;
-        }
+    if (local_persistence_ &&
+        local_persistence_->is_protected() == atomdb_api_types::ProtectionMode::PROTECTED) {
+        RAISE_ERROR("[RemoteDB(" + uid_ +
+                    ")] local_persistence is PROTECTED, but RemoteAtomDBPeer does not support protected "
+                    "local persistence");
     }
     if (atomdb_) {
         return atomdb_->is_protected();

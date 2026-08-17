@@ -3,6 +3,7 @@
 #include <map>
 #include <memory>
 #include <string>
+#include <variant>
 #include <vector>
 
 #include "InMemoryDB.h"
@@ -27,26 +28,16 @@ shared_ptr<ProtectedAtomDB> make_protected_db(const string& context = "protected
 
 TEST(PublicKeyTest, SingleKey) {
     PublicKey key("pk1");
-    EXPECT_TRUE(key.is_single_key());
-    EXPECT_FALSE(key.is_peer_map());
-    EXPECT_EQ(key.key(), "pk1");
-    EXPECT_THROW(key.keys(), runtime_error);
+    ASSERT_TRUE(holds_alternative<string>(key.value));
+    EXPECT_EQ(get<string>(key.value), "pk1");
 }
 
 TEST(PublicKeyTest, PeerMap) {
     PublicKey key(map<string, string>{{"peer1", "k1"}, {"peer2", "k2"}});
-    EXPECT_FALSE(key.is_single_key());
-    EXPECT_TRUE(key.is_peer_map());
-    EXPECT_EQ(key.keys().size(), 2u);
-    EXPECT_EQ(key.keys().at("peer1"), "k1");
-    EXPECT_THROW(key.key(), runtime_error);
-}
-
-TEST(PublicKeyTest, RejectsEmpty) {
-    EXPECT_THROW(PublicKey(""), runtime_error);
-    EXPECT_THROW(PublicKey(map<string, string>{}), runtime_error);
-    EXPECT_THROW(PublicKey(map<string, string>{{"", "k"}}), runtime_error);
-    EXPECT_THROW(PublicKey(map<string, string>{{"peer", ""}}), runtime_error);
+    ASSERT_TRUE((holds_alternative<map<string, string>>(key.value)));
+    const auto& keys = get<map<string, string>>(key.value);
+    EXPECT_EQ(keys.size(), 2u);
+    EXPECT_EQ(keys.at("peer1"), "k1");
 }
 
 TEST(ProtectedAtomDBTest, RejectsNullBackend) { EXPECT_THROW(ProtectedAtomDB(nullptr), runtime_error); }
@@ -78,6 +69,14 @@ TEST(ProtectedAtomDBTest, DelegatesCapabilityFlagsToBackend) {
 
     EXPECT_EQ(db.allow_nested_indexing(), backend->allow_nested_indexing());
     EXPECT_EQ(db.composite_type_enabled(), backend->composite_type_enabled());
+}
+
+TEST(ProtectedAtomDBTest, DelegatesAccessPermissionsToBackend) {
+    auto backend = make_shared<InMemoryDB>("protected_perms_");
+    ProtectedAtomDB db(backend);
+    PublicKey key("any_key");
+
+    EXPECT_EQ(db.get_access_permissions(key).size(), backend->get_access_permissions(key).size());
 }
 
 TEST(ProtectedAtomDBTest, RejectsAccessWithoutPublicKey) {

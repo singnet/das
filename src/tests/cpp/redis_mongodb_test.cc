@@ -21,6 +21,7 @@
 #include "MettaMapping.h"
 #include "MockAnimalsData.h"
 #include "Node.h"
+#include "ProtectedAtomDB.h"
 #include "RedisMongoDB.h"
 #include "TestAtomDBJsonConfig.h"
 #include "UntypedVariable.h"
@@ -1488,6 +1489,7 @@ TEST_F(RedisMongoDBTest, IsProtectedFollowsPersistedConfig) {
 
     auto loaded = AtomDBFactory::create(test_atomdb_json_config(), "test_");
     EXPECT_EQ(loaded->is_protected(), atomdb_api_types::ProtectionMode::PROTECTED);
+    EXPECT_NE(dynamic_pointer_cast<ProtectedAtomDB>(loaded), nullptr);
 
     collection.delete_many({});
 }

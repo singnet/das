@@ -910,7 +910,7 @@ TEST(RemoteAtomDBFederationTest, CompositeTypeEnabledAggregation) {
     }
 }
 
-TEST(RemoteAtomDBFederationTest, PeerIsProtectedWhenEitherBackendIsProtected) {
+TEST(RemoteAtomDBFederationTest, PeerIsProtectedFollowsRemoteBackend) {
     // Neither the remote backend nor the local persistence is protected.
     {
         auto remote = make_shared<InMemoryDB>("prot_none_remote_");
@@ -934,12 +934,12 @@ TEST(RemoteAtomDBFederationTest, PeerIsProtectedWhenEitherBackendIsProtected) {
         EXPECT_EQ(peer->is_protected(), ProtectionMode::PROTECTED);
     }
 
-    // Protected local persistence.
+    // Protected local persistence is not supported.
     {
         auto remote = make_shared<InMemoryDB>("prot_local_remote_");
         auto local = make_shared<ProtectedInMemoryDB>("prot_local_local_");
         auto peer = make_shared<RemoteAtomDBPeer>(remote, local, "peer");
-        EXPECT_EQ(peer->is_protected(), ProtectionMode::PROTECTED);
+        EXPECT_THROW(peer->is_protected(), runtime_error);
     }
 }
 
