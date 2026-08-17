@@ -114,7 +114,6 @@ class RemoteAtomDBPeer : public AtomDB, public processor::ThreadMethod {
     const string& get_uid() const { return uid_; }
     bool is_readonly() const { return local_persistence_ == nullptr; }
 
-    // TODO: review get_access_permissions() (public_key filtering / local+remote aggregation).
     vector<atomdb_api_types::AccessPermissionDocument> get_access_permissions(
         const atomdb_api_types::PublicKey& public_key) const override;
 

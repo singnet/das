@@ -110,7 +110,6 @@ class AdapterDB : public AtomDB {
     size_t link_count() const override;
     size_t atom_count() const override;
 
-    // TODO: review get_access_permissions() (public_key filtering / backend delegation).
     vector<atomdb_api_types::AccessPermissionDocument> get_access_permissions(
         const atomdb_api_types::PublicKey& public_key) const override;
 
