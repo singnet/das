@@ -141,8 +141,7 @@ TEST(AuthorizationManagementTest, UnregisteredKeyIsDenied) {
     auto link = db->get_link(link_handle);
     ASSERT_NE(link, nullptr);
     EXPECT_FALSE(management.is_authorized(*link, "unknown", AuthorizationOperation::READ));
-    EXPECT_FALSE(
-        management.is_authorized(link_handle, "unknown", AuthorizationOperation::READ, *db));
+    EXPECT_FALSE(management.is_authorized(link_handle, "unknown", AuthorizationOperation::READ, *db));
 }
 
 TEST(AuthorizationManagementTest, AuthorizeThenReadAndWriteFlags) {

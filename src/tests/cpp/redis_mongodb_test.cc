@@ -20,6 +20,7 @@
 #include "Merger.h"
 #include "MettaMapping.h"
 #include "MockAnimalsData.h"
+#include "MongoAuthorizationPersistence.h"
 #include "Node.h"
 #include "RedisMongoDB.h"
 #include "TestAtomDBJsonConfig.h"
@@ -1477,6 +1478,58 @@ TEST_F(RedisMongoDBTest, GetAccessPermissionsRejectsInvalidDocument) {
                                         kvp("full_access", false)));
 
     EXPECT_THROW(db->get_access_permissions(PublicKey("key_broken")), runtime_error);
+
+    collection.delete_many({});
+}
+
+TEST_F(RedisMongoDBTest, MongoAuthorizationPersistenceRoundTrip) {
+    using bsoncxx::builder::basic::kvp;
+    using bsoncxx::builder::basic::make_document;
+
+    auto pool = db->get_mongo_pool();
+    auto conn = pool->acquire();
+    auto collection =
+        (*conn)[RedisMongoDB::MONGODB_DB_NAME][RedisMongoDB::MONGODB_ACCESS_PERMISSIONS_COLLECTION_NAME];
+    collection.delete_many({});
+
+    MongoAuthorizationPersistence persistence(
+        pool, RedisMongoDB::MONGODB_DB_NAME, RedisMongoDB::MONGODB_ACCESS_PERMISSIONS_COLLECTION_NAME);
+
+    vector<string> tokens = {
+        "LINK_TEMPLATE", "Expression", "2", "NODE", "Symbol", "Similarity", "VARIABLE", "VARIABLE"};
+    AccessPermissionEntry entry(tokens, true, false);
+    persistence.save("key_reader", entry);
+
+    string id = compute_hash((char*) "key_reader");
+    auto stored = collection.find_one(make_document(kvp("_id", id)));
+    ASSERT_TRUE(stored);
+    EXPECT_FALSE(stored->view()["public_key"]);
+    EXPECT_EQ(string(stored->view()["_id"].get_string().value), id);
+    EXPECT_FALSE(stored->view()["full_access"].get_bool().value);
+
+    auto docs = db->get_access_permissions(PublicKey("key_reader"));
+    ASSERT_EQ(docs.size(), 1u);
+    EXPECT_EQ(docs[0].public_key, "key_reader");
+    EXPECT_FALSE(docs[0].full_access);
+    ASSERT_EQ(docs[0].entries.size(), 1u);
+    EXPECT_TRUE(docs[0].entries[0].read);
+    EXPECT_FALSE(docs[0].entries[0].write);
+    EXPECT_EQ(docs[0].entries[0].schema.handle(), entry.schema.handle());
+
+    persistence.save("key_reader", AccessPermissionEntry(tokens, false, true));
+    docs = db->get_access_permissions(PublicKey("key_reader"));
+    ASSERT_EQ(docs.size(), 1u);
+    ASSERT_EQ(docs[0].entries.size(), 1u);
+    EXPECT_FALSE(docs[0].entries[0].read);
+    EXPECT_TRUE(docs[0].entries[0].write);
+
+    persistence.remove("key_reader", entry.schema.handle());
+    docs = db->get_access_permissions(PublicKey("key_reader"));
+    ASSERT_EQ(docs.size(), 1u);
+    EXPECT_TRUE(docs[0].entries.empty());
+
+    persistence.remove_all("key_reader");
+    EXPECT_TRUE(db->get_access_permissions(PublicKey("key_reader")).empty());
 
     collection.delete_many({});
 }

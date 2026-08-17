@@ -2,7 +2,12 @@
 
 #include <algorithm>
 
+#define LOG_LEVEL INFO_LEVEL
+#include "Logger.h"
+#include "Utils.h"
+
 using namespace atomdb;
+using namespace auth;
 
 const vector<atomdb_api_types::AccessPermissionEntry> AuthorizationManifest::EMPTY_ENTRIES;
 
@@ -18,7 +23,7 @@ void AuthorizationManifest::set(const atomdb_api_types::AccessPermissionDocument
     }
 }
 
-void AuthorizationManifest::add(const string& public_key,
+void AuthorizationManifest::add(const atomdb_api_types::PublicKey& public_key,
                                 const atomdb_api_types::AccessPermissionEntry& entry) {
     atomdb_api_types::AccessPermissionDocument* document = this->find_document(public_key, "add");
 
@@ -40,7 +45,7 @@ void AuthorizationManifest::add(const string& public_key,
     entries.push_back(entry);
 }
 
-void AuthorizationManifest::remove(const string& public_key, const string& handle) {
+void AuthorizationManifest::remove(const atomdb_api_types::PublicKey& public_key, const string& handle) {
     atomdb_api_types::AccessPermissionDocument* document = this->find_document(public_key, "remove");
 
     if (document == nullptr) return;
@@ -55,13 +60,13 @@ void AuthorizationManifest::remove(const string& public_key, const string& handl
     }
 }
 
-void AuthorizationManifest::remove_all(const string& public_key) { this->documents.erase(public_key); }
+void AuthorizationManifest::remove_all(const atomdb_api_types::PublicKey& public_key) { this->documents.erase(public_key); }
 
-bool AuthorizationManifest::is_registered(const string& public_key) const {
+bool AuthorizationManifest::is_registered(const atomdb_api_types::PublicKey& public_key) const {
     return this->documents.find(public_key) != this->documents.end();
 }
 
-bool AuthorizationManifest::full_access(const string& public_key) {
+bool AuthorizationManifest::full_access(const atomdb_api_types::PublicKey& public_key) {
     atomdb_api_types::AccessPermissionDocument* document =
         this->find_document(public_key, "full_access");
     if (document == nullptr) {
@@ -71,7 +76,7 @@ bool AuthorizationManifest::full_access(const string& public_key) {
 }
 
 const vector<atomdb_api_types::AccessPermissionEntry>& AuthorizationManifest::entries(
-    const string& public_key) {
+    const atomdb_api_types::PublicKey& public_key) {
     atomdb_api_types::AccessPermissionDocument* document = this->find_document(public_key, "entries");
     if (document == nullptr) {
         return EMPTY_ENTRIES;
@@ -82,18 +87,17 @@ const vector<atomdb_api_types::AccessPermissionEntry>& AuthorizationManifest::en
 // --------------------------------------------------------------------------------
 // Private methods
 
-void AuthorizationManifest::create_document(const string& public_key,
+void AuthorizationManifest::create_document(const atomdb_api_types::PublicKey& public_key,
                                             const atomdb_api_types::AccessPermissionEntry& entry) {
     this->documents.emplace(public_key,
                             atomdb_api_types::AccessPermissionDocument(public_key, false, {entry}));
 }
 
 atomdb_api_types::AccessPermissionDocument* AuthorizationManifest::find_document(
-    const string& public_key, const string& caller) {
+    const atomdb_api_types::PublicKey& public_key, const string& caller) {
     auto it = this->documents.find(public_key);
     if (it == this->documents.end()) {
-        LOG_INFO("AuthorizationManifest::" + caller +
-                 "() called for unregistered public_key: " + public_key);
+        LOG_INFO("AuthorizationManifest::" << caller << "() called for unregistered public_key: " << public_key);
         return nullptr;
     }
     return &it->second;

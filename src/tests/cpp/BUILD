@@ -773,6 +773,7 @@ cc_test(
     linkstatic = 1,
     deps = [
         "//atomdb:atomdb_singleton",
+        "//atomdb/auth:mongo_authorization_persistence",
         "//tests/cpp/test_commons:mock_animals_data_lib",
         "//tests/cpp/test_commons:test_atomdb_json_config",
         "@com_github_google_googletest//:gtest_main",

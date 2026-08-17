@@ -39,6 +39,7 @@ cc_library(
         "//atomdb:atomdb_api_types",
         "//commons:commons_lib",
         "//commons/atoms:atoms_lib",
+        "//hasher:hasher_lib",
     ],
 )
 
