@@ -113,10 +113,6 @@ class Utils {
    private:
     class Random {
        public:
-        /**
-         * Use p[assed seed to initialize a pseudo-rando number generator used  in all Utils'
-         * methods with random behavior.* If seed == 0, the machine clock is used instead.
-         */
         static void init(unsigned int seed);
         static void lock_random_generator();
         static void unlock_random_generator();
@@ -133,6 +129,10 @@ class Utils {
 
     static void error(string msg, bool throw_flag, bool log_flag = true);
 
+    /**
+     * Use passed seed to initialize a pseudo-rando number generator used in all Utils'
+     * methods with random behavior. If seed == 0, the machine clock is used instead.
+     */
     static void init_random(unsigned int seed);
     static bool flip_coin(double true_probability = 0.5);
     static unsigned int uint_rand(unsigned int open_upper_bound);
@@ -142,7 +142,12 @@ class Utils {
     template <class IteratorType>
     static void shuffle(IteratorType it1, IteratorType it2) {
         Random::lock_random_generator();
-        std::shuffle(it1, it2, *Random::get_random_generator());
+        try {
+            std::shuffle(it1, it2, *Random::get_random_generator());
+        } catch (...) {
+            Random::unlock_random_generator();
+            throw;
+        }
         Random::unlock_random_generator();
     }
 
