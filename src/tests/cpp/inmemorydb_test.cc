@@ -1199,9 +1199,18 @@ TEST_F(InMemoryDBTest, ConcurrentReadsSurviveDropAll) {
     const vector<string> link_handles = add_links();
 
     atomic<bool> stop{false};
+    atomic<bool> go{false};
+    atomic<bool> writer_done{false};
+    atomic<int> readers_ready{0};
+    atomic<int> writer_publishes{0};
     atomic<int> reader_failures{0};
+    atomic<int> overlapping_batches{0};
 
     auto reader = [&]() {
+        readers_ready.fetch_add(1);
+        while (!go.load(memory_order_acquire)) {
+            this_thread::yield();
+        }
         while (!stop.load(memory_order_acquire)) {
             for (int i = 0; i < kNodes; ++i) {
                 auto atom = db->get_atom(link_handles[i]);
@@ -1216,6 +1225,12 @@ TEST_F(InMemoryDBTest, ConcurrentReadsSurviveDropAll) {
                     reader_failures.fetch_add(1);
                 }
             }
+            // Batch completed after at least one publish while the writer was still
+            // publishing: it provably overlapped the publication phase.
+            if (writer_publishes.load(memory_order_acquire) > 0 &&
+                !writer_done.load(memory_order_acquire)) {
+                overlapping_batches.fetch_add(1);
+            }
         }
     };
 
@@ -1224,23 +1239,42 @@ TEST_F(InMemoryDBTest, ConcurrentReadsSurviveDropAll) {
         readers.emplace_back(reader);
     }
 
+    // Start gate: make sure every reader is spinning before the writer starts, so
+    // reads genuinely overlap the drop_all() publications below.
+    while (readers_ready.load(memory_order_acquire) < kReaderThreads) {
+        this_thread::yield();
+    }
+    go.store(true, memory_order_release);
+
     // Writer: alternate wiping everything (publishes a fresh Tries bundle) with
-    // repopulating the same graph.
-    for (int iter = 0; iter < kWriterIterations; ++iter) {
+    // repopulating the same graph. Keep publishing (bounded) until at least one
+    // reader batch is seen overlapping, so the overlap assertion cannot be flaky.
+    auto publish_once = [&]() {
         db->drop_all();
         for (int i = 0; i < kNodes; ++i) {
             Node node("Symbol", "\"drop_all_node_" + to_string(i) + "\"");
             db->add_node(&node);
         }
         add_links();
+        writer_publishes.fetch_add(1, memory_order_release);
+    };
+    for (int iter = 0; iter < kWriterIterations; ++iter) {
+        publish_once();
+    }
+    for (int extra = 0;
+         overlapping_batches.load(memory_order_acquire) == 0 && extra < 10 * kWriterIterations;
+         ++extra) {
+        publish_once();
     }
 
+    writer_done.store(true, memory_order_release);
     stop.store(true, memory_order_release);
     for (auto& t : readers) {
         t.join();
     }
 
     EXPECT_EQ(reader_failures.load(), 0);
+    EXPECT_GT(overlapping_batches.load(), 0);  // reads really raced the publications
     EXPECT_EQ(db->atom_count(), static_cast<size_t>(2 * kNodes));
     for (int i = 0; i < kNodes; ++i) {
         EXPECT_TRUE(db->link_exists(link_handles[i]));
@@ -1267,7 +1301,12 @@ TEST_F(InMemoryDBTest, ConcurrentPatternQueriesSurviveReIndex) {
     }
 
     atomic<bool> stop{false};
+    atomic<bool> go{false};
+    atomic<bool> writer_done{false};
+    atomic<int> readers_ready{0};
+    atomic<int> writer_publishes{0};
     atomic<int> reader_failures{0};
+    atomic<int> overlapping_queries{0};
 
     auto reader = [&]() {
         // Pattern (node_0, *): exactly one link in the ring has node_0 as first target.
@@ -1279,9 +1318,19 @@ TEST_F(InMemoryDBTest, ConcurrentPatternQueriesSurviveReIndex) {
                                 "\"reindex_node_0\"",
                                 "VARIABLE",
                                 "x"});
+        readers_ready.fetch_add(1);
+        while (!go.load(memory_order_acquire)) {
+            this_thread::yield();
+        }
         while (!stop.load(memory_order_acquire)) {
             if (db->query_for_pattern(link_schema)->size() != 1) {
                 reader_failures.fetch_add(1);
+            }
+            // Query completed after at least one publish while the writer was still
+            // publishing: it provably overlapped the rebuild/swap phase.
+            if (writer_publishes.load(memory_order_acquire) > 0 &&
+                !writer_done.load(memory_order_acquire)) {
+                overlapping_queries.fetch_add(1);
             }
         }
     };
@@ -1291,16 +1340,34 @@ TEST_F(InMemoryDBTest, ConcurrentPatternQueriesSurviveReIndex) {
         readers.emplace_back(reader);
     }
 
+    // Start gate: make sure every reader is spinning before the writer starts, so
+    // queries genuinely overlap the pattern-trie swaps below.
+    while (readers_ready.load(memory_order_acquire) < kReaderThreads) {
+        this_thread::yield();
+    }
+    go.store(true, memory_order_release);
+
+    // Keep publishing (bounded) until at least one query is seen overlapping, so the
+    // overlap assertion cannot be flaky.
     for (int iter = 0; iter < kWriterIterations; ++iter) {
         db->re_index_patterns(true);
+        writer_publishes.fetch_add(1, memory_order_release);
+    }
+    for (int extra = 0;
+         overlapping_queries.load(memory_order_acquire) == 0 && extra < 10 * kWriterIterations;
+         ++extra) {
+        db->re_index_patterns(true);
+        writer_publishes.fetch_add(1, memory_order_release);
     }
 
+    writer_done.store(true, memory_order_release);
     stop.store(true, memory_order_release);
     for (auto& t : readers) {
         t.join();
     }
 
     EXPECT_EQ(reader_failures.load(), 0);
+    EXPECT_GT(overlapping_queries.load(), 0);  // queries really raced the swaps
     EXPECT_EQ(db->atom_count(), static_cast<size_t>(2 * kNodes));
 }
 
