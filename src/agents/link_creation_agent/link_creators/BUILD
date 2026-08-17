@@ -11,5 +11,7 @@ cc_library(
     deps = [
         "//agents/query_engine:query_answer",
         "//commons:commons_lib",
+        "//hasher:hasher_lib",
+        "//atomdb:atomdb_singleton",
     ],
 )

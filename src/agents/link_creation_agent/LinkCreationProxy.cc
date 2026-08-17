@@ -133,6 +133,13 @@ bool LinkCreationProxy::is_link_creation_function_remote() {
            (this->link_creator_function_tag == LinkCreatorRegistry::REMOTE_FUNCTION);
 }
 
+void LinkCreationProxy::flush_determiners() {
+    if (this->link_creation_function_object != nullptr) {
+        AttentionBrokerClient::set_determiners(this->link_creation_function_object->buffer_determiners(), this->context);
+        this->link_creation_function_object->clear_determiners();
+    }
+}
+
 // ---------------------------------------------------------------------------------------------
 // Virtual superclass API and the piggyback methods called by it
 

@@ -4,14 +4,11 @@
 using namespace link_creators;
 
 bool LinkCreator::add_or_update_link(const vector<string>& targets,
-                                     double strength,
-                                     const string& context) {
+                                     double strength) {
 
     STACK_TRACE();
-    new_link_created_flag = false;
-    if (strength < this->_strength_threshold) {
-        return nullptr;
-    }
+    auto db = atomdb();
+    bool new_link_created_flag = false;
     shared_ptr<Link> new_link = make_shared<Link>(Link(EXPRESSION, targets, true, {{STRENGTH_TAG, strength}}));
     LOG_DEBUG("Add or update: " + new_link->to_string());
     string handle = new_link->handle();
@@ -24,19 +21,29 @@ bool LinkCreator::add_or_update_link(const vector<string>& targets,
         }
     } else {
         new_link_created_flag = true;
-        if (WRITE_CREATED_LINKS_TO_DB) {
-            LOG_DEBUG("Adding new Link to AtomDB");
-            LOG_INFO("ADD LINK: [" + std::to_string(strength) + "] " + new_link->metta_representation(*decoder()));
-            db->add_link(new_link.get());
-            buffer_determiners.push_back({handle, target1, target2});
-            AttentionBrokerClient::correlate(set<string>({target1, target2}), context);
-        }
-        if (WRITE_CREATED_LINKS_TO_FILE) {
-            LOG_DEBUG("Writing Link to file: " + PRESET_LINKS_FILE);
-            save_link_metta(new_link);
-        }
+        LOG_DEBUG("Adding new Link to AtomDB");
+        LOG_INFO("ADD LINK: [" + std::to_string(strength) + "] " + new_link->metta_representation(*decoder()));
+        db->add_link(new_link.get());
+        vector<string> determiners = {handle};
+        determiners.insert(determiners.end(), targets.begin(), targets.end());
+        add_determiners(determiners);
+        AttentionBrokerClient::correlate(set<string>(targets), _context);
     }
-    LOG_LOCAL_DEBUG("Returning from add_or_update_link()");
-    return new_link;
+    return new_link_created_flag;
 }
 
+string LinkCreator::get_node_name(const string& handle) {
+    STACK_TRACE();
+    auto node = atomdb()->get_node(handle);
+    if (node == nullptr) {
+        return "";
+    } else {
+        return node->name;
+    }
+}
+
+double LinkCreator::get_strength(const string& handle) {
+    STACK_TRACE();
+    auto atom = atomdb()->get_atom(handle);
+    return atom->custom_attributes.get_or<double>(STRENGTH_TAG, 1.0);
+}

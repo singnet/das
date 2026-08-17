@@ -85,6 +85,12 @@ class LinkCreationProxy : public BaseQueryProxy {
      */
     bool is_link_creation_function_remote();
 
+    /**
+     * Call Attention Broker to set determiners according to a state buffer with accumulated
+     * requests from one entire link creation round. This buffer is emptied as a side effect.
+     */
+    void flush_determiners();
+
     // ---------------------------------------------------------------------------------------------
     // Virtual superclass API and the piggyback methods called by it
 

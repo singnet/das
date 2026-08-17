@@ -169,6 +169,7 @@ void LinkCreationProcessor::link_creation(shared_ptr<StoppableThread> monitor,
                 }
             }
         }
+        proxy->flush_determiners();
         if (!pm_proxy->finished()) {
             pm_proxy->abort();
         }

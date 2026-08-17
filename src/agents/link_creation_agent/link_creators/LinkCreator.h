@@ -5,9 +5,12 @@
 
 #include "AtomDBSingleton.h"
 #include "QueryAnswer.h"
+#include "tags.h"
 
 using namespace std;
 using namespace query_engine;
+using namespace atomdb;
+using namespace commons;
 
 namespace link_creators {
 
@@ -51,18 +54,54 @@ class LinkCreationStats {
  */
 class LinkCreator {
    public:
-    /**
-     * Constructor.
-     */
-    LinkCreator() : _context("") {
-        this->atomdb = AtomDBSingleton::get_instance();
-    }
-
-    /**
-     * Empty destructor.
-     */
+    LinkCreator() : _context("") {}
     virtual ~LinkCreator() {}
 
+    // ----------------------------------------------------------------------------------
+    // LCA API
+      
+    /**
+     * Reset the structure that keeps track of already visited groups of handles.
+     *
+     * Visited keys are kept to avoid the attempt to create links for parameters (obtained from
+     * QueryAnswer objects) that have already been seen. This is because the mere fact of trying
+     * to create these links can be an expensive operation so we don't want to waste time
+     * creating links just to discover later on that they have already been inserted into the
+     * AtomDB.
+     */
+    inline void reset_visited() { this->_visited.clear(); }
+
+    /**
+     * Setter for the context to be used in AttentionBroker.
+     *
+     * @param context The AttentionBroker context.
+     */
+    inline void set_context(const string& context) { this->_context = context; }
+
+    /**
+     * Set the strength threshold value for link creation. Links with strength below this value will
+     * not be actually added to the atomdb.
+     *
+     * @param value New value for sytrength threshold
+     */
+    inline void strength_threshold(double value) { this->_strength_threshold = value; }
+
+    /**
+     * Getter for the buffer for Attention Broker's importance determiners.
+     *
+     * @return The buffer for Attention Broker's importance determiners.
+     */
+    inline const vector<vector<string>>& buffer_determiners() { return _buffer_determiners; }
+
+    /**
+     * Clear the buffer for Attention Broker's importance determiners
+     */
+    inline void clear_determiners() { _buffer_determiners.clear(); }
+
+    // ----------------------------------------------------------------------------------
+    // Concrete sub-classes API
+      
+   public:
     /**
      * Create or update one or more links using the passed QueryAnswer. A LinkCreationStats object is
      * returned with relevant statistics about how many links have actually been created or updated.
@@ -79,44 +118,26 @@ class LinkCreator {
      */
     inline const string& context() { return this->_context; }
 
-    /**
-     * Setter for the context to be used in AttentionBroker.
-     *
-     * @param context The AttentionBroker context.
-     */
-    inline void set_context(const string& context) { this->_context = context; }
-
-    /**
-     * Reset the structure that keeps track of already visited groups of handles.
-     *
-     * Visited keys are kept to avoid the attempt to create links for parameters (obtained from
-     * QueryAnswer objects) that have already been seen. This is because the mere fact of trying
-     * to create these links can be an expensive operation so we don't want to waste time
-     * creating links just to discover later on that they have already been inserted into the
-     * AtomDB.
-     */
-    inline void reset_visited() { this->_visited.clear(); }
-
-    /**
-     * Set the strength threshold value for link creation. Links with strength below this value will
-     * not be actually added to the atomdb.
-     *
-     * @param value New value for sytrength threshold
-     */
-    inline double strength_threshold(double value) { this->_strength_threshold = value; }
-
    protected:
-    shared_ptr<AtomDB> atomdb;
-    HandleDecoder* decoder;
     inline void visit(const string& key) { this->_visited.insert(key); }
     inline bool visited(const string& key) { return (this->_visited.find(key) != this->_visited.end()); }
     inline double strength_threshold() { return this->_strength_threshold; }
-    inline HandleDecoder* decoder() { return static_pointer_cast<HandleDecoder>(atomdb).get(); }
+    inline shared_ptr<AtomDB> atomdb() { return AtomDBSingleton::get_instance(); }
+    inline HandleDecoder* decoder() { return static_pointer_cast<HandleDecoder>(atomdb()).get(); }
+    inline void add_determiners(vector<string>& entry) { _buffer_determiners.push_back(entry); }
+
+    bool add_or_update_link(const vector<string>& targets, double strength);
+    double get_strength(const string& handle);
+    string get_node_name(const string& handle);
+
+    // ----------------------------------------------------------------------------------
+    // Private stuff
 
    private:
     set<string> _visited;
     string _context;
     double _strength_threshold;
+    vector<vector<string>> _buffer_determiners;
 };
 
 }  // namespace link_creators
