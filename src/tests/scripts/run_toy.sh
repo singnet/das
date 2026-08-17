@@ -16,6 +16,8 @@ POPULATION_SIZE=100
 NUM_GENERATIONS=5
 NUM_ITERATIONS=5
 
+SEED=1235
+
 echo "--------------------------------------------------"
 echo "Cleaning docker containers"
 echo
@@ -35,9 +37,9 @@ echo "Stating agents"
 echo
 make run-attention-broker &>> /tmp/ab.log &
 sleep 2
-make run-busnode OPTIONS="--service=query-engine --config=/opt/das/config/das.json" &>> /tmp/qa.log &
+make run-busnode OPTIONS="--service=query-engine --config=/opt/das/config/das.json --seed=$SEED" &>> /tmp/qa.log &
 sleep 2
-make run-busnode OPTIONS="--service=evolution-agent --bus-endpoint=localhost:40002 --config=/opt/das/config/das.json" &>> /tmp/ev.log &
+make run-busnode OPTIONS="--service=evolution-agent --bus-endpoint=localhost:40002 --config=/opt/das/config/das.json --seed=$SEED" &>> /tmp/ev.log &
 sleep 2
 docker update -m $AVAIABLE_RAM --memory-swap $AVAIABLE_RAM $(docker ps -q)
 echo "Done. Logs are in /tmp/ab.log /tmp/qa.log /tmp/ev.log"

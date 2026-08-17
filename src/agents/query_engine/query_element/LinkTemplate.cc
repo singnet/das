@@ -129,9 +129,7 @@ void LinkTemplate::compute_importance(vector<pair<char*, float>>& handles) {
     }
     // Sort decreasing by importance value
 
-    Random::lock_random_generator();
-    std::shuffle(handles.begin(), handles.end(), *Random::get_random_generator());
-    Random::unlock_random_generator();
+    Utils::shuffle(handles.begin(), handles.end());
     std::sort(handles.begin(),
               handles.end(),
               [](const std::pair<char*, float>& left, const std::pair<char*, float>& right) {

@@ -36,6 +36,10 @@ void Utils::error(string msg, bool throw_flag, bool log_flag) {
     }
 }
 
+void Utils::init_random(unsigned int seed) {
+    Random::init(seed);
+}
+
 bool Utils::flip_coin(double true_probability) {
     bool answer = false;
     if ((true_probability > 1.0) || (true_probability < 0.0)) {
@@ -512,10 +516,10 @@ string MemoryFootprint::to_string() {
 // --------------------------------------------------------------------------------
 // Random
 
-std::mt19937* Random::random_generator = NULL;
-mutex Random::random_generator_mutex;
+std::mt19937* Utils::Random::random_generator = NULL;
+mutex Utils::Random::random_generator_mutex;
 
-void Random::init(unsigned int seed) {
+void Utils::Random::init(unsigned int seed) {
     random_generator_mutex.lock();
     if (Random::random_generator == NULL) {
         if (seed == 0) {
@@ -532,7 +536,7 @@ void Random::init(unsigned int seed) {
     }
 }
 
-void Random::lock_random_generator() {
+void Utils::Random::lock_random_generator() {
     if (Random::random_generator == NULL) {
         RAISE_ERROR(
             "commons::Random is not initialized. Call commons::Random::init(seed) before using random "
@@ -542,7 +546,7 @@ void Random::lock_random_generator() {
     }
 }
 
-void Random::unlock_random_generator() {
+void Utils::Random::unlock_random_generator() {
     if (Random::random_generator == NULL) {
         RAISE_ERROR(
             "commons::Random is not initialized. Call commons::Random::init(seed) before using random "
@@ -552,7 +556,7 @@ void Random::unlock_random_generator() {
     }
 }
 
-std::mt19937* Random::get_random_generator() {
+std::mt19937* Utils::Random::get_random_generator() {
     if (Random::random_generator == NULL) {
         RAISE_ERROR(
             "commons::Random is not initialized. Call commons::Random::init(seed) before using random "
