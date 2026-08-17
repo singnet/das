@@ -868,6 +868,25 @@ cc_test(
 )
 
 cc_test(
+    name = "authorization_test",
+    size = "small",
+    srcs = ["authorization_test.cc"],
+    copts = [
+        "-Iexternal/gtest/googletest/include",
+        "-Iexternal/gtest/googletest",
+    ],
+    linkstatic = 1,
+    deps = [
+        "//atomdb/auth:authorization_management",
+        "//atomdb/auth:authorization_persistence",
+        "//atomdb/auth:authorization_types",
+        "//atomdb/inmemorydb:inmemorydb_lib",
+        "//commons/atoms:atoms_lib",
+        "@com_github_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
     name = "atomdb_factory_test",
     size = "medium",
     srcs = ["atomdb_factory_test.cc"],

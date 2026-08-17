@@ -103,3 +103,9 @@ TEST(ProtectedAtomDBTest, PublicKeyOverloadsAreNotImplementedYet) {
     EXPECT_THROW(db->delete_atom("handle", key), runtime_error);
     EXPECT_THROW(db->atom_count(key), runtime_error);
 }
+
+TEST(ProtectedAtomDBTest, GetAccessPermissionsWithKeyDoesNotThrow) {
+    auto db = make_protected_db("protected_perms_key_");
+    PublicKey key("public_key");
+    EXPECT_TRUE(db->get_access_permissions(key).empty());
+}
