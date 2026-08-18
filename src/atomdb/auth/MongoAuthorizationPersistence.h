@@ -25,11 +25,9 @@ class MongoAuthorizationPersistence : public AuthorizationPersistence {
                                   const string& database_name,
                                   const string& collection_name);
 
-    void save(const atomdb_api_types::PublicKey& public_key,
-              const atomdb_api_types::AccessPermissionEntry& entry) override;
-    void remove(const atomdb_api_types::PublicKey& public_key,
-                const atomdb_api_types::AccessPermissionEntry& entry) override;
-    void remove_all(const atomdb_api_types::PublicKey& public_key) override;
+    void save(const string& public_key, const atomdb_api_types::AccessPermissionEntry& entry) override;
+    void remove(const string& public_key, const atomdb_api_types::AccessPermissionEntry& entry) override;
+    void remove_all(const string& public_key) override;
 
    private:
     mongocxx::pool* pool;

@@ -25,111 +25,105 @@ MongoAuthorizationPersistence::MongoAuthorizationPersistence(mongocxx::pool* poo
 // --------------------------------------------------------------------------------
 // Public methods
 
-void MongoAuthorizationPersistence::save(const atomdb_api_types::PublicKey& public_key,
+void MongoAuthorizationPersistence::save(const string& public_key,
                                          const atomdb_api_types::AccessPermissionEntry& entry) {
     auto conn = this->pool->acquire();
     auto collection = (*conn)[this->database_name][this->collection_name];
 
-    for (const auto& key : public_key.keys) {
-        auto access_document = this->get_document(collection, key);
+    auto access_document = this->get_document(collection, public_key);
 
-        string id;
-        string public_key_;
-        bool full_access = false;
-        auto schemas = bsoncxx::builder::basic::array{};
+    string id;
+    string public_key_;
+    bool full_access = false;
+    auto schemas = bsoncxx::builder::basic::array{};
 
-        if (access_document) {
-            id = Hasher::plain_string_hash(access_document->access_key);
-            public_key_ = access_document->access_key;
-            full_access = access_document->full_access;
+    if (access_document) {
+        id = Hasher::plain_string_hash(access_document->access_key);
+        public_key_ = access_document->access_key;
+        full_access = access_document->full_access;
 
-            bool entry_exists = false;
+        bool entry_exists = false;
 
-            for (const auto& document_entry : access_document->entries) {
-                if (document_entry.schema.handle() == entry.schema.handle()) {
-                    schemas.append(this->entry_to_document(entry));
-                    entry_exists = true;
-                } else {
-                    schemas.append(this->entry_to_document(document_entry));
-                }
-            }
-
-            if (!entry_exists) {
-                schemas.append(this->entry_to_document(entry));
-            }
-        } else {
-            id = Hasher::plain_string_hash(key);
-            public_key_ = key;
-            schemas.append(this->entry_to_document(entry));
-        }
-
-        auto new_access_document = bsoncxx::builder::basic::make_document(
-            bsoncxx::builder::basic::kvp("_id", id),
-            bsoncxx::builder::basic::kvp("public_key", public_key_),
-            bsoncxx::builder::basic::kvp("full_access", full_access),
-            bsoncxx::builder::basic::kvp("allowed_schemas", schemas));
-
-        bsoncxx::builder::stream::document filter;
-        filter << "_id" << id;
-
-        mongocxx::options::replace opts;
-        opts.upsert(true);
-
-        auto reply = collection.replace_one(filter, new_access_document, opts);
-
-        if (!reply) {
-            RAISE_ERROR("Failed to update authorization entry in MongoDB");
-        }
-    }
-}
-
-void MongoAuthorizationPersistence::remove(const atomdb_api_types::PublicKey& public_key,
-                                           const atomdb_api_types::AccessPermissionEntry& entry) {
-    auto conn = this->pool->acquire();
-    auto collection = (*conn)[this->database_name][this->collection_name];
-
-    for (const auto& key : public_key.keys) {
-        auto access_document = this->get_document(collection, key);
-
-        if (!access_document) continue;
-
-        auto schemas = bsoncxx::builder::basic::array{};
         for (const auto& document_entry : access_document->entries) {
             if (document_entry.schema.handle() == entry.schema.handle()) {
-                continue;  // Skip the entry to remove
+                schemas.append(this->entry_to_document(entry));
+                entry_exists = true;
             } else {
                 schemas.append(this->entry_to_document(document_entry));
             }
         }
 
-        string id = Hasher::plain_string_hash(access_document->access_key);
-
-        auto new_access_document = bsoncxx::builder::basic::make_document(
-            bsoncxx::builder::basic::kvp("_id", id),
-            bsoncxx::builder::basic::kvp("public_key", access_document->access_key),
-            bsoncxx::builder::basic::kvp("full_access", access_document->full_access),
-            bsoncxx::builder::basic::kvp("allowed_schemas", schemas));
-
-        bsoncxx::builder::stream::document filter;
-        filter << "_id" << id;
-
-        auto reply = collection.replace_one(filter, new_access_document);
-
-        if (!reply) {
-            RAISE_ERROR("Failed to update authorization entry in MongoDB");
+        if (!entry_exists) {
+            schemas.append(this->entry_to_document(entry));
         }
+    } else {
+        id = Hasher::plain_string_hash(public_key);
+        public_key_ = public_key;
+        schemas.append(this->entry_to_document(entry));
+    }
+
+    auto new_access_document =
+        bsoncxx::builder::basic::make_document(bsoncxx::builder::basic::kvp("_id", id),
+                                               bsoncxx::builder::basic::kvp("public_key", public_key_),
+                                               bsoncxx::builder::basic::kvp("full_access", full_access),
+                                               bsoncxx::builder::basic::kvp("allowed_schemas", schemas));
+
+    bsoncxx::builder::stream::document filter;
+    filter << "_id" << id;
+
+    mongocxx::options::replace opts;
+    opts.upsert(true);
+
+    auto reply = collection.replace_one(filter, new_access_document, opts);
+
+    if (!reply) {
+        RAISE_ERROR("Failed to update authorization entry in MongoDB");
     }
 }
 
-void MongoAuthorizationPersistence::remove_all(const atomdb_api_types::PublicKey& public_key) {
+void MongoAuthorizationPersistence::remove(const string& public_key,
+                                           const atomdb_api_types::AccessPermissionEntry& entry) {
     auto conn = this->pool->acquire();
     auto collection = (*conn)[this->database_name][this->collection_name];
-    for (const auto& key : public_key.keys) {
-        auto reply = collection.delete_one(bsoncxx::builder::basic::make_document(
-            bsoncxx::builder::basic::kvp("_id", Hasher::plain_string_hash(key))));
-        if (!reply) {
-            RAISE_ERROR("Failed to remove authorization document from MongoDB");
+
+    auto access_document = this->get_document(collection, public_key);
+
+    if (!access_document) continue;
+
+    auto schemas = bsoncxx::builder::basic::array{};
+    for (const auto& document_entry : access_document->entries) {
+        if (document_entry.schema.handle() == entry.schema.handle()) {
+            continue;  // Skip the entry to remove
+        } else {
+            schemas.append(this->entry_to_document(document_entry));
         }
+    }
+
+    string id = Hasher::plain_string_hash(access_document->access_key);
+
+    auto new_access_document = bsoncxx::builder::basic::make_document(
+        bsoncxx::builder::basic::kvp("_id", id),
+        bsoncxx::builder::basic::kvp("public_key", access_document->access_key),
+        bsoncxx::builder::basic::kvp("full_access", access_document->full_access),
+        bsoncxx::builder::basic::kvp("allowed_schemas", schemas));
+
+    bsoncxx::builder::stream::document filter;
+    filter << "_id" << id;
+
+    auto reply = collection.replace_one(filter, new_access_document);
+
+    if (!reply) {
+        RAISE_ERROR("Failed to update authorization entry in MongoDB");
+    }
+}
+
+void MongoAuthorizationPersistence::remove_all(const string& public_key) {
+    auto conn = this->pool->acquire();
+    auto collection = (*conn)[this->database_name][this->collection_name];
+    auto reply = collection.delete_one(bsoncxx::builder::basic::make_document(
+        bsoncxx::builder::basic::kvp("_id", Hasher::plain_string_hash(public_key))));
+    if (!reply) {
+        RAISE_ERROR("Failed to remove authorization document from MongoDB");
     }
 }
 
