@@ -1495,7 +1495,7 @@ TEST_F(RedisMongoDBTest, IsProtectedWhenPersistedConfigIsTrue) {
     collection.insert_one(make_document(kvp("protected", true)));
 
     TestRedisMongoDB loaded("test_", test_atomdb_json_config());
-    EXPECT_EQ(loaded.is_protected(), atomdb_api_types::ProtectionMode::PROTECTED);
+    EXPECT_EQ(loaded.get_protection_mode(), atomdb_api_types::ProtectionMode::PROTECTED);
 
     collection.delete_many({});
 }
@@ -1511,7 +1511,7 @@ TEST_F(RedisMongoDBTest, IsProtectedWhenPersistedConfigOmitsField) {
     collection.insert_one(make_document(kvp("other", "value")));
 
     TestRedisMongoDB loaded("test_", test_atomdb_json_config());
-    EXPECT_EQ(loaded.is_protected(), atomdb_api_types::ProtectionMode::UNPROTECTED);
+    EXPECT_EQ(loaded.get_protection_mode(), atomdb_api_types::ProtectionMode::UNPROTECTED);
 
     collection.delete_many({});
 }

@@ -130,7 +130,7 @@ class AccessPermissionDocument {
  * - PROTECTED: wrap and apply authorization post-processing (filter) after queries.
  * - FORWARD: wrap and pass access keys through, but do not post-process locally
  */
-enum class ProtectionMode { UNPROTECTED, PROTECTED, FORWARD };
+enum class ProtectionMode { UNPROTECTED = 0, FORWARD, PROTECTED };
 
 }  // namespace atomdb_api_types
 }  // namespace atomdb

@@ -31,9 +31,7 @@ class ProtectedAtomDB : public AtomDB {
 
     bool allow_nested_indexing() override;
     bool composite_type_enabled() const override;
-    atomdb_api_types::ProtectionMode is_protected() const override;
-    vector<atomdb_api_types::AccessPermissionDocument> get_access_permissions(
-        const atomdb_api_types::PublicKey& public_key) const override;
+    atomdb_api_types::ProtectionMode get_protection_mode() const override;
 
     shared_ptr<Atom> get_atom(const string& handle) override;
     shared_ptr<Atom> get_atom(const string& handle, const atomdb_api_types::PublicKey& public_key);

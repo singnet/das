@@ -9,11 +9,11 @@ using namespace commons;
 // --------------------------------------------------------------------------------
 // Constructors and destructors
 
-ProtectedAtomDB::ProtectedAtomDB(shared_ptr<AtomDB> backend) : backend(std::move(backend)) {
+ProtectedAtomDB::ProtectedAtomDB(shared_ptr<AtomDB> backend) : backend(backend) {
     if (this->backend == nullptr) {
         RAISE_ERROR("ProtectedAtomDB requires a non-null backend AtomDB");
     }
-    LOG_INFO("ProtectedAtomDB initialized!");
+    LOG_INFO("ProtectedAtomDB initialized");
 }
 
 // --------------------------------------------------------------------------------
@@ -177,17 +177,8 @@ bool ProtectedAtomDB::allow_nested_indexing() { return this->backend->allow_nest
 
 bool ProtectedAtomDB::composite_type_enabled() const { return this->backend->composite_type_enabled(); }
 
-atomdb_api_types::ProtectionMode ProtectedAtomDB::is_protected() const {
-    auto backend_mode = this->backend->is_protected();
-    if (backend_mode == atomdb_api_types::ProtectionMode::FORWARD) {
-        return atomdb_api_types::ProtectionMode::FORWARD;
-    }
-    return atomdb_api_types::ProtectionMode::PROTECTED;
-}
-
-vector<atomdb_api_types::AccessPermissionDocument> ProtectedAtomDB::get_access_permissions(
-    const atomdb_api_types::PublicKey& public_key) const {
-    return this->backend->get_access_permissions(public_key);
+atomdb_api_types::ProtectionMode ProtectedAtomDB::get_protection_mode() const {
+    return atomdb_api_types::ProtectionMode::UNPROTECTED;
 }
 
 // --------------------------------------------------------------------------------
@@ -309,5 +300,6 @@ size_t ProtectedAtomDB::atom_count() const { raise_public_key_required("atom_cou
 
 void ProtectedAtomDB::raise_public_key_required(const string& method_name) {
     RAISE_ERROR("ProtectedAtomDB::" + method_name +
-                "() is unavailable without a PublicKey; use the overload that accepts one");
+                "() is unavailable in protected AtomDBs. Use the public API in ProtectedAtomDB passing "
+                "a PublicKey.");
 }

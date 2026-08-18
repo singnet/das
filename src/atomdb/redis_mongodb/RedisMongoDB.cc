@@ -45,7 +45,7 @@ RedisMongoDB::RedisMongoDB(const string& context, bool skip_redis, const JsonCon
       skip_redis_(skip_redis),
       composite_type_enabled_(config.at_path("composite_type_enabled").get_or<bool>(true)),
       cluster_flag(false),
-      protected_flag(false) {
+      protection_mode(atomdb_api_types::ProtectionMode::UNPROTECTED) {
     initialize_statics(context);
     mongodb_setup(config);
     load_pattern_index_schema();
@@ -143,9 +143,8 @@ optional<atomdb_api_types::AccessPermissionDocument> RedisMongoDB::load_access_p
     return atomdb_api_types::AccessPermissionDocument(key, document["full_access"].get<bool>(), entries);
 }
 
-atomdb_api_types::ProtectionMode RedisMongoDB::is_protected() const {
-    return this->protected_flag ? atomdb_api_types::ProtectionMode::PROTECTED
-                                : atomdb_api_types::ProtectionMode::UNPROTECTED;
+atomdb_api_types::ProtectionMode RedisMongoDB::get_protection_mode() const {
+    return this->protection_mode;
 }
 
 void RedisMongoDB::redis_setup(const JsonConfig& config) {
@@ -198,7 +197,7 @@ void RedisMongoDB::mongodb_setup(const JsonConfig& config) {
             bsoncxx::builder::basic::make_document(bsoncxx::builder::basic::kvp("ping", 1));
         mongodb.run_command(ping_cmd.view());
         LOG_INFO("Connected to MongoDB at " << address);
-        load_protected_flag();
+        this->load_protection_mode();
     } catch (const std::exception& e) {
         RAISE_ERROR(e.what());
     }
@@ -1324,12 +1323,13 @@ void RedisMongoDB::add_pattern_index_schema(const string& tokens,
     this->pattern_index_schema_next_priority++;
 }
 
-void RedisMongoDB::load_protected_flag() {
+void RedisMongoDB::load_protection_mode() {
     auto conn = this->mongodb_pool->acquire();
     auto config_collection = (*conn)[MONGODB_DB_NAME][MONGODB_CONFIG_COLLECTION_NAME];
     auto config_doc = config_collection.find_one(
         bsoncxx::builder::basic::make_document(bsoncxx::builder::basic::kvp("protected", true)));
-    this->protected_flag = static_cast<bool>(config_doc);
+    this->protection_mode = static_cast<atomdb_api_types::ProtectionMode>(
+        config_doc ? ProtectionMode::PROTECTED : ProtectionMode::UNPROTECTED);
 }
 
 void RedisMongoDB::load_pattern_index_schema() {
