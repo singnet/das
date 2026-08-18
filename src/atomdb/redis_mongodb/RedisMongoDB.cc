@@ -1329,7 +1329,8 @@ void RedisMongoDB::load_protection_mode() {
     auto config_doc = config_collection.find_one(
         bsoncxx::builder::basic::make_document(bsoncxx::builder::basic::kvp("protected", true)));
     this->protection_mode = static_cast<atomdb_api_types::ProtectionMode>(
-        config_doc ? ProtectionMode::PROTECTED : ProtectionMode::UNPROTECTED);
+        config_doc ? atomdb_api_types::ProtectionMode::PROTECTED
+                   : atomdb_api_types::ProtectionMode::UNPROTECTED);
 }
 
 void RedisMongoDB::load_pattern_index_schema() {
