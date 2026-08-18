@@ -18,7 +18,7 @@ bool LinkCreatorRegistry::INITIALIZED = false;
 // NOTE: "remote_link_creation_function" is reserved and CAN'T be used here.
 // -----------------------------------------------------------------------------------------
 string LinkCreatorRegistry::REMOTE_FUNCTION = "remote_link_creation_function";
-string LinkCreatorRegistry::UNIT_TEST = "remote_link_creation_function";
+string LinkCreatorRegistry::UNIT_TEST = "unit_test";
 string LinkCreatorRegistry::AND_TWO_PREDICATES = "and_two_predicates";
 
 void LinkCreatorRegistry::initialize_statics() {

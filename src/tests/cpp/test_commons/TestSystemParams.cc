@@ -9,7 +9,7 @@ namespace das_test {
 
 const char kAgentsJson[] = R"({
   "agents": {
-    "schema_version": "1.0.1",
+    "schema_version": "1.1.0",
     "base_query": {
       "params": {
         "unique_assignment_flag": false,
@@ -36,22 +36,11 @@ const char kAgentsJson[] = R"({
     },
     "link_creation": {
       "params": {
-        "max_answers": 10,
-        "repeat_count": 1,
-        "context": "context",
-        "attention_update": 0,
-        "attention_correlation": 0,
-        "positive_importance_flag": true,
-        "query_interval": 0,
-        "query_timeout": 0,
-        "use_metta_as_query_tokens": false
-      }
-    },
-    "inference": {
-      "params": {
-        "inference_request_timeout": 86400,
-        "repeat_count": 5,
-        "max_answers": 150
+        "max_successful_creation_per_round": 10,
+        "max_unproductive_visits_per_round": 500,
+        "max_visit_attempts_per_round": 20,
+        "max_rounds": 5,
+        "link_creation_strength_threshold": 0.1
       }
     },
     "evolution": {

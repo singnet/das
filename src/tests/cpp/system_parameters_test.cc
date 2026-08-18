@@ -28,16 +28,8 @@ TEST(SystemParametersTest, get_query_agent_params_merges_base_and_query) {
 
 TEST(SystemParametersTest, get_link_creation_agent_params_standalone) {
     auto params = make_test_parameters().get_link_creation_agent_params();
-    EXPECT_EQ(params.get<unsigned int>("max_answers"), 10U);
-    EXPECT_TRUE(params.get<bool>("positive_importance_flag"));
+    EXPECT_EQ(params.get<unsigned int>("max_rounds"), 5U);
     EXPECT_EQ(params.find("unique_assignment_flag"), params.end());
-}
-
-TEST(SystemParametersTest, get_inference_agent_params_overrides_base_max_answers) {
-    auto params = make_test_parameters().get_inference_agent_params();
-    EXPECT_EQ(params.get<unsigned int>("max_answers"), 150U);
-    EXPECT_EQ(params.get<unsigned int>("repeat_count"), 5U);
-    EXPECT_EQ(params.get<unsigned int>("inference_request_timeout"), 86400U);
 }
 
 TEST(SystemParametersTest, get_evolution_agent_params_merges_base) {
