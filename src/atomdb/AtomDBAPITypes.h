@@ -87,24 +87,40 @@ class AccessPermissionEntry {
         : schema(tokens), read(read), write(write) {}
 };
 
+class PublicKey {
+   public:
+    vector<string> keys;
+    map<string, unsigned int> peer_to_key;
+
+    bool is_single_key() const { return this->peer_to_key.empty(); }
+
+    explicit PublicKey(const string& key) : keys{key} {}
+    explicit PublicKey(const map<string, string>& peer_keys) {
+        this->keys.reserve(peer_keys.size());
+        for (const auto& [peer, key] : peer_keys) {
+            this->peer_to_key[peer] = this->keys.size();
+            this->keys.push_back(key);
+        }
+    }
+};
+
 class AccessPermissionDocument {
    public:
-    string public_key;
+    string access_key;
     bool full_access;
     vector<AccessPermissionEntry> entries;
 
-    AccessPermissionDocument(const string& public_key,
+    AccessPermissionDocument(const string& access_key,
                              bool full_access,
                              const vector<AccessPermissionEntry>& entries)
-        : public_key(public_key), full_access(full_access), entries(entries) {}
-};
-
-class PublicKey {
-   public:
-    variant<string, map<string, string>> value;
-
-    explicit PublicKey(const string& key) : value(key) {}
-    explicit PublicKey(const map<string, string>& keys) : value(keys) {}
+        : access_key(access_key), full_access(full_access), entries(entries) {
+        if (!full_access && entries.empty()) {
+            RAISE_ERROR("entries must be non-empty");
+        }
+        if (full_access) {
+            this->entries = {};
+        }
+    }
 };
 
 /**

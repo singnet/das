@@ -115,6 +115,10 @@ class RemoteAtomDBPeer : public AtomDB, public processor::ThreadMethod {
     const string& get_uid() const { return uid_; }
     bool is_readonly() const { return local_persistence_ == nullptr; }
 
+    /**
+     * Delegates the lookup to the remote AtomDB; local persistence is not consulted.
+     * Returns an empty vector if there is no remote AtomDB or it has no matching permissions.
+     */
     vector<atomdb_api_types::AccessPermissionDocument> get_access_permissions(
         const atomdb_api_types::PublicKey& public_key) const override;
 

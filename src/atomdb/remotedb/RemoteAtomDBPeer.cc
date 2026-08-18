@@ -41,7 +41,7 @@ bool RemoteAtomDBPeer::composite_type_enabled() const {
 }
 vector<atomdb_api_types::AccessPermissionDocument> RemoteAtomDBPeer::get_access_permissions(
     const atomdb_api_types::PublicKey& public_key) const {
-    if (!atomdb_) return {};
+    if (!atomdb_) return AtomDB::get_access_permissions(public_key);
     return atomdb_->get_access_permissions(public_key);
 }
 

@@ -33,6 +33,10 @@ class RedisMongoDB : public AtomDB {
 
     bool allow_nested_indexing() override;
     bool composite_type_enabled() const override { return this->composite_type_enabled_; }
+    /**
+     * Looks up access-permission documents in MongoDB for the given public key(s).
+     * Returns an empty vector if no matching documents exist.
+     */
     vector<atomdb_api_types::AccessPermissionDocument> get_access_permissions(
         const atomdb_api_types::PublicKey& public_key) const override;
     atomdb_api_types::ProtectionMode is_protected() const override;
