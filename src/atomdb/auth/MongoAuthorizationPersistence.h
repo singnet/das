@@ -2,6 +2,8 @@
 
 #include <bsoncxx/builder/basic/array.hpp>
 #include <bsoncxx/builder/basic/document.hpp>
+#include <memory>
+#include <mongocxx/collection.hpp>
 #include <mongocxx/options/replace.hpp>
 #include <mongocxx/pool.hpp>
 #include <string>
@@ -23,8 +25,10 @@ class MongoAuthorizationPersistence : public AuthorizationPersistence {
                                   const string& database_name,
                                   const string& collection_name);
 
-    void save(const atomdb_api_types::PublicKey& public_key, const atomdb_api_types::AccessPermissionEntry& entry) override;
-    void remove(const atomdb_api_types::PublicKey& public_key, const atomdb_api_types::AccessPermissionEntry& entry) override;
+    void save(const atomdb_api_types::PublicKey& public_key,
+              const atomdb_api_types::AccessPermissionEntry& entry) override;
+    void remove(const atomdb_api_types::PublicKey& public_key,
+                const atomdb_api_types::AccessPermissionEntry& entry) override;
     void remove_all(const atomdb_api_types::PublicKey& public_key) override;
 
    private:
@@ -32,14 +36,9 @@ class MongoAuthorizationPersistence : public AuthorizationPersistence {
     string database_name;
     string collection_name;
 
-    bsoncxx::document::value make_schema_item(const atomdb_api_types::AccessPermissionEntry& entry);
-    string schema_handle_from_item(bsoncxx::document::view item);
-    bool read_full_access(bsoncxx::document::view view);
-    void append_schemas_except(bsoncxx::builder::basic::array& schemas,
-                               bsoncxx::document::view view,
-                               const string& handle_to_skip);
-    atomdb_api_types::AccessPermissionDocument get_document(mongocxx::collection collection,
-                                                            const string& public_key);
+    bsoncxx::document::value entry_to_document(const atomdb_api_types::AccessPermissionEntry& entry);
+    shared_ptr<atomdb_api_types::AccessPermissionDocument> get_document(mongocxx::collection& collection,
+                                                                        const string& public_key);
 };
 
 }  // namespace atomdb

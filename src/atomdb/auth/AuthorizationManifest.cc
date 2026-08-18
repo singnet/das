@@ -7,7 +7,6 @@
 #include "Utils.h"
 
 using namespace atomdb;
-using namespace auth;
 
 const vector<atomdb_api_types::AccessPermissionEntry> AuthorizationManifest::EMPTY_ENTRIES;
 

@@ -10,8 +10,6 @@ using namespace std;
 
 namespace atomdb {
 
-namespace auth {
-
 /**
  * @brief In-RAM image of the whole access_permissions collection.
  *
@@ -55,5 +53,4 @@ class AuthorizationManifest {
         const atomdb_api_types::PublicKey& public_key, const string& caller);
 };
 
-}  // namespace auth
 }  // namespace atomdb
