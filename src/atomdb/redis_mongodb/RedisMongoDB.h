@@ -181,7 +181,7 @@ class RedisMongoDB : public AtomDB {
      * @return nullopt when no document exists for that key.
      */
     optional<atomdb_api_types::AccessPermissionDocument> load_access_permission_document(
-        const string& key) const;
+        const string& public_key) const;
 
     vector<shared_ptr<atomdb_api_types::AtomDocument>> get_documents(const vector<string>& handles,
                                                                      const vector<string>& fields,

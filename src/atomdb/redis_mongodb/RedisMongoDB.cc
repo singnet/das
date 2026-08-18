@@ -84,8 +84,8 @@ vector<atomdb_api_types::AccessPermissionDocument> RedisMongoDB::get_access_perm
 }
 
 optional<atomdb_api_types::AccessPermissionDocument> RedisMongoDB::load_access_permission_document(
-    const string& key) const {
-    string handle = compute_hash((char*) key.c_str());
+    const string& public_key) const {
+    string handle = Hasher::plain_string_hash(public_key);
 
     auto access_permission_doc = this->get_document(handle, MONGODB_ACCESS_PERMISSIONS_COLLECTION_NAME);
 
@@ -140,7 +140,8 @@ optional<atomdb_api_types::AccessPermissionDocument> RedisMongoDB::load_access_p
         entries.emplace_back(tokens, item["read"].get<bool>(), item["write"].get<bool>());
     }
 
-    return atomdb_api_types::AccessPermissionDocument(key, document["full_access"].get<bool>(), entries);
+    return atomdb_api_types::AccessPermissionDocument(
+        public_key, document["full_access"].get<bool>(), entries);
 }
 
 atomdb_api_types::ProtectionMode RedisMongoDB::get_protection_mode() const {
