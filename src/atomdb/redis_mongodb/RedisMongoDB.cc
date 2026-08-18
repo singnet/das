@@ -63,15 +63,16 @@ vector<atomdb_api_types::AccessPermissionDocument> RedisMongoDB::get_access_perm
     const atomdb_api_types::PublicKey& public_key) const {
     vector<atomdb_api_types::AccessPermissionDocument> documents;
 
-    if (holds_alternative<string>(public_key.value)) {
-        auto document = this->load_access_permission_document(get<string>(public_key.value));
+    if (public_key.is_single_key()) {
+        auto document = this->load_access_permission_document(public_key.keys[0]);
         if (document.has_value()) {
             documents.push_back(document.value());
         }
         return documents;
     }
 
-    for (const auto& [peer_uid, key] : get<map<string, string>>(public_key.value)) {
+    for (const auto& [peer_uid, idx] : (public_key.peer_to_key)) {
+        string key = public_key.keys[idx];
         auto document = this->load_access_permission_document(key);
         if (document.has_value()) {
             documents.push_back(document.value());
@@ -83,7 +84,9 @@ vector<atomdb_api_types::AccessPermissionDocument> RedisMongoDB::get_access_perm
 optional<atomdb_api_types::AccessPermissionDocument> RedisMongoDB::load_access_permission_document(
     const string& key) const {
     string handle = compute_hash((char*) key.c_str());
+
     auto access_permission_doc = this->get_document(handle, MONGODB_ACCESS_PERMISSIONS_COLLECTION_NAME);
+
     if (access_permission_doc == nullptr) {
         return nullopt;
     }
@@ -92,6 +95,9 @@ optional<atomdb_api_types::AccessPermissionDocument> RedisMongoDB::load_access_p
     auto document = nlohmann::json::parse(bsoncxx::to_json(mongodb_doc->value().view()));
     if (!document.is_object()) {
         RAISE_ERROR("AccessPermissionDocument must be a JSON object");
+    }
+    if (!document.contains("public_key") || !document["public_key"].is_string()) {
+        RAISE_ERROR("AccessPermissionDocument missing required string filed 'public_key'");
     }
     if (!document.contains("full_access") || !document["full_access"].is_boolean()) {
         RAISE_ERROR("AccessPermissionDocument missing required boolean field 'full_access'");

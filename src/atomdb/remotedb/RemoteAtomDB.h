@@ -80,15 +80,6 @@ class RemoteAtomDB : public AtomDB {
 
     void release_caches(const LinkSchema& link_schema, bool persist = true, bool force = false);
 
-    /**
-     * RemoteAtomDB does not retrieve access permissions from federated peers.
-     * Always returns an empty vector.
-     */
-    vector<atomdb_api_types::AccessPermissionDocument> get_access_permissions(
-        const atomdb_api_types::PublicKey& public_key) const override {
-        return {};
-    };
-
    private:
     // Derives the aggregated nested-indexing capability and writable/readonly peer lists.
     // Shared by both constructors so the config and DI paths stay consistent.
