@@ -1,7 +1,9 @@
 #include "Link.h"
 #include "LinkCreator.h"
+#include "AttentionBrokerClient.h"
 
 using namespace link_creators;
+using namespace attention_broker;
 
 bool LinkCreator::add_or_update_link(const vector<string>& targets,
                                      double strength) {
@@ -27,7 +29,7 @@ bool LinkCreator::add_or_update_link(const vector<string>& targets,
         vector<string> determiners = {handle};
         determiners.insert(determiners.end(), targets.begin(), targets.end());
         add_determiners(determiners);
-        AttentionBrokerClient::correlate(set<string>(targets), _context);
+        AttentionBrokerClient::correlate(set<string>(targets.begin(), targets.end()), _context);
     }
     return new_link_created_flag;
 }

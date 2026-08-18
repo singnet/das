@@ -24,6 +24,7 @@ cc_library(
         "//agents/link_creation_agent/link_creators:link_creators_lib",
         "//agents/query_engine:query_answer",
         "//commons:commons_lib",
+        "//attention_broker:attention_broker_client",
         "//service_bus:service_bus_lib",
     ],
 )

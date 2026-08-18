@@ -1,11 +1,13 @@
 #include "LinkCreationProxy.h"
 
+#include "AttentionBrokerClient.h"
 #include "LinkCreatorRegistry.h"
 #include "Logger.h"
 #include "ServiceBus.h"
 #include "SystemParametersSingleton.h"
 
 using namespace link_creation_agent;
+using namespace attention_broker;
 
 // -------------------------------------------------------------------------------------------------
 // Constructors, destructors and initialization
@@ -135,7 +137,7 @@ bool LinkCreationProxy::is_link_creation_function_remote() {
 
 void LinkCreationProxy::flush_determiners() {
     if (this->link_creation_function_object != nullptr) {
-        AttentionBrokerClient::set_determiners(this->link_creation_function_object->buffer_determiners(), this->context);
+        AttentionBrokerClient::set_determiners(this->link_creation_function_object->buffer_determiners(), get_context());
         this->link_creation_function_object->clear_determiners();
     }
 }
