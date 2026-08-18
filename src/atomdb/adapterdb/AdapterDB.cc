@@ -70,9 +70,9 @@ vector<atomdb_api_types::AccessPermissionDocument> AdapterDB::get_access_permiss
     return this->atomdb_backend->get_access_permissions(public_key);
 }
 
-atomdb_api_types::ProtectionMode AdapterDB::is_protected() const {
+atomdb_api_types::ProtectionMode AdapterDB::get_protection_mode() const {
     this->ensure_backend_ready();
-    return this->atomdb_backend->is_protected();
+    return this->atomdb_backend->get_protection_mode();
 }
 
 shared_ptr<Atom> AdapterDB::get_atom(const string& handle) {

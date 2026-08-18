@@ -1427,10 +1427,13 @@ TEST_F(RedisMongoDBTest, GetAccessPermissionsReturnsStoredDocuments) {
         "LINK_TEMPLATE", "Expression", "2", "NODE", "Symbol", "Similarity", "VARIABLE", "VARIABLE");
     string admin_id = compute_hash((char*) "key_admin");
     string reader_id = compute_hash((char*) "key_reader");
-    collection.insert_one(make_document(
-        kvp("_id", admin_id), kvp("full_access", true), kvp("allowed_schemas", make_array())));
+    collection.insert_one(make_document(kvp("_id", admin_id),
+                                        kvp("public_key", "key_admin"),
+                                        kvp("full_access", true),
+                                        kvp("allowed_schemas", make_array())));
     collection.insert_one(make_document(
         kvp("_id", reader_id),
+        kvp("public_key", "key_reader"),
         kvp("full_access", false),
         kvp("allowed_schemas",
             make_array(make_document(
@@ -1438,13 +1441,13 @@ TEST_F(RedisMongoDBTest, GetAccessPermissionsReturnsStoredDocuments) {
 
     auto admin_permissions = db->get_access_permissions(PublicKey("key_admin"));
     ASSERT_EQ(admin_permissions.size(), 1u);
-    EXPECT_EQ(admin_permissions[0].public_key, "key_admin");
+    EXPECT_EQ(admin_permissions[0].access_key, "key_admin");
     EXPECT_TRUE(admin_permissions[0].full_access);
     EXPECT_TRUE(admin_permissions[0].entries.empty());
 
     auto reader_permissions = db->get_access_permissions(PublicKey("key_reader"));
     ASSERT_EQ(reader_permissions.size(), 1u);
-    EXPECT_EQ(reader_permissions[0].public_key, "key_reader");
+    EXPECT_EQ(reader_permissions[0].access_key, "key_reader");
     EXPECT_FALSE(reader_permissions[0].full_access);
     ASSERT_EQ(reader_permissions[0].entries.size(), 1u);
     EXPECT_TRUE(reader_permissions[0].entries[0].read);
@@ -1545,7 +1548,7 @@ TEST_F(RedisMongoDBTest, IsProtectedWhenPersistedConfigIsTrue) {
     collection.insert_one(make_document(kvp("protected", true)));
 
     TestRedisMongoDB loaded("test_", test_atomdb_json_config());
-    EXPECT_EQ(loaded.is_protected(), atomdb_api_types::ProtectionMode::PROTECTED);
+    EXPECT_EQ(loaded.get_protection_mode(), atomdb_api_types::ProtectionMode::PROTECTED);
 
     collection.delete_many({});
 }
@@ -1561,7 +1564,7 @@ TEST_F(RedisMongoDBTest, IsProtectedWhenPersistedConfigOmitsField) {
     collection.insert_one(make_document(kvp("other", "value")));
 
     TestRedisMongoDB loaded("test_", test_atomdb_json_config());
-    EXPECT_EQ(loaded.is_protected(), atomdb_api_types::ProtectionMode::UNPROTECTED);
+    EXPECT_EQ(loaded.get_protection_mode(), atomdb_api_types::ProtectionMode::UNPROTECTED);
 
     collection.delete_many({});
 }

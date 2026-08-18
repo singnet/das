@@ -45,7 +45,7 @@ RedisMongoDB::RedisMongoDB(const string& context, bool skip_redis, const JsonCon
       skip_redis_(skip_redis),
       composite_type_enabled_(config.at_path("composite_type_enabled").get_or<bool>(true)),
       cluster_flag(false),
-      protected_flag(false) {
+      protection_mode(atomdb_api_types::ProtectionMode::UNPROTECTED) {
     initialize_statics(context);
     mongodb_setup(config);
     load_pattern_index_schema();
@@ -65,15 +65,16 @@ vector<atomdb_api_types::AccessPermissionDocument> RedisMongoDB::get_access_perm
     const atomdb_api_types::PublicKey& public_key) const {
     vector<atomdb_api_types::AccessPermissionDocument> documents;
 
-    if (holds_alternative<string>(public_key.value)) {
-        auto document = this->load_access_permission_document(get<string>(public_key.value));
+    if (public_key.is_single_key()) {
+        auto document = this->load_access_permission_document(public_key.keys[0]);
         if (document.has_value()) {
             documents.push_back(document.value());
         }
         return documents;
     }
 
-    for (const auto& [peer_uid, key] : get<map<string, string>>(public_key.value)) {
+    for (const auto& [peer_uid, idx] : (public_key.peer_to_key)) {
+        string key = public_key.keys[idx];
         auto document = this->load_access_permission_document(key);
         if (document.has_value()) {
             documents.push_back(document.value());
@@ -83,9 +84,11 @@ vector<atomdb_api_types::AccessPermissionDocument> RedisMongoDB::get_access_perm
 }
 
 optional<atomdb_api_types::AccessPermissionDocument> RedisMongoDB::load_access_permission_document(
-    const string& key) const {
-    string handle = compute_hash((char*) key.c_str());
+    const string& public_key) const {
+    string handle = Hasher::plain_string_hash(public_key);
+
     auto access_permission_doc = this->get_document(handle, MONGODB_ACCESS_PERMISSIONS_COLLECTION_NAME);
+
     if (access_permission_doc == nullptr) {
         return nullopt;
     }
@@ -94,6 +97,9 @@ optional<atomdb_api_types::AccessPermissionDocument> RedisMongoDB::load_access_p
     auto document = nlohmann::json::parse(bsoncxx::to_json(mongodb_doc->value().view()));
     if (!document.is_object()) {
         RAISE_ERROR("AccessPermissionDocument must be a JSON object");
+    }
+    if (!document.contains("public_key") || !document["public_key"].is_string()) {
+        RAISE_ERROR("AccessPermissionDocument missing required string filed 'public_key'");
     }
     if (!document.contains("full_access") || !document["full_access"].is_boolean()) {
         RAISE_ERROR("AccessPermissionDocument missing required boolean field 'full_access'");
@@ -134,12 +140,12 @@ optional<atomdb_api_types::AccessPermissionDocument> RedisMongoDB::load_access_p
         entries.emplace_back(tokens, item["read"].get<bool>(), item["write"].get<bool>());
     }
 
-    return atomdb_api_types::AccessPermissionDocument(key, document["full_access"].get<bool>(), entries);
+    return atomdb_api_types::AccessPermissionDocument(
+        public_key, document["full_access"].get<bool>(), entries);
 }
 
-atomdb_api_types::ProtectionMode RedisMongoDB::is_protected() const {
-    return this->protected_flag ? atomdb_api_types::ProtectionMode::PROTECTED
-                                : atomdb_api_types::ProtectionMode::UNPROTECTED;
+atomdb_api_types::ProtectionMode RedisMongoDB::get_protection_mode() const {
+    return this->protection_mode;
 }
 
 void RedisMongoDB::redis_setup(const JsonConfig& config) {
@@ -192,7 +198,7 @@ void RedisMongoDB::mongodb_setup(const JsonConfig& config) {
             bsoncxx::builder::basic::make_document(bsoncxx::builder::basic::kvp("ping", 1));
         mongodb.run_command(ping_cmd.view());
         LOG_INFO("Connected to MongoDB at " << address);
-        load_protected_flag();
+        this->load_protection_mode();
     } catch (const std::exception& e) {
         RAISE_ERROR(e.what());
     }
@@ -1318,12 +1324,14 @@ void RedisMongoDB::add_pattern_index_schema(const string& tokens,
     this->pattern_index_schema_next_priority++;
 }
 
-void RedisMongoDB::load_protected_flag() {
+void RedisMongoDB::load_protection_mode() {
     auto conn = this->mongodb_pool->acquire();
     auto config_collection = (*conn)[MONGODB_DB_NAME][MONGODB_CONFIG_COLLECTION_NAME];
     auto config_doc = config_collection.find_one(
         bsoncxx::builder::basic::make_document(bsoncxx::builder::basic::kvp("protected", true)));
-    this->protected_flag = static_cast<bool>(config_doc);
+    this->protection_mode = static_cast<atomdb_api_types::ProtectionMode>(
+        config_doc ? atomdb_api_types::ProtectionMode::PROTECTED
+                   : atomdb_api_types::ProtectionMode::UNPROTECTED);
 }
 
 void RedisMongoDB::load_pattern_index_schema() {

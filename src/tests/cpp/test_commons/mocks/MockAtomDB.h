@@ -100,7 +100,8 @@ class AtomDBMock : public AtomDB {
 
     AtomDBMock() {
         ON_CALL(*this, composite_type_enabled()).WillByDefault(::testing::Return(true));
-        ON_CALL(*this, is_protected()).WillByDefault(::testing::Return(ProtectionMode::UNPROTECTED));
+        ON_CALL(*this, get_protection_mode())
+            .WillByDefault(::testing::Return(ProtectionMode::UNPROTECTED));
         ON_CALL(*this, get_atom(testing::_))
             .WillByDefault(::testing::Return(make_shared<Node>("Node", "TestNode")));
         ON_CALL(*this, get_node(testing::_))

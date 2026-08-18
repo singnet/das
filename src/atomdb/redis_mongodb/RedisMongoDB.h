@@ -33,9 +33,13 @@ class RedisMongoDB : public AtomDB {
 
     bool allow_nested_indexing() override;
     bool composite_type_enabled() const override { return this->composite_type_enabled_; }
+    /**
+     * Looks up access-permission documents in MongoDB for the given public key(s).
+     * Returns an empty vector if no matching documents exist.
+     */
     vector<atomdb_api_types::AccessPermissionDocument> get_access_permissions(
         const atomdb_api_types::PublicKey& public_key) const override;
-    atomdb_api_types::ProtectionMode is_protected() const override;
+    atomdb_api_types::ProtectionMode get_protection_mode() const override;
 
     static string REDIS_PATTERNS_PREFIX;
     static string REDIS_OUTGOING_PREFIX;
@@ -161,7 +165,7 @@ class RedisMongoDB : public AtomDB {
     bool skip_redis_;
     bool composite_type_enabled_;
     bool cluster_flag;
-    bool protected_flag;
+    atomdb_api_types::ProtectionMode protection_mode;
     RedisContextPool* redis_pool;
     mongocxx::pool* mongodb_pool;
     atomic<uint> patterns_next_score{0};
@@ -177,7 +181,7 @@ class RedisMongoDB : public AtomDB {
      * @return nullopt when no document exists for that key.
      */
     optional<atomdb_api_types::AccessPermissionDocument> load_access_permission_document(
-        const string& key) const;
+        const string& public_key) const;
 
     vector<shared_ptr<atomdb_api_types::AtomDocument>> get_documents(const vector<string>& handles,
                                                                      const vector<string>& fields,
@@ -211,7 +215,7 @@ class RedisMongoDB : public AtomDB {
     void update_incoming_set(const string& key, const string& value);
 
     void load_pattern_index_schema();
-    void load_protected_flag();
+    void load_protection_mode();
     vector<string> match_pattern_index_schema(const Link* link);
     vector<vector<string>> index_entries_combinations(unsigned int arity);
 

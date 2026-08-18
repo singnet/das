@@ -62,7 +62,7 @@ class AdapterDB : public AtomDB {
      */
     bool composite_type_enabled() const override;
 
-    atomdb_api_types::ProtectionMode is_protected() const override;
+    atomdb_api_types::ProtectionMode get_protection_mode() const override;
 
     shared_ptr<Atom> get_atom(const string& handle) override;
     shared_ptr<Node> get_node(const string& handle) override;
@@ -112,6 +112,10 @@ class AdapterDB : public AtomDB {
     size_t link_count() const override;
     size_t atom_count() const override;
 
+    /**
+     * Forwards the lookup to the backend once it is ready.
+     * Returns an empty vector if the backend has no matching permissions.
+     */
     vector<atomdb_api_types::AccessPermissionDocument> get_access_permissions(
         const atomdb_api_types::PublicKey& public_key) const override;
 

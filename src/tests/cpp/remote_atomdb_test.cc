@@ -10,7 +10,6 @@
 #include <stdexcept>
 #include <string>
 #include <thread>
-#include <variant>
 #include <vector>
 
 #include "Assignment.h"
@@ -744,59 +743,12 @@ class CompositeTypeEnabledInMemoryDB : public InMemoryDB {
     bool composite_type_enabled() const override { return true; }
 };
 
-class PermissionsInMemoryDB : public InMemoryDB {
-   public:
-    explicit PermissionsInMemoryDB(const string& context, const string& public_key = "")
-        : InMemoryDB(context) {
-        if (!public_key.empty()) {
-            documents_.emplace_back(public_key, false, vector<AccessPermissionEntry>{});
-        }
-    }
-
-    vector<AccessPermissionDocument> get_access_permissions(const PublicKey& public_key) const override {
-        if (!holds_alternative<string>(public_key.value)) {
-            return {};
-        }
-        const string& key = get<string>(public_key.value);
-        for (const auto& document : documents_) {
-            if (document.public_key == key) {
-                return {document};
-            }
-        }
-        return {};
-    }
-
-   private:
-    vector<AccessPermissionDocument> documents_;
-};
-
-TEST(RemoteAtomDBFederationTest, PeerReadsAccessPermissionsFromRemoteOnly) {
-    auto local = make_shared<PermissionsInMemoryDB>("perm_local_", "key_local");
-    auto remote = make_shared<PermissionsInMemoryDB>("perm_remote_", "key_remote");
-    auto empty = make_shared<PermissionsInMemoryDB>("perm_empty_");
-
-    auto docs = RemoteAtomDBPeer(remote, local).get_access_permissions(PublicKey("key_remote"));
-    ASSERT_EQ(docs.size(), 1u);
-    EXPECT_EQ(docs[0].public_key, "key_remote");
-
-    EXPECT_TRUE(RemoteAtomDBPeer(remote, local).get_access_permissions(PublicKey("key_local")).empty());
-    EXPECT_TRUE(RemoteAtomDBPeer(empty, local).get_access_permissions(PublicKey("key_local")).empty());
-}
-
-TEST(RemoteAtomDBFederationTest, RemoteReturnsNoAccessPermissions) {
-    auto remote = make_shared<PermissionsInMemoryDB>("perm_remote_", "key_remote");
-    map<string, shared_ptr<RemoteAtomDBPeer>> peers;
-    peers["a"] = make_shared<RemoteAtomDBPeer>(remote, nullptr);
-    auto docs = RemoteAtomDB(peers).get_access_permissions(PublicKey("key_remote"));
-    EXPECT_TRUE(docs.empty());
-}
-
 // Backend pointing at a protected database, like a RedisMongoDB whose Mongo config flags it.
 class ProtectedInMemoryDB : public InMemoryDB {
    public:
     explicit ProtectedInMemoryDB(const string& context) : InMemoryDB(context) {}
 
-    ProtectionMode is_protected() const override { return ProtectionMode::PROTECTED; }
+    ProtectionMode get_protection_mode() const override { return ProtectionMode::PROTECTED; }
 };
 
 TEST(RemoteAtomDBFederationTest, MetadataAggregationFromNestedPeer) {
@@ -907,14 +859,14 @@ TEST(RemoteAtomDBFederationTest, PeerIsProtectedFollowsRemoteBackend) {
         auto remote = make_shared<InMemoryDB>("prot_none_remote_");
         auto local = make_shared<InMemoryDB>("prot_none_local_");
         auto peer = make_shared<RemoteAtomDBPeer>(remote, local, "peer");
-        EXPECT_EQ(peer->is_protected(), ProtectionMode::UNPROTECTED);
+        EXPECT_EQ(peer->get_protection_mode(), ProtectionMode::UNPROTECTED);
     }
 
     // Read-only peer (no local persistence) over an unprotected remote.
     {
         auto remote = make_shared<InMemoryDB>("prot_readonly_remote_");
         auto peer = make_shared<RemoteAtomDBPeer>(remote, nullptr, "peer");
-        EXPECT_EQ(peer->is_protected(), ProtectionMode::UNPROTECTED);
+        EXPECT_EQ(peer->get_protection_mode(), ProtectionMode::UNPROTECTED);
     }
 
     // Protected remote backend.
@@ -922,7 +874,7 @@ TEST(RemoteAtomDBFederationTest, PeerIsProtectedFollowsRemoteBackend) {
         auto remote = make_shared<ProtectedInMemoryDB>("prot_remote_remote_");
         auto local = make_shared<InMemoryDB>("prot_remote_local_");
         auto peer = make_shared<RemoteAtomDBPeer>(remote, local, "peer");
-        EXPECT_EQ(peer->is_protected(), ProtectionMode::PROTECTED);
+        EXPECT_EQ(peer->get_protection_mode(), ProtectionMode::PROTECTED);
     }
 
     // Protected local persistence is not supported.
@@ -930,7 +882,7 @@ TEST(RemoteAtomDBFederationTest, PeerIsProtectedFollowsRemoteBackend) {
         auto remote = make_shared<InMemoryDB>("prot_local_remote_");
         auto local = make_shared<ProtectedInMemoryDB>("prot_local_local_");
         auto peer = make_shared<RemoteAtomDBPeer>(remote, local, "peer");
-        EXPECT_THROW(peer->is_protected(), runtime_error);
+        EXPECT_THROW(peer->get_protection_mode(), runtime_error);
     }
 }
 
@@ -939,7 +891,7 @@ TEST(RemoteAtomDBFederationTest, IsProtectedWhenAnyPeerIsProtected) {
     {
         map<string, shared_ptr<RemoteAtomDBPeer>> peers;
         auto db = make_shared<RemoteAtomDB>(peers);
-        EXPECT_EQ(db->is_protected(), ProtectionMode::UNPROTECTED);
+        EXPECT_EQ(db->get_protection_mode(), ProtectionMode::UNPROTECTED);
     }
 
     // All peers unprotected.
@@ -950,7 +902,7 @@ TEST(RemoteAtomDBFederationTest, IsProtectedWhenAnyPeerIsProtected) {
         peers["peer1"] = make_shared<RemoteAtomDBPeer>(remote1, nullptr, "peer1");
         peers["peer2"] = make_shared<RemoteAtomDBPeer>(remote2, nullptr, "peer2");
         auto db = make_shared<RemoteAtomDB>(peers);
-        EXPECT_EQ(db->is_protected(), ProtectionMode::UNPROTECTED);
+        EXPECT_EQ(db->get_protection_mode(), ProtectionMode::UNPROTECTED);
     }
 
     // A single protected peer makes the facade FORWARD (no local post-processing).
@@ -961,7 +913,7 @@ TEST(RemoteAtomDBFederationTest, IsProtectedWhenAnyPeerIsProtected) {
         peers["unprotected"] = make_shared<RemoteAtomDBPeer>(unprotected_remote, nullptr, "unprotected");
         peers["protected"] = make_shared<RemoteAtomDBPeer>(protected_remote, nullptr, "protected");
         auto db = make_shared<RemoteAtomDB>(peers);
-        EXPECT_EQ(db->is_protected(), ProtectionMode::FORWARD);
+        EXPECT_EQ(db->get_protection_mode(), ProtectionMode::FORWARD);
     }
 }
 

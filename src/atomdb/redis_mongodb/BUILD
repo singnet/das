@@ -42,7 +42,6 @@ cc_library(
     deps = [
         "//atomdb:atomdb_api_types",
         "//commons/atoms:atoms_lib",
-        "@nlohmann_json//:json",
     ],
 )
 
@@ -57,5 +56,6 @@ cc_library(
         ":redis_mongodb_api_types",
         "//atomdb",
         "//commons:commons_lib",
+        "@nlohmann_json//:json",
     ],
 )

@@ -41,7 +41,7 @@ bool RemoteAtomDBPeer::composite_type_enabled() const {
 }
 vector<atomdb_api_types::AccessPermissionDocument> RemoteAtomDBPeer::get_access_permissions(
     const atomdb_api_types::PublicKey& public_key) const {
-    if (!atomdb_) return {};
+    if (!atomdb_) return AtomDB::get_access_permissions(public_key);
     return atomdb_->get_access_permissions(public_key);
 }
 
@@ -60,15 +60,15 @@ void RemoteAtomDBPeer::invalidate_fetched_templates() {
     fetched_link_templates_.clear();
 }
 
-atomdb_api_types::ProtectionMode RemoteAtomDBPeer::is_protected() const {
+atomdb_api_types::ProtectionMode RemoteAtomDBPeer::get_protection_mode() const {
     if (local_persistence_ &&
-        local_persistence_->is_protected() == atomdb_api_types::ProtectionMode::PROTECTED) {
+        local_persistence_->get_protection_mode() == atomdb_api_types::ProtectionMode::PROTECTED) {
         RAISE_ERROR("[RemoteDB(" + uid_ +
                     ")] local_persistence is PROTECTED, but RemoteAtomDBPeer does not support protected "
                     "local persistence");
     }
     if (atomdb_) {
-        return atomdb_->is_protected();
+        return atomdb_->get_protection_mode();
     }
     return atomdb_api_types::ProtectionMode::UNPROTECTED;
 }

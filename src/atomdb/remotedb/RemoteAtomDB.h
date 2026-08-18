@@ -28,7 +28,7 @@ class RemoteAtomDB : public AtomDB {
 
     bool allow_nested_indexing() override;
     bool composite_type_enabled() const override;
-    atomdb_api_types::ProtectionMode is_protected() const override;
+    atomdb_api_types::ProtectionMode get_protection_mode() const override;
 
     shared_ptr<Atom> get_atom(const string& handle) override;
     shared_ptr<Node> get_node(const string& handle) override;
@@ -80,11 +80,6 @@ class RemoteAtomDB : public AtomDB {
     RemoteAtomDBPeer* get_peer(const string& uid);
 
     void release_caches(const LinkSchema& link_schema, bool persist = true, bool force = false);
-
-    vector<atomdb_api_types::AccessPermissionDocument> get_access_permissions(
-        const atomdb_api_types::PublicKey& public_key) const override {
-        return {};
-    };
 
    private:
     // Derives the aggregated nested-indexing capability and writable/readonly peer lists.

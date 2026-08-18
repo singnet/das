@@ -161,6 +161,6 @@ TEST(AtomDBFactoryTest, CreateAdapterDBRequiresBackendType) {
 TEST(AtomDBFactoryTest, CreateInMemoryDBIsNotProtected) {
     auto db = AtomDBFactory::create(config_with_type("inmemorydb"), "factory_unprotected_");
     ASSERT_NE(db, nullptr);
-    EXPECT_EQ(db->is_protected(), ProtectionMode::UNPROTECTED);
+    EXPECT_EQ(db->get_protection_mode(), ProtectionMode::UNPROTECTED);
     EXPECT_EQ(dynamic_pointer_cast<ProtectedAtomDB>(db), nullptr);
 }
