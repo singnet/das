@@ -23,9 +23,9 @@ class MongoAuthorizationPersistence : public AuthorizationPersistence {
                                   const string& database_name,
                                   const string& collection_name);
 
-    void save(const string& public_key, const atomdb_api_types::AccessPermissionEntry& entry) override;
-    void remove(const string& public_key, const string& handle) override;
-    void remove_all(const string& public_key) override;
+    void save(const atomdb_api_types::PublicKey& public_key, const atomdb_api_types::AccessPermissionEntry& entry) override;
+    void remove(const atomdb_api_types::PublicKey& public_key, const atomdb_api_types::AccessPermissionEntry& entry) override;
+    void remove_all(const atomdb_api_types::PublicKey& public_key) override;
 
    private:
     mongocxx::pool* pool;
@@ -33,13 +33,13 @@ class MongoAuthorizationPersistence : public AuthorizationPersistence {
     string collection_name;
 
     bsoncxx::document::value make_schema_item(const atomdb_api_types::AccessPermissionEntry& entry);
-    string hashed_id(const string& public_key);
     string schema_handle_from_item(bsoncxx::document::view item);
     bool read_full_access(bsoncxx::document::view view);
     void append_schemas_except(bsoncxx::builder::basic::array& schemas,
                                bsoncxx::document::view view,
                                const string& handle_to_skip);
-    optional<bsoncxx::document::value> get_document_by_id(const string& id);
+    atomdb_api_types::AccessPermissionDocument get_document(mongocxx::collection collection,
+                                                            const string& public_key);
 };
 
 }  // namespace atomdb

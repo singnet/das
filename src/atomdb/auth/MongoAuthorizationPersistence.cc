@@ -1,5 +1,6 @@
 #include "MongoAuthorizationPersistence.h"
 
+#include "Hasher.h"
 #include "Utils.h"
 #include "expression_hasher.h"
 
@@ -24,46 +25,55 @@ MongoAuthorizationPersistence::MongoAuthorizationPersistence(mongocxx::pool* poo
 // --------------------------------------------------------------------------------
 // Public methods
 
-void MongoAuthorizationPersistence::save(const string& public_key,
+void MongoAuthorizationPersistence::save(const atomdb_api_types::PublicKey& public_key,
                                          const atomdb_api_types::AccessPermissionEntry& entry) {
-    string id = this->hashed_id(public_key);
-    
-    auto document = this->get_document_by_id(id);
+    auto conn = this->pool->acquire();
+    auto collection = (*conn)[this->database_name][this->collection_name];
 
-    bsoncxx::builder::basic::array schemas;
-    
-    bool full_access = false;
-    
-    if (existing) {
-        auto view = existing->view();
-        full_access = this->read_full_access(view);
-        this->append_schemas_except(schemas, view, entry.schema.handle());
+    for (const auto& key : public_key.keys) {
+        auto access_document = this->get_document(collection, public_key);
+
+        string id;
+        string public_key_;
+        bool full_access = false;
+        auto schemas = bsoncxx::builder::basic::array{};
+
+        if (access_document) {
+            id = Hasher::plain_string_hash(access_document->public_key);
+            public_key_ = access_document->public_key;
+            full_access = access_document->full_access;
+            for (const auto& document_entry : access_document->entries) {
+                if (document_entry.schema.handle() == entry.schema.handle() &&
+                    document_entry.read == entry.read && document_entry.write == entry.write) {
+                    schemas.append(this->make_schema_item(document_entry));
+                } else {
+                    schemas.append(this->make_schema_item(entry));
+                }
+            }
+        } else {
+            id = Hasher::plain_string_hash(public_key);
+            public_key_ = public_key;
+            schemas.append(this->make_schema_item(entry));
+        }
+
+        auto reply = collection.replace_one(bsoncxx::builder::basic::make_document(
+            bsoncxx::builder::basic::kvp("_id", id),
+            bsoncxx::builder::basic::kvp("public_key", public_key_),
+            bsoncxx::builder::basic::kvp("full_access", full_access),
+            bsoncxx::builder::basic::kvp("allowed_schemas", schemas)));
+
+        if (!reply) {
+            RAISE_ERROR("Failed to update authorization entry in MongoDB");
+        }
     }
-    
-    schemas.append(this->make_schema_item(entry));
 
-    auto document = bsoncxx::builder::basic::make_document(
-        bsoncxx::builder::basic::kvp("_id", id),
-        bsoncxx::builder::basic::kvp("full_access", full_access),
-        bsoncxx::builder::basic::kvp("allowed_schemas", schemas)
-    );
-
-    mongocxx::options::replace opts;
-    
-    opts.upsert(true);
-    
-    auto reply = collection.replace_one(filter.view(), document.view(), opts);
-    
-    if (!reply) {
-        RAISE_ERROR("Failed to save authorization entry in MongoDB");
-    }
 }
 
 void MongoAuthorizationPersistence::remove(const string& public_key, const string& handle) {
     auto conn = this->pool->acquire();
     auto collection = (*conn)[this->database_name][this->collection_name];
 
-    string id = hashed_id(public_key);
+    string id = Hasher::plain_string_hash(public_key);
     auto filter = bsoncxx::builder::basic::make_document(bsoncxx::builder::basic::kvp("_id", id));
     auto existing = collection.find_one(filter.view());
     if (!existing) return;
@@ -89,7 +99,7 @@ void MongoAuthorizationPersistence::remove_all(const string& public_key) {
     auto conn = this->pool->acquire();
     auto collection = (*conn)[this->database_name][this->collection_name];
     collection.delete_one(bsoncxx::builder::basic::make_document(
-        bsoncxx::builder::basic::kvp("_id", hashed_id(public_key))));
+        bsoncxx::builder::basic::kvp("_id", Hasher::plain_string_hash(public_key))));
 }
 
 // --------------------------------------------------------------------------------
@@ -104,10 +114,6 @@ bsoncxx::document::value MongoAuthorizationPersistence::make_schema_item(
     return bsoncxx::builder::basic::make_document(bsoncxx::builder::basic::kvp("tokens", tokens_array),
                                                   bsoncxx::builder::basic::kvp("read", entry.read),
                                                   bsoncxx::builder::basic::kvp("write", entry.write));
-}
-
-string MongoAuthorizationPersistence::hashed_id(const string& public_key) {
-    return compute_hash((char*) public_key.c_str());
 }
 
 string MongoAuthorizationPersistence::schema_handle_from_item(bsoncxx::document::view item) {
@@ -151,10 +157,24 @@ void MongoAuthorizationPersistence::append_schemas_except(bsoncxx::builder::basi
     }
 }
 
-optional<bsoncxx::document::value> MongoAuthorizationPersistence::get_document_by_id(
-    const string& id) {
-    auto conn = this->pool->acquire();
-    auto collection = (*conn)[this->database_name][this->collection_name];
-    auto reply = collection.find_one(
-        bsoncxx::v_noabi::builder::basic::make_document(bsoncxx::v_noabi::builder::basic::kvp("_id", id)));
+shared_ptr<atomdb_api_types::AccessPermissionDocument> MongoAuthorizationPersistence::get_document(
+    mongocxx::collection collection, const string& public_key) {
+    auto reply = collection.find_one(bsoncxx::v_noabi::builder::basic::make_document(
+        bsoncxx::v_noabi::builder::basic::kvp("_id", Hasher::plain_string_hash(public_key))));
+
+    if (!reply) return nullptr;
+
+    auto document_json = nlohmann::json::parse(bsoncxx::to_json(reply->value().view()));
+
+    vector<atomdb_api_types::AccessPermissionEntry> entries;
+    for (const auto& item : document_json["allowed_schemas"]) {
+        vector<string> tokens;
+        for (const auto& token : item["tokens"]) {
+            tokens.push_back(token.get<string>());
+        }
+        entries.emplace_back(tokens, item["read"].get<bool>(), item["write"].get<bool>());
+    }
+
+    return make_shared<atomdb_api_types::AccessPermissionDocument>(
+        public_key, document_json["full_access"].get<bool>(), entries);
 }

@@ -60,7 +60,9 @@ void AuthorizationManifest::remove(const atomdb_api_types::PublicKey& public_key
     }
 }
 
-void AuthorizationManifest::remove_all(const atomdb_api_types::PublicKey& public_key) { this->documents.erase(public_key); }
+void AuthorizationManifest::remove_all(const atomdb_api_types::PublicKey& public_key) {
+    this->documents.erase(public_key);
+}
 
 bool AuthorizationManifest::is_registered(const atomdb_api_types::PublicKey& public_key) const {
     return this->documents.find(public_key) != this->documents.end();
@@ -97,7 +99,8 @@ atomdb_api_types::AccessPermissionDocument* AuthorizationManifest::find_document
     const atomdb_api_types::PublicKey& public_key, const string& caller) {
     auto it = this->documents.find(public_key);
     if (it == this->documents.end()) {
-        LOG_INFO("AuthorizationManifest::" << caller << "() called for unregistered public_key: " << public_key);
+        LOG_INFO("AuthorizationManifest::" << caller
+                                           << "() called for unregistered public_key: " << public_key);
         return nullptr;
     }
     return &it->second;
