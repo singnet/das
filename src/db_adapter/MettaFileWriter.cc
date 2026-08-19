@@ -6,6 +6,7 @@
 #include <sstream>
 #include <unordered_set>
 
+#include "Hasher.h"
 #include "Utils.h"
 #include "expression_hasher.h"
 
@@ -162,5 +163,5 @@ void MettaFileWriter::remove_duplicate_lines(const filesystem::path& filepath) {
 
 string MettaFileWriter::make_file_prefix() {
     auto ms = Utils::get_current_time_millis();
-    return compute_hash((char*) to_string(ms).c_str());
+    return Hasher::plain_string_hash(to_string(ms));
 }
