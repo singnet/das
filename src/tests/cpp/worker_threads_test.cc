@@ -213,6 +213,6 @@ TEST(WorkerThreads, hebbian_network_updater_stress) {
 
 int main(int argc, char** argv) {
     ::testing::InitGoogleTest(&argc, argv);
-    Random::init(0);
+    Utils::init_random(0);
     return RUN_ALL_TESTS();
 }

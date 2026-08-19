@@ -15,6 +15,7 @@ bool Helper::is_running = true;
 // Args names
 string Helper::CONFIG = "config";
 string Helper::SERVICE = "service";
+string Helper::SEED = "seed";
 string Helper::CLIENT = "client";
 string Helper::ENDPOINT = "endpoint";
 string Helper::BUS_ENDPOINT = "bus-endpoint";
