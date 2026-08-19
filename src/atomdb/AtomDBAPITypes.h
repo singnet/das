@@ -111,11 +111,11 @@ class AccessPermissionDocument {
                              bool full_access,
                              const vector<AccessPermissionEntry>& entries)
         : access_key(access_key), full_access(full_access), entries(entries) {
-        if (!full_access && entries.empty()) {
-            RAISE_ERROR("entries must be non-empty");
+        if (full_access && !entries.empty()) {
+            RAISE_ERROR("entries must be empty when full_access is true");
         }
-        if (full_access) {
-            this->entries = {};
+        if (!full_access && entries.empty()) {
+            RAISE_ERROR("entries must be non-empty when full_access is false");
         }
     }
 };
