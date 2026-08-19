@@ -15,6 +15,7 @@
 
 #include "AtomDBFactory.h"
 #include "AtomDBSingleton.h"
+#include "Hasher.h"
 #include "Link.h"
 #include "Merger.h"
 #include "MongoInitializer.h"
@@ -23,7 +24,6 @@
 #include "RedisMongoDB.h"
 #include "TestAtomDBJsonConfig.h"
 #include "Utils.h"
-#include "Hasher.h"
 #include "gmock/gmock.h"
 
 using namespace std;
