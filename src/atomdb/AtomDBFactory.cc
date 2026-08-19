@@ -2,6 +2,7 @@
 
 #include "AdapterDB.h"
 #include "InMemoryDB.h"
+#include "MongoAuthorizationPersistence.h"
 #include "MorkDB.h"
 #include "ProtectedAtomDB.h"
 #include "RedisMongoDB.h"
@@ -111,5 +112,13 @@ shared_ptr<AtomDB> AtomDBFactory::wrap_if_protected(shared_ptr<AtomDB> atomdb) {
         dynamic_pointer_cast<ProtectedAtomDB>(atomdb)) {
         return atomdb;
     }
-    return make_shared<ProtectedAtomDB>(atomdb);
+
+    // TODO: Decide where the MongoDB connection parameters should come from
+    // auto persistence =
+    //     make_shared<MongoAuthorizationPersistence>(/* parameters for MongoAuthorizationPersistence
+    //     */);
+
+    auto auth = make_shared<AuthorizationManagement>(nullptr);
+
+    return make_shared<ProtectedAtomDB>(atomdb, auth);
 }

@@ -15,7 +15,7 @@ class AuthorizationPersistence {
 
     /** @brief Persists one entry under public_key (creating the document if needed). */
     virtual void save(const string& public_key,
-                      const atomdb_api_types::AccessPermissionDocument& entry) = 0;
+                      const atomdb_api_types::AccessPermissionEntry& entry) = 0;
 
     /** @brief Removes the entry identified */
     virtual void remove(const string& public_key,

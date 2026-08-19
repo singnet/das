@@ -3,6 +3,7 @@
 #include "Hasher.h"
 #include "Utils.h"
 #include "expression_hasher.h"
+#include "nlohmann/json.hpp"
 
 using namespace atomdb;
 using namespace commons;
@@ -68,13 +69,12 @@ void MongoAuthorizationPersistence::save(const string& public_key,
                                                bsoncxx::builder::basic::kvp("full_access", full_access),
                                                bsoncxx::builder::basic::kvp("allowed_schemas", schemas));
 
-    bsoncxx::builder::stream::document filter;
-    filter << "_id" << id;
+    auto filter = bsoncxx::builder::basic::make_document(bsoncxx::builder::basic::kvp("_id", id));
 
     mongocxx::options::replace opts;
     opts.upsert(true);
 
-    auto reply = collection.replace_one(filter, new_access_document, opts);
+    auto reply = collection.replace_one(filter.view(), new_access_document.view(), opts);
 
     if (!reply) {
         RAISE_ERROR("Failed to update authorization entry in MongoDB");
@@ -88,7 +88,7 @@ void MongoAuthorizationPersistence::remove(const string& public_key,
 
     auto access_document = this->get_document(collection, public_key);
 
-    if (!access_document) continue;
+    if (!access_document) return;
 
     auto schemas = bsoncxx::builder::basic::array{};
     for (const auto& document_entry : access_document->entries) {
@@ -107,10 +107,9 @@ void MongoAuthorizationPersistence::remove(const string& public_key,
         bsoncxx::builder::basic::kvp("full_access", access_document->full_access),
         bsoncxx::builder::basic::kvp("allowed_schemas", schemas));
 
-    bsoncxx::builder::stream::document filter;
-    filter << "_id" << id;
+    auto filter = bsoncxx::builder::basic::make_document(bsoncxx::builder::basic::kvp("_id", id));
 
-    auto reply = collection.replace_one(filter, new_access_document);
+    auto reply = collection.replace_one(filter.view(), new_access_document.view());
 
     if (!reply) {
         RAISE_ERROR("Failed to update authorization entry in MongoDB");
@@ -133,7 +132,8 @@ void MongoAuthorizationPersistence::remove_all(const string& public_key) {
 bsoncxx::document::value MongoAuthorizationPersistence::entry_to_document(
     const atomdb_api_types::AccessPermissionEntry& entry) {
     auto tokens_array = bsoncxx::builder::basic::array{};
-    for (const auto& token : entry.schema.tokenize()) {
+    auto local_schema = entry.schema;
+    for (const auto& token : local_schema.tokenize()) {
         tokens_array.append(token);
     }
     return bsoncxx::builder::basic::make_document(bsoncxx::builder::basic::kvp("tokens", tokens_array),
@@ -148,7 +148,7 @@ shared_ptr<atomdb_api_types::AccessPermissionDocument> MongoAuthorizationPersist
 
     if (!reply) return nullptr;
 
-    auto document_json = nlohmann::json::parse(bsoncxx::to_json(reply->value().view()));
+    auto document_json = nlohmann::json::parse(bsoncxx::to_json(reply.value().view()));
 
     vector<atomdb_api_types::AccessPermissionEntry> entries;
     for (const auto& item : document_json["allowed_schemas"]) {

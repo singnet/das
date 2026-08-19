@@ -2,6 +2,9 @@
 
 #include <bsoncxx/builder/basic/array.hpp>
 #include <bsoncxx/builder/basic/document.hpp>
+#include <bsoncxx/builder/stream/document.hpp>
+#include <bsoncxx/builder/stream/helpers.hpp>
+#include <bsoncxx/json.hpp>
 #include <memory>
 #include <mongocxx/collection.hpp>
 #include <mongocxx/options/replace.hpp>

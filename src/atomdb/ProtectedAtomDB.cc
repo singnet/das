@@ -9,7 +9,8 @@ using namespace commons;
 // --------------------------------------------------------------------------------
 // Constructors and destructors
 
-ProtectedAtomDB::ProtectedAtomDB(shared_ptr<AtomDB> backend) : backend(backend) {
+ProtectedAtomDB::ProtectedAtomDB(shared_ptr<AtomDB> backend, shared_ptr<AuthorizationManagement> auth)
+    : backend(backend), auth(auth) {
     if (this->backend == nullptr) {
         RAISE_ERROR("ProtectedAtomDB requires a non-null backend AtomDB");
     }

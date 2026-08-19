@@ -1,6 +1,7 @@
 #include "AuthorizationManagement.h"
 
 #include "Assignment.h"
+#include "Atom.h"
 #include "AtomDB.h"
 #include "Link.h"
 #include "Utils.h"
@@ -12,11 +13,10 @@ using namespace commons;
 // --------------------------------------------------------------------------------
 // Constructors
 
-AuthorizationManagement::AuthorizationManagement(shared_ptr<AtomDB> atomdb,
-                                                 shared_ptr<AuthorizationPersistence> persistence)
-    : atomdb(std::move(atomdb)), persistence(std::move(persistence)) {
-    if (this->atomdb == nullptr) {
-        RAISE_ERROR("AuthorizationManagement requires a non-null atomdb AtomDB");
+AuthorizationManagement::AuthorizationManagement(shared_ptr<AuthorizationPersistence> persistence)
+    : persistence(persistence) {
+    if (this->persistence == nullptr) {
+        RAISE_ERROR("AuthorizationManagement requires a non-null persistence");
     }
 }
 
@@ -29,7 +29,8 @@ bool AuthorizationManagement::has_full_access(const string& public_key) {
 
 bool AuthorizationManagement::is_authorized(const Atom& atom,
                                             const string& public_key,
-                                            AuthorizationOperation operation) {
+                                            AuthorizationOperation operation,
+                                            HandleDecoder& decoder) {
     if (!this->manifest.is_registered(public_key)) {
         return false;
     }
@@ -37,9 +38,9 @@ bool AuthorizationManagement::is_authorized(const Atom& atom,
         return true;
     }
 
-    HandleDecoder& decoder = *this->atomdb;
-    for (const auto& entry : this->manifest.entries(public_key)) {
-        if (allows(entry, operation) && this->matches_entry(entry, atom, decoder)) {
+    auto document = this->manifest.get_document(public_key);
+    for (const auto& entry : document->entries) {
+        if (this->allows(entry, operation) && this->matches_schema(entry.schema, atom, decoder)) {
             return true;
         }
     }
@@ -57,8 +58,9 @@ bool AuthorizationManagement::is_authorized(const string& handle,
         return true;
     }
 
-    for (const auto& entry : this->manifest.entries(public_key)) {
-        if (allows(entry, operation) && this->matches_entry(entry, handle, decoder)) {
+    auto document = this->manifest.get_document(public_key);
+    for (const auto& entry : document->entries) {
+        if (allows(entry, operation) && this->matches_schema(entry.schema, handle, decoder)) {
             return true;
         }
     }
@@ -67,31 +69,17 @@ bool AuthorizationManagement::is_authorized(const string& handle,
 
 void AuthorizationManagement::authorize(const string& public_key,
                                         const atomdb_api_types::AccessPermissionEntry& entry) {
-    if (this->persistence == nullptr) {
-        RAISE_ERROR(
-            "AuthorizationManagement::authorize() requires AuthorizationPersistence; "
-            "this atomdb has no authorization storage");
-    }
     this->persistence->save(public_key, entry);
     this->manifest.add(public_key, entry);
 }
 
-void AuthorizationManagement::revoke(const string& public_key, const string& handle) {
-    if (this->persistence == nullptr) {
-        RAISE_ERROR(
-            "AuthorizationManagement::revoke() requires AuthorizationPersistence; "
-            "this atomdb has no authorization storage");
-    }
-    this->persistence->remove(public_key, handle);
-    this->manifest.remove(public_key, handle);
+void AuthorizationManagement::revoke(const string& public_key,
+                                     const atomdb_api_types::AccessPermissionEntry& entry) {
+    this->persistence->remove(public_key, entry);
+    this->manifest.remove(public_key, entry);
 }
 
 void AuthorizationManagement::revoke_all(const string& public_key) {
-    if (this->persistence == nullptr) {
-        RAISE_ERROR(
-            "AuthorizationManagement::revoke_all() requires AuthorizationPersistence; "
-            "this atomdb has no authorization storage");
-    }
     this->persistence->remove_all(public_key);
     this->manifest.remove_all(public_key);
 }
@@ -110,22 +98,23 @@ bool AuthorizationManagement::allows(const atomdb_api_types::AccessPermissionEnt
     return false;
 }
 
-bool AuthorizationManagement::matches_entry(const atomdb_api_types::AccessPermissionEntry& entry,
-                                            const Atom& atom,
-                                            HandleDecoder& decoder) const {
+// ???
+bool AuthorizationManagement::matches_schema(const LinkSchema& schema,
+                                             const Atom& atom,
+                                             HandleDecoder& decoder) const {
     Assignment assignment;
-    LinkSchema schema = entry.schema;
-    // Prefer matching against the in-memory atom so WRITE checks work for atoms not yet stored.
+    LinkSchema local_schema(schema);
     if (Atom::is_link(atom)) {
-        return schema.match(const_cast<Link&>(static_cast<const Link&>(atom)), assignment, decoder);
+        return local_schema.match(
+            const_cast<Link&>(static_cast<const Link&>(atom)), assignment, decoder);
     }
-    return schema.match(atom.handle(), assignment, decoder);
+    return local_schema.match(atom.handle(), assignment, decoder);
 }
 
-bool AuthorizationManagement::matches_entry(const atomdb_api_types::AccessPermissionEntry& entry,
-                                            const string& handle,
-                                            HandleDecoder& decoder) const {
+bool AuthorizationManagement::matches_schema(const LinkSchema& schema,
+                                             const string& handle,
+                                             HandleDecoder& decoder) const {
     Assignment assignment;
-    LinkSchema schema = entry.schema;
-    return schema.match(handle, assignment, decoder);
+    LinkSchema local_schema(schema);
+    return local_schema.match(handle, assignment, decoder);
 }
