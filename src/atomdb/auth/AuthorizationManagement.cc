@@ -14,7 +14,7 @@ using namespace commons;
 // Constructors
 
 AuthorizationManagement::AuthorizationManagement(shared_ptr<AuthorizationPersistence> persistence)
-    : persistence(persistence) {
+    : persistence(persistence), manifest() {
     if (this->persistence == nullptr) {
         RAISE_ERROR("AuthorizationManagement requires a non-null persistence");
     }
@@ -22,10 +22,6 @@ AuthorizationManagement::AuthorizationManagement(shared_ptr<AuthorizationPersist
 
 // --------------------------------------------------------------------------------
 // Public methods
-
-bool AuthorizationManagement::has_full_access(const string& public_key) {
-    return this->manifest.is_registered(public_key) && this->manifest.full_access(public_key);
-}
 
 bool AuthorizationManagement::is_authorized(const Atom& atom,
                                             const string& public_key,
@@ -98,15 +94,14 @@ bool AuthorizationManagement::allows(const atomdb_api_types::AccessPermissionEnt
     return false;
 }
 
-// ???
 bool AuthorizationManagement::matches_schema(const LinkSchema& schema,
                                              const Atom& atom,
                                              HandleDecoder& decoder) const {
     Assignment assignment;
     LinkSchema local_schema(schema);
     if (Atom::is_link(atom)) {
-        return local_schema.match(
-            const_cast<Link&>(static_cast<const Link&>(atom)), assignment, decoder);
+        auto& link = const_cast<Link&>(static_cast<const Link&>(atom));
+        return local_schema.match(link, assignment, decoder);
     }
     return local_schema.match(atom.handle(), assignment, decoder);
 }

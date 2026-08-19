@@ -1,6 +1,7 @@
 #include "MongoAuthorizationPersistence.h"
 
 #include "Hasher.h"
+#include "JsonConfig.h"
 #include "Utils.h"
 #include "expression_hasher.h"
 #include "nlohmann/json.hpp"
@@ -11,24 +12,40 @@ using namespace commons;
 // --------------------------------------------------------------------------------
 // Constructors
 
-MongoAuthorizationPersistence::MongoAuthorizationPersistence(mongocxx::pool* pool,
+MongoAuthorizationPersistence::MongoAuthorizationPersistence(const string& endpoint,
+                                                             const string& username,
+                                                             const string& password,
                                                              const string& database_name,
-                                                             const string& collection_name)
-    : pool(pool), database_name(database_name), collection_name(collection_name) {
-    if (this->pool == nullptr) {
-        RAISE_ERROR("MongoAuthorizationPersistence requires a non-null MongoDB pool");
+                                                             const string& collection_name) {
+    if (endpoint.empty() || endpoint == ":" || username.empty() || password.empty()) {
+        RAISE_ERROR("Invalid MongoDB configuration: need non-empty username, username, and password.");
     }
-    if (this->database_name.empty() || this->collection_name.empty()) {
-        RAISE_ERROR("MongoAuthorizationPersistence requires a non-empty database and collection names");
+
+    string url = "mongodb://" + username + ":" + password + "@" + endpoint;
+
+    MongoInitializer::initialize();
+
+    try {
+        auto uri = mongocxx::uri{url};
+        this->mongodb_pool = new mongocxx::pool(uri);
+        auto conn = this->mongodb_pool->acquire();
+        auto mongodb = (*conn)[database_name];
+        const auto ping_cmd = bsoncxx::builder::basic::make_document(bsoncxx::builder::basic::kvp("ping", 1));
+        mongodb.run_command(ping_cmd.view());
+        LOG_DEBUG("MongoAuthorizationPersistence connected to MongoDB at " << endpoint << " (db=" << database_name << ")");
+    } catch (const exception& e) {
+        RAISE_ERROR(e.what());
     }
 }
+
+MongoAuthorizationPersistence::~MongoAuthorizationPersistence() { delete this->mongodb_pool; }
 
 // --------------------------------------------------------------------------------
 // Public methods
 
 void MongoAuthorizationPersistence::save(const string& public_key,
                                          const atomdb_api_types::AccessPermissionEntry& entry) {
-    auto conn = this->pool->acquire();
+    auto conn = this->mongodb_pool->acquire();
     auto collection = (*conn)[this->database_name][this->collection_name];
 
     auto access_document = this->get_document(collection, public_key);
@@ -83,7 +100,7 @@ void MongoAuthorizationPersistence::save(const string& public_key,
 
 void MongoAuthorizationPersistence::remove(const string& public_key,
                                            const atomdb_api_types::AccessPermissionEntry& entry) {
-    auto conn = this->pool->acquire();
+    auto conn = this->mongodb_pool->acquire();
     auto collection = (*conn)[this->database_name][this->collection_name];
 
     auto access_document = this->get_document(collection, public_key);
@@ -117,7 +134,7 @@ void MongoAuthorizationPersistence::remove(const string& public_key,
 }
 
 void MongoAuthorizationPersistence::remove_all(const string& public_key) {
-    auto conn = this->pool->acquire();
+    auto conn = this->mongodb_pool->acquire();
     auto collection = (*conn)[this->database_name][this->collection_name];
     auto reply = collection.delete_one(bsoncxx::builder::basic::make_document(
         bsoncxx::builder::basic::kvp("_id", Hasher::plain_string_hash(public_key))));

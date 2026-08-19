@@ -32,11 +32,6 @@ class AuthorizationManagement {
     AuthorizationManagement(shared_ptr<AuthorizationPersistence> persistence);
 
     /**
-     * @brief Returns true when public_key is registered with full_access.
-     */
-    bool has_full_access(const string& public_key);
-
-    /**
      * @brief Checks whether public_key may perform operation on atom.
      */
     bool is_authorized(const Atom& atom,

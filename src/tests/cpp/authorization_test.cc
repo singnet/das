@@ -191,7 +191,5 @@ TEST(AuthorizationManagementTest, DoesNotLoadPermissionsFromAtomDB) {
 
     auto db = make_shared<PermissionsInMemoryDB>("auth_noload_");
     auto persistence = make_shared<FakePersistence>();
-    AuthorizationManagement management(db, persistence);
-
-    EXPECT_FALSE(management.has_full_access("pk"));
+    AuthorizationManagement management(persistence);
 }
