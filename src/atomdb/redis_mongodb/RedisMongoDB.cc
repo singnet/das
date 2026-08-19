@@ -45,9 +45,10 @@ RedisMongoDB::RedisMongoDB(const string& context, bool skip_redis, const JsonCon
       skip_redis_(skip_redis),
       composite_type_enabled_(config.at_path("composite_type_enabled").get_or<bool>(true)),
       cluster_flag(false),
-      protection_mode(atomdb_api_types::ProtectionMode::UNPROTECTED) {
+      protection_mode(atomdb_api_types::ProtectionMode::PROTECTED) {
     initialize_statics(context);
     mongodb_setup(config);
+    load_protection_mode();
     load_pattern_index_schema();
     redis_setup(config);
     this->patterns_next_score.store(get_next_score(REDIS_PATTERNS_PREFIX + ":next_score"));
@@ -198,7 +199,6 @@ void RedisMongoDB::mongodb_setup(const JsonConfig& config) {
             bsoncxx::builder::basic::make_document(bsoncxx::builder::basic::kvp("ping", 1));
         mongodb.run_command(ping_cmd.view());
         LOG_INFO("Connected to MongoDB at " << address);
-        this->load_protection_mode();
     } catch (const std::exception& e) {
         RAISE_ERROR(e.what());
     }
