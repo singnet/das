@@ -8,21 +8,33 @@ using namespace std;
 
 namespace atomdb {
 
-/** @brief Storage interface for authorization writes. */
+/**
+ * @brief Persistence interface for authorization data.
+ */
 class AuthorizationPersistence {
    public:
     virtual ~AuthorizationPersistence() = default;
 
-    /** @brief Persists one entry under public_key (creating the document if needed). */
+    /**
+     * @brief Lists all authorization entries for public_key.
+     */
+    virtual vector<atomdb_api_types::AccessPermissionEntry> list(const string& public_key) = 0;
+
+    /**
+     * @brief Persists an authorization entry for public_key.
+     */
     virtual void save(const string& public_key,
                       const atomdb_api_types::AccessPermissionEntry& entry) = 0;
 
-    /** @brief Removes the entry identified */
+    /**
+     * @brief Removes an authorization entry from public_key.
+     */
     virtual void remove(const string& public_key,
                         const atomdb_api_types::AccessPermissionEntry& entry) = 0;
 
-    /** @brief Removes the whole document for public_key. */
+    /**
+     * @brief Removes all authorization entries for public_key.
+     */
     virtual void remove_all(const string& public_key) = 0;
 };
-
 }  // namespace atomdb

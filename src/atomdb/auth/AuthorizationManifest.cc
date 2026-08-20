@@ -12,13 +12,7 @@ using namespace atomdb;
 // Public methods
 
 void AuthorizationManifest::set(const atomdb_api_types::AccessPermissionDocument& document) {
-    auto it = this->documents.find(document.access_key);
-    if (it == this->documents.end()) {
-        this->documents.emplace(document.access_key,
-                                atomdb_api_types::AccessPermissionDocument(document));
-    } else {
-        it->second = document;
-    }
+    this->documents.insert_or_assign(document.access_key, document);
 }
 
 void AuthorizationManifest::add(const string& public_key,

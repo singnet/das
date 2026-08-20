@@ -1,15 +1,17 @@
 #include <gtest/gtest.h>
 
+#include <algorithm>
 #include <memory>
 #include <string>
 #include <vector>
 
-#include "AuthorizationManagement.h"
+#include "AuthorizationManager.h"
 #include "AuthorizationManifest.h"
 #include "AuthorizationPersistence.h"
 #include "InMemoryDB.h"
 #include "Link.h"
 #include "LinkSchema.h"
+#include "ManifestAuthorizer.h"
 #include "Node.h"
 
 using namespace atomdb;
@@ -37,30 +39,34 @@ AccessPermissionEntry read_only_inheritance_entry() {
     return AccessPermissionEntry(inheritance_mammal_tokens(), true, false);
 }
 
-class FakePersistence : public AuthorizationPersistence {
+class DummyPersistence : public AuthorizationPersistence {
    public:
-    int save_count = 0;
-    int remove_count = 0;
-    int remove_all_count = 0;
-    string last_key;
-    string last_handle;
+    map<string, vector<string>> documents;
 
-    void save(const string& public_key, const AccessPermissionEntry& entry) override {
-        this->save_count++;
-        this->last_key = public_key;
-        this->last_handle = entry.schema.handle();
+    vector<atomdb_api_types::AccessPermissionEntry> list(const string& public_key) override {
+        return {};
     }
 
-    void remove(const string& public_key, const string& handle) override {
-        this->remove_count++;
-        this->last_key = public_key;
-        this->last_handle = handle;
+    void save(const string& public_key, const atomdb_api_types::AccessPermissionEntry& entry) override {
+        auto& handles = documents[public_key];
+        handles.push_back(entry.schema.handle());
     }
 
-    void remove_all(const string& public_key) override {
-        this->remove_all_count++;
-        this->last_key = public_key;
+    void remove(const string& public_key,
+                const atomdb_api_types::AccessPermissionEntry& entry) override {
+        auto it = documents.find(public_key);
+        if (it == documents.end()) {
+            return;
+        }
+
+        auto& handles = it->second;
+
+        auto handle = entry.schema.handle();
+
+        handles.erase(std::remove(handles.begin(), handles.end(), handle), handles.end());
     }
+
+    void remove_all(const string& public_key) override { documents.erase(public_key); }
 };
 
 shared_ptr<InMemoryDB> db_with_inheritance_link(string* link_handle) {
@@ -82,114 +88,99 @@ shared_ptr<InMemoryDB> db_with_inheritance_link(string* link_handle) {
 
 }  // namespace
 
-TEST(AuthorizationManifestTest, SetAddRemoveAndFullAccess) {
+TEST(AuthorizationManifestTest, ManagesAuthorizationEntriesAndAccess) {
     AuthorizationManifest manifest;
-    string key = "pk1";
-    EXPECT_FALSE(manifest.is_registered(key));
-    EXPECT_FALSE(manifest.full_access(key));
-    EXPECT_TRUE(manifest.entries(key).empty());
+    string public_key = "pk1";
+
+    EXPECT_FALSE(manifest.is_registered(public_key));
+    EXPECT_FALSE(manifest.full_access(public_key));
+
+    auto entries = manifest.get_document(public_key)->entries;
+    EXPECT_TRUE(entries.empty());
 
     AccessPermissionEntry entry = read_only_inheritance_entry();
-    manifest.add(key, entry);
-    ASSERT_TRUE(manifest.is_registered(key));
-    ASSERT_EQ(manifest.entries(key).size(), 1u);
-    EXPECT_TRUE(manifest.entries(key)[0].read);
-    EXPECT_FALSE(manifest.entries(key)[0].write);
-    EXPECT_EQ(manifest.entries(key)[0].schema.handle(), entry.schema.handle());
+    manifest.add(public_key, entry);
 
-    manifest.remove(key, entry.schema.handle());
-    EXPECT_TRUE(manifest.is_registered(key));
-    EXPECT_TRUE(manifest.entries(key).empty());
+    ASSERT_TRUE(manifest.is_registered(public_key));
 
-    manifest.set(AccessPermissionDocument(key, true, {}));
-    EXPECT_TRUE(manifest.full_access(key));
+    ASSERT_EQ(entries.size(), 1u);
+    EXPECT_TRUE(entries[0].read);
+    EXPECT_FALSE(entries[0].write);
+    EXPECT_EQ(entries[0].schema.handle(), entry.schema.handle());
 
-    manifest.remove_all(key);
-    EXPECT_FALSE(manifest.is_registered(key));
+    manifest.remove(public_key, entry);
+    EXPECT_TRUE(manifest.is_registered(public_key));
+    EXPECT_TRUE(entries.empty());
+
+    manifest.set(AccessPermissionDocument(public_key, true, {}));
+    EXPECT_TRUE(manifest.full_access(public_key));
+
+    manifest.remove_all(public_key);
+    EXPECT_FALSE(manifest.is_registered(public_key));
 }
 
 TEST(AuthorizationManifestTest, AddReplacesEntryWithSameSchemaHandle) {
     AuthorizationManifest manifest;
-    string key = "pk1";
-    manifest.add(key, AccessPermissionEntry(inheritance_mammal_tokens(), true, false));
-    manifest.add(key, AccessPermissionEntry(inheritance_mammal_tokens(), false, true));
+    string public_key = "pk1";
+    manifest.add(public_key, AccessPermissionEntry(inheritance_mammal_tokens(), true, false));
+    manifest.add(public_key, AccessPermissionEntry(inheritance_mammal_tokens(), false, true));
 
-    ASSERT_EQ(manifest.entries(key).size(), 1u);
-    EXPECT_FALSE(manifest.entries(key)[0].read);
-    EXPECT_TRUE(manifest.entries(key)[0].write);
+    auto entries = manifest.get_document(public_key)->entries;
+
+    ASSERT_EQ(entries.size(), 1u);
+    EXPECT_FALSE(entries[0].read);
+    EXPECT_TRUE(entries[0].write);
 }
 
-TEST(AuthorizationManagementTest, RejectsNullAtomDB) {
-    EXPECT_THROW(AuthorizationManagement(nullptr, nullptr), runtime_error);
-}
-
-TEST(AuthorizationManagementTest, AdministrationRequiresPersistence) {
-    auto db = make_shared<InMemoryDB>("auth_admin_");
-    AuthorizationManagement management(db, nullptr);
-    AccessPermissionEntry entry = read_only_inheritance_entry();
-    EXPECT_THROW(management.authorize("pk", entry), runtime_error);
-    EXPECT_THROW(management.revoke("pk", entry.schema.handle()), runtime_error);
-    EXPECT_THROW(management.revoke_all("pk"), runtime_error);
-}
-
-TEST(AuthorizationManagementTest, UnregisteredKeyIsDenied) {
+TEST(ManifestAuthorizerTest, IsAuthorized) {
     string link_handle;
     auto db = db_with_inheritance_link(&link_handle);
-    auto persistence = make_shared<FakePersistence>();
-    AuthorizationManagement management(db, persistence);
+
+    auto manifest = make_shared<AuthorizationManifest>();
+    auto authorizer = make_shared<ManifestAuthorizer>(manifest);
 
     auto link = db->get_link(link_handle);
     ASSERT_NE(link, nullptr);
-    EXPECT_FALSE(management.is_authorized(*link, "unknown", AuthorizationOperation::READ));
-    EXPECT_FALSE(management.is_authorized(link_handle, "unknown", AuthorizationOperation::READ, *db));
+    EXPECT_FALSE(authorizer->is_authorized(*link, "unknown", AuthorizationOperation::READ, *db));
+    EXPECT_FALSE(authorizer->is_authorized(link_handle, "unknown", AuthorizationOperation::READ, *db));
+
+    AccessPermissionEntry entry = read_only_inheritance_entry();
+    manifest->add("pk", entry);
+    EXPECT_TRUE(authorizer->is_authorized(*link, "pk", AuthorizationOperation::READ, *db));
+    EXPECT_TRUE(authorizer->is_authorized(link_handle, "pk", AuthorizationOperation::READ, *db));
+
+    EXPECT_FALSE(authorizer->is_authorized(*link, "pk", AuthorizationOperation::WRITE, *db));
+    EXPECT_FALSE(authorizer->is_authorized(link_handle, "pk", AuthorizationOperation::WRITE, *db));
 }
 
-TEST(AuthorizationManagementTest, AuthorizeThenReadAndWriteFlags) {
+TEST(AuthorizationManagerTest, AdministrationRequiresPersistence) {
+    AuthorizationManager manager(nullptr);
+    AccessPermissionEntry entry = read_only_inheritance_entry();
+    EXPECT_THROW(manager.authorize("pk", entry), runtime_error);
+    EXPECT_THROW(manager.revoke("pk", entry), runtime_error);
+    EXPECT_THROW(manager.revoke_all("pk"), runtime_error);
+}
+
+TEST(AuthorizationManagerTest, AuthorizeThenReadAndWriteFlags) {
     string link_handle;
     auto db = db_with_inheritance_link(&link_handle);
-    auto persistence = make_shared<FakePersistence>();
-    AuthorizationManagement management(db, persistence);
+
+    auto persistence = make_shared<DummyPersistence>();
+    AuthorizationManager manager(persistence);
     AccessPermissionEntry entry = read_only_inheritance_entry();
 
-    management.authorize("pk", entry);
-    EXPECT_EQ(persistence->save_count, 1);
-    EXPECT_EQ(persistence->last_key, "pk");
+    manager.authorize("pk", entry);
+    manager.authorize("pk2", entry);
 
-    auto link = db->get_link(link_handle);
-    ASSERT_NE(link, nullptr);
-    EXPECT_TRUE(management.is_authorized(*link, "pk", AuthorizationOperation::READ));
-    EXPECT_FALSE(management.is_authorized(*link, "pk", AuthorizationOperation::WRITE));
-    EXPECT_TRUE(management.is_authorized(link_handle, "pk", AuthorizationOperation::READ, *db));
-    EXPECT_FALSE(management.is_authorized(link_handle, "pk", AuthorizationOperation::WRITE, *db));
-}
+    EXPECT_EQ(persistence->documents.size(), 2);
+    EXPECT_EQ(persistence->documents["pk"], vector<string>{entry.schema.handle()});
+    EXPECT_EQ(persistence->documents["pk2"], vector<string>{entry.schema.handle()});
 
-TEST(AuthorizationManagementTest, RevokeRemovesAccess) {
-    string link_handle;
-    auto db = db_with_inheritance_link(&link_handle);
-    auto persistence = make_shared<FakePersistence>();
-    AuthorizationManagement management(db, persistence);
-    AccessPermissionEntry entry = read_only_inheritance_entry();
+    manager.revoke("pk", entry);
+    EXPECT_EQ(persistence->documents.size(), 2);
+    EXPECT_EQ(persistence->documents["pk"], vector<string>{});
+    EXPECT_EQ(persistence->documents["pk2"], vector<string>{entry.schema.handle()});
 
-    management.authorize("pk", entry);
-    management.revoke("pk", entry.schema.handle());
-    EXPECT_EQ(persistence->remove_count, 1);
-
-    auto link = db->get_link(link_handle);
-    ASSERT_NE(link, nullptr);
-    EXPECT_FALSE(management.is_authorized(*link, "pk", AuthorizationOperation::READ));
-}
-
-TEST(AuthorizationManagementTest, DoesNotLoadPermissionsFromAtomDB) {
-    class PermissionsInMemoryDB : public InMemoryDB {
-       public:
-        explicit PermissionsInMemoryDB(const string& context) : InMemoryDB(context) {}
-        vector<AccessPermissionDocument> get_access_permissions(
-            const PublicKey& public_key) const override {
-            return {AccessPermissionDocument("pk", true, {})};
-        }
-    };
-
-    auto db = make_shared<PermissionsInMemoryDB>("auth_noload_");
-    auto persistence = make_shared<FakePersistence>();
-    AuthorizationManagement management(persistence);
+    manager.revoke_all("pk");
+    EXPECT_EQ(persistence->documents.size(), 1);
 }

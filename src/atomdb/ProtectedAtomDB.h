@@ -6,7 +6,7 @@
 #include <vector>
 
 #include "AtomDB.h"
-#include "AuthorizationManagement.h"
+#include "ManifestAuthorizer.h"
 
 using namespace std;
 using namespace atoms;
@@ -27,9 +27,8 @@ class ProtectedAtomDB : public AtomDB {
    public:
     /**
      * @param backend Shared concrete AtomDB to wrap.
-     * @param auth Shared authorization management instance.
      */
-    ProtectedAtomDB(shared_ptr<AtomDB> backend, shared_ptr<AuthorizationManagement> auth);
+    ProtectedAtomDB(shared_ptr<AtomDB> backend);
 
     bool allow_nested_indexing() override;
     bool composite_type_enabled() const override;
@@ -165,7 +164,7 @@ class ProtectedAtomDB : public AtomDB {
 
    private:
     shared_ptr<AtomDB> backend;
-    shared_ptr<AuthorizationManagement> auth;
+    shared_ptr<ManifestAuthorizer> auth;
 
     [[noreturn]] static void raise_public_key_required(const string& method_name);
 };

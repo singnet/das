@@ -2,6 +2,7 @@
 
 #include "Hasher.h"
 #include "JsonConfig.h"
+#include "MongoInitializer.h"
 #include "Utils.h"
 #include "expression_hasher.h"
 #include "nlohmann/json.hpp"
@@ -30,9 +31,11 @@ MongoAuthorizationPersistence::MongoAuthorizationPersistence(const string& endpo
         this->mongodb_pool = new mongocxx::pool(uri);
         auto conn = this->mongodb_pool->acquire();
         auto mongodb = (*conn)[database_name];
-        const auto ping_cmd = bsoncxx::builder::basic::make_document(bsoncxx::builder::basic::kvp("ping", 1));
+        const auto ping_cmd =
+            bsoncxx::builder::basic::make_document(bsoncxx::builder::basic::kvp("ping", 1));
         mongodb.run_command(ping_cmd.view());
-        LOG_DEBUG("MongoAuthorizationPersistence connected to MongoDB at " << endpoint << " (db=" << database_name << ")");
+        LOG_DEBUG("MongoAuthorizationPersistence connected to MongoDB at "
+                  << endpoint << " (db=" << database_name << ")");
     } catch (const exception& e) {
         RAISE_ERROR(e.what());
     }
@@ -42,6 +45,14 @@ MongoAuthorizationPersistence::~MongoAuthorizationPersistence() { delete this->m
 
 // --------------------------------------------------------------------------------
 // Public methods
+
+vector<atomdb_api_types::AccessPermissionEntry> MongoAuthorizationPersistence::list(
+    const string& public_key) {
+    auto conn = this->mongodb_pool->acquire();
+    auto collection = (*conn)[this->database_name][this->collection_name];
+    auto document = this->get_document(collection, public_key);
+    return document->entries;
+}
 
 void MongoAuthorizationPersistence::save(const string& public_key,
                                          const atomdb_api_types::AccessPermissionEntry& entry) {

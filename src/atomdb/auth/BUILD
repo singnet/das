@@ -6,8 +6,9 @@ cc_library(
     name = "auth_lib",
     includes = ["."],
     deps = [
-        ":authorization_management",
+        ":authorization_manager",
         ":authorization_manifest",
+        ":manifest_authorizer",
         ":mongo_authorization_persistence",
     ],
 )
@@ -37,13 +38,26 @@ cc_library(
 )
 
 cc_library(
-    name = "authorization_management",
-    srcs = ["AuthorizationManagement.cc"],
-    hdrs = ["AuthorizationManagement.h"],
+    name = "authorization_manager",
+    srcs = ["AuthorizationManager.cc"],
+    hdrs = ["AuthorizationManager.h"],
+    includes = ["."],
+    deps = [
+        ":mongo_authorization_persistence",
+        "//atomdb",
+        "//atomdb:atomdb_api_types",
+        "//commons:commons_lib",
+        "//commons/atoms:atoms_lib",
+    ],
+)
+
+cc_library(
+    name = "manifest_authorizer",
+    srcs = ["ManifestAuthorizer.cc"],
+    hdrs = ["ManifestAuthorizer.h"],
     includes = ["."],
     deps = [
         ":authorization_manifest",
-        ":mongo_authorization_persistence",
         "//atomdb",
         "//atomdb:atomdb_api_types",
         "//commons:commons_lib",
