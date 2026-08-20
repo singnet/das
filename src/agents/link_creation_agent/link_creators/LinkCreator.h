@@ -98,6 +98,21 @@ class LinkCreator {
      */
     inline void clear_determiners() { _buffer_determiners.clear(); }
 
+    /**
+     * Sets the name of the link creation log file. Un empty name means that no logging of
+     * new link creation is supposed to be made.
+     *
+     * @param file_name The name of the logging file.
+     */
+    inline void set_log_file(const string& file_name) { _link_creation_log_file_name = file_name; }
+
+    /**
+     * Gets the name of the newly created links log file.
+     *
+     * @return the name of the newly created links log file.
+     */
+    inline string& get_log_file() { return _link_creation_log_file_name; }
+
     // ----------------------------------------------------------------------------------
     // Concrete sub-classes API
       
@@ -129,6 +144,7 @@ class LinkCreator {
     bool add_or_update_link(const vector<string>& targets, double strength);
     double get_strength(const string& handle);
     string get_node_name(const string& handle);
+    void save_link_metta(shared_ptr<Link> link);
 
     // ----------------------------------------------------------------------------------
     // Private stuff
@@ -138,6 +154,7 @@ class LinkCreator {
     string _context;
     double _strength_threshold;
     vector<vector<string>> _buffer_determiners;
+    string _link_creation_log_file_name;
 };
 
 }  // namespace link_creators

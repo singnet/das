@@ -57,7 +57,7 @@ void QueryEvolutionProxy::init() {
 }
 
 void QueryEvolutionProxy::set_default_query_parameters() {
-    this->parameters = SystemParametersSingleton::get_instance()->get_evolution_agent_params();
+    this->parameters += SystemParametersSingleton::get_instance()->get_evolution_agent_params();
 }
 
 string QueryEvolutionProxy::to_string() {

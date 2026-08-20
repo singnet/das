@@ -1,8 +1,10 @@
+#define LOG_LEVEL DEBUG_LEVEL
 #include "LinkCreationProcessor.h"
 
 #if defined(__GLIBC__)
 #include <malloc.h>
 #endif
+
 
 #include "Logger.h"
 #include "PatternMatchingQueryProxy.h"
@@ -82,6 +84,7 @@ void LinkCreationProcessor::thread_process_one_query(shared_ptr<StoppableThread>
     // Release freed heap to the OS
     malloc_trim(0);
 #endif
+    proxy->query_processing_finished();
     // Self-reap: detach this finished thread and drop it from processor_threads immediately, so a
     // burst that finishes while the node is idle returns to baseline without waiting for the next
     // command. A thread cannot join itself, hence detach instead of join.
@@ -104,10 +107,10 @@ shared_ptr<PatternMatchingQueryProxy> LinkCreationProcessor::issue_link_creation
     pm_proxy->parameters[BaseQueryProxy::ATTENTION_FOCUS_STRICTNESS] = (double) proxy->parameters.get<double>(LinkCreationProxy::ATTENTION_FOCUS_STRICTNESS);
     pm_proxy->parameters[PatternMatchingQueryProxy::DISREGARD_IMPORTANCE_FLAG] = (bool) proxy->parameters.get<bool>(PatternMatchingQueryProxy::DISREGARD_IMPORTANCE_FLAG);
     pm_proxy->parameters[PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG] = (bool) proxy->parameters.get<bool>(PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG);
-    pm_proxy->parameters[PatternMatchingQueryProxy::MAX_ANSWERS] = (unsigned int) proxy->parameters.get<unsigned int>(PatternMatchingQueryProxy::MAX_ANSWERS);
-    pm_proxy->parameters[BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS] = (proxy->get_query_tokens().size() == 1);
-    pm_proxy->parameters[BaseQueryProxy::POPULATE_METTA_MAPPING] = USE_MORK;
     pm_proxy->parameters[PatternMatchingQueryProxy::UNIQUE_VALUE_FLAG] = (bool) proxy->parameters.get<bool>(PatternMatchingQueryProxy::UNIQUE_VALUE_FLAG);
+    pm_proxy->parameters[PatternMatchingQueryProxy::MAX_ANSWERS] = (unsigned int) 0;
+    pm_proxy->parameters[BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS] = (proxy->get_query_tokens().size() == 1);
+    pm_proxy->parameters[BaseQueryProxy::POPULATE_METTA_MAPPING] = true;
 
     ServiceBusSingleton::get_instance()->issue_bus_command(pm_proxy);
     return pm_proxy;
@@ -120,6 +123,15 @@ void LinkCreationProcessor::remove_processor_thread(const string& stoppable_thre
         RAISE_ERROR("Attempt to remove a StoppableThread that doesn't exist: " + stoppable_thread_id);
     }
     this->processor_threads.erase(iterator);
+}
+
+bool LinkCreationProcessor::limit_reached(shared_ptr<LinkCreationProxy> proxy, unsigned int count, string& property) {
+    bool answer = false;
+    unsigned int property_value = proxy->parameters.get<unsigned int>(property);
+    if (property_value > 0) {
+        answer = (count >= property_value);
+    }
+    return answer;
 }
 
 void LinkCreationProcessor::link_creation(shared_ptr<StoppableThread> monitor,
@@ -148,22 +160,18 @@ void LinkCreationProcessor::link_creation(shared_ptr<StoppableThread> monitor,
                     count_created++;
                     unproductive_visit = 0;
                     visit_attempts = 0;
-                    if (count_created >= proxy->parameters.get<unsigned int>(
-                                             LinkCreationProxy::MAX_SUCCESSFUL_CREATION_PER_ROUND)) {
+                    if (limit_reached(proxy, count_created, LinkCreationProxy::MAX_SUCCESSFUL_CREATION_PER_ROUND)) {
                         break;
                     }
                 } else if (stats.visited) {
                     unproductive_visit++;
                     visit_attempts = 0;
-                    if (unproductive_visit >=
-                        proxy->parameters.get<unsigned int>(
-                            LinkCreationProxy::MAX_UNPRODUCTIVE_VISITS_PER_ROUND)) {
+                    if (limit_reached(proxy, unproductive_visit, LinkCreationProxy::MAX_UNPRODUCTIVE_VISITS_PER_ROUND)) {
                         break;
                     }
                 } else {
                     visit_attempts++;
-                    if (visit_attempts >= proxy->parameters.get<unsigned int>(
-                                              LinkCreationProxy::MAX_VISIT_ATTEMPTS_PER_ROUND)) {
+                    if (limit_reached(proxy, visit_attempts, LinkCreationProxy::MAX_VISIT_ATTEMPTS_PER_ROUND)) {
                         break;
                     }
                 }

@@ -22,6 +22,7 @@ string LinkCreatorRegistry::UNIT_TEST = "unit_test";
 string LinkCreatorRegistry::AND_TWO_PREDICATES = "and_two_predicates";
 
 void LinkCreatorRegistry::initialize_statics() {
+    STACK_TRACE();
     if (INITIALIZED) {
         RAISE_ERROR(
             "LinkCreatorRegistry already initialized. "
@@ -32,6 +33,7 @@ void LinkCreatorRegistry::initialize_statics() {
 }
 
 shared_ptr<LinkCreator> LinkCreatorRegistry::function(const string& tag) {
+    STACK_TRACE();
     shared_ptr<LinkCreator> answer = nullptr;
     if (INITIALIZED) {
         if (tag == REMOTE_FUNCTION) {

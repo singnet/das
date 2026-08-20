@@ -33,7 +33,7 @@ PatternMatchingQueryProxy::PatternMatchingQueryProxy(const vector<string>& token
 }
 
 void PatternMatchingQueryProxy::set_default_parameters() {
-    this->parameters = SystemParametersSingleton::get_instance()->get_query_agent_params();
+    this->parameters += SystemParametersSingleton::get_instance()->get_query_agent_params();
 }
 
 PatternMatchingQueryProxy::~PatternMatchingQueryProxy() {}

@@ -36,11 +36,16 @@ const char kAgentsJson[] = R"({
     },
     "link_creation": {
       "params": {
+        "unique_assignment_flag": false,
+        "positive_importance_flag": false,
+        "disregard_importance_flag": false,
+        "unique_value_flag": false,
         "max_successful_creation_per_round": 10,
         "max_unproductive_visits_per_round": 500,
         "max_visit_attempts_per_round": 20,
         "max_rounds": 5,
-        "link_creation_strength_threshold": 0.1
+        "link_creation_strength_threshold": 0.1,
+        "link_creation_log_file_name": ""
       }
     },
     "evolution": {
