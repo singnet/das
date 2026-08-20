@@ -1,10 +1,12 @@
 #pragma once
 
+#include <atomic>
 #include <map>
 #include <memory>
 #include <mutex>
 #include <set>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "AtomDB.h"
@@ -23,13 +25,19 @@ namespace atomdb {
  *
  * Thread-safety model:
  * - Pure reads (get_*, query_*, *_exist(s), counts, get_all_atoms) take no InMemoryDB-wide
- *   lock. Each read snapshots the trie shared_ptrs (guarded by a leaf pointer mutex) and
- *   relies on HandleTrie's hand-over-hand per-node locking for the traversal itself.
+ *   lock. Each read atomically loads a Tries snapshot and relies on HandleTrie's
+ *   hand-over-hand per-node locking for the traversal itself.
+ * - Value lifetime: readers never keep raw pointers into trie-owned storage. Atoms are
+ *   handed out as shared_ptr refs and handle sets as copies, both extracted under the
+ *   trie node lock (get_stored_object), so concurrent deletes/upserts of the same handle
+ *   cannot free data mid-read. Set mutations also run under the node lock (insert/merge
+ *   for adds, HandleTrie::update for removals).
  * - Mutations (add_*, delete_*, re_index_patterns, drop_all, add_pattern_index_schema) are
- *   serialized by write_mutex_ so the three tries stay mutually consistent.
- * - drop_all() and re_index_patterns(true) never delete tries in place: they build fresh
- *   tries and swap the shared_ptrs. Readers holding a pre-swap snapshot keep a live trie
- *   until they finish; it is freed when the last snapshot is dropped.
+ *   serialized by write_mutex_ so the three tries stay mutually consistent and writers
+ *   never insert into a trie that drop_all already retired.
+ * - drop_all() and re_index_patterns(true) never delete tries in place: they build a
+ *   fresh Tries bundle and atomically publish it. Readers holding a pre-swap snapshot
+ *   keep a live trie until they finish; it is freed when the last snapshot is dropped.
  *
  * Relaxed guarantee: a concurrent reader may briefly observe an atom before its pattern /
  * incoming-set index entries exist (writes stay atomic w.r.t. each other).
@@ -92,50 +100,51 @@ class InMemoryDB : public AtomDB {
 
     /** Returns deep clones of every stored atom. */
     vector<shared_ptr<Atom>> get_all_atoms();
-    /** Removes all stored atoms and resets all indexes. */
+    /** Removes all stored atoms and index entries. Pattern index schemas registered
+     *  via add_pattern_index_schema() are intentionally kept: they are configuration,
+     *  not data. */
     void drop_all();
 
     void add_pattern(const string& pattern_handle, const string& atom_handle);
     vector<string> match_pattern_index_schema(const Link* link);
 
    private:
-    // Trie snapshot accessors. Safe to use outside any lock: swaps happen only under
-    // trie_ptr_mutex_ (and write_mutex_), and old snapshots stay alive via shared_ptr.
-    shared_ptr<HandleTrie> atoms_trie() const;
-    shared_ptr<HandleTrie> pattern_index_trie() const;
-    shared_ptr<HandleTrie> incoming_sets_trie() const;
+    // One atomic publish of all three tries. Readers snapshot via load_tries();
+    // drop_all / re_index_patterns(true) publish a new bundle via store_tries().
+    // Mixing non-atomic reads/writes of tries_ with these is a data race.
+    struct Tries {
+        shared_ptr<HandleTrie> atoms;     // handle -> Atom*
+        shared_ptr<HandleTrie> patterns;  // pattern_handle -> set of atom handles
+        shared_ptr<HandleTrie> incoming;  // target_handle -> set of link handles
+    };
 
-    // Unlocked helpers — caller must hold write_mutex_.
-    string add_node_unlocked(const atoms::Node* node, const atoms::Merger* merger);
-    vector<string> add_nodes_unlocked(const vector<atoms::Node*>& nodes,
+    shared_ptr<Tries> load_tries() const { return atomic_load_explicit(&tries_, memory_order_acquire); }
+    void store_tries(shared_ptr<Tries> next) {
+        atomic_store_explicit(&tries_, std::move(next), memory_order_release);
+    }
+    static shared_ptr<Tries> make_tries();
+
+    // Unlocked helpers — caller must hold write_mutex_ and pass its own load_tries()
+    // snapshot, so each public mutation performs exactly one atomic load. They exist
+    // because write_mutex_ is non-recursive and deletes cascade (link -> orphaned
+    // targets -> links referencing them).
+    string add_node_unlocked(const Tries& tries, const atoms::Node* node, const atoms::Merger* merger);
+    vector<string> add_links_unlocked(const Tries& tries,
+                                      const vector<atoms::Link*>& links,
                                       bool is_transactional,
                                       const atoms::Merger* merger);
-    vector<string> add_links_unlocked(const vector<atoms::Link*>& links,
-                                      bool is_transactional,
-                                      const atoms::Merger* merger);
 
-    bool delete_atom_unlocked(const string& handle, bool delete_link_targets);
-    bool delete_node_unlocked(const string& handle, bool delete_link_targets);
-    bool delete_link_unlocked(const string& handle, bool delete_link_targets);
+    bool delete_atom_unlocked(const Tries& tries, const string& handle, bool delete_link_targets);
+    bool delete_node_unlocked(const Tries& tries, const string& handle, bool delete_link_targets);
+    bool delete_link_unlocked(const Tries& tries, const string& handle, bool delete_link_targets);
 
-    static void add_pattern_to(HandleTrie& trie,
-                               const string& pattern_handle,
-                               const string& atom_handle);
-    void delete_pattern_unlocked(const string& pattern_handle, const string& atom_handle);
-    void add_incoming_set_unlocked(const string& target_handle, const string& link_handle);
-    void delete_incoming_set_unlocked(const string& target_handle, const string& link_handle);
     vector<string> match_pattern_index_schema_unlocked(const Link* link);
-    vector<vector<string>> index_entries_combinations(unsigned int arity);
     void add_pattern_index_schema(const string& tokens, const vector<vector<string>>& index_entries);
 
     string context_;
     // Serializes mutations across the three tries. Reads never take it.
     mutable mutex write_mutex_;
-    // Leaf mutex guarding only the trie shared_ptr swaps below. Never held across trie ops.
-    mutable mutex trie_ptr_mutex_;
-    shared_ptr<HandleTrie> atoms_trie_;          // Stores handle -> Atom*
-    shared_ptr<HandleTrie> pattern_index_trie_;  // Stores pattern_handle -> set of atom handles
-    shared_ptr<HandleTrie> incoming_sets_trie_;  // Stores target_handle -> set of link handles
+    shared_ptr<Tries> tries_;
 
     map<int, tuple<vector<string>, vector<vector<string>>>> pattern_index_schema_map;
     int pattern_index_schema_next_priority{1};

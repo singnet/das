@@ -110,6 +110,23 @@ class HandleTrie {
     bool remove(const string& key, bool delete_value = true);
 
     /**
+     * Run visit_function on the value stored at key while holding the node lock.
+     *
+     * This is the safe way to mutate a stored value while concurrent readers snapshot
+     * it via lookup_stored_object() (which also runs under the node lock). If
+     * visit_function returns true, the value is deleted and the key is cleared, as in
+     * remove().
+     *
+     * @param key Handle whose value is visited.
+     * @param visit_function Function called with the stored value; return true to have
+     *        the value deleted and the key cleared.
+     * @param data Additional information passed to visit_function or NULL if none.
+     *
+     * @return true if the key existed with a value, false otherwise.
+     */
+    bool update(const string& key, bool (*visit_function)(TrieValue* value, void* data), void* data);
+
+    /**
      * Traverse all keys (in-order) calling the passed visit_function once per stored value.
      *
      * @param keep_root_locked Keep root HandleTrie::TrieNode locked during the whole traversing
