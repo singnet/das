@@ -87,6 +87,7 @@ static unsigned int LINK_CREATION_COUNT = 10;
 static unsigned int LINK_CREATION_MAX_VISIT_ATTEMPTS = LINK_CREATION_COUNT;
 static unsigned int LINK_CREATION_MAX_ATTEMPTS = 500;
 static double ATTENTION_FOCUS_STRICTNESS = 0.30;
+static unsigned int RANDOM_SEED = 1236;
 
 static string PRESET_LINKS_FILE_PREFIX = "/opt/das/_PRESET_LINKS_";
 static string PRESET_LINKS_FILE = PRESET_LINKS_FILE_PREFIX;
@@ -1470,6 +1471,7 @@ int main(int argc, char* argv[]) {
     SystemParametersSingleton::init(json_config);
     AtomDBSingleton::init(atomdb_config);
 
+    Utils::init_random(RANDOM_SEED);
     db = AtomDBSingleton::get_instance();
     DECODER = static_pointer_cast<HandleDecoder>(db).get();
     ServiceBusSingleton::init(client_endpoint, server_endpoint, ports_range.first, ports_range.second);

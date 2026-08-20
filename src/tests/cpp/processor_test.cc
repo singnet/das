@@ -216,3 +216,9 @@ TEST(ProcessorTest, thread_pool) {
         }
     }
 }
+
+int main(int argc, char** argv) {
+    ::testing::InitGoogleTest(&argc, argv);
+    Utils::init_random(0);
+    return RUN_ALL_TESTS();
+}
