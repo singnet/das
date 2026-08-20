@@ -44,6 +44,7 @@ int main(int argc, char* argv[]) {
 
     auto atomdb_config = json_config.at_path("atomdb").get_or<JsonConfig>(JsonConfig());
 
+    Utils::init_random(0);
     AtomDBSingleton::init(atomdb_config);
 
     // auto adapter = AtomDBSingleton::get_instance();;

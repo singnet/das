@@ -7,13 +7,13 @@
 #include "BoundedSharedQueue.h"
 #include "DatabaseOrchestrator.h"
 #include "DedicatedThread.h"
+#include "Hasher.h"
 #include "MongoInitializer.h"
 #include "MorkMappingStrategy.h"
 #include "PostgresMappingStrategy.h"
 #include "PostgresWrapper.h"
 #include "Processor.h"
 #include "Utils.h"
-#include "expression_hasher.h"
 #include "processor/ThreadPool.h"
 
 #define LOG_LEVEL INFO_LEVEL
@@ -36,7 +36,7 @@ AdapterDB::AdapterDB(const JsonConfig& config, std::shared_ptr<AtomDB> backend, 
     this->initialize(true);
 }
 
-AdapterDB::~AdapterDB() {}
+AdapterDB::~AdapterDB() { delete this->mongodb_pool; }
 
 // ==============================
 //  Public
@@ -329,7 +329,7 @@ string AdapterDB::context_id() const {
     for (const auto& c : file_contents) {
         combined_content += c;
     }
-    return compute_hash((char*) combined_content.c_str());
+    return Hasher::plain_string_hash(combined_content);
 }
 
 bool AdapterDB::is_context_persisted(const string& context_id) const {

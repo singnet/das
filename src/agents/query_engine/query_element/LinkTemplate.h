@@ -1,7 +1,6 @@
 #pragma once
 
 #include <mutex>
-#include <random>
 #include <string>
 #include <vector>
 
@@ -82,7 +81,6 @@ class LinkTemplate : public QueryElement {
     LinkSchema link_schema;
     shared_ptr<SourceElement> source_element;
     shared_ptr<StoppableThread> processor;
-    std::mt19937* random_generator;
     AttentionFocusStrategy attention_focus_strategy;
     static ThreadSafeHashmap<string, shared_ptr<atomdb_api_types::HandleSet>> cache;
 

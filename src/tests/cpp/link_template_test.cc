@@ -72,3 +72,9 @@ TEST(LinkTemplate, basics) {
     EXPECT_TRUE(chimp_flag);
     EXPECT_TRUE(ent_flag);
 }
+
+int main(int argc, char** argv) {
+    ::testing::InitGoogleTest(&argc, argv);
+    Utils::init_random(0);
+    return RUN_ALL_TESTS();
+}

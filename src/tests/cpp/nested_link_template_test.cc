@@ -83,3 +83,9 @@ TEST(LinkTemplate, nested_variables) {
     }
     EXPECT_EQ(count, 1);
 }
+
+int main(int argc, char** argv) {
+    ::testing::InitGoogleTest(&argc, argv);
+    Utils::init_random(0);
+    return RUN_ALL_TESTS();
+}

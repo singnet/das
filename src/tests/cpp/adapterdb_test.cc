@@ -15,6 +15,7 @@
 
 #include "AtomDBFactory.h"
 #include "AtomDBSingleton.h"
+#include "Hasher.h"
 #include "Link.h"
 #include "Merger.h"
 #include "MongoInitializer.h"
@@ -23,7 +24,6 @@
 #include "RedisMongoDB.h"
 #include "TestAtomDBJsonConfig.h"
 #include "Utils.h"
-#include "expression_hasher.h"
 #include "gmock/gmock.h"
 
 using namespace std;
@@ -149,7 +149,7 @@ TEST_F(AdapterDBContextIsolationTest, DistinctContextsIsolateMappingMetadata) {
         ofstream file(mapping_path);
         file << mapping_content;
     }
-    string context_id = compute_hash((char*) mapping_content.c_str());
+    string context_id = Hasher::plain_string_hash(mapping_content);
     context_a = "iso_a_" + suffix + "_";
     context_b = "iso_b_" + suffix + "_";
 
@@ -184,7 +184,7 @@ class AdapterDBTest : public AdapterDBTestBase, public ::testing::WithParamInter
         mapping_file_path = "/tmp/adapterdb_test_mapping" + p.mapping_file_ext;
 
         string current_time_str = to_string(Utils::get_current_time_millis());
-        string test_name = string("AdapterDBTest_") + compute_hash((char*) current_time_str.c_str());
+        string test_name = string("AdapterDBTest_") + Hasher::plain_string_hash(current_time_str);
 
         string comment;
 

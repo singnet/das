@@ -244,8 +244,8 @@ void QueryEvolutionProcessor::select_one_by_tournament(
     vector<std::pair<shared_ptr<QueryAnswer>, float>>& population,
     vector<std::pair<shared_ptr<QueryAnswer>, float>>& selected) {
     unsigned int size = population.size();
-    unsigned int cursor1 = std::rand() % size;
-    unsigned int cursor2 = std::rand() % size;
+    unsigned int cursor1 = Utils::uint_rand(size);
+    unsigned int cursor2 = Utils::uint_rand(size);
     if (cursor2 == cursor1) {
         cursor2 = (cursor2 + 1) % size;
     }

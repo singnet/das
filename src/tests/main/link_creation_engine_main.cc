@@ -330,6 +330,7 @@ int main(int argc, char* argv[]) {
         RAISE_ERROR("Invalid link_type_tag: " + link_type_tag);
     }
 
+    Utils::init_random(0);
     string atomdb_type = string(argv[3]) == string("--use-mork") ? "morkdb" : "redismongodb";
 
     set<string> highlighted;
