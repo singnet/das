@@ -19,17 +19,16 @@ class BaseProxy : public BusCommandProxy {
     enum ORCHESTRATION_SCHEMA_TYPE { NONE = 0, SYNC_ON_CYCLE_START };
 
     // BaseProxy optional parameters
-    static string ORCHESTRATION_SCHEMA; // Select orchestration schema for this proxy. Orchestration
-                                        // is relevant to processors that work execute commands in
-                                        // multiple cycles. The caller may require to synchronize
-                                        // the cycles with cycles of other command execution
-                                        // (i.e. other proxies) of the same type or not. So
-                                        // different orchestration algorithms may apply.
-
+    static string ORCHESTRATION_SCHEMA;  // Select orchestration schema for this proxy. Orchestration
+                                         // is relevant to processors that work execute commands in
+                                         // multiple cycles. The caller may require to synchronize
+                                         // the cycles with cycles of other command execution
+                                         // (i.e. other proxies) of the same type or not. So
+                                         // different orchestration algorithms may apply.
 
     // Commands allowed at the proxy level (caller <--> processor)
-    static string ABORT;     // Abort current command
-    static string FINISHED;  // Notification that all results have already been delivered
+    static string ABORT;              // Abort current command
+    static string FINISHED;           // Notification that all results have already been delivered
     static string ALLOW_CYCLE_START;  // Orchestration command to allow the beginning of a new cycle
 
     BaseProxy();

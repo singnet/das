@@ -17,8 +17,7 @@ using AgentParamsSchema = unordered_map<string, FieldTypeSchema>;
 
 const AgentParamsSchema& params_schema() {
     static const AgentParamsSchema schema = {
-        {"base_proxy",
-         {{"orchestration_schema", "unsigned_int"}}},
+        {"base_proxy", {{"orchestration_schema", "unsigned_int"}}},
         {"base_query",
          {{"unique_assignment_flag", "bool"},
           {"attention_update", "long"},

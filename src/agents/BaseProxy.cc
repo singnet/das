@@ -25,7 +25,8 @@ BaseProxy::BaseProxy() {
     this->error_flag = false;
     this->cycle_start_allowed_flag = false;
     this->parameters = SystemParametersSingleton::get_instance()->get_base_proxy_params();
-    this->orchestration_schema = (ORCHESTRATION_SCHEMA_TYPE) this->parameters.get<unsigned int>(ORCHESTRATION_SCHEMA);
+    this->orchestration_schema =
+        (ORCHESTRATION_SCHEMA_TYPE) this->parameters.get<unsigned int>(ORCHESTRATION_SCHEMA);
 }
 
 BaseProxy::~BaseProxy() {}
@@ -78,7 +79,7 @@ bool BaseProxy::is_aborting() {
 
 bool BaseProxy::cycle_start_allowed() {
     lock_guard<mutex> semaphore(this->api_mutex);
-    switch(this->orchestration_schema) {
+    switch (this->orchestration_schema) {
         case NONE:
             return true;
         case SYNC_ON_CYCLE_START:

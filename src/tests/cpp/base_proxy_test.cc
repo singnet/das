@@ -1,24 +1,21 @@
+#include <gtest/gtest.h>
+
 #include "BaseProxy.h"
 #include "SystemParametersSingleton.h"
-
-#include <gtest/gtest.h>
 
 using namespace std;
 using namespace commons;
 using namespace agents;
 
-
 class TestEnvironment : public ::testing::Environment {
    public:
-    void SetUp() override {
-        SystemParametersSingleton::init_from_file("/opt/das/config/das.json");
-    }
+    void SetUp() override { SystemParametersSingleton::init_from_file("/opt/das/config/das.json"); }
 
     void TearDown() override {}
 };
 
 class TestProxy : public BaseProxy {
-    public:
+   public:
     void pack_command_line_args() {}
     void set_orchestration(unsigned int value) {
         set_orchestration_schema((BaseProxy::ORCHESTRATION_SCHEMA_TYPE) value);

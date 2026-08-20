@@ -580,7 +580,7 @@ void QueryEvolutionProcessor::evolve_query(shared_ptr<StoppableThread> monitor,
         while (true) {
             if (proxy->cycle_start_allowed()) {
                 break;
-            }  else {
+            } else {
                 Utils::sleep();
             }
         }
