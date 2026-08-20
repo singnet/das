@@ -19,6 +19,7 @@ namespace atomdb {
 class AuthorizationManifest {
    public:
     AuthorizationManifest() = default;
+    ~AuthorizationManifest() = default;
 
     /**
      * @brief Replaces or inserts the authorization document.

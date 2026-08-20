@@ -21,6 +21,7 @@ enum class AuthorizationOperation { READ, WRITE };
 class ManifestAuthorizer {
    public:
     explicit ManifestAuthorizer(shared_ptr<AuthorizationManifest> manifest);
+    ~ManifestAuthorizer() = default;
 
     /**
      * @brief Checks whether public_key is authorized to perform an operation on an atom.

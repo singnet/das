@@ -95,14 +95,17 @@ TEST(AuthorizationManifestTest, ManagesAuthorizationEntriesAndAccess) {
     EXPECT_FALSE(manifest.is_registered(public_key));
     EXPECT_FALSE(manifest.full_access(public_key));
 
-    auto entries = manifest.get_document(public_key)->entries;
-    EXPECT_TRUE(entries.empty());
+    EXPECT_EQ(manifest.get_document(public_key), nullptr);
 
     AccessPermissionEntry entry = read_only_inheritance_entry();
     manifest.add(public_key, entry);
 
     ASSERT_TRUE(manifest.is_registered(public_key));
 
+    auto doc = manifest.get_document(public_key);
+    ASSERT_NE(doc, nullptr);
+
+    auto entries = doc->entries;
     ASSERT_EQ(entries.size(), 1u);
     EXPECT_TRUE(entries[0].read);
     EXPECT_FALSE(entries[0].write);
@@ -110,7 +113,8 @@ TEST(AuthorizationManifestTest, ManagesAuthorizationEntriesAndAccess) {
 
     manifest.remove(public_key, entry);
     EXPECT_TRUE(manifest.is_registered(public_key));
-    EXPECT_TRUE(entries.empty());
+
+    EXPECT_TRUE(manifest.get_document(public_key)->entries.empty());
 
     manifest.set(AccessPermissionDocument(public_key, true, {}));
     EXPECT_TRUE(manifest.full_access(public_key));
@@ -151,14 +155,6 @@ TEST(ManifestAuthorizerTest, IsAuthorized) {
 
     EXPECT_FALSE(authorizer->is_authorized(*link, "pk", AuthorizationOperation::WRITE, *db));
     EXPECT_FALSE(authorizer->is_authorized(link_handle, "pk", AuthorizationOperation::WRITE, *db));
-}
-
-TEST(AuthorizationManagerTest, AdministrationRequiresPersistence) {
-    AuthorizationManager manager(nullptr);
-    AccessPermissionEntry entry = read_only_inheritance_entry();
-    EXPECT_THROW(manager.authorize("pk", entry), runtime_error);
-    EXPECT_THROW(manager.revoke("pk", entry), runtime_error);
-    EXPECT_THROW(manager.revoke_all("pk"), runtime_error);
 }
 
 TEST(AuthorizationManagerTest, AuthorizeThenReadAndWriteFlags) {

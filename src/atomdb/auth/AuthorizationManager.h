@@ -22,6 +22,8 @@ class AuthorizationManager {
      */
     AuthorizationManager(shared_ptr<AuthorizationPersistence> persistence);
 
+    ~AuthorizationManager() = default;
+
     /**
      * @brief Lists all permissions granted to public_key.
      */
