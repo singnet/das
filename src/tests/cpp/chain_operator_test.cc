@@ -689,5 +689,6 @@ TEST(ChainOperatorTest, basics) {
 int main(int argc, char** argv) {
     ::testing::InitGoogleTest(&argc, argv);
     ::testing::AddGlobalTestEnvironment(new ChainOperatorTestEnvironment());
+    Utils::init_random(0);
     return RUN_ALL_TESTS();
 }

@@ -7,6 +7,7 @@
 #include <functional>
 #include <map>
 #include <mutex>
+#include <random>
 #include <stack>
 #include <string>
 #include <vector>
@@ -109,22 +110,53 @@ class StackTrace {
 };
 
 class Utils {
+   private:
+    class Random {
+       public:
+        static void init(unsigned int seed);
+        static void lock_random_generator();
+        static void unlock_random_generator();
+        static std::mt19937* get_random_generator();
+
+       private:
+        static std::mt19937* random_generator;
+        static mutex random_generator_mutex;
+    };
+
    public:
     Utils() {}
     ~Utils() {}
 
     static void error(string msg, bool throw_flag, bool log_flag = true);
+
+    /**
+     * Use passed seed to initialize a pseudo-rando number generator used in all Utils'
+     * methods with random behavior. If seed == 0, the machine clock is used instead.
+     */
+    static void init_random(unsigned int seed);
     static bool flip_coin(double true_probability = 0.5);
     static unsigned int uint_rand(unsigned int open_upper_bound);
     static unsigned int uint_rand(unsigned int closed_lower_bound, unsigned int open_upper_bound);
+    static string random_string(size_t length);
+    static string random_string(size_t length, const string& charset);
+    template <class IteratorType>
+    static void shuffle(IteratorType it1, IteratorType it2) {
+        Random::lock_random_generator();
+        try {
+            std::shuffle(it1, it2, *Random::get_random_generator());
+        } catch (...) {
+            Random::unlock_random_generator();
+            throw;
+        }
+        Random::unlock_random_generator();
+    }
+
     static void sleep(unsigned int milliseconds = 100);
     static string get_environment(string const& key);
     static map<string, string> parse_config(string const& config_path);
     static vector<string> split(string const& str, char delimiter = ' ');
     static pair<size_t, size_t> parse_ports_range(string const& str, char delimiter = ':');
     static string join(vector<string> const& tokens, char delimiter = ' ');
-    static string random_string(size_t length);
-    static string random_string(size_t length, const string& charset);
     static bool is_number(const string& s);
     static int string_to_int(const string& s);
     static unsigned int string_to_uint(const string& s);

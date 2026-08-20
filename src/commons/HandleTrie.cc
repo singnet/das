@@ -195,6 +195,26 @@ bool HandleTrie::remove(const string& key, bool delete_value) {
     return true;
 }
 
+bool HandleTrie::update(const string& key,
+                        bool (*visit_function)(TrieValue* value, void* data),
+                        void* data) {
+    TrieNode* node = fetch<TrieNode>(key, false, false);
+    if (node == NULL) {
+        return false;
+    }
+    if (node->value == NULL) {
+        node->trie_node_mutex.unlock();
+        return false;
+    }
+    if (visit_function(node->value, data)) {
+        delete node->value;
+        node->value = NULL;
+        this->_size--;
+    }
+    node->trie_node_mutex.unlock();
+    return true;
+}
+
 void HandleTrie::traverse(bool keep_root_locked,
                           bool (*visit_function)(TrieNode* node, void* data),
                           void* data) {

@@ -32,6 +32,8 @@ class Helper {
     static string SERVICE;
     /** Agent/broker key in `das.json` (e.g. query -> agents.query.endpoint). */
     static string CLIENT;
+    // Seed value used to initialize Utils::Random
+    static string SEED;
     /** bus_node: this node's listen address. bus_client: remote bus peer id (ServiceBus known_peer). */
     static string ENDPOINT;
     /** bus_client: this client's listen address on the bus (ServiceBus host_id). bus_node: optional

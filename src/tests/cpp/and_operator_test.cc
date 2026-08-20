@@ -484,3 +484,9 @@ TEST(AndOperator, not_operator_5) {
     EXPECT_TRUE(sink.empty());
     EXPECT_TRUE(sink.finished());
 }
+
+int main(int argc, char** argv) {
+    ::testing::InitGoogleTest(&argc, argv);
+    Utils::init_random(0);
+    return RUN_ALL_TESTS();
+}

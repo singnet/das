@@ -47,8 +47,6 @@ LinkTemplate::LinkTemplate(const string& type,
     this->inner_flag = true;
     this->arity = targets.size();
     this->processor = nullptr;
-    this->random_generator =
-        new std::mt19937(std::chrono::system_clock::now().time_since_epoch().count());
     unsigned int max_reverse_nesting = 0;
     this->attention_focus_strategy = PERCENTAGE;
     for (auto element : targets) {
@@ -64,7 +62,6 @@ LinkTemplate::~LinkTemplate() {
     if (this->processor != nullptr) {
         this->processor->stop();
     }
-    delete this->random_generator;
     LOG_LOCAL_DEBUG("Deleting LinkTemplate: " + std::to_string((unsigned long) this) + "... Done");
 }
 
@@ -132,7 +129,7 @@ void LinkTemplate::compute_importance(vector<pair<char*, float>>& handles) {
     }
     // Sort decreasing by importance value
 
-    std::shuffle(handles.begin(), handles.end(), *this->random_generator);
+    Utils::shuffle(handles.begin(), handles.end());
     std::sort(handles.begin(),
               handles.end(),
               [](const std::pair<char*, float>& left, const std::pair<char*, float>& right) {
