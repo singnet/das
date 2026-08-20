@@ -7,7 +7,11 @@ using namespace atomdb;
 // Constructor
 
 AuthorizationManager::AuthorizationManager(shared_ptr<AuthorizationPersistence> persistence)
-    : persistence(persistence) {}
+    : persistence(persistence) {
+    if (!this->persistence) {
+        RAISE_ERROR("Authorization persistence is required");
+    }
+}
 
 // --------------------------------------------------------------------------------
 // Public methods
