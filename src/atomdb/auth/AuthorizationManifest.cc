@@ -6,6 +6,7 @@
 #include "Logger.h"
 #include "Utils.h"
 
+using namespace std;
 using namespace atomdb;
 
 // --------------------------------------------------------------------------------

@@ -1,6 +1,7 @@
 
 #include "AuthorizationManager.h"
 
+using namespace std;
 using namespace atomdb;
 
 // --------------------------------------------------------------------------------
