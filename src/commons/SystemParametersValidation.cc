@@ -143,6 +143,13 @@ Properties parse_agent_params_with_schema(const json& agent_params,
                                 "' (expected value in range [0.0, 1.0])");
                 }
             }
+            if (agent == "base_proxy" && key == "orchestration_schema") {
+                unsigned int schema = get<unsigned int>(value);
+                if (schema > 1) {
+                    RAISE_ERROR("Invalid value for parameter '" + key + "' for agent '" + agent +
+                                "' (expected value in {0, 1})");
+                }
+            }
             agent_props[key] = value;
         } else {
             agent_props[key] = json_scalar_to_property(pit.value(), path);
