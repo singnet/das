@@ -28,7 +28,7 @@ class ProtectedAtomDB : public AtomDB {
     /**
      * @param backend Shared concrete AtomDB to wrap.
      */
-    ProtectedAtomDB(shared_ptr<AtomDB> backend);
+    explicit ProtectedAtomDB(shared_ptr<AtomDB> backend);
 
     bool allow_nested_indexing() override;
     bool composite_type_enabled() const override;
