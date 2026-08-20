@@ -1,10 +1,9 @@
 #include "BaseProxy.h"
 
+#include "Logger.h"
 #include "ServiceBus.h"
 #include "SystemParametersSingleton.h"
 #include "Utils.h"
-
-#include "Logger.h"
 
 using namespace agents;
 
@@ -24,8 +23,9 @@ BaseProxy::BaseProxy() {
     this->error_flag = false;
     this->cycle_start_allowed_flag = false;
     this->parameters = SystemParametersSingleton::get_instance()->get_base_proxy_params();
-    
-    set_orchestration_schema((ORCHESTRATION_SCHEMA_TYPE) this->parameters.get<unsigned int>(ORCHESTRATION_SCHEMA));
+
+    set_orchestration_schema(
+        (ORCHESTRATION_SCHEMA_TYPE) this->parameters.get<unsigned int>(ORCHESTRATION_SCHEMA));
 }
 
 BaseProxy::~BaseProxy() {}
@@ -64,7 +64,8 @@ void BaseProxy::untokenize(vector<string>& tokens) {
         properties_tokens.insert(
             properties_tokens.begin(), tokens.begin() + 1, tokens.begin() + 1 + num_property_tokens);
         this->parameters.untokenize(properties_tokens);
-        set_orchestration_schema((ORCHESTRATION_SCHEMA_TYPE) this->parameters.get<unsigned int>(ORCHESTRATION_SCHEMA));
+        set_orchestration_schema(
+            (ORCHESTRATION_SCHEMA_TYPE) this->parameters.get<unsigned int>(ORCHESTRATION_SCHEMA));
         tokens.erase(tokens.begin(), tokens.begin() + 1 + num_property_tokens);
     } else {
         // If no parameters are provided, we still need to remove the first token

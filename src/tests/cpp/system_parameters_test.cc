@@ -112,7 +112,8 @@ TEST(SystemParametersValidationTest, rejects_unknown_parameter_key) {
         }
       }
     })";
-    EXPECT_THROW(SystemParameters(nlohmann::json::parse(replace_schema_version(json_with_extra))), runtime_error);
+    EXPECT_THROW(SystemParameters(nlohmann::json::parse(replace_schema_version(json_with_extra))),
+                 runtime_error);
 }
 
 TEST(SystemParametersValidationTest, rejects_out_of_range_orchestration) {
@@ -126,7 +127,8 @@ TEST(SystemParametersValidationTest, rejects_out_of_range_orchestration) {
         }
       }
     })";
-    EXPECT_THROW(SystemParameters(nlohmann::json::parse(replace_schema_version(invalid_json1))), runtime_error);
+    EXPECT_THROW(SystemParameters(nlohmann::json::parse(replace_schema_version(invalid_json1))),
+                 runtime_error);
     const char* invalid_json2 = R"({
       "agents": {
         "schema_version": "__SCHEMA_VERSION__",
@@ -137,7 +139,8 @@ TEST(SystemParametersValidationTest, rejects_out_of_range_orchestration) {
         }
       }
     })";
-    EXPECT_THROW(SystemParameters(nlohmann::json::parse(replace_schema_version(invalid_json2))), std::bad_variant_access);
+    EXPECT_THROW(SystemParameters(nlohmann::json::parse(replace_schema_version(invalid_json2))),
+                 std::bad_variant_access);
 }
 
 TEST(SystemParametersValidationTest, rejects_missing_required_parameter) {
@@ -151,7 +154,8 @@ TEST(SystemParametersValidationTest, rejects_missing_required_parameter) {
         }
       }
     })";
-    EXPECT_THROW(SystemParameters(nlohmann::json::parse(replace_schema_version(json_missing))), runtime_error);
+    EXPECT_THROW(SystemParameters(nlohmann::json::parse(replace_schema_version(json_missing))),
+                 runtime_error);
 }
 
 TEST(SystemParametersTest, properties_merge_prioritizes_right_hand_side) {
