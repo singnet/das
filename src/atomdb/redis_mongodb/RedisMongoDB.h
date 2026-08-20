@@ -10,6 +10,7 @@
 #include <mongocxx/options/find.hpp>
 #include <mongocxx/pool.hpp>
 #include <mutex>
+#include <optional>
 #include <set>
 #include <vector>
 
@@ -32,6 +33,12 @@ class RedisMongoDB : public AtomDB {
 
     bool allow_nested_indexing() override;
     bool composite_type_enabled() const override { return this->composite_type_enabled_; }
+    /**
+     * Looks up access-permission documents in MongoDB for the given public key(s).
+     * Returns an empty vector if no matching documents exist.
+     */
+    vector<atomdb_api_types::AccessPermissionDocument> get_access_permissions(
+        const atomdb_api_types::PublicKey& public_key) const override;
 
     static string REDIS_PATTERNS_PREFIX;
     static string REDIS_OUTGOING_PREFIX;
@@ -41,6 +48,7 @@ class RedisMongoDB : public AtomDB {
     static string MONGODB_NODES_COLLECTION_NAME;
     static string MONGODB_LINKS_COLLECTION_NAME;
     static string MONGODB_PATTERN_INDEX_SCHEMA_COLLECTION_NAME;
+    static string MONGODB_ACCESS_PERMISSIONS_COLLECTION_NAME;
     static string MONGODB_FIELD_NAME[MONGODB_FIELD::size];
     static uint MONGODB_CHUNK_SIZE;
 
@@ -53,6 +61,7 @@ class RedisMongoDB : public AtomDB {
         MONGODB_NODES_COLLECTION_NAME = context + "nodes";
         MONGODB_LINKS_COLLECTION_NAME = context + "links";
         MONGODB_PATTERN_INDEX_SCHEMA_COLLECTION_NAME = context + "pattern_index_schema";
+        MONGODB_ACCESS_PERMISSIONS_COLLECTION_NAME = context + "access_permissions";
         MONGODB_FIELD_NAME[MONGODB_FIELD::ID] = "_id";
         MONGODB_FIELD_NAME[MONGODB_FIELD::TARGETS] = "targets";
         MONGODB_FIELD_NAME[MONGODB_FIELD::NAME] = "name";
@@ -162,7 +171,14 @@ class RedisMongoDB : public AtomDB {
     int pattern_index_schema_next_priority{1};
 
     shared_ptr<atomdb_api_types::AtomDocument> get_document(const string& handle,
-                                                            const string& collection_name);
+                                                            const string& collection_name) const;
+    /**
+     * @brief Loads and parses one access_permissions Mongo document for the given public key.
+     * @return nullopt when no document exists for that key.
+     */
+    optional<atomdb_api_types::AccessPermissionDocument> load_access_permission_document(
+        const string& public_key) const;
+
     vector<shared_ptr<atomdb_api_types::AtomDocument>> get_documents(const vector<string>& handles,
                                                                      const vector<string>& fields,
                                                                      const string& collection_name);

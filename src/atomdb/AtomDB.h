@@ -1,5 +1,6 @@
 #pragma once
 
+#include <memory>
 #include <set>
 #include <string>
 #include <vector>
@@ -112,6 +113,11 @@ class AtomDB : public HandleDecoder {
     virtual size_t atom_count() const = 0;
 
     bool empty() const { return atom_count() == 0; }
+
+    virtual vector<atomdb_api_types::AccessPermissionDocument> get_access_permissions(
+        const atomdb_api_types::PublicKey& public_key) const {
+        return {};
+    }
 };
 
 }  // namespace atomdb

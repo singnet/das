@@ -1371,6 +1371,11 @@ TEST_F(InMemoryDBTest, ConcurrentPatternQueriesSurviveReIndex) {
     EXPECT_EQ(db->atom_count(), static_cast<size_t>(2 * kNodes));
 }
 
+TEST_F(InMemoryDBTest, GetAccessPermissionsReturnsEmpty) {
+    auto permissions = db->get_access_permissions(PublicKey("any_key"));
+    EXPECT_TRUE(permissions.empty());
+}
+
 int main(int argc, char** argv) {
     ::testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();
