@@ -111,5 +111,8 @@ shared_ptr<AtomDB> AtomDBFactory::wrap_if_protected(shared_ptr<AtomDB> atomdb) {
         dynamic_pointer_cast<ProtectedAtomDB>(atomdb)) {
         return atomdb;
     }
-    return make_shared<ProtectedAtomDB>(atomdb);
+    // TODO: uncomment this return when the integration with ProtectedDB with authorization is complete
+    // return make_shared<ProtectedAtomDB>(atomdb);
+
+    return atomdb;
 }
