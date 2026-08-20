@@ -107,7 +107,6 @@ class LinkCreationProxy : public BaseQueryProxy {
     void tokenize(vector<string>& output) override;
 
    private:
-    void set_default_query_parameters();
     void set_link_creator_function_tag(const string& tag);
     void init();
 

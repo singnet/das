@@ -577,6 +577,13 @@ void QueryEvolutionProcessor::evolve_query(shared_ptr<StoppableThread> monitor,
     RAM_FOOTPRINT_START(evolution);
     STOP_WATCH_START(evolution);
     while (!monitor->stopped() && !proxy->stop_criteria_met()) {
+        while (true) {
+            if (proxy->cycle_start_allowed()) {
+                break;
+            }  else {
+                Utils::sleep();
+            }
+        }
         LOG_INFO("==================== Generation: " + std::to_string(this->generation_count) +
                  " ====================");
         RAM_CHECKPOINT("Generation " + std::to_string(this->generation_count));

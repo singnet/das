@@ -12,6 +12,7 @@
 #include "RedisMongoDB.h"
 #include "ServiceBus.h"
 #include "ServiceBusSingleton.h"
+#include "SystemParametersSingleton.h"
 #include "TestAtomDBJsonConfig.h"
 #include "Utils.h"
 #include "gtest/gtest.h"
@@ -30,6 +31,7 @@ class AtomDBTestEnvironment : public ::testing::Environment {
     void SetUp() override {
         AtomDBSingleton::init(test_atomdb_json_config());
         ServiceBusSingleton::init("0.0.0.0:52001", "", 52003, 52999);
+        SystemParametersSingleton::init_from_file("/opt/das/config/das.json");
     }
 
     void TearDown() override {}

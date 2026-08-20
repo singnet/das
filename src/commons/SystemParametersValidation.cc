@@ -8,7 +8,7 @@ using namespace commons;
 using nlohmann::json;
 using namespace std;
 
-string SystemParametersValidation::SCHEMA_VERSION = "1.0.1";
+string SystemParametersValidation::SCHEMA_VERSION = "1.1.0";
 
 namespace {
 
@@ -17,6 +17,8 @@ using AgentParamsSchema = unordered_map<string, FieldTypeSchema>;
 
 const AgentParamsSchema& params_schema() {
     static const AgentParamsSchema schema = {
+        {"base_proxy",
+         {{"orchestration_schema", "unsigned_int"}}},
         {"base_query",
          {{"unique_assignment_flag", "bool"},
           {"attention_update", "long"},

@@ -185,8 +185,8 @@ class ContextBrokerProxy : public BaseQueryProxy {
     double spreading_rate_upperbound;
 
    private:
-    void init(const string& name);
     void set_default_query_parameters();
+    void init(const string& name);
 
     // Context-specific members
     mutex api_mutex;

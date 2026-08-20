@@ -9,7 +9,12 @@ namespace das_test {
 
 const char kAgentsJson[] = R"({
   "agents": {
-    "schema_version": "1.0.1",
+    "schema_version": "1.1.0",
+    "base_proxy": {
+      "params": {
+        "orchestration_schema": 0
+      }
+    },
     "base_query": {
       "params": {
         "unique_assignment_flag": false,

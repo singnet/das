@@ -1,6 +1,7 @@
 #include "BaseProxy.h"
 
 #include "ServiceBus.h"
+#include "SystemParametersSingleton.h"
 #include "Utils.h"
 
 #define LOG_LEVEL INFO_LEVEL
@@ -13,12 +14,18 @@ using namespace agents;
 
 string BaseProxy::ABORT = "abort";
 string BaseProxy::FINISHED = "finished";
+string BaseProxy::ALLOW_CYCLE_START = "allow_cycle_start";
+
+string BaseProxy::ORCHESTRATION_SCHEMA = "orchestration_schema";
 
 BaseProxy::BaseProxy() {
     lock_guard<mutex> semaphore(this->api_mutex);
     this->command_finished_flag = false;
     this->abort_flag = false;
     this->error_flag = false;
+    this->cycle_start_allowed_flag = false;
+    this->parameters = SystemParametersSingleton::get_instance()->get_base_proxy_params();
+    this->orchestration_schema = (ORCHESTRATION_SCHEMA_TYPE) this->parameters.get<unsigned int>(ORCHESTRATION_SCHEMA);
 }
 
 BaseProxy::~BaseProxy() {}
@@ -69,6 +76,24 @@ bool BaseProxy::is_aborting() {
     return this->abort_flag;
 }
 
+bool BaseProxy::cycle_start_allowed() {
+    lock_guard<mutex> semaphore(this->api_mutex);
+    switch(this->orchestration_schema) {
+        case NONE:
+            return true;
+        case SYNC_ON_CYCLE_START:
+            if (this->cycle_start_allowed_flag) {
+                this->cycle_start_allowed_flag = false;
+                return true;
+            } else {
+                return false;
+            }
+        default:
+            RAISE_ERROR("Invalid orchestration schema: " + std::to_string(this->orchestration_schema));
+            return false;
+    }
+}
+
 string BaseProxy::to_string() {
     string answer = "{";
     answer += "parameters: " + this->parameters.to_string();
@@ -101,6 +126,8 @@ bool BaseProxy::from_remote_peer(const string& command, const vector<string>& ar
             command_finished(args);
         } else if (command == ABORT) {
             abort(args);
+        } else if (command == ALLOW_CYCLE_START) {
+            allow_cycle_start(args);
         } else {
             return false;
         }
@@ -118,4 +145,17 @@ void BaseProxy::command_finished(const vector<string>& args) {
 void BaseProxy::abort(const vector<string>& args) {
     lock_guard<mutex> semaphore(this->api_mutex);
     this->abort_flag = true;
+}
+
+void BaseProxy::allow_cycle_start(const vector<string>& args) {
+    lock_guard<mutex> semaphore(this->api_mutex);
+    this->cycle_start_allowed_flag = true;
+}
+
+// ---------------------------------------------------------------------------------------------
+// Protected methods
+
+void BaseProxy::set_orchestration_schema(ORCHESTRATION_SCHEMA_TYPE value) {
+    lock_guard<mutex> semaphore(this->api_mutex);
+    this->orchestration_schema = value;
 }

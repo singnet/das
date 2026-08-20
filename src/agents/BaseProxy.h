@@ -16,9 +16,21 @@ namespace agents {
  */
 class BaseProxy : public BusCommandProxy {
    public:
+    enum ORCHESTRATION_SCHEMA_TYPE { NONE = 0, SYNC_ON_CYCLE_START };
+
+    // BaseProxy optional parameters
+    static string ORCHESTRATION_SCHEMA; // Select orchestration schema for this proxy. Orchestration
+                                        // is relevant to processors that work execute commands in
+                                        // multiple cycles. The caller may require to synchronize
+                                        // the cycles with cycles of other command execution
+                                        // (i.e. other proxies) of the same type or not. So
+                                        // different orchestration algorithms may apply.
+
+
     // Commands allowed at the proxy level (caller <--> processor)
     static string ABORT;     // Abort current command
     static string FINISHED;  // Notification that all results have already been delivered
+    static string ALLOW_CYCLE_START;  // Orchestration command to allow the beginning of a new cycle
 
     BaseProxy();
     virtual ~BaseProxy();
@@ -67,6 +79,16 @@ class BaseProxy : public BusCommandProxy {
     bool is_aborting();
 
     /**
+     * Returns true iff processor has green light to start a new cycle.
+     *
+     * SIDE-EFFECT: the state flag used tell if a new cycle start is
+     *              allowed is reset to FALSE.
+     *
+     * @return true iff processor has green light to start a new cycle.
+     */
+    bool cycle_start_allowed();
+
+    /**
      * Returns a string representation with all command parameter values.
      *
      * @return a string representation with all command parameter values.
@@ -105,6 +127,13 @@ class BaseProxy : public BusCommandProxy {
      */
     void command_finished(const vector<string>& args);
 
+    /**
+     * Piggyback method called by ALLOW_CYCLE_START command
+     *
+     * @param args Command arguments (empty for ALLOW_CYCLE_START command)
+     */
+    void allow_cycle_start(const vector<string>& args);
+
     virtual void pack_command_line_args() = 0;
 
     Properties parameters;
@@ -112,10 +141,15 @@ class BaseProxy : public BusCommandProxy {
     unsigned int error_code;
     string error_message;
 
+   protected:
+    void set_orchestration_schema(ORCHESTRATION_SCHEMA_TYPE value);
+
    private:
     mutex api_mutex;
     bool abort_flag;
     bool command_finished_flag;
+    bool cycle_start_allowed_flag;
+    ORCHESTRATION_SCHEMA_TYPE orchestration_schema;
 };
 
 }  // namespace agents

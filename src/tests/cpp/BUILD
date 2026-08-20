@@ -1097,3 +1097,25 @@ cc_test(
         "@mbedtls",
     ],
 )
+
+cc_test(
+    name = "base_proxy_test",
+    size = "small",
+    srcs = ["base_proxy_test.cc"],
+    copts = [
+        "-Iexternal/gtest/googletest/include",
+        "-Iexternal/gtest/googletest",
+    ],
+    linkopts = [
+        "-L/usr/local/lib",
+        "-lhiredis_cluster",
+        "-lhiredis",
+        "-lmongocxx",
+        "-lbsoncxx",
+    ],
+    linkstatic = 1,
+    deps = [
+        "//agents:base_proxy",
+        "@com_github_google_googletest//:gtest_main",
+    ],
+)
