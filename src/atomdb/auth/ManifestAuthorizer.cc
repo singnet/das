@@ -13,8 +13,11 @@ using namespace commons;
 // --------------------------------------------------------------------------------
 // Constructor
 
-ManifestAuthorizer::ManifestAuthorizer(shared_ptr<AuthorizationManifest> manifest)
-    : manifest(manifest) {}
+ManifestAuthorizer::ManifestAuthorizer(shared_ptr<AuthorizationManifest> manifest) : manifest(manifest) {
+    if (this->manifest == nullptr) {
+        RAISE_ERROR("ManifestAuthorizer requires a non-null AuthorizationManifest");
+    }
+}
 
 // --------------------------------------------------------------------------------
 // Public methods

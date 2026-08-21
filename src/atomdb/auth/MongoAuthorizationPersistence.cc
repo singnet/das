@@ -5,6 +5,8 @@
 #include "MongoInitializer.h"
 #include "Utils.h"
 #include "expression_hasher.h"
+#define LOG_LEVEL INFO_LEVEL
+#include "Logger.h"
 #include "nlohmann/json.hpp"
 
 using namespace atomdb;
@@ -51,6 +53,7 @@ vector<atomdb_api_types::AccessPermissionEntry> MongoAuthorizationPersistence::l
     auto conn = this->mongodb_pool->acquire();
     auto collection = (*conn)[this->database_name][this->collection_name];
     auto document = this->get_document(collection, public_key);
+    if (!document) return {};
     return document->entries;
 }
 
