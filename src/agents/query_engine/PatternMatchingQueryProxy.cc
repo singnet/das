@@ -21,18 +21,18 @@ string PatternMatchingQueryProxy::COUNT_FLAG = "count_flag";
 PatternMatchingQueryProxy::PatternMatchingQueryProxy() {
     // constructor typically used in processor
     lock_guard<mutex> semaphore(this->api_mutex);
-    set_default_parameters();
+    init();
 }
 
 PatternMatchingQueryProxy::PatternMatchingQueryProxy(const vector<string>& tokens, const string& context)
     : BaseQueryProxy(tokens, context) {
     // constructor typically used in requestor
     lock_guard<mutex> semaphore(this->api_mutex);
-    set_default_parameters();
-    this->command = ServiceBus::PATTERN_MATCHING_QUERY;
+    init();
 }
 
-void PatternMatchingQueryProxy::set_default_parameters() {
+void PatternMatchingQueryProxy::init() {
+    this->command = ServiceBus::PATTERN_MATCHING_QUERY;
     this->parameters += SystemParametersSingleton::get_instance()->get_query_agent_params();
 }
 

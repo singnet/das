@@ -17,6 +17,7 @@ using AgentParamsSchema = unordered_map<string, FieldTypeSchema>;
 
 const AgentParamsSchema& params_schema() {
     static const AgentParamsSchema schema = {
+        {"base_proxy", {{"orchestration_schema", "unsigned_int"}}},
         {"base_query",
          {{"unique_assignment_flag", "bool"},
           {"attention_update", "long"},
@@ -137,6 +138,13 @@ Properties parse_agent_params_with_schema(const json& agent_params,
                 if (strictness < 0.0 || strictness > 1.0) {
                     RAISE_ERROR("Invalid value for parameter '" + key + "' for agent '" + agent +
                                 "' (expected value in range [0.0, 1.0])");
+                }
+            }
+            if (agent == "base_proxy" && key == "orchestration_schema") {
+                unsigned int schema = get<unsigned int>(value);
+                if (schema > 1) {
+                    RAISE_ERROR("Invalid value for parameter '" + key + "' for agent '" + agent +
+                                "' (expected value in {0, 1})");
                 }
             }
             agent_props[key] = value;

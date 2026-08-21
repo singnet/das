@@ -9,6 +9,24 @@ using namespace commons;
 using namespace das_test;
 using namespace std;
 
+static string replace_schema_version(const char* source) {
+    std::string str(source);
+    string place_holder = "__SCHEMA_VERSION__";
+    size_t pos = str.find(place_holder);
+    if (pos == std::string::npos) {
+        RAISE_ERROR("Invalid json string: " + str);
+    } else {
+        str.replace(pos, place_holder.length(), SystemParametersValidation::SCHEMA_VERSION);
+    }
+
+    return str;
+}
+
+TEST(SystemParametersTest, get_base_proxy_params) {
+    auto params = make_test_parameters().get_base_proxy_params();
+    EXPECT_EQ(params.get<unsigned int>("orchestration_schema"), 0);
+}
+
 TEST(SystemParametersTest, get_base_query_params) {
     auto params = make_test_parameters().get_base_query_params();
     EXPECT_EQ(params.get<unsigned int>("max_answers"), 0U);
@@ -74,7 +92,7 @@ TEST(SystemParametersValidationTest, rejects_unsupported_schema_version) {
 TEST(SystemParametersValidationTest, rejects_unknown_parameter_key) {
     const char* json_with_extra = R"({
       "agents": {
-        "schema_version": "1.0",
+        "schema_version": "__SCHEMA_VERSION__",
         "query": {
           "params": {
             "positive_importance_flag": false,
@@ -86,13 +104,41 @@ TEST(SystemParametersValidationTest, rejects_unknown_parameter_key) {
         }
       }
     })";
-    EXPECT_THROW(SystemParameters(nlohmann::json::parse(json_with_extra)), runtime_error);
+    EXPECT_THROW(SystemParameters(nlohmann::json::parse(replace_schema_version(json_with_extra))),
+                 runtime_error);
+}
+
+TEST(SystemParametersValidationTest, rejects_out_of_range_orchestration) {
+    const char* invalid_json1 = R"({
+      "agents": {
+        "schema_version": "__SCHEMA_VERSION__",
+        "base_proxy": {
+          "params": {
+            "orchestration_schema": 2
+          }
+        }
+      }
+    })";
+    EXPECT_THROW(SystemParameters(nlohmann::json::parse(replace_schema_version(invalid_json1))),
+                 runtime_error);
+    const char* invalid_json2 = R"({
+      "agents": {
+        "schema_version": "__SCHEMA_VERSION__",
+        "base_proxy": {
+          "params": {
+            "orchestration_schema": -1
+          }
+        }
+      }
+    })";
+    EXPECT_THROW(SystemParameters(nlohmann::json::parse(replace_schema_version(invalid_json2))),
+                 std::bad_variant_access);
 }
 
 TEST(SystemParametersValidationTest, rejects_missing_required_parameter) {
     const char* json_missing = R"({
       "agents": {
-        "schema_version": "1.0",
+        "schema_version": "__SCHEMA_VERSION__",
         "query": {
           "params": {
             "count_flag": false
@@ -100,7 +146,8 @@ TEST(SystemParametersValidationTest, rejects_missing_required_parameter) {
         }
       }
     })";
-    EXPECT_THROW(SystemParameters(nlohmann::json::parse(json_missing)), runtime_error);
+    EXPECT_THROW(SystemParameters(nlohmann::json::parse(replace_schema_version(json_missing))),
+                 runtime_error);
 }
 
 TEST(SystemParametersTest, properties_merge_prioritizes_right_hand_side) {

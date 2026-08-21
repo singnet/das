@@ -24,7 +24,6 @@ QueryEvolutionProxy::QueryEvolutionProxy() {
     // constructor typically used in processor
     lock_guard<mutex> semaphore(this->api_mutex);
     init();
-    set_default_query_parameters();
 }
 
 QueryEvolutionProxy::QueryEvolutionProxy(
@@ -38,7 +37,6 @@ QueryEvolutionProxy::QueryEvolutionProxy(
     : BaseQueryProxy(tokens, context) {
     // constructor typically used in requestor
     init();
-    set_default_query_parameters();
     this->fitness_function_object = fitness_function;
     set_fitness_function_tag(fitness_function_tag);
     this->correlation_queries = correlation_queries;
@@ -54,9 +52,6 @@ void QueryEvolutionProxy::init() {
     this->ongoing_remote_fitness_evaluation = false;
     this->no_selection_flag = false;
     this->last_generation_with_answer_report = 0;
-}
-
-void QueryEvolutionProxy::set_default_query_parameters() {
     this->parameters += SystemParametersSingleton::get_instance()->get_evolution_agent_params();
 }
 
