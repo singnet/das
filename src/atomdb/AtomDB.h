@@ -1,5 +1,6 @@
 #pragma once
 
+#include <memory>
 #include <set>
 #include <string>
 #include <vector>
@@ -16,10 +17,38 @@ using namespace atoms;
 
 namespace atomdb {
 
+enum class AtomDBType { RedisMongoDB, MorkDB, InMemoryDB, RemoteAtomDB, AdapterDB };
+
 class AtomDB : public HandleDecoder {
    public:
     AtomDB() = default;
     virtual ~AtomDB() = default;
+
+    static AtomDBType string_to_type(const string& type) {
+        if (type == "redismongodb") return AtomDBType::RedisMongoDB;
+        if (type == "morkdb") return AtomDBType::MorkDB;
+        if (type == "inmemorydb") return AtomDBType::InMemoryDB;
+        if (type == "remotedb") return AtomDBType::RemoteAtomDB;
+        if (type == "adapterdb") return AtomDBType::AdapterDB;
+        RAISE_ERROR("Unsupported atomdb.type: " + type);
+    }
+
+    static string type_to_string(AtomDBType type) {
+        switch (type) {
+            case AtomDBType::RedisMongoDB:
+                return "redismongodb";
+            case AtomDBType::MorkDB:
+                return "morkdb";
+            case AtomDBType::InMemoryDB:
+                return "inmemorydb";
+            case AtomDBType::RemoteAtomDB:
+                return "remotedb";
+            case AtomDBType::AdapterDB:
+                return "adapterdb";
+            default:
+                RAISE_ERROR("Unsupported AtomDBType");
+        }
+    }
 
     virtual bool allow_nested_indexing() = 0;
     virtual bool composite_type_enabled() const = 0;
@@ -84,6 +113,11 @@ class AtomDB : public HandleDecoder {
     virtual size_t atom_count() const = 0;
 
     bool empty() const { return atom_count() == 0; }
+
+    virtual vector<atomdb_api_types::AccessPermissionDocument> get_access_permissions(
+        const atomdb_api_types::PublicKey& public_key) const {
+        return {};
+    }
 };
 
 }  // namespace atomdb

@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <memory>
+#include <utility>
 
 #include "Hasher.h"
 #include "InMemoryDBAPITypes.h"
@@ -19,194 +20,187 @@ using namespace atomdb_api_types;
 using namespace atoms;
 using namespace commons;
 
-// Helper class to wrap Atom in HandleTrie
+// Wraps an Atom in HandleTrie. The atom is held via shared_ptr and handed out with a
+// refcount bump taken under the trie node lock (get_stored_object), so readers keep it
+// alive while concurrent upserts/deletes replace or drop the trie's own reference.
+// Stored atoms are never mutated in place: merge() swaps the pointer wholesale.
 class AtomTrieValue : public HandleTrie::TrieValue {
    public:
     AtomTrieValue(Atom* atom) : atom_(atom) {}
-    ~AtomTrieValue() override { delete atom_; }
+    ~AtomTrieValue() override = default;
+    // Runs under the node lock (HandleTrie::insert on a duplicate key): replace the
+    // stored atom. Readers holding a reference keep the previous atom alive.
     void merge(HandleTrie::TrieValue* other) override {
-        // For now, just replace (could be enhanced later)
-        delete atom_;
-        atom_ = dynamic_cast<AtomTrieValue*>(other)->atom_;
-        dynamic_cast<AtomTrieValue*>(other)->atom_ = NULL;  // Prevent double delete
+        atom_ = std::move(dynamic_cast<AtomTrieValue*>(other)->atom_);
     }
-    Atom* get_atom() { return atom_; }
+    // Runs under the node lock (HandleTrie::lookup_stored_object): hand out an owning
+    // reference. The caller takes ownership of the returned shared_ptr wrapper.
+    void* get_stored_object(bool /*clone*/) override { return new shared_ptr<Atom>(atom_); }
+    // Writer-side accessor — safe only under InMemoryDB::write_mutex_ or the node lock.
+    const shared_ptr<Atom>& get_atom() const { return atom_; }
 
    private:
-    Atom* atom_;
+    shared_ptr<Atom> atom_;
 };
 
-// Helper class to store sets of atom handles in HandleTrie for pattern/incoming set indexing
+// Stores a set of atom handles in HandleTrie for pattern / incoming-set indexing.
+// Mutations must run under the trie node lock (insert/merge or HandleTrie::update);
+// readers snapshot a copy of the set under the same lock via get_stored_object.
 class HandleSetTrieValue : public HandleTrie::TrieValue {
    public:
     HandleSetTrieValue() {}
+    explicit HandleSetTrieValue(const string& handle) : handle_set_({handle}) {}
     ~HandleSetTrieValue() override {}
+    // Runs under the node lock (HandleTrie::insert on a duplicate key): union the sets.
     void merge(HandleTrie::TrieValue* other) override {
-        // Merge sets when the same handle is inserted multiple times
         HandleSetTrieValue* other_value = dynamic_cast<HandleSetTrieValue*>(other);
         if (other_value != NULL) {
             handle_set_.insert(other_value->handle_set_.begin(), other_value->handle_set_.end());
         }
     }
-    void add_handle(const string& handle) { handle_set_.insert(handle); }
+    // Runs under the node lock (HandleTrie::lookup_stored_object): hand out a copy.
+    // The caller takes ownership of the returned set.
+    void* get_stored_object(bool /*clone*/) override { return new set<string>(handle_set_); }
     void remove_handle(const string& handle) { handle_set_.erase(handle); }
-    const set<string>& get_handles() const { return handle_set_; }
     bool empty() const { return handle_set_.empty(); }
 
    private:
     set<string> handle_set_;
 };
 
-// Helper functions and data structures for traverse callbacks
 namespace {
-struct ReIndexData {
-    InMemoryDB* db;
-};
-
-bool re_index_visitor(HandleTrie::TrieNode* node, void* data) {
-    ReIndexData* index_data = static_cast<ReIndexData*>(data);
-    if (node->value != NULL) {
-        auto atom_trie_value = dynamic_cast<AtomTrieValue*>(node->value);
-        if (atom_trie_value != NULL) {
-            Atom* atom = atom_trie_value->get_atom();
-            if (Atom::is_link(*atom)) {
-                Link* link = dynamic_cast<Link*>(atom);
-                string link_handle = link->handle();
-                // Index patterns
-                auto pattern_handles = index_data->db->match_pattern_index_schema(link);
-                for (const auto& pattern_handle : pattern_handles) {
-                    index_data->db->add_pattern(pattern_handle, link_handle);
-                }
-            }
-        }
+shared_ptr<Atom> clone_atom(const Atom* atom) {
+    auto link = dynamic_cast<const Link*>(atom);
+    if (link != nullptr) {
+        return make_shared<Link>(*link);
     }
-    return false;  // Continue traversal
+    auto node = dynamic_cast<const Node*>(atom);
+    if (node != nullptr) {
+        return make_shared<Node>(*node);
+    }
+    return nullptr;
+}
+
+shared_ptr<HandleTrie> make_trie() { return make_shared<HandleTrie>(HANDLE_HASH_SIZE - 1); }
+
+// Snapshots the atom stored at `handle`. The owning reference is taken under the trie
+// node lock, so concurrent upserts/deletes cannot free the atom mid-read.
+shared_ptr<Atom> lookup_atom(HandleTrie& trie, const string& handle) {
+    unique_ptr<shared_ptr<Atom>> ref(
+        static_cast<shared_ptr<Atom>*>(trie.lookup_stored_object(handle, false)));
+    return ref == nullptr ? nullptr : std::move(*ref);
+}
+
+// Snapshots the handle set stored at `key` (copy made under the trie node lock), or
+// nullptr if absent. Used for both the pattern index and incoming sets.
+unique_ptr<set<string>> lookup_handle_set(HandleTrie& trie, const string& key) {
+    return unique_ptr<set<string>>(static_cast<set<string>*>(trie.lookup_stored_object(key, false)));
+}
+
+// Inserts `handle` into the handle set stored at `key`, creating the entry if absent.
+// HandleTrie::insert runs HandleSetTrieValue::merge under the node lock, so the
+// mutation is safe against concurrent reader snapshots.
+void add_to_handle_set(HandleTrie& trie, const string& key, const string& handle) {
+    trie.insert(key, new HandleSetTrieValue(handle));
+}
+
+// Removes `handle` from the handle set stored at `key`, dropping the entry once empty.
+// Runs under the node lock via HandleTrie::update, safe against concurrent readers.
+void remove_from_handle_set(HandleTrie& trie, const string& key, const string& handle) {
+    trie.update(
+        key,
+        [](HandleTrie::TrieValue* value, void* data) -> bool {
+            auto* handle_set_value = dynamic_cast<HandleSetTrieValue*>(value);
+            handle_set_value->remove_handle(*static_cast<const string*>(data));
+            return handle_set_value->empty();  // true -> delete the entry
+        },
+        const_cast<string*>(&handle));
+}
+
+// All "VARIABLE at some target position" combinations used to build the default pattern
+// index when no explicit schema was registered.
+vector<vector<string>> index_entries_combinations(unsigned int arity) {
+    vector<vector<string>> index_entries;
+    unsigned int total = 1 << arity;  // 2^arity
+
+    // Skip mask == 0 (all concrete): identical to the link's own handle; no separate pattern index.
+    for (unsigned int mask = 1; mask < total; ++mask) {
+        vector<string> index_entry;
+        for (unsigned int i = 0; i < arity; ++i) {
+            if (mask & (1 << i))
+                index_entry.push_back("*");
+            else
+                index_entry.push_back("v" + to_string(i + 1));
+        }
+        index_entries.push_back(index_entry);
+    }
+
+    return index_entries;
 }
 }  // namespace
 
-InMemoryDB::InMemoryDB(const string& context)
-    : context_(context),
-      atoms_trie_(new HandleTrie(HANDLE_HASH_SIZE - 1)),
-      pattern_index_trie_(new HandleTrie(HANDLE_HASH_SIZE - 1)),
-      incoming_sets_trie_(new HandleTrie(HANDLE_HASH_SIZE - 1)) {}
-
-InMemoryDB::~InMemoryDB() {
-    // Traverse and delete all atoms
-    this->atoms_trie_->traverse(
-        false,
-        [](HandleTrie::TrieNode* node, void* data) -> bool {
-            if (node->value != NULL) {
-                delete node->value;
-                node->value = NULL;
-            }
-            return false;  // Continue traversal
-        },
-        NULL);
-    delete this->atoms_trie_;
-
-    // Traverse and delete all pattern index entries
-    this->pattern_index_trie_->traverse(
-        false,
-        [](HandleTrie::TrieNode* node, void* data) -> bool {
-            if (node->value != NULL) {
-                delete node->value;
-                node->value = NULL;
-            }
-            return false;  // Continue traversal
-        },
-        NULL);
-    delete this->pattern_index_trie_;
-
-    // Traverse and delete all incoming set entries
-    this->incoming_sets_trie_->traverse(
-        false,
-        [](HandleTrie::TrieNode* node, void* data) -> bool {
-            if (node->value != NULL) {
-                delete node->value;
-                node->value = NULL;
-            }
-            return false;  // Continue traversal
-        },
-        NULL);
-    delete this->incoming_sets_trie_;
+shared_ptr<InMemoryDB::Tries> InMemoryDB::make_tries() {
+    auto tries = make_shared<Tries>();
+    tries->atoms = make_trie();
+    tries->patterns = make_trie();
+    tries->incoming = make_trie();
+    return tries;
 }
+
+InMemoryDB::InMemoryDB(const string& context) : context_(context), tries_(make_tries()) {}
+
+InMemoryDB::~InMemoryDB() = default;
 
 bool InMemoryDB::allow_nested_indexing() { return false; }
 
+// ---------------------------------------------------------------------------
+// Reads — no write_mutex_; trie snapshots + HandleTrie's per-node locking
+// ---------------------------------------------------------------------------
+
 shared_ptr<Atom> InMemoryDB::get_atom(const string& handle) {
-    auto trie_value = this->atoms_trie_->lookup(handle);
-    if (trie_value == NULL) {
+    auto atom = lookup_atom(*load_tries()->atoms, handle);
+    if (atom == nullptr) {
         return nullptr;
     }
-    auto atom_trie_value = dynamic_cast<AtomTrieValue*>(trie_value);
-    if (atom_trie_value == NULL) {
-        return nullptr;
-    }
-    // Clone the atom to return a shared_ptr (caller doesn't own the original)
-    Atom* atom = atom_trie_value->get_atom();
-    if (atom->arity() == 0) {
-        auto node = dynamic_cast<Node*>(atom);
-        return make_shared<Node>(*node);
-    } else {
-        auto link = dynamic_cast<Link*>(atom);
-        return make_shared<Link>(*link);
-    }
+    // Return a deep copy (caller must not observe internal trie-owned storage).
+    return clone_atom(atom.get());
 }
 
 shared_ptr<Node> InMemoryDB::get_node(const string& handle) {
     auto atom = get_atom(handle);
-    if (atom != nullptr) {
-        return make_shared<Node>(*dynamic_cast<Node*>(atom.get()));
-    }
-    return nullptr;
+    return dynamic_pointer_cast<Node>(atom);
 }
 
 shared_ptr<Link> InMemoryDB::get_link(const string& handle) {
     auto atom = get_atom(handle);
-    if (atom != nullptr) {
-        return make_shared<Link>(*dynamic_cast<Link*>(atom.get()));
-    }
-    return nullptr;
+    return dynamic_pointer_cast<Link>(atom);
 }
 
 shared_ptr<HandleSet> InMemoryDB::query_for_pattern(const LinkSchema& link_schema) {
     auto handle_set = make_shared<HandleSetInMemory>();
-
-    // Check if we have this pattern indexed in the HandleTrie
-    auto pattern_trie_value =
-        dynamic_cast<HandleSetTrieValue*>(pattern_index_trie_->lookup(link_schema.handle()));
-    if (pattern_trie_value != NULL) {
-        for (const auto& handle : pattern_trie_value->get_handles()) {
+    auto handles = lookup_handle_set(*load_tries()->patterns, link_schema.handle());
+    if (handles != nullptr) {
+        for (const auto& handle : *handles) {
             handle_set->add_handle(handle);
         }
     }
-
     return handle_set;
 }
 
 shared_ptr<HandleList> InMemoryDB::query_for_targets(const string& handle) {
-    auto trie_value = atoms_trie_->lookup(handle);
-    if (trie_value == NULL) {
-        return nullptr;
+    auto atom = lookup_atom(*load_tries()->atoms, handle);
+    if (atom == nullptr || !Atom::is_link(*atom)) {
+        return nullptr;  // Absent or not a link, so no targets
     }
-    auto atom_trie_value = dynamic_cast<AtomTrieValue*>(trie_value);
-    if (atom_trie_value == NULL) {
-        return nullptr;
-    }
-    Atom* atom = atom_trie_value->get_atom();
-    if (!Atom::is_link(*atom)) {
-        return nullptr;  // Not a link, so no targets
-    }
-    Link* link = dynamic_cast<Link*>(atom);
+    Link* link = dynamic_cast<Link*>(atom.get());
     return make_shared<HandleListInMemory>(link->targets);
 }
 
 shared_ptr<HandleSet> InMemoryDB::query_for_incoming_set(const string& handle) {
     auto handle_set = make_shared<HandleSetInMemory>();
-    auto incoming_set_trie_value =
-        dynamic_cast<HandleSetTrieValue*>(this->incoming_sets_trie_->lookup(handle));
-    if (incoming_set_trie_value != NULL) {
-        for (const auto& link_handle : incoming_set_trie_value->get_handles()) {
+    auto handles = lookup_handle_set(*load_tries()->incoming, handle);
+    if (handles != nullptr) {
+        for (const auto& link_handle : *handles) {
             handle_set->add_handle(link_handle);
         }
     }
@@ -215,55 +209,36 @@ shared_ptr<HandleSet> InMemoryDB::query_for_incoming_set(const string& handle) {
 
 vector<shared_ptr<Atom>> InMemoryDB::get_matching_atoms(bool is_toplevel, Atom& key) {
     vector<shared_ptr<Atom>> matching_atoms;
-    auto trie_value = atoms_trie_->lookup(key.handle());
-    if (trie_value == NULL) {
+    auto atom = lookup_atom(*load_tries()->atoms, key.handle());
+    if (atom == nullptr) {
         return matching_atoms;
     }
-    auto atom_trie_value = dynamic_cast<AtomTrieValue*>(trie_value);
-    if (atom_trie_value == NULL) {
-        return matching_atoms;
-    }
-    Atom* atom = atom_trie_value->get_atom();
-    if (Atom::is_node(*atom)) {
-        matching_atoms.push_back(shared_ptr<Node>(dynamic_cast<Node*>(atom)));
-    } else {
-        matching_atoms.push_back(shared_ptr<Link>(dynamic_cast<Link*>(atom)));
+    auto cloned = clone_atom(atom.get());
+    if (cloned != nullptr) {
+        matching_atoms.push_back(cloned);
     }
     return matching_atoms;
 }
 
-bool InMemoryDB::atom_exists(const string& handle) { return atoms_trie_->lookup(handle) != NULL; }
+bool InMemoryDB::atom_exists(const string& handle) {
+    return load_tries()->atoms->lookup(handle) != NULL;
+}
 
 bool InMemoryDB::node_exists(const string& handle) {
-    auto trie_value = atoms_trie_->lookup(handle);
-    if (trie_value == NULL) {
-        return false;
-    }
-    auto atom_trie_value = dynamic_cast<AtomTrieValue*>(trie_value);
-    if (atom_trie_value == NULL) {
-        return false;
-    }
-    Atom* atom = atom_trie_value->get_atom();
-    return Atom::is_node(*atom);
+    auto atom = lookup_atom(*load_tries()->atoms, handle);
+    return atom != nullptr && Atom::is_node(*atom);
 }
 
 bool InMemoryDB::link_exists(const string& handle) {
-    auto trie_value = atoms_trie_->lookup(handle);
-    if (trie_value == NULL) {
-        return false;
-    }
-    auto atom_trie_value = dynamic_cast<AtomTrieValue*>(trie_value);
-    if (atom_trie_value == NULL) {
-        return false;
-    }
-    Atom* atom = atom_trie_value->get_atom();
-    return Atom::is_link(*atom);
+    auto atom = lookup_atom(*load_tries()->atoms, handle);
+    return atom != nullptr && Atom::is_link(*atom);
 }
 
 set<string> InMemoryDB::atoms_exist(const vector<string>& handles) {
     set<string> existing;
+    auto trie = load_tries()->atoms;
     for (const auto& handle : handles) {
-        if (atoms_trie_->lookup(handle) != NULL) {
+        if (trie->lookup(handle) != NULL) {
             existing.insert(handle);
         }
     }
@@ -272,8 +247,10 @@ set<string> InMemoryDB::atoms_exist(const vector<string>& handles) {
 
 set<string> InMemoryDB::nodes_exist(const vector<string>& handles) {
     set<string> existing;
+    auto trie = load_tries()->atoms;
     for (const auto& handle : handles) {
-        if (this->node_exists(handle)) {
+        auto atom = lookup_atom(*trie, handle);
+        if (atom != nullptr && Atom::is_node(*atom)) {
             existing.insert(handle);
         }
     }
@@ -282,13 +259,51 @@ set<string> InMemoryDB::nodes_exist(const vector<string>& handles) {
 
 set<string> InMemoryDB::links_exist(const vector<string>& handles) {
     set<string> existing;
+    auto trie = load_tries()->atoms;
     for (const auto& handle : handles) {
-        if (this->link_exists(handle)) {
+        auto atom = lookup_atom(*trie, handle);
+        if (atom != nullptr && Atom::is_link(*atom)) {
             existing.insert(handle);
         }
     }
     return existing;
 }
+
+size_t InMemoryDB::node_count() const { RAISE_ERROR("node_count() is not implemented yet"); }
+
+size_t InMemoryDB::link_count() const { RAISE_ERROR("link_count() is not implemented yet"); }
+
+size_t InMemoryDB::atom_count() const { return static_cast<size_t>(load_tries()->atoms->size()); }
+
+vector<shared_ptr<Atom>> InMemoryDB::get_all_atoms() {
+    vector<shared_ptr<Atom>> atoms;
+    auto trie = load_tries()->atoms;
+    atoms.reserve(trie->size());
+    trie->traverse(
+        false,
+        [](HandleTrie::TrieNode* node, void* data) -> bool {
+            if (node->value == nullptr) {
+                return false;
+            }
+            auto atom_trie_value = dynamic_cast<AtomTrieValue*>(node->value);
+            if (atom_trie_value == nullptr) {
+                return false;
+            }
+            auto* out = static_cast<vector<shared_ptr<Atom>>*>(data);
+            // Safe: traverse() runs this visitor under the node lock.
+            auto cloned = clone_atom(atom_trie_value->get_atom().get());
+            if (cloned != nullptr) {
+                out->push_back(cloned);
+            }
+            return false;
+        },
+        &atoms);
+    return atoms;
+}
+
+// ---------------------------------------------------------------------------
+// Mutations — serialized by write_mutex_
+// ---------------------------------------------------------------------------
 
 string InMemoryDB::add_atom(const atoms::Atom* atom, const atoms::Merger* merger) {
     if (atom->arity() == 0) {
@@ -299,24 +314,33 @@ string InMemoryDB::add_atom(const atoms::Atom* atom, const atoms::Merger* merger
 }
 
 string InMemoryDB::add_node(const atoms::Node* node, const atoms::Merger* merger) {
-    string handle = node->handle();
+    lock_guard<mutex> lock(write_mutex_);
+    return add_node_unlocked(*load_tries(), node, merger);
+}
 
-    auto existing = atoms_trie_->lookup(handle);
+string InMemoryDB::add_node_unlocked(const Tries& tries,
+                                     const atoms::Node* node,
+                                     const atoms::Merger* merger) {
+    string handle = node->handle();
+    const auto& trie = tries.atoms;
+
+    auto existing = trie->lookup(handle);
     if ((existing == NULL) || (merger == NULL)) {
         // Insert or upsert/replace — HandleTrie insert calls AtomTrieValue::merge,
-        // which deletes the previous Atom (if any) and takes ownership of the new one.
+        // which swaps in the new Atom (readers holding a ref keep the old one alive).
         Node* cloned_node = new Node(*node);
-        atoms_trie_->insert(handle, new AtomTrieValue(cloned_node));
+        trie->insert(handle, new AtomTrieValue(cloned_node));
         return handle;
     }
 
-    // Merge a copy; persist only when merge() returns true.
+    // Merge a copy; persist only when merge() returns true. Raw access is safe here:
+    // only writers free/replace values and writers are serialized by write_mutex_.
     auto* atom_trie_value = dynamic_cast<AtomTrieValue*>(existing);
-    unique_ptr<Node> working(new Node(*dynamic_cast<Node*>(atom_trie_value->get_atom())));
+    unique_ptr<Node> working(new Node(*dynamic_cast<Node*>(atom_trie_value->get_atom().get())));
     if (!merger->merge(working.get(), node)) {
         return "";
     }
-    atoms_trie_->insert(handle, new AtomTrieValue(working.release()));
+    trie->insert(handle, new AtomTrieValue(working.release()));
 
     return handle;
 }
@@ -333,6 +357,8 @@ vector<string> InMemoryDB::add_atoms(const vector<atoms::Atom*>& atom_list,
     if (atom_list.empty()) {
         return {};
     }
+    lock_guard<mutex> lock(write_mutex_);
+    auto tries = load_tries();
 
     vector<Node*> nodes;
     vector<Link*> links;
@@ -344,24 +370,29 @@ vector<string> InMemoryDB::add_atoms(const vector<atoms::Atom*>& atom_list,
             links.push_back(dynamic_cast<atoms::Link*>(atom));
         }
     }
-    auto node_handles = this->add_nodes(nodes, is_transactional, merger);
-    auto link_handles = this->add_links(links, is_transactional, merger);
+    vector<string> handles;
+    handles.reserve(atom_list.size());
+    for (const auto& node : nodes) {
+        handles.push_back(this->add_node_unlocked(*tries, node, merger));
+    }
+    auto link_handles = this->add_links_unlocked(*tries, links, is_transactional, merger);
 
-    node_handles.insert(node_handles.end(), link_handles.begin(), link_handles.end());
-    return node_handles;
+    handles.insert(handles.end(), link_handles.begin(), link_handles.end());
+    return handles;
 }
 
 vector<string> InMemoryDB::add_nodes(const vector<atoms::Node*>& nodes,
-                                     bool is_transactional,
+                                     bool /*is_transactional*/,
                                      const atoms::Merger* merger) {
     if (nodes.empty()) {
         return {};
     }
-
+    lock_guard<mutex> lock(write_mutex_);
+    auto tries = load_tries();
     vector<string> handles;
     handles.reserve(nodes.size());
     for (const auto& node : nodes) {
-        handles.push_back(this->add_node(node, merger));
+        handles.push_back(this->add_node_unlocked(*tries, node, merger));
     }
     return handles;
 }
@@ -372,40 +403,52 @@ vector<string> InMemoryDB::add_links(const vector<atoms::Link*>& links,
     if (links.empty()) {
         return {};
     }
+    lock_guard<mutex> lock(write_mutex_);
+    return add_links_unlocked(*load_tries(), links, is_transactional, merger);
+}
 
+vector<string> InMemoryDB::add_links_unlocked(const Tries& tries,
+                                              const vector<atoms::Link*>& links,
+                                              bool /*is_transactional*/,
+                                              const atoms::Merger* merger) {
     vector<string> handles;
     handles.reserve(links.size());
+    const auto& trie = tries.atoms;
+    const auto& pattern_trie = tries.patterns;
 
     for (const auto& link : links) {
         string link_handle = link->handle();
 
-        auto existing = atoms_trie_->lookup(link_handle);
+        auto existing = trie->lookup(link_handle);
+        bool is_new = (existing == NULL);
+
         if ((existing == NULL) || (merger == NULL)) {
-            // Insert or upsert/replace — AtomTrieValue::merge frees the previous Atom.
+            // Insert or upsert/replace — AtomTrieValue::merge swaps in the new Atom.
             Link* cloned_link = new Link(*link);
-            atoms_trie_->insert(link_handle, new AtomTrieValue(cloned_link));
+            trie->insert(link_handle, new AtomTrieValue(cloned_link));
         } else {
             // Merge a copy; persist only when merge() returns true.
             // On failure, skip incoming-set/pattern updates — the link was already
             // indexed by whichever add created it.
             auto* atom_trie_value = dynamic_cast<AtomTrieValue*>(existing);
-            unique_ptr<Link> working(new Link(*dynamic_cast<Link*>(atom_trie_value->get_atom())));
+            unique_ptr<Link> working(new Link(*dynamic_cast<Link*>(atom_trie_value->get_atom().get())));
             if (!merger->merge(working.get(), link)) {
                 handles.push_back("");
                 continue;
             }
-            atoms_trie_->insert(link_handle, new AtomTrieValue(working.release()));
+            trie->insert(link_handle, new AtomTrieValue(working.release()));
         }
 
-        // Update incoming sets for each target
-        for (const auto& target_handle : link->targets) {
-            this->add_incoming_set(target_handle, link_handle);
-        }
+        // Content-addressed handles share targets, so indexes only need building on first insert.
+        if (is_new) {
+            for (const auto& target_handle : link->targets) {
+                add_to_handle_set(*tries.incoming, target_handle, link_handle);
+            }
 
-        // Index pattern
-        auto pattern_handles = this->match_pattern_index_schema(link);
-        for (const auto& pattern_handle : pattern_handles) {
-            this->add_pattern(pattern_handle, link_handle);
+            auto pattern_handles = this->match_pattern_index_schema_unlocked(link);
+            for (const auto& pattern_handle : pattern_handles) {
+                add_to_handle_set(*pattern_trie, pattern_handle, link_handle);
+            }
         }
 
         handles.push_back(link_handle);
@@ -415,110 +458,110 @@ vector<string> InMemoryDB::add_links(const vector<atoms::Link*>& links,
 }
 
 bool InMemoryDB::delete_atom(const string& handle, bool delete_link_targets) {
-    if (this->delete_node(handle, delete_link_targets)) {
+    lock_guard<mutex> lock(write_mutex_);
+    return delete_atom_unlocked(*load_tries(), handle, delete_link_targets);
+}
+
+bool InMemoryDB::delete_atom_unlocked(const Tries& tries,
+                                      const string& handle,
+                                      bool delete_link_targets) {
+    if (this->delete_node_unlocked(tries, handle, delete_link_targets)) {
         return true;
     }
-    return this->delete_link(handle, delete_link_targets);
+    return this->delete_link_unlocked(tries, handle, delete_link_targets);
 }
 
 bool InMemoryDB::delete_node(const string& handle, bool delete_link_targets) {
-    auto trie_value = this->atoms_trie_->lookup(handle);
-    if (trie_value == NULL) {
-        return false;
-    }
-    auto atom_trie_value = dynamic_cast<AtomTrieValue*>(trie_value);
-    if (atom_trie_value == NULL) {
-        return false;
-    }
-    Atom* atom = atom_trie_value->get_atom();
-    if (!Atom::is_node(*atom)) {
+    lock_guard<mutex> lock(write_mutex_);
+    return delete_node_unlocked(*load_tries(), handle, delete_link_targets);
+}
+
+bool InMemoryDB::delete_node_unlocked(const Tries& tries,
+                                      const string& handle,
+                                      bool delete_link_targets) {
+    const auto& trie = tries.atoms;
+    const auto& incoming_trie = tries.incoming;
+
+    auto atom = lookup_atom(*trie, handle);
+    if (atom == nullptr || !Atom::is_node(*atom)) {
         return false;
     }
 
     vector<string> link_handles_to_delete;
 
-    // Check incoming set - if this node is referenced by links, handle accordingly
-    auto incoming_set_trie_value =
-        dynamic_cast<HandleSetTrieValue*>(this->incoming_sets_trie_->lookup(handle));
-    if (incoming_set_trie_value != NULL && !incoming_set_trie_value->empty()) {
+    auto incoming = lookup_handle_set(*incoming_trie, handle);
+    if (incoming != nullptr && !incoming->empty()) {
         if (delete_link_targets) {
-            // Collect all links that reference this node (copy the handles while holding the lock)
-            link_handles_to_delete = vector<string>(incoming_set_trie_value->get_handles().begin(),
-                                                    incoming_set_trie_value->get_handles().end());
+            link_handles_to_delete = vector<string>(incoming->begin(), incoming->end());
         } else {
             // Cannot delete node that is referenced by links
             return false;
         }
     }
 
-    // Delete all links that reference this node
     for (const auto& link_handle : link_handles_to_delete) {
-        this->delete_link(link_handle, delete_link_targets);
+        this->delete_link_unlocked(tries, link_handle, delete_link_targets);
     }
 
-    // Clear the value in the trie (set to NULL)
-    this->atoms_trie_->remove(handle);
-    this->incoming_sets_trie_->remove(handle);
+    trie->remove(handle);
+    incoming_trie->remove(handle);
 
     return true;
 }
 
 bool InMemoryDB::delete_link(const string& handle, bool delete_link_targets) {
-    auto trie_value = atoms_trie_->lookup(handle);
-    if (trie_value == NULL) {
-        return false;
-    }
-    auto atom_trie_value = dynamic_cast<AtomTrieValue*>(trie_value);
-    if (atom_trie_value == NULL) {
-        return false;
-    }
-    Atom* atom = atom_trie_value->get_atom();
-    if (!Atom::is_link(*atom)) {
+    lock_guard<mutex> lock(write_mutex_);
+    return delete_link_unlocked(*load_tries(), handle, delete_link_targets);
+}
+
+bool InMemoryDB::delete_link_unlocked(const Tries& tries,
+                                      const string& handle,
+                                      bool delete_link_targets) {
+    const auto& trie = tries.atoms;
+    const auto& incoming_trie = tries.incoming;
+
+    auto atom = lookup_atom(*trie, handle);
+    if (atom == nullptr || !Atom::is_link(*atom)) {
         return false;
     }
 
-    auto link = dynamic_cast<Link*>(atom);
-    auto targets = link->targets;
+    auto link = dynamic_cast<Link*>(atom.get());
+    const auto& targets = link->targets;
 
     vector<string> targets_to_delete;
 
-    // Update incoming sets for each target
     for (const auto& target_handle : targets) {
-        this->delete_incoming_set(target_handle, handle);
+        remove_from_handle_set(*incoming_trie, target_handle, handle);
 
         if (delete_link_targets) {
-            // Check if target has other incoming links
-            auto incoming_set_trie_value =
-                dynamic_cast<HandleSetTrieValue*>(this->incoming_sets_trie_->lookup(target_handle));
-            if (incoming_set_trie_value == NULL || incoming_set_trie_value->empty()) {
-                // No other references, mark for deletion
+            // remove_from_handle_set drops entries that become empty, so a missing
+            // entry means the target has no remaining incoming links.
+            if (lookup_handle_set(*incoming_trie, target_handle) == nullptr) {
                 targets_to_delete.push_back(target_handle);
             }
         }
     }
 
-    // Remove from pattern index
-    vector<string> pattern_handles = this->match_pattern_index_schema(link);
+    vector<string> pattern_handles = this->match_pattern_index_schema_unlocked(link);
     for (const auto& pattern_handle : pattern_handles) {
-        this->delete_pattern(pattern_handle, handle);
+        remove_from_handle_set(*tries.patterns, pattern_handle, handle);
     }
 
-    // Clear the value in the trie (set to NULL)
-    this->atoms_trie_->remove(handle);
+    trie->remove(handle);
 
-    // Release locks before calling delete_atom to avoid deadlock
-    // Delete targets that have no other incoming links
     for (const auto& target_handle : targets_to_delete) {
-        this->delete_atom(target_handle, delete_link_targets);
+        this->delete_atom_unlocked(tries, target_handle, delete_link_targets);
     }
 
     return true;
 }
 
 uint InMemoryDB::delete_atoms(const vector<string>& handles, bool delete_link_targets) {
+    lock_guard<mutex> lock(write_mutex_);
+    auto tries = load_tries();
     uint deleted_count = 0;
     for (const auto& handle : handles) {
-        if (this->delete_atom(handle, delete_link_targets)) {
+        if (this->delete_atom_unlocked(*tries, handle, delete_link_targets)) {
             deleted_count++;
         }
     }
@@ -526,9 +569,11 @@ uint InMemoryDB::delete_atoms(const vector<string>& handles, bool delete_link_ta
 }
 
 uint InMemoryDB::delete_nodes(const vector<string>& handles, bool delete_link_targets) {
+    lock_guard<mutex> lock(write_mutex_);
+    auto tries = load_tries();
     uint deleted_count = 0;
     for (const auto& handle : handles) {
-        if (this->delete_node(handle, delete_link_targets)) {
+        if (this->delete_node_unlocked(*tries, handle, delete_link_targets)) {
             deleted_count++;
         }
     }
@@ -536,106 +581,86 @@ uint InMemoryDB::delete_nodes(const vector<string>& handles, bool delete_link_ta
 }
 
 uint InMemoryDB::delete_links(const vector<string>& handles, bool delete_link_targets) {
+    lock_guard<mutex> lock(write_mutex_);
+    auto tries = load_tries();
     uint deleted_count = 0;
     for (const auto& handle : handles) {
-        if (this->delete_link(handle, delete_link_targets)) {
+        if (this->delete_link_unlocked(*tries, handle, delete_link_targets)) {
             deleted_count++;
         }
     }
     return deleted_count;
 }
 
-size_t InMemoryDB::node_count() const { RAISE_ERROR("node_count() is not implemented yet"); }
-
-size_t InMemoryDB::link_count() const { RAISE_ERROR("link_count() is not implemented yet"); }
-
-size_t InMemoryDB::atom_count() const {
-    auto size = this->atoms_trie_->size();
-    return static_cast<size_t>(size);
+void InMemoryDB::drop_all() {
+    lock_guard<mutex> lock(write_mutex_);
+    // Publish a fresh bundle instead of deleting in place: concurrent readers keep
+    // their pre-swap snapshots alive until they finish.
+    store_tries(make_tries());
 }
 
 void InMemoryDB::re_index_patterns(bool flush_patterns) {
+    lock_guard<mutex> lock(write_mutex_);
+
+    auto current = load_tries();
+    // Build into a target trie, then publish. With flush_patterns the target is a fresh
+    // trie swapped in at the end, so readers see either the old or the fully rebuilt
+    // index — never a torn/deleted one.
+    shared_ptr<HandleTrie> target = flush_patterns ? make_trie() : current->patterns;
+
+    struct ReIndexCtx {
+        InMemoryDB* db;
+        HandleTrie* target;
+    } ctx{this, target.get()};
+
+    current->atoms->traverse(
+        false,
+        [](HandleTrie::TrieNode* node, void* data) -> bool {
+            auto* ctx = static_cast<ReIndexCtx*>(data);
+            if (node->value == nullptr) {
+                return false;
+            }
+            auto atom_trie_value = dynamic_cast<AtomTrieValue*>(node->value);
+            if (atom_trie_value == nullptr) {
+                return false;
+            }
+            // Safe: traverse() runs this visitor under the node lock.
+            Atom* atom = atom_trie_value->get_atom().get();
+            if (!Atom::is_link(*atom)) {
+                return false;
+            }
+            Link* link = dynamic_cast<Link*>(atom);
+            string link_handle = link->handle();
+            auto pattern_handles = ctx->db->match_pattern_index_schema_unlocked(link);
+            for (const auto& pattern_handle : pattern_handles) {
+                add_to_handle_set(*ctx->target, pattern_handle, link_handle);
+            }
+            return false;
+        },
+        &ctx);
+
     if (flush_patterns) {
-        // Clear all pattern index entries by deleting and recreating the trie
-        this->pattern_index_trie_->traverse(
-            false,
-            [](HandleTrie::TrieNode* node, void* data) -> bool {
-                if (node->value != NULL) {
-                    delete node->value;
-                    node->value = NULL;
-                }
-                return false;  // Continue traversal
-            },
-            NULL);
-        delete this->pattern_index_trie_;
-        this->pattern_index_trie_ = new HandleTrie(HANDLE_HASH_SIZE - 1);
+        auto next = make_shared<Tries>(*current);
+        next->patterns = std::move(target);
+        store_tries(std::move(next));
     }
-
-    // Re-index all links
-    ReIndexData index_data;
-    index_data.db = this;
-    this->atoms_trie_->traverse(false, re_index_visitor, &index_data);
 }
 
-// Helper methods
 void InMemoryDB::add_pattern(const string& pattern_handle, const string& atom_handle) {
-    auto pattern_trie_value =
-        dynamic_cast<HandleSetTrieValue*>(this->pattern_index_trie_->lookup(pattern_handle));
-    if (pattern_trie_value == NULL) {
-        // Create new HandleSetTrieValue
-        pattern_trie_value = new HandleSetTrieValue();
-        pattern_trie_value->add_handle(atom_handle);
-        this->pattern_index_trie_->insert(pattern_handle, pattern_trie_value);
-    } else {
-        // Add to existing set
-        pattern_trie_value->add_handle(atom_handle);
-    }
+    lock_guard<mutex> lock(write_mutex_);
+    add_to_handle_set(*load_tries()->patterns, pattern_handle, atom_handle);
 }
 
-void InMemoryDB::delete_pattern(const string& pattern_handle, const string& atom_handle) {
-    auto pattern_trie_value =
-        dynamic_cast<HandleSetTrieValue*>(this->pattern_index_trie_->lookup(pattern_handle));
-    if (pattern_trie_value != NULL) {
-        pattern_trie_value->remove_handle(atom_handle);
-        if (pattern_trie_value->empty()) {
-            // Remove the pattern entry from the trie
-            this->pattern_index_trie_->remove(pattern_handle);
-        }
-    }
-}
-
-void InMemoryDB::add_incoming_set(const string& target_handle, const string& link_handle) {
-    auto incoming_set_trie_value =
-        dynamic_cast<HandleSetTrieValue*>(this->incoming_sets_trie_->lookup(target_handle));
-    if (incoming_set_trie_value == NULL) {
-        // Create new HandleSetTrieValue
-        incoming_set_trie_value = new HandleSetTrieValue();
-        incoming_set_trie_value->add_handle(link_handle);
-        this->incoming_sets_trie_->insert(target_handle, incoming_set_trie_value);
-    } else {
-        // Add to existing set
-        incoming_set_trie_value->add_handle(link_handle);
-    }
-}
-
-void InMemoryDB::delete_incoming_set(const string& target_handle, const string& link_handle) {
-    auto incoming_set_trie_value =
-        dynamic_cast<HandleSetTrieValue*>(this->incoming_sets_trie_->lookup(target_handle));
-    if (incoming_set_trie_value != NULL) {
-        incoming_set_trie_value->remove_handle(link_handle);
-        if (incoming_set_trie_value->empty()) {
-            // Remove the incoming set entry from the trie
-            this->incoming_sets_trie_->remove(target_handle);
-        }
-    }
-}
-
-void InMemoryDB::update_incoming_set(const string& target_handle, const string& link_handle) {
-    this->delete_incoming_set(target_handle, link_handle);
+vector<string> InMemoryDB::match_pattern_index_schema(const Link* link) {
+    // Serialize against add_pattern_index_schema: pattern_index_schema_map is a plain
+    // std::map, so unguarded concurrent read/write would be a data race.
+    lock_guard<mutex> lock(write_mutex_);
+    return match_pattern_index_schema_unlocked(link);
 }
 
 void InMemoryDB::add_pattern_index_schema(const string& tokens,
                                           const vector<vector<string>>& index_entries) {
+    lock_guard<mutex> lock(write_mutex_);
     auto tokens_vector = Utils::split(tokens, ' ');
     LinkSchema link_schema(tokens_vector);
 
@@ -644,14 +669,13 @@ void InMemoryDB::add_pattern_index_schema(const string& tokens,
     this->pattern_index_schema_next_priority++;
 }
 
-vector<string> InMemoryDB::match_pattern_index_schema(const Link* link) {
+vector<string> InMemoryDB::match_pattern_index_schema_unlocked(const Link* link) {
     vector<string> pattern_handles;
 
     const auto& map_ref = this->pattern_index_schema_map;
 
     const map<int, tuple<vector<string>, vector<vector<string>>>>* iter_map = &map_ref;
 
-    // When map is empty, use a default map
     map<int, tuple<vector<string>, vector<vector<string>>>> default_map;
     if (map_ref.empty()) {
         vector<string> tokens = {"LINK_TEMPLATE", "Expression", to_string(link->arity())};
@@ -659,7 +683,7 @@ vector<string> InMemoryDB::match_pattern_index_schema(const Link* link) {
             tokens.push_back("VARIABLE");
             tokens.push_back("v" + to_string(i + 1));
         }
-        auto index_entries = this->index_entries_combinations(link->arity());
+        auto index_entries = index_entries_combinations(link->arity());
         default_map = {{1, make_tuple(move(tokens), move(index_entries))}};
         iter_map = &default_map;
     }
@@ -675,6 +699,8 @@ vector<string> InMemoryDB::match_pattern_index_schema(const Link* link) {
         auto link_schema = LinkSchema(get<0>(value));
         auto index_entries = get<1>(value);
         Assignment assignment;
+        // LinkSchema::match may call back into get_atom on this DB — reads take no
+        // write_mutex_, so no recursion problem.
         bool match = link_schema.match(*(Link*) link, assignment, *this);
         if (match) {
             for (const auto& index_entry : index_entries) {
@@ -697,29 +723,8 @@ vector<string> InMemoryDB::match_pattern_index_schema(const Link* link) {
                 string hash = Hasher::link_handle(link->type, hash_entries);
                 pattern_handles.push_back(hash);
             }
-            // We only need to find the first match
             break;
         }
     }
     return pattern_handles;
-}
-
-// Combination of "vX" and "*" for a given arity
-vector<vector<string>> InMemoryDB::index_entries_combinations(unsigned int arity) {
-    vector<vector<string>> index_entries;
-    unsigned int total = 1 << arity;  // 2^arity
-
-    // Skip mask == 0 (all concrete): identical to the link's own handle; no separate pattern index.
-    for (unsigned int mask = 1; mask < total; ++mask) {
-        vector<string> index_entry;
-        for (unsigned int i = 0; i < arity; ++i) {
-            if (mask & (1 << i))
-                index_entry.push_back("*");
-            else
-                index_entry.push_back("v" + to_string(i + 1));
-        }
-        index_entries.push_back(index_entry);
-    }
-
-    return index_entries;
 }

@@ -45,7 +45,6 @@ int main(int argc, char* argv[]) {
 
         JsonConfig json_config = JsonConfigParser::load(cmd_args[Helper::CONFIG]);
         SystemParametersSingleton::init(json_config);
-
         if (cmd_args.find(Helper::ENDPOINT) == cmd_args.end()) {
             cmd_args[Helper::ENDPOINT] = "localhost:40000";
         }
@@ -69,6 +68,12 @@ int main(int argc, char* argv[]) {
                 cmd_args[Helper::ATTENTION_BROKER_ENDPOINT] = attention.get<string>();
             }
         }
+
+        unsigned int seed = 0;
+        if (cmd_args.find(Helper::SEED) != cmd_args.end()) {
+            seed = Utils::string_to_uint(cmd_args[Helper::SEED]);
+        }
+        Utils::init_random(seed);
 
         Helper::merge_params_from_config(cmd_args, json_config);
 
@@ -225,7 +230,7 @@ int main(int argc, char* argv[]) {
             shared_ptr<atomdb_broker::AtomDBProxy> atomdb_proxy =
                 dynamic_pointer_cast<atomdb_broker::AtomDBProxy>(proxy);
             if (action == atomdb_broker::AtomDBProxy::ADD_ATOMS) {
-                vector<string> response = atomdb_proxy->add_atoms(tokens, false);
+                vector<string> response = atomdb_proxy->add_atoms(tokens);
                 if (response.empty()) {
                     cout << "No answers" << endl;
                 } else {

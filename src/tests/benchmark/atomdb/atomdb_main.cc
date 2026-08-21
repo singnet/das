@@ -13,7 +13,6 @@
 
 #include "AtomDB.h"
 #include "JsonConfig.h"
-#include "MorkDB.h"
 #include "RedisMongoDB.h"
 #include "Utils.h"
 #include "atomdb_operations.h"
@@ -52,13 +51,9 @@ map<string, Metrics> global_metrics;
 void setup() { RedisMongoDB::initialize_statics(); }
 
 shared_ptr<AtomDB> factory_create_atomdb(string type, const JsonConfig& atomdb_config) {
-    if (type == "redismongodb") {
-        return make_shared<RedisMongoDB>("", false, atomdb_config);
-    } else if (type == "morkdb") {
-        return make_shared<MorkDB>("", atomdb_config);
-    } else {
-        RAISE_ERROR("Unknown AtomDB type: " + type);
-    }
+    JsonConfig config = atomdb_config;
+    config["type"] = type;
+    return AtomDBFactory::create(config);
 }
 
 int main(int argc, char** argv) {

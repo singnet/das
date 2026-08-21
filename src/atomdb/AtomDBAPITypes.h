@@ -1,14 +1,18 @@
 #pragma once
 
 #include <algorithm>
+#include <map>
 #include <optional>
+#include <vector>
 
 #include "Link.h"
+#include "LinkSchema.h"
 #include "Node.h"
 #include "Utils.h"
 
 using namespace std;
 using namespace commons;
+using namespace atoms;
 
 namespace atomdb {
 namespace atomdb_api_types {
@@ -65,6 +69,55 @@ class AtomDocument {
     virtual bool get_bool(const string& key) = 0;
     virtual unsigned int get_size(const string& array_key) = 0;
     virtual bool contains(const string& key) = 0;
+};
+
+class AccessPermissionEntry {
+   public:
+    LinkSchema schema;
+    bool read;
+    bool write;
+
+    AccessPermissionEntry(const LinkSchema& schema, bool read, bool write)
+        : schema(schema), read(read), write(write) {}
+
+    AccessPermissionEntry(const vector<string>& tokens, bool read, bool write)
+        : schema(tokens), read(read), write(write) {}
+};
+
+class PublicKey {
+   public:
+    vector<string> keys;
+    map<string, unsigned int> peer_to_key;
+
+    bool is_single_key() const { return this->peer_to_key.empty(); }
+
+    explicit PublicKey(const string& key) : keys{key} {}
+    explicit PublicKey(const map<string, string>& peer_keys) {
+        this->keys.reserve(peer_keys.size());
+        for (const auto& [peer, key] : peer_keys) {
+            this->peer_to_key[peer] = this->keys.size();
+            this->keys.push_back(key);
+        }
+    }
+};
+
+class AccessPermissionDocument {
+   public:
+    string access_key;
+    bool full_access;
+    vector<AccessPermissionEntry> entries;
+
+    AccessPermissionDocument(const string& access_key,
+                             bool full_access,
+                             const vector<AccessPermissionEntry>& entries)
+        : access_key(access_key), full_access(full_access), entries(entries) {
+        if (full_access && !entries.empty()) {
+            RAISE_ERROR("entries must be empty when full_access is true");
+        }
+        if (!full_access && entries.empty()) {
+            RAISE_ERROR("entries must be non-empty when full_access is false");
+        }
+    }
 };
 
 }  // namespace atomdb_api_types

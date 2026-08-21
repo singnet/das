@@ -56,5 +56,6 @@ cc_library(
         ":redis_mongodb_api_types",
         "//atomdb",
         "//commons:commons_lib",
+        "@nlohmann_json//:json",
     ],
 )

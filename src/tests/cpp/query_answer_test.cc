@@ -689,3 +689,9 @@ TEST(QueryAnswer, rewrite_query) {
     answer.rewrite_query(original_query, replacements, new_query);
     EXPECT_EQ(expected, new_query);
 }
+
+int main(int argc, char** argv) {
+    ::testing::InitGoogleTest(&argc, argv);
+    Utils::init_random(0);
+    return RUN_ALL_TESTS();
+}

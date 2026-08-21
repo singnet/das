@@ -34,10 +34,10 @@ inline AdapterDbType parse_adapter_db_type(const string& value) {
 
 class AdapterDB : public AtomDB {
    public:
-    explicit AdapterDB(const JsonConfig& config);
-    AdapterDB(const JsonConfig& config, shared_ptr<AtomDB> backend);  // for testing
+    AdapterDB(const JsonConfig& config, shared_ptr<AtomDB> backend, const string& context = "");
     ~AdapterDB() override;
 
+    static const string MONGODB_DB_NAME;
     static string MONGODB_ADAPTER_COLLECTION_NAME;
 
     /**
@@ -110,13 +110,23 @@ class AdapterDB : public AtomDB {
     size_t link_count() const override;
     size_t atom_count() const override;
 
+    /**
+     * Forwards the lookup to the backend once it is ready.
+     * Returns an empty vector if the backend has no matching permissions.
+     */
+    vector<atomdb_api_types::AccessPermissionDocument> get_access_permissions(
+        const atomdb_api_types::PublicKey& public_key) const override;
+
    private:
     AdapterDbType adapter_type;
+    string context;
     JsonConfig config;
     shared_ptr<AtomDB> atomdb_backend;
     atomic<bool> backend_ready{false};
     mutex mtx;
     mongocxx::pool* mongodb_pool;
+
+    string mongodb_db_name() const;
 
     void initialize(bool skip_atomdb_backend_empty = false);
 
@@ -127,11 +137,6 @@ class AdapterDB : public AtomDB {
      * database and mapping files.
      */
     void persistence_setup();
-
-    /**
-     * @brief Initializes the AtomDB backend according to the configuration.
-     */
-    void atomdb_backend_setup();
 
     bool is_backend_ready() const;
 

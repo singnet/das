@@ -3,9 +3,12 @@
 #include <gtest/gtest.h>
 
 #include <algorithm>
+#include <atomic>
 #include <map>
 #include <memory>
+#include <set>
 #include <string>
+#include <thread>
 #include <vector>
 
 #include "Assignment.h"
@@ -543,6 +546,96 @@ TEST_F(InMemoryDBTest, AtomsCount) {
     EXPECT_EQ(db->empty(), false);
 }
 
+TEST_F(InMemoryDBTest, GetAllAtoms) {
+    auto node1 = new Node("Symbol", "Node1");
+    auto node2 = new Node("Symbol", "Node2");
+    auto similarity = new Node("Symbol", "Similarity");
+
+    string node1_handle = db->add_node(node1);
+    string node2_handle = db->add_node(node2);
+    string similarity_handle = db->add_node(similarity);
+
+    auto link = new Link("Expression", {similarity_handle, node1_handle, node2_handle});
+    string link_handle = db->add_link(link);
+
+    auto atoms = db->get_all_atoms();
+    EXPECT_EQ(atoms.size(), 4u);
+
+    set<string> handles;
+    for (const auto& atom : atoms) {
+        handles.insert(atom->handle());
+    }
+    EXPECT_TRUE(handles.count(node1_handle) > 0);
+    EXPECT_TRUE(handles.count(node2_handle) > 0);
+    EXPECT_TRUE(handles.count(similarity_handle) > 0);
+    EXPECT_TRUE(handles.count(link_handle) > 0);
+}
+
+TEST_F(InMemoryDBTest, GetAllAtomsReturnsIndependentClones) {
+    auto node = new Node("Symbol", "Node1");
+    string handle = db->add_node(node);
+
+    auto atoms = db->get_all_atoms();
+    ASSERT_EQ(atoms.size(), 1u);
+    EXPECT_EQ(atoms[0]->handle(), handle);
+
+    db->drop_all();
+
+    // Clones returned earlier remain valid after the DB is cleared.
+    EXPECT_EQ(atoms[0]->handle(), handle);
+    EXPECT_EQ(db->get_atom(handle), nullptr);
+}
+
+TEST_F(InMemoryDBTest, DropAllClearsAtomsAndIndexes) {
+    auto human = new Node("Symbol", "\"human\"");
+    auto monkey = new Node("Symbol", "\"monkey\"");
+    auto mammal = new Node("Symbol", "\"mammal\"");
+    auto inheritance = new Node("Symbol", "Inheritance");
+
+    string human_handle = db->add_node(human);
+    string monkey_handle = db->add_node(monkey);
+    string mammal_handle = db->add_node(mammal);
+    string inheritance_handle = db->add_node(inheritance);
+
+    auto link1 = new Link("Expression", {inheritance_handle, human_handle, mammal_handle});
+    auto link2 = new Link("Expression", {inheritance_handle, monkey_handle, mammal_handle});
+    string link1_handle = db->add_link(link1);
+    string link2_handle = db->add_link(link2);
+
+    LinkSchema link_schema({"LINK_TEMPLATE",
+                            "Expression",
+                            "3",
+                            "NODE",
+                            "Symbol",
+                            "Inheritance",
+                            "VARIABLE",
+                            "x",
+                            "NODE",
+                            "Symbol",
+                            "\"mammal\""});
+
+    EXPECT_EQ(db->query_for_pattern(link_schema)->size(), 2);
+    EXPECT_EQ(db->query_for_incoming_set(human_handle)->size(), 1);
+    EXPECT_NE(db->query_for_targets(link1_handle), nullptr);
+
+    db->drop_all();
+
+    EXPECT_EQ(db->atom_count(), 0u);
+    EXPECT_EQ(db->empty(), true);
+    EXPECT_EQ(db->get_atom(human_handle), nullptr);
+    EXPECT_EQ(db->get_atom(link1_handle), nullptr);
+    EXPECT_EQ(db->query_for_pattern(link_schema)->size(), 0);
+    EXPECT_EQ(db->query_for_incoming_set(human_handle)->size(), 0);
+    EXPECT_EQ(db->query_for_targets(link1_handle), nullptr);
+}
+
+TEST_F(InMemoryDBTest, DropAllOnEmptyDatabase) {
+    EXPECT_EQ(db->atom_count(), 0u);
+    EXPECT_EQ(db->get_all_atoms().size(), 0u);
+    db->drop_all();
+    EXPECT_EQ(db->atom_count(), 0u);
+}
+
 // =============================================================================
 // HandleSetInMemory / HandleSetInMemoryIterator tests
 //
@@ -611,6 +704,38 @@ TEST(HandleSetInMemoryTest, AppendPreservesMetadataFromBothSets) {
     // Metadata merged in from the appended set survives.
     EXPECT_EQ(first->get_metta_expressions_by_handle(handle_b)["$b"], "(Symbol b)");
     EXPECT_EQ(first->get_assignments_by_handle(handle_b).get("$b"), "value_b");
+}
+
+TEST_F(InMemoryDBTest, UpsertReplacesCustomAttributes) {
+    auto a = new Node("Symbol", "\"a\"");
+    auto b = new Node("Symbol", "\"b\"");
+    auto similarity = new Node("Symbol", "Similarity");
+    string a_h = db->add_node(a);
+    string b_h = db->add_node(b);
+    string sim_h = db->add_node(similarity);
+
+    auto weak = new Link("Expression", {sim_h, a_h, b_h}, true, Properties{{"strength", 0.5}});
+    string handle = db->add_link(weak);
+    auto got_weak = db->get_atom(handle);
+    ASSERT_NE(got_weak, nullptr);
+    EXPECT_DOUBLE_EQ(got_weak->custom_attributes.get_or<double>("strength", -1.0), 0.5);
+
+    auto strong = new Link("Expression", {sim_h, a_h, b_h}, true, Properties{{"strength", 0.9}});
+    EXPECT_EQ(db->add_link(strong), handle);
+    auto got_strong = db->get_atom(handle);
+    ASSERT_NE(got_strong, nullptr);
+    EXPECT_DOUBLE_EQ(got_strong->custom_attributes.get_or<double>("strength", -1.0), 0.9);
+
+    // Incoming set must not grow from the upsert (same content-addressed handle/targets).
+    auto incoming = db->query_for_incoming_set(a_h);
+    ASSERT_NE(incoming, nullptr);
+    EXPECT_EQ(incoming->size(), 1u);
+
+    delete weak;
+    delete strong;
+    delete a;
+    delete b;
+    delete similarity;
 }
 
 TEST(HandleSetInMemoryTest, IteratorPointerOutlivesIterator) {
@@ -975,6 +1100,280 @@ TEST_F(InMemoryDBTest, AddLinksSkipIfExistsMergerReturnsEmptyHandleSlots) {
     delete existing;
     delete fresh;
     delete collision;
+}
+
+// Regression test: reads must stay safe (no use-after-free / torn reads) while writers
+// upsert and delete the very atoms and index entries being read. Readers snapshot atoms
+// (shared_ptr ref) and handle sets (copies) under the trie node lock; before that fix
+// this test crashed or triggered TSAN/ASAN reports.
+TEST_F(InMemoryDBTest, ConcurrentReadsSurviveDeletesAndUpserts) {
+    constexpr int kNodes = 8;
+    constexpr int kWriterIterations = 200;
+    constexpr int kReaderThreads = 4;
+
+    vector<string> node_handles;
+    for (int i = 0; i < kNodes; ++i) {
+        Node node("Symbol", "\"concurrent_node_" + to_string(i) + "\"");
+        node_handles.push_back(db->add_node(&node));
+    }
+
+    auto add_links = [&]() {
+        vector<string> link_handles;
+        for (int i = 0; i < kNodes; ++i) {
+            Link link("Expression", {node_handles[i], node_handles[(i + 1) % kNodes]});
+            link_handles.push_back(db->add_link(&link));
+        }
+        return link_handles;
+    };
+    vector<string> link_handles = add_links();  // stable: content-addressed handles
+
+    atomic<bool> stop{false};
+    atomic<int> reader_failures{0};
+
+    auto reader = [&]() {
+        while (!stop.load(memory_order_acquire)) {
+            for (int i = 0; i < kNodes; ++i) {
+                auto atom = db->get_atom(link_handles[i]);
+                if (atom != nullptr && atom->handle() != link_handles[i]) {
+                    reader_failures.fetch_add(1);
+                }
+                db->link_exists(link_handles[i]);
+                db->query_for_targets(link_handles[i]);
+                db->query_for_incoming_set(node_handles[i]);
+            }
+            db->get_all_atoms();
+        }
+    };
+
+    vector<thread> readers;
+    for (int t = 0; t < kReaderThreads; ++t) {
+        readers.emplace_back(reader);
+    }
+
+    // Writer: repeatedly upsert (in-place replace) and delete the links being read.
+    for (int iter = 0; iter < kWriterIterations; ++iter) {
+        add_links();  // upsert: AtomTrieValue::merge replaces the stored Link
+        for (int i = 0; i < kNodes; ++i) {
+            db->delete_link(link_handles[i], false);
+        }
+        add_links();
+    }
+
+    stop.store(true, memory_order_release);
+    for (auto& t : readers) {
+        t.join();
+    }
+
+    EXPECT_EQ(reader_failures.load(), 0);
+    EXPECT_EQ(db->atom_count(), static_cast<size_t>(2 * kNodes));
+    for (int i = 0; i < kNodes; ++i) {
+        EXPECT_TRUE(db->link_exists(link_handles[i]));
+        EXPECT_EQ(db->query_for_incoming_set(node_handles[i])->size(), 2u);
+    }
+}
+
+// Covers the store_tries() publish path of drop_all(): readers holding a pre-swap
+// snapshot must keep a live trie (no use-after-free) while the writer swaps in fresh
+// bundles and repopulates. Only swap-surviving invariants are asserted — a reader may
+// legitimately see an empty or partially repopulated DB at any point.
+TEST_F(InMemoryDBTest, ConcurrentReadsSurviveDropAll) {
+    constexpr int kNodes = 8;
+    constexpr int kWriterIterations = 100;
+    constexpr int kReaderThreads = 4;
+
+    // Handles are content-addressed, so both vectors are computed once and never
+    // mutated again — readers index into them concurrently.
+    vector<string> node_handles;
+    for (int i = 0; i < kNodes; ++i) {
+        Node node("Symbol", "\"drop_all_node_" + to_string(i) + "\"");
+        node_handles.push_back(db->add_node(&node));
+    }
+    auto add_links = [&]() {
+        vector<string> link_handles;
+        for (int i = 0; i < kNodes; ++i) {
+            Link link("Expression", {node_handles[i], node_handles[(i + 1) % kNodes]});
+            link_handles.push_back(db->add_link(&link));
+        }
+        return link_handles;
+    };
+    const vector<string> link_handles = add_links();
+
+    atomic<bool> stop{false};
+    atomic<bool> go{false};
+    atomic<bool> writer_done{false};
+    atomic<int> readers_ready{0};
+    atomic<int> writer_publishes{0};
+    atomic<int> reader_failures{0};
+    atomic<int> overlapping_batches{0};
+
+    auto reader = [&]() {
+        readers_ready.fetch_add(1);
+        while (!go.load(memory_order_acquire)) {
+            this_thread::yield();
+        }
+        while (!stop.load(memory_order_acquire)) {
+            for (int i = 0; i < kNodes; ++i) {
+                auto atom = db->get_atom(link_handles[i]);
+                if (atom != nullptr && atom->handle() != link_handles[i]) {
+                    reader_failures.fetch_add(1);
+                }
+                db->query_for_targets(link_handles[i]);
+                db->query_for_incoming_set(node_handles[i]);
+            }
+            for (const auto& atom : db->get_all_atoms()) {
+                if (atom == nullptr) {
+                    reader_failures.fetch_add(1);
+                }
+            }
+            // Batch completed after at least one publish while the writer was still
+            // publishing: it provably overlapped the publication phase.
+            if (writer_publishes.load(memory_order_acquire) > 0 &&
+                !writer_done.load(memory_order_acquire)) {
+                overlapping_batches.fetch_add(1);
+            }
+        }
+    };
+
+    vector<thread> readers;
+    for (int t = 0; t < kReaderThreads; ++t) {
+        readers.emplace_back(reader);
+    }
+
+    // Start gate: make sure every reader is spinning before the writer starts, so
+    // reads genuinely overlap the drop_all() publications below.
+    while (readers_ready.load(memory_order_acquire) < kReaderThreads) {
+        this_thread::yield();
+    }
+    go.store(true, memory_order_release);
+
+    // Writer: alternate wiping everything (publishes a fresh Tries bundle) with
+    // repopulating the same graph. Keep publishing (bounded) until at least one
+    // reader batch is seen overlapping, so the overlap assertion cannot be flaky.
+    auto publish_once = [&]() {
+        db->drop_all();
+        for (int i = 0; i < kNodes; ++i) {
+            Node node("Symbol", "\"drop_all_node_" + to_string(i) + "\"");
+            db->add_node(&node);
+        }
+        add_links();
+        writer_publishes.fetch_add(1, memory_order_release);
+    };
+    for (int iter = 0; iter < kWriterIterations; ++iter) {
+        publish_once();
+    }
+    for (int extra = 0;
+         overlapping_batches.load(memory_order_acquire) == 0 && extra < 10 * kWriterIterations;
+         ++extra) {
+        publish_once();
+    }
+
+    writer_done.store(true, memory_order_release);
+    stop.store(true, memory_order_release);
+    for (auto& t : readers) {
+        t.join();
+    }
+
+    EXPECT_EQ(reader_failures.load(), 0);
+    EXPECT_GT(overlapping_batches.load(), 0);  // reads really raced the publications
+    EXPECT_EQ(db->atom_count(), static_cast<size_t>(2 * kNodes));
+    for (int i = 0; i < kNodes; ++i) {
+        EXPECT_TRUE(db->link_exists(link_handles[i]));
+    }
+}
+
+// Covers the store_tries() publish path of re_index_patterns(true): the pattern index
+// is rebuilt into a fresh trie and swapped in while readers query it. Since the atom
+// set never changes, readers must always observe a complete index — either the old or
+// the fully rebuilt one, never a torn/partial one.
+TEST_F(InMemoryDBTest, ConcurrentPatternQueriesSurviveReIndex) {
+    constexpr int kNodes = 8;
+    constexpr int kWriterIterations = 200;
+    constexpr int kReaderThreads = 4;
+
+    vector<string> node_handles;
+    for (int i = 0; i < kNodes; ++i) {
+        Node node("Symbol", "\"reindex_node_" + to_string(i) + "\"");
+        node_handles.push_back(db->add_node(&node));
+    }
+    for (int i = 0; i < kNodes; ++i) {
+        Link link("Expression", {node_handles[i], node_handles[(i + 1) % kNodes]});
+        db->add_link(&link);
+    }
+
+    atomic<bool> stop{false};
+    atomic<bool> go{false};
+    atomic<bool> writer_done{false};
+    atomic<int> readers_ready{0};
+    atomic<int> writer_publishes{0};
+    atomic<int> reader_failures{0};
+    atomic<int> overlapping_queries{0};
+
+    auto reader = [&]() {
+        // Pattern (node_0, *): exactly one link in the ring has node_0 as first target.
+        LinkSchema link_schema({"LINK_TEMPLATE",
+                                "Expression",
+                                "2",
+                                "NODE",
+                                "Symbol",
+                                "\"reindex_node_0\"",
+                                "VARIABLE",
+                                "x"});
+        readers_ready.fetch_add(1);
+        while (!go.load(memory_order_acquire)) {
+            this_thread::yield();
+        }
+        while (!stop.load(memory_order_acquire)) {
+            if (db->query_for_pattern(link_schema)->size() != 1) {
+                reader_failures.fetch_add(1);
+            }
+            // Query completed after at least one publish while the writer was still
+            // publishing: it provably overlapped the rebuild/swap phase.
+            if (writer_publishes.load(memory_order_acquire) > 0 &&
+                !writer_done.load(memory_order_acquire)) {
+                overlapping_queries.fetch_add(1);
+            }
+        }
+    };
+
+    vector<thread> readers;
+    for (int t = 0; t < kReaderThreads; ++t) {
+        readers.emplace_back(reader);
+    }
+
+    // Start gate: make sure every reader is spinning before the writer starts, so
+    // queries genuinely overlap the pattern-trie swaps below.
+    while (readers_ready.load(memory_order_acquire) < kReaderThreads) {
+        this_thread::yield();
+    }
+    go.store(true, memory_order_release);
+
+    // Keep publishing (bounded) until at least one query is seen overlapping, so the
+    // overlap assertion cannot be flaky.
+    for (int iter = 0; iter < kWriterIterations; ++iter) {
+        db->re_index_patterns(true);
+        writer_publishes.fetch_add(1, memory_order_release);
+    }
+    for (int extra = 0;
+         overlapping_queries.load(memory_order_acquire) == 0 && extra < 10 * kWriterIterations;
+         ++extra) {
+        db->re_index_patterns(true);
+        writer_publishes.fetch_add(1, memory_order_release);
+    }
+
+    writer_done.store(true, memory_order_release);
+    stop.store(true, memory_order_release);
+    for (auto& t : readers) {
+        t.join();
+    }
+
+    EXPECT_EQ(reader_failures.load(), 0);
+    EXPECT_GT(overlapping_queries.load(), 0);  // queries really raced the swaps
+    EXPECT_EQ(db->atom_count(), static_cast<size_t>(2 * kNodes));
+}
+
+TEST_F(InMemoryDBTest, GetAccessPermissionsReturnsEmpty) {
+    auto permissions = db->get_access_permissions(PublicKey("any_key"));
+    EXPECT_TRUE(permissions.empty());
 }
 
 int main(int argc, char** argv) {

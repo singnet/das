@@ -1,13 +1,19 @@
 #include <gtest/gtest.h>
 
 #include <atomic>
+#include <bsoncxx/builder/basic/document.hpp>
+#include <bsoncxx/builder/basic/kvp.hpp>
 #include <cstring>
 #include <iostream>
+#include <map>
 #include <memory>
+#include <nlohmann/json.hpp>
+#include <stdexcept>
 #include <thread>
 #include <vector>
 
 #include "Atom.h"
+#include "AtomDBFactory.h"
 #include "AtomDBSingleton.h"
 #include "Hasher.h"
 #include "Link.h"
@@ -19,8 +25,10 @@
 #include "TestAtomDBJsonConfig.h"
 #include "UntypedVariable.h"
 #include "Wildcard.h"
+#include "expression_hasher.h"
 
 using namespace atomdb;
+using namespace atomdb::atomdb_api_types;
 using namespace atoms;
 using namespace std;
 
@@ -37,8 +45,9 @@ class MockDecoder : public HandleDecoder {
 class RedisMongoDBTestEnvironment : public ::testing::Environment {
    public:
     void SetUp() override {
-        auto atomdb = new RedisMongoDB("test_", false, test_atomdb_json_config());
-        AtomDBSingleton::provide(shared_ptr<AtomDB>(atomdb));
+        auto atomdb = AtomDBFactory::create(test_atomdb_json_config(), "test_");
+        ASSERT_NE(dynamic_pointer_cast<RedisMongoDB>(atomdb), nullptr);
+        AtomDBSingleton::provide(atomdb);
         load_animals_data();
     }
 
@@ -1155,6 +1164,41 @@ TEST_F(RedisMongoDBTest, AddLinksWithDuplicateTargets) {
     EXPECT_EQ(db->delete_link(link->handle(), true), true);
 }
 
+TEST_F(RedisMongoDBTest, CompositeHashDisabledSkipsTargetChecks) {
+    // Default (composite_type_enabled=true) rejects links whose targets are missing locally.
+    auto missing_a = new Node("Symbol", "MissingCompositeTargetA");
+    auto missing_b = new Node("Symbol", "MissingCompositeTargetB");
+    auto implication = new Node("Symbol", "ImplicationMissingComposite");
+    auto link = new Link("Expression",
+                         {implication->handle(), missing_a->handle(), missing_b->handle()},
+                         true,
+                         Properties{{"strength", 0.833333}});
+    EXPECT_THROW(db->add_links({link}), runtime_error);
+
+    // Same Redis/Mongo namespace, composite_type_enabled=false: skip checks and persist the link.
+    auto config = test_atomdb_json_config();
+    config["composite_type_enabled"] = false;
+    auto local_db = dynamic_pointer_cast<RedisMongoDB>(AtomDBFactory::create(config, "test_"));
+    ASSERT_NE(local_db, nullptr);
+
+    auto handles = local_db->add_links({link});
+    ASSERT_EQ(handles.size(), 1);
+    EXPECT_EQ(handles[0], link->handle());
+    ASSERT_TRUE(local_db->link_exists(link->handle()));
+    EXPECT_FALSE(local_db->atom_exists(missing_a->handle()));
+    EXPECT_FALSE(local_db->atom_exists(missing_b->handle()));
+
+    auto got = local_db->get_atom(link->handle());
+    ASSERT_NE(got, nullptr);
+    EXPECT_DOUBLE_EQ(got->custom_attributes.get_or<double>("strength", -1.0), 0.833333);
+
+    EXPECT_TRUE(local_db->delete_link(link->handle(), false));
+    delete link;
+    delete missing_a;
+    delete missing_b;
+    delete implication;
+}
+
 TEST_F(RedisMongoDBTest, AtomsCount) {
     db->drop_all();
 
@@ -1190,7 +1234,8 @@ TEST_F(RedisMongoDBTest, CompositeTypeEnabledFlag) {
 
     auto config_default = test_atomdb_json_config();
     config_default.erase("composite_type_enabled");
-    auto db_default = make_shared<RedisMongoDB>("test_", false, config_default);
+    auto db_default = dynamic_pointer_cast<RedisMongoDB>(AtomDBFactory::create(config_default, "test_"));
+    ASSERT_NE(db_default, nullptr);
     EXPECT_TRUE(db_default->composite_type_enabled());
 
     vector<Node*> enabled_nodes = {new Node("Symbol", "CompositeTypeEnabled-A"),
@@ -1212,7 +1257,9 @@ TEST_F(RedisMongoDBTest, CompositeTypeEnabledFlag) {
 
     auto config_disabled = test_atomdb_json_config();
     config_disabled["composite_type_enabled"] = false;
-    auto db_disabled = make_shared<RedisMongoDB>("test_", false, config_disabled);
+    auto db_disabled =
+        dynamic_pointer_cast<RedisMongoDB>(AtomDBFactory::create(config_disabled, "test_"));
+    ASSERT_NE(db_disabled, nullptr);
     EXPECT_FALSE(db_disabled->composite_type_enabled());
 
     vector<Node*> disabled_nodes = {new Node("Symbol", "CompositeTypeDisabled-A"),
@@ -1345,6 +1392,90 @@ TEST_F(RedisMongoDBTest, TransactionalRejectedMergeStillBooksCompositeType) {
     delete existing;
     delete duplicate;
     delete nested;
+}
+
+TEST_F(RedisMongoDBTest, GetAccessPermissionsEmptyCollection) {
+    auto pool = db->get_mongo_pool();
+    auto conn = pool->acquire();
+    auto collection =
+        (*conn)[RedisMongoDB::MONGODB_DB_NAME][RedisMongoDB::MONGODB_ACCESS_PERMISSIONS_COLLECTION_NAME];
+    collection.delete_many({});
+
+    auto permissions = db->get_access_permissions(PublicKey("any_key"));
+    EXPECT_TRUE(permissions.empty());
+}
+
+TEST_F(RedisMongoDBTest, GetAccessPermissionsReturnsStoredDocuments) {
+    using bsoncxx::builder::basic::kvp;
+    using bsoncxx::builder::basic::make_array;
+    using bsoncxx::builder::basic::make_document;
+
+    auto pool = db->get_mongo_pool();
+    auto conn = pool->acquire();
+    auto collection =
+        (*conn)[RedisMongoDB::MONGODB_DB_NAME][RedisMongoDB::MONGODB_ACCESS_PERMISSIONS_COLLECTION_NAME];
+    collection.delete_many({});
+
+    auto similarity_tokens = make_array(
+        "LINK_TEMPLATE", "Expression", "2", "NODE", "Symbol", "Similarity", "VARIABLE", "VARIABLE");
+    string admin_id = compute_hash((char*) "key_admin");
+    string reader_id = compute_hash((char*) "key_reader");
+    collection.insert_one(make_document(kvp("_id", admin_id),
+                                        kvp("public_key", "key_admin"),
+                                        kvp("full_access", true),
+                                        kvp("allowed_schemas", make_array())));
+    collection.insert_one(make_document(
+        kvp("_id", reader_id),
+        kvp("public_key", "key_reader"),
+        kvp("full_access", false),
+        kvp("allowed_schemas",
+            make_array(make_document(
+                kvp("tokens", similarity_tokens), kvp("read", true), kvp("write", false))))));
+
+    auto admin_permissions = db->get_access_permissions(PublicKey("key_admin"));
+    ASSERT_EQ(admin_permissions.size(), 1u);
+    EXPECT_EQ(admin_permissions[0].access_key, "key_admin");
+    EXPECT_TRUE(admin_permissions[0].full_access);
+    EXPECT_TRUE(admin_permissions[0].entries.empty());
+
+    auto reader_permissions = db->get_access_permissions(PublicKey("key_reader"));
+    ASSERT_EQ(reader_permissions.size(), 1u);
+    EXPECT_EQ(reader_permissions[0].access_key, "key_reader");
+    EXPECT_FALSE(reader_permissions[0].full_access);
+    ASSERT_EQ(reader_permissions[0].entries.size(), 1u);
+    EXPECT_TRUE(reader_permissions[0].entries[0].read);
+    EXPECT_FALSE(reader_permissions[0].entries[0].write);
+    vector<string> expected_tokens = {
+        "LINK_TEMPLATE", "Expression", "2", "NODE", "Symbol", "Similarity", "VARIABLE", "VARIABLE"};
+    LinkSchema expected_schema(expected_tokens);
+    EXPECT_EQ(reader_permissions[0].entries[0].schema.handle(), expected_schema.handle());
+
+    auto map_permissions = db->get_access_permissions(
+        PublicKey(map<string, string>{{"peer_a", "key_admin"}, {"peer_b", "key_reader"}}));
+    ASSERT_EQ(map_permissions.size(), 2u);
+
+    EXPECT_TRUE(db->get_access_permissions(PublicKey("missing_key")).empty());
+
+    collection.delete_many({});
+    EXPECT_TRUE(db->get_access_permissions(PublicKey("key_admin")).empty());
+}
+
+TEST_F(RedisMongoDBTest, GetAccessPermissionsRejectsInvalidDocument) {
+    using bsoncxx::builder::basic::kvp;
+    using bsoncxx::builder::basic::make_document;
+
+    auto pool = db->get_mongo_pool();
+    auto conn = pool->acquire();
+    auto collection =
+        (*conn)[RedisMongoDB::MONGODB_DB_NAME][RedisMongoDB::MONGODB_ACCESS_PERMISSIONS_COLLECTION_NAME];
+    collection.delete_many({});
+
+    collection.insert_one(make_document(kvp("_id", string(compute_hash((char*) "key_broken"))),
+                                        kvp("full_access", false)));
+
+    EXPECT_THROW(db->get_access_permissions(PublicKey("key_broken")), runtime_error);
+
+    collection.delete_many({});
 }
 
 int main(int argc, char** argv) {

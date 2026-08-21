@@ -7,16 +7,13 @@
 #include "BoundedSharedQueue.h"
 #include "DatabaseOrchestrator.h"
 #include "DedicatedThread.h"
+#include "Hasher.h"
 #include "MongoInitializer.h"
-#include "MorkDB.h"
 #include "MorkMappingStrategy.h"
 #include "PostgresMappingStrategy.h"
 #include "PostgresWrapper.h"
 #include "Processor.h"
-#include "RedisMongoDB.h"
-#include "RemoteAtomDB.h"
 #include "Utils.h"
-#include "expression_hasher.h"
 #include "processor/ThreadPool.h"
 
 #define LOG_LEVEL INFO_LEVEL
@@ -27,23 +24,19 @@ using namespace commons;
 using namespace db_adapter;
 using namespace processor;
 
+const string AdapterDB::MONGODB_DB_NAME = "das";
 string AdapterDB::MONGODB_ADAPTER_COLLECTION_NAME = "adapterdb";
 
 // ==============================
 //  Construction / destruction
 // ==============================
 
-AdapterDB::AdapterDB(const JsonConfig& config) : config(config) {
-    this->atomdb_backend_setup();
-    this->initialize();
-}
-
-atomdb::AdapterDB::AdapterDB(const JsonConfig& config, std::shared_ptr<AtomDB> backend)
-    : config(config), atomdb_backend(backend) {
+AdapterDB::AdapterDB(const JsonConfig& config, std::shared_ptr<AtomDB> backend, const string& context)
+    : context(context), config(config), atomdb_backend(backend) {
     this->initialize(true);
 }
 
-AdapterDB::~AdapterDB() {}
+AdapterDB::~AdapterDB() { delete this->mongodb_pool; }
 
 // ==============================
 //  Public
@@ -70,6 +63,11 @@ bool AdapterDB::allow_nested_indexing() {
 bool AdapterDB::composite_type_enabled() const {
     this->ensure_backend_ready();
     return this->atomdb_backend->composite_type_enabled();
+}
+vector<atomdb_api_types::AccessPermissionDocument> AdapterDB::get_access_permissions(
+    const atomdb_api_types::PublicKey& public_key) const {
+    this->ensure_backend_ready();
+    return this->atomdb_backend->get_access_permissions(public_key);
 }
 
 shared_ptr<Atom> AdapterDB::get_atom(const string& handle) {
@@ -227,6 +225,8 @@ size_t AdapterDB::atom_count() const {
 //  Private
 // ==============================
 
+string AdapterDB::mongodb_db_name() const { return this->context + MONGODB_DB_NAME; }
+
 void AdapterDB::initialize(bool skip_atomdb_backend_empty) {
     this->validate_adapterdb_type();
 
@@ -299,29 +299,14 @@ void AdapterDB::persistence_setup() {
         this->mongodb_pool = new mongocxx::pool(uri);
 
         auto conn = this->mongodb_pool->acquire();
-        auto mongodb = (*conn)["das"];
+        auto mongodb = (*conn)[this->mongodb_db_name()];
         const auto ping_cmd =
             bsoncxx::builder::basic::make_document(bsoncxx::builder::basic::kvp("ping", 1));
         mongodb.run_command(ping_cmd.view());
 
-        LOG_DEBUG("Connected to MongoDB at " << address);
+        LOG_DEBUG("Connected to MongoDB at " << address << " (db=" << this->mongodb_db_name() << ")");
     } catch (const exception& e) {
         RAISE_ERROR(e.what());
-    }
-}
-
-void AdapterDB::atomdb_backend_setup() {
-    auto atomdb_backend_config =
-        this->config.at_path("adapterdb.atomdb_backend").get_or<JsonConfig>(JsonConfig());
-    string atomdb_backend_type = atomdb_backend_config.at_path("type").get_or<string>("");
-    if (atomdb_backend_type == "morkdb") {
-        this->atomdb_backend = shared_ptr<AtomDB>(new MorkDB("", atomdb_backend_config));
-    } else if (atomdb_backend_type == "redismongodb") {
-        this->atomdb_backend = shared_ptr<AtomDB>(new RedisMongoDB("", false, atomdb_backend_config));
-    } else if (atomdb_backend_type == "remotedb") {
-        this->atomdb_backend = shared_ptr<AtomDB>(new RemoteAtomDB(atomdb_backend_config));
-    } else {
-        RAISE_ERROR("Invalid AtomDB type: " + atomdb_backend_type);
     }
 }
 
@@ -339,12 +324,12 @@ string AdapterDB::context_id() const {
     for (const auto& c : file_contents) {
         combined_content += c;
     }
-    return compute_hash((char*) combined_content.c_str());
+    return Hasher::plain_string_hash(combined_content);
 }
 
 bool AdapterDB::is_context_persisted(const string& context_id) const {
     auto conn = this->mongodb_pool->acquire();
-    auto mongodb_collection = (*conn)["das"][MONGODB_ADAPTER_COLLECTION_NAME];
+    auto mongodb_collection = (*conn)[this->mongodb_db_name()][MONGODB_ADAPTER_COLLECTION_NAME];
     auto reply = mongodb_collection.find_one(bsoncxx::v_noabi::builder::basic::make_document(
         bsoncxx::v_noabi::builder::basic::kvp("_id", context_id)));
     return reply != bsoncxx::v_noabi::stdx::nullopt;
@@ -352,7 +337,7 @@ bool AdapterDB::is_context_persisted(const string& context_id) const {
 
 void AdapterDB::persist_mapping_context(const string& context_id) {
     auto conn = this->mongodb_pool->acquire();
-    auto mongodb_collection = (*conn)["das"][MONGODB_ADAPTER_COLLECTION_NAME];
+    auto mongodb_collection = (*conn)[this->mongodb_db_name()][MONGODB_ADAPTER_COLLECTION_NAME];
 
     vector<string> file_contents = this->get_mapping_file_contents();
     bsoncxx::builder::basic::array mapped_context_array;
