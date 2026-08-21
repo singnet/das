@@ -881,8 +881,7 @@ TEST(RemoteAtomDBFederationTest, PeerIsProtectedFollowsRemoteBackend) {
     {
         auto remote = make_shared<InMemoryDB>("prot_local_remote_");
         auto local = make_shared<ProtectedInMemoryDB>("prot_local_local_");
-        auto peer = make_shared<RemoteAtomDBPeer>(remote, local, "peer");
-        EXPECT_THROW(peer->get_protection_mode(), runtime_error);
+        EXPECT_THROW(make_shared<RemoteAtomDBPeer>(remote, local, "peer"), runtime_error);
     }
 }
 
