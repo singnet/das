@@ -91,6 +91,12 @@ class LinkSchemaHandle : public LinkSchema {
     string fixed_handle;
 };
 
+class TestRedisMongoDB : public RedisMongoDB {
+   public:
+    TestRedisMongoDB(const string& context, const JsonConfig& config)
+        : RedisMongoDB(context, true, config) {}
+};
+
 TEST_F(RedisMongoDBTest, ConcurrentQueryForPattern) {
     const int num_threads = 4;
     vector<thread> threads;
@@ -1474,6 +1480,38 @@ TEST_F(RedisMongoDBTest, GetAccessPermissionsRejectsInvalidDocument) {
                                         kvp("full_access", false)));
 
     EXPECT_THROW(db->get_access_permissions(PublicKey("key_broken")), runtime_error);
+
+    collection.delete_many({});
+}
+
+TEST_F(RedisMongoDBTest, IsProtectedWhenPersistedConfigIsTrue) {
+    using bsoncxx::builder::basic::kvp;
+    using bsoncxx::builder::basic::make_document;
+
+    auto conn = db->get_mongo_pool()->acquire();
+    auto collection =
+        (*conn)[RedisMongoDB::MONGODB_DB_NAME][RedisMongoDB::MONGODB_CONFIG_COLLECTION_NAME];
+    collection.delete_many({});
+    collection.insert_one(make_document(kvp("protected", true)));
+
+    TestRedisMongoDB loaded("test_", test_atomdb_json_config());
+    EXPECT_EQ(loaded.get_protection_mode(), atomdb_api_types::ProtectionMode::PROTECTED);
+
+    collection.delete_many({});
+}
+
+TEST_F(RedisMongoDBTest, IsProtectedWhenPersistedConfigOmitsField) {
+    using bsoncxx::builder::basic::kvp;
+    using bsoncxx::builder::basic::make_document;
+
+    auto conn = db->get_mongo_pool()->acquire();
+    auto collection =
+        (*conn)[RedisMongoDB::MONGODB_DB_NAME][RedisMongoDB::MONGODB_CONFIG_COLLECTION_NAME];
+    collection.delete_many({});
+    collection.insert_one(make_document(kvp("other", "value")));
+
+    TestRedisMongoDB loaded("test_", test_atomdb_json_config());
+    EXPECT_EQ(loaded.get_protection_mode(), atomdb_api_types::ProtectionMode::UNPROTECTED);
 
     collection.delete_many({});
 }

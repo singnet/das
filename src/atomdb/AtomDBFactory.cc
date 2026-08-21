@@ -3,6 +3,7 @@
 #include "AdapterDB.h"
 #include "InMemoryDB.h"
 #include "MorkDB.h"
+#include "ProtectedAtomDB.h"
 #include "RedisMongoDB.h"
 #include "RemoteAtomDB.h"
 #include "Utils.h"
@@ -103,6 +104,15 @@ shared_ptr<AtomDB> AtomDBFactory::create_composite_atomdb(const JsonConfig& conf
 }
 
 shared_ptr<AtomDB> AtomDBFactory::wrap_if_protected(shared_ptr<AtomDB> atomdb) {
-    // AtomDBFactory::wrap_if_protected() is not implemented yet.
-    return atomdb;
+    if (!atomdb) {
+        RAISE_ERROR("AtomDBFactory::wrap_if_protected() received null atomdb");
+    }
+    if (atomdb->get_protection_mode() == atomdb_api_types::ProtectionMode::UNPROTECTED ||
+        dynamic_pointer_cast<ProtectedAtomDB>(atomdb)) {
+        return atomdb;
+    }
+    // TODO: uncomment this return when the integration with ProtectedDB with authorization is complete
+    // return make_shared<ProtectedAtomDB>(atomdb);
+
+    RAISE_ERROR("Protected AtomDB support is not available");
 }

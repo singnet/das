@@ -29,6 +29,10 @@ RemoteAtomDBPeer::RemoteAtomDBPeer(shared_ptr<AtomDB> remote_atomdb,
       read_cache_(make_shared<InMemoryDB>(uid + "_rc")),
       atomdb_(remote_atomdb),
       local_persistence_(local_persistence) {
+    if (local_persistence_ &&
+        local_persistence_->get_protection_mode() == atomdb_api_types::ProtectionMode::PROTECTED) {
+        RAISE_ERROR("RemoteAtomDBPeer does not support protected local persistence");
+    }
     start_cleanup_thread();
 }
 
@@ -58,6 +62,11 @@ shared_ptr<InMemoryDB> RemoteAtomDBPeer::read_cache() const {
 void RemoteAtomDBPeer::invalidate_fetched_templates() {
     lock_guard<mutex> lock(peer_mutex_);
     fetched_link_templates_.clear();
+}
+
+atomdb_api_types::ProtectionMode RemoteAtomDBPeer::get_protection_mode() const {
+    if (atomdb_) return atomdb_->get_protection_mode();
+    return atomdb_api_types::ProtectionMode::UNPROTECTED;
 }
 
 shared_ptr<Atom> RemoteAtomDBPeer::get_atom(const string& handle) {
