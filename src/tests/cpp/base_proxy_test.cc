@@ -2,6 +2,8 @@
 
 #include "BaseProxy.h"
 #include "SystemParametersSingleton.h"
+#include "TestAtomDBJsonConfig.h"
+#include "TestSystemParams.h"
 
 using namespace std;
 using namespace commons;
@@ -9,7 +11,7 @@ using namespace agents;
 
 class TestEnvironment : public ::testing::Environment {
    public:
-    void SetUp() override { SystemParametersSingleton::init_from_file("/opt/das/config/das.json"); }
+    void SetUp() override { das_test::init_test_system_parameters_singleton(); }
 
     void TearDown() override {}
 };

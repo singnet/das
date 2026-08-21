@@ -51,7 +51,7 @@ cc_test(
     linkstatic = 1,
     deps = [
         "//attention_broker:attention_broker_lib",
-        "@com_github_google_googletest//:gtest_main",
+        "@com_github_google_googletest//:gtest",
         "@com_github_singnet_das_proto//:attention_broker_cc_grpc",
         "@grpc//:grpc++",
         "@grpc//:grpc++_reflection",
@@ -503,7 +503,7 @@ cc_test(
         "//service_bus:service_bus_lib",
         "//tests/cpp/test_commons:test_atomdb_json_config",
         "//tests/cpp/test_commons:test_system_params",
-        "@com_github_google_googletest//:gtest_main",
+        "@com_github_google_googletest//:gtest",
     ],
 )
 
@@ -522,7 +522,7 @@ cc_test(
         "//service_bus:service_bus_lib",
         "//tests/cpp/test_commons:test_atomdb_json_config",
         "//tests/cpp/test_commons:test_system_params",
-        "@com_github_google_googletest//:gtest_main",
+        "@com_github_google_googletest//:gtest",
     ],
 )
 
@@ -732,7 +732,7 @@ cc_test(
     deps = [
         "//commons:commons_lib",
         "//commons/processor:processor_lib",
-        "@com_github_google_googletest//:gtest_main",
+        "@com_github_google_googletest//:gtest",
     ],
 )
 
@@ -829,7 +829,7 @@ cc_test(
         "//atomdb:atomdb_singleton",
         "//tests/cpp/test_commons:mock_animals_data_lib",
         "//tests/cpp/test_commons:test_atomdb_json_config",
-        "@com_github_google_googletest//:gtest_main",
+        "@com_github_google_googletest//:gtest",
         "@mbedtls",
     ],
 )
@@ -846,7 +846,7 @@ cc_test(
     deps = [
         "//atomdb/inmemorydb:inmemorydb_lib",
         "//commons/atoms:atoms_lib",
-        "@com_github_google_googletest//:gtest_main",
+        "@com_github_google_googletest//:gtest",
     ],
 )
 
@@ -927,7 +927,7 @@ cc_test(
         "//atomdb/inmemorydb:inmemorydb_lib",
         "//atomdb/remotedb:remotedb_lib",
         "//commons/atoms:atoms_lib",
-        "@com_github_google_googletest//:gtest_main",
+        "@com_github_google_googletest//:gtest",
     ],
 )
 
@@ -1116,6 +1116,8 @@ cc_test(
     linkstatic = 1,
     deps = [
         "//agents:base_proxy",
-        "@com_github_google_googletest//:gtest_main",
+        "//tests/cpp/test_commons:test_atomdb_json_config",
+        "//tests/cpp/test_commons:test_system_params",
+        "@com_github_google_googletest//:gtest",
     ],
 )

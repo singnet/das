@@ -17,7 +17,6 @@ string BaseProxy::ALLOW_CYCLE_START = "allow_cycle_start";
 string BaseProxy::ORCHESTRATION_SCHEMA = "orchestration_schema";
 
 BaseProxy::BaseProxy() {
-    lock_guard<mutex> semaphore(this->api_mutex);
     this->command_finished_flag = false;
     this->abort_flag = false;
     this->error_flag = false;
