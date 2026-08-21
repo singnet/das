@@ -102,6 +102,9 @@ optional<atomdb_api_types::AccessPermissionDocument> RedisMongoDB::load_access_p
     if (!document.contains("public_key") || !document["public_key"].is_string()) {
         RAISE_ERROR("AccessPermissionDocument missing required string filed 'public_key'");
     }
+    if (document["public_key"].get<string>() != public_key) {
+        RAISE_ERROR("AccessPermissionDocument public_key does not match its lookup key");
+    }
     if (!document.contains("full_access") || !document["full_access"].is_boolean()) {
         RAISE_ERROR("AccessPermissionDocument missing required boolean field 'full_access'");
     }
