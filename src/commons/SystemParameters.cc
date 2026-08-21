@@ -31,6 +31,8 @@ Properties SystemParameters::get_agent_params(const string& agent) const {
     return agent_it->second;
 }
 
+Properties SystemParameters::get_base_proxy_params() const { return get_agent_params("base_proxy"); }
+
 Properties SystemParameters::get_base_query_params() const { return get_agent_params("base_query"); }
 
 Properties SystemParameters::get_query_agent_params() const {

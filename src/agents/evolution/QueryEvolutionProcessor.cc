@@ -577,6 +577,12 @@ void QueryEvolutionProcessor::evolve_query(shared_ptr<StoppableThread> monitor,
     RAM_FOOTPRINT_START(evolution);
     STOP_WATCH_START(evolution);
     while (!monitor->stopped() && !proxy->stop_criteria_met()) {
+        while (!monitor->stopped() && !proxy->cycle_start_allowed()) {
+            Utils::sleep();
+        }
+        if (monitor->stopped()) {
+            break;
+        }
         LOG_INFO("==================== Generation: " + std::to_string(this->generation_count) +
                  " ====================");
         RAM_CHECKPOINT("Generation " + std::to_string(this->generation_count));
@@ -614,16 +620,19 @@ void QueryEvolutionProcessor::evolve_query(shared_ptr<StoppableThread> monitor,
         this->generation_count++;
     }
     proxy->flush_answer_bundle();
-    LOG_INFO("--------------------");
-    LOG_INFO("Last generation with answer improvement: " +
-             std::to_string(proxy->last_improving_generation()));
-    LOG_INFO("Total number of visited individuals: " + std::to_string(this->visited_individuals.size()));
-    LOG_INFO("Average renew rate per generation: " +
-             std::to_string(std::lround(100 * ((double) this->visited_individuals.size() /
-                                               ((double) proxy->parameters.get<unsigned int>(
-                                                    QueryEvolutionProxy::POPULATION_SIZE) *
-                                                (this->generation_count - 1))))) +
-             "%");
+    if (this->generation_count > 0) {
+        LOG_INFO("--------------------");
+        LOG_INFO("Last generation with answer improvement: " +
+                 std::to_string(proxy->last_improving_generation()));
+        LOG_INFO("Total number of visited individuals: " +
+                 std::to_string(this->visited_individuals.size()));
+        LOG_INFO("Average renew rate per generation: " +
+                 std::to_string(std::lround(100 * ((double) this->visited_individuals.size() /
+                                                   ((double) proxy->parameters.get<unsigned int>(
+                                                        QueryEvolutionProxy::POPULATION_SIZE) *
+                                                    (this->generation_count - 1))))) +
+                 "%");
+    }
     STOP_WATCH_FINISH(evolution, "QueryEvolution");
     RAM_FOOTPRINT_FINISH(evolution, "");
     Utils::sleep(1000);

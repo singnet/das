@@ -188,7 +188,7 @@ void ContextBrokerProxy::init(const string& name) {
 }
 
 void ContextBrokerProxy::set_default_query_parameters() {
-    this->parameters = SystemParametersSingleton::get_instance()->get_context_agent_params();
+    this->parameters += SystemParametersSingleton::get_instance()->get_context_agent_params();
 }
 
 // ---------------------------------------------------------------------------------------------

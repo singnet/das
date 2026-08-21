@@ -41,7 +41,7 @@ BaseQueryProxy::BaseQueryProxy(const vector<string>& tokens, const string& conte
 void BaseQueryProxy::init() {
     this->atomdb = AtomDBSingleton::get_instance();
     this->answer_count = 0;
-    this->parameters = SystemParametersSingleton::get_instance()->get_base_query_params();
+    this->parameters += SystemParametersSingleton::get_instance()->get_base_query_params();
 }
 
 BaseQueryProxy::~BaseQueryProxy() {}
