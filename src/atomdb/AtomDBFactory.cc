@@ -114,5 +114,5 @@ shared_ptr<AtomDB> AtomDBFactory::wrap_if_protected(shared_ptr<AtomDB> atomdb) {
     // TODO: uncomment this return when the integration with ProtectedDB with authorization is complete
     // return make_shared<ProtectedAtomDB>(atomdb);
 
-    return atomdb;
+    RAISE_ERROR("Protected AtomDB support is not available");
 }
