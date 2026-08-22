@@ -196,6 +196,27 @@ cc_binary(
 )
 
 cc_binary(
+    name = "authorization_admin",
+    srcs = [],
+    defines = ["BAZEL_BUILD"],
+    linkopts = [
+        "-L/usr/local/lib",
+        "-lpqxx",
+        "-lpq",
+        "-lhiredis_cluster",
+        "-lhiredis",
+        "-lmongocxx",
+        "-lbsoncxx",
+    ],
+    linkstatic = 1,
+    deps = [
+        "//commons:commons_lib",
+        "//tests/main:authorization_admin_main_lib",
+        "@mbedtls",
+    ],
+)
+
+cc_binary(
     name = "busnode",
     srcs = [],
     defines = ["BAZEL_BUILD"],
@@ -229,6 +250,7 @@ genrule(
         ":busnode",
         ":busclient",
         ":database_adapter",
+        ":authorization_admin",
     ],
     outs = ["ci_binaries.stamp"],
     cmd = "touch $@",

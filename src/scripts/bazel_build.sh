@@ -43,6 +43,7 @@ if [ "$BUILD_BINARIES" = true ]; then
     BUILD_TARGETS+=" //:evaluation_evolution"
     BUILD_TARGETS+=" //:db_loader"
     BUILD_TARGETS+=" //:database_adapter"
+    BUILD_TARGETS+=" //:authorization_admin"
     BUILD_TARGETS+=" //:inference_toy_kb_generator"
 
     # Move targets
@@ -58,6 +59,7 @@ if [ "$BUILD_BINARIES" = true ]; then
     MOVE_BIN_TARGETS+=" bazel-bin/evaluation_evolution"
     MOVE_BIN_TARGETS+=" bazel-bin/db_loader"
     MOVE_BIN_TARGETS+=" bazel-bin/database_adapter"
+    MOVE_BIN_TARGETS+=" bazel-bin/authorization_admin"
     MOVE_BIN_TARGETS+=" bazel-bin/inference_toy_kb_generator"
 
 fi
