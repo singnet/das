@@ -111,7 +111,6 @@ int main(int argc, char* argv[]) {
 
     vector<string> tokens = parse_tokens(tokens_str);
     std::cout << "tokens_str: " << tokens_str << std::endl;
-    // std::cout << "collection: " << collection << std::endl;
     std::cout << "++++++++++ DEBUG ++++++++++++" << std::endl;
 
     bool read;
