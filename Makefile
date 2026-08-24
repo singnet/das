@@ -65,7 +65,7 @@ run-adapter:
 	@bash -x src/scripts/run.sh database_adapter $(OPTIONS)
 
 authorization-admin:
-	@bash -x src/scripts/run.sh authorization_admin $(OPTIONS)
+	@bash src/scripts/run.sh authorization_admin $(OPTIONS)
 
 setup-nunet-dms:
 	@bash -x src/scripts/setup-nunet-dms.sh
