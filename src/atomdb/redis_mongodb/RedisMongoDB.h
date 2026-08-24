@@ -216,6 +216,7 @@ class RedisMongoDB : public AtomDB {
 
     void load_pattern_index_schema();
     void load_protection_mode();
+    static string protection_config_document_id();
     vector<string> match_pattern_index_schema(const Link* link);
     vector<vector<string>> index_entries_combinations(unsigned int arity);
 

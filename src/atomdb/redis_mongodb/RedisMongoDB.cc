@@ -1330,7 +1330,9 @@ void RedisMongoDB::add_pattern_index_schema(const string& tokens,
 void RedisMongoDB::load_protection_mode() {
     auto conn = this->mongodb_pool->acquire();
     auto config_collection = (*conn)[MONGODB_DB_NAME][MONGODB_CONFIG_COLLECTION_NAME];
-    auto config_doc = config_collection.find_one({});
+    auto config_doc = config_collection.find_one(
+        bsoncxx::v_noabi::builder::basic::make_document(bsoncxx::v_noabi::builder::basic::kvp(
+            MONGODB_FIELD_NAME[MONGODB_FIELD::ID], protection_config_document_id())));
 
     if (!config_doc) {
         this->protection_mode = atomdb_api_types::ProtectionMode::UNPROTECTED;
@@ -1349,6 +1351,10 @@ void RedisMongoDB::load_protection_mode() {
     this->protection_mode = protected_it->get_bool().value
                                 ? atomdb_api_types::ProtectionMode::PROTECTED
                                 : atomdb_api_types::ProtectionMode::UNPROTECTED;
+}
+
+string RedisMongoDB::protection_config_document_id() {
+    return Hasher::plain_string_hash(MONGODB_CONFIG_COLLECTION_NAME);
 }
 
 void RedisMongoDB::load_pattern_index_schema() {
@@ -1543,10 +1549,13 @@ void RedisMongoDB::flush_redis_by_prefix(const string& prefix) {
 
 void RedisMongoDB::drop_all() {
     optional<bsoncxx::document::value> preserved_protection_config;
+    const auto protection_config_id = protection_config_document_id();
     {
         auto conn = this->mongodb_pool->acquire();
         auto config_collection = (*conn)[MONGODB_DB_NAME][MONGODB_CONFIG_COLLECTION_NAME];
-        if (auto config_doc = config_collection.find_one({})) {
+        if (auto config_doc = config_collection.find_one(
+                bsoncxx::v_noabi::builder::basic::make_document(bsoncxx::v_noabi::builder::basic::kvp(
+                    MONGODB_FIELD_NAME[MONGODB_FIELD::ID], protection_config_id)))) {
             preserved_protection_config = std::move(*config_doc);
         }
     }
