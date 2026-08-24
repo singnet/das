@@ -158,25 +158,52 @@ TEST(ManifestAuthorizerTest, IsAuthorized) {
 }
 
 TEST(AuthorizationManagerTest, AuthorizeThenReadAndWriteFlags) {
-    string link_handle;
-    auto db = db_with_inheritance_link(&link_handle);
-
     auto persistence = make_shared<DummyPersistence>();
     AuthorizationManager manager(persistence);
-    AccessPermissionEntry entry = read_only_inheritance_entry();
 
-    manager.authorize("pk", entry);
-    manager.authorize("pk2", entry);
+    AccessPermissionEntry read_entry = read_only_inheritance_entry();
+    EXPECT_TRUE(read_entry.read);
+    EXPECT_FALSE(read_entry.write);
 
-    EXPECT_EQ(persistence->documents.size(), 2);
-    EXPECT_EQ(persistence->documents["pk"], vector<string>{entry.schema.handle()});
-    EXPECT_EQ(persistence->documents["pk2"], vector<string>{entry.schema.handle()});
+    manager.authorize("pk", read_entry);
+    manager.authorize("pk2", read_entry);
+    EXPECT_EQ(persistence->documents.size(), 2u);
+    EXPECT_EQ(persistence->documents["pk"], vector<string>{read_entry.schema.handle()});
+    EXPECT_EQ(persistence->documents["pk2"], vector<string>{read_entry.schema.handle()});
 
-    manager.revoke("pk", entry);
-    EXPECT_EQ(persistence->documents.size(), 2);
+    manager.revoke("pk", read_entry);
+    EXPECT_EQ(persistence->documents.size(), 2u);
     EXPECT_EQ(persistence->documents["pk"], vector<string>{});
-    EXPECT_EQ(persistence->documents["pk2"], vector<string>{entry.schema.handle()});
+    EXPECT_EQ(persistence->documents["pk2"], vector<string>{read_entry.schema.handle()});
+
+    AccessPermissionEntry write_entry(inheritance_mammal_tokens(), false, true);
+    EXPECT_FALSE(write_entry.read);
+    EXPECT_TRUE(write_entry.write);
+
+    manager.authorize("pk_write", write_entry);
+    EXPECT_EQ(persistence->documents["pk_write"], vector<string>{write_entry.schema.handle()});
+
+    manager.revoke("pk_write", write_entry);
+    EXPECT_EQ(persistence->documents["pk_write"], vector<string>{});
+
+    AccessPermissionEntry invalid_permission_entry(inheritance_mammal_tokens(), false, false);
+    EXPECT_FALSE(invalid_permission_entry.read);
+    EXPECT_FALSE(invalid_permission_entry.write);
+
+    manager.authorize("pk_invalid_permission", invalid_permission_entry);
+    EXPECT_EQ(persistence->documents["pk_invalid_permission"],
+              vector<string>{invalid_permission_entry.schema.handle()});
+
+    manager.authorize("", read_entry);
+    EXPECT_EQ(persistence->documents[""], vector<string>{read_entry.schema.handle()});
+
+    vector<string> whitespace_only_tokens;
+    EXPECT_TRUE(whitespace_only_tokens.empty());
+
+    manager.revoke("never_authorized", read_entry);
+    EXPECT_EQ(persistence->documents.find("never_authorized"), persistence->documents.end());
 
     manager.revoke_all("pk");
-    EXPECT_EQ(persistence->documents.size(), 1);
+    EXPECT_EQ(persistence->documents.find("pk"), persistence->documents.end());
+    EXPECT_EQ(persistence->documents["pk2"], vector<string>{read_entry.schema.handle()});
 }

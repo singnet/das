@@ -81,6 +81,11 @@ int main(int argc, char* argv[]) {
         usage(argv[0]);
     }
 
+    if (action != "authorize" && action != "revoke") {
+        cerr << "Error: action must be 'authorize' or 'revoke'.\n\n";
+        usage(argv[0]);
+    }
+
     if (permission != "read" && permission != "write") {
         cerr << "Error: --permission must be 'read' or 'write'.\n\n";
         exit(1);
@@ -98,20 +103,11 @@ int main(int argc, char* argv[]) {
     string database = json_config.at_path("mongodb.database_name").get_or<string>("");
     string collection = json_config.at_path("mongodb.collection_name").get_or<string>("");
 
-    std::cout << "++++++++++ DEBUG ++++++++++++" << std::endl;
-    std::cout << "endpoint: " << endpoint << std::endl;
-    std::cout << "username: " << username << std::endl;
-    std::cout << "password: " << password << std::endl;
-    std::cout << "database: " << database << std::endl;
-    std::cout << "collection: " << collection << std::endl;
-
     auto persistence =
         make_shared<MongoAuthorizationPersistence>(endpoint, username, password, database, collection);
     auto manager = make_shared<AuthorizationManager>(persistence);
 
     vector<string> tokens = parse_tokens(tokens_str);
-    std::cout << "tokens_str: " << tokens_str << std::endl;
-    std::cout << "++++++++++ DEBUG ++++++++++++" << std::endl;
 
     bool read;
     bool write;
