@@ -33,16 +33,17 @@ shared_ptr<ProtectedAtomDB> make_protected_db(const string& context = "protected
 
 TEST(ProtectedAtomDBTest, RejectsNullBackend) { EXPECT_THROW(ProtectedAtomDB(nullptr), runtime_error); }
 
-TEST(ProtectedAtomDBTest, BackendIsNotProtected) {
-    auto backend = make_shared<InMemoryDB>("unprotected_backend_");
-    EXPECT_EQ(backend->get_protection_mode(), atomdb_api_types::ProtectionMode::UNPROTECTED);
+TEST(ProtectedAtomDBTest, ReportsProtectionModeThroughWrapper) {
+    auto backend = make_shared<ProtectedInMemoryDB>("protected_flags_");
+    EXPECT_EQ(backend->get_protection_mode(), ProtectionMode::PROTECTED);
+
+    ProtectedAtomDB db(backend);
+    EXPECT_EQ(db.get_protection_mode(), ProtectionMode::PROTECTED);
 }
 
 TEST(ProtectedAtomDBTest, DelegatesToBackend) {
     auto backend = make_shared<ProtectedInMemoryDB>("protected_flags_");
     ProtectedAtomDB db(backend);
-
-    EXPECT_EQ(db.get_protection_mode(), backend->get_protection_mode());
     EXPECT_EQ(db.allow_nested_indexing(), backend->allow_nested_indexing());
     EXPECT_EQ(db.composite_type_enabled(), backend->composite_type_enabled());
 
