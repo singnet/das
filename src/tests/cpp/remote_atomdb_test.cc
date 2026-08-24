@@ -20,6 +20,7 @@
 #include "Link.h"
 #include "LinkSchema.h"
 #include "Node.h"
+#include "ProtectedAtomDB.h"
 #include "RemoteAtomDB.h"
 #include "RemoteAtomDBPeer.h"
 
@@ -751,6 +752,13 @@ class ProtectedInMemoryDB : public InMemoryDB {
     ProtectionMode get_protection_mode() const override { return ProtectionMode::PROTECTED; }
 };
 
+class ForwardInMemoryDB : public InMemoryDB {
+   public:
+    explicit ForwardInMemoryDB(const string& context) : InMemoryDB(context) {}
+
+    ProtectionMode get_protection_mode() const override { return ProtectionMode::FORWARD; }
+};
+
 TEST(RemoteAtomDBFederationTest, MetadataAggregationFromNestedPeer) {
     auto backend = make_shared<NestedInMemoryDB>("fed_nested_backend_");
     auto handles = populate_inheritance_mammal_links(backend);
@@ -881,6 +889,21 @@ TEST(RemoteAtomDBFederationTest, PeerIsProtectedFollowsRemoteBackend) {
     {
         auto remote = make_shared<InMemoryDB>("prot_local_remote_");
         auto local = make_shared<ProtectedInMemoryDB>("prot_local_local_");
+        EXPECT_THROW(make_shared<RemoteAtomDBPeer>(remote, local, "peer"), runtime_error);
+    }
+
+    // FORWARD local persistence is not supported either.
+    {
+        auto remote = make_shared<InMemoryDB>("forward_local_remote_");
+        auto local = make_shared<ForwardInMemoryDB>("forward_local_local_");
+        EXPECT_THROW(make_shared<RemoteAtomDBPeer>(remote, local, "peer"), runtime_error);
+    }
+
+    // Factory-style ProtectedAtomDB wrapper over a protected backend is rejected for local persistence.
+    {
+        auto remote = make_shared<InMemoryDB>("wrapped_local_remote_");
+        auto local =
+            make_shared<ProtectedAtomDB>(make_shared<ProtectedInMemoryDB>("wrapped_local_local_"));
         EXPECT_THROW(make_shared<RemoteAtomDBPeer>(remote, local, "peer"), runtime_error);
     }
 }

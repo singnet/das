@@ -942,6 +942,7 @@ cc_test(
     linkstatic = 1,
     deps = [
         "//atomdb:atomdb_factory",
+        "//atomdb:protected_atomdb",
         "//atomdb/inmemorydb:inmemorydb_lib",
         "//atomdb/remotedb:remotedb_lib",
         "//commons/atoms:atoms_lib",
