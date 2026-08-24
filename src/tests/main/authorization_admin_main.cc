@@ -1,13 +1,15 @@
 #include <signal.h>
 
+#include <fstream>
 #include <iostream>
+#include <sstream>
 #include <string>
 
 #include "AuthorizationManager.h"
 #include "JsonConfig.h"
-#include "JsonConfigParser.h"
 #include "MongoAuthorizationPersistence.h"
 #include "Utils.h"
+#include "nlohmann/json.hpp"
 
 #define LOG_LEVEL INFO_LEVEL
 #include "Logger.h"
@@ -93,7 +95,14 @@ int main(int argc, char* argv[]) {
 
     LOG_INFO("Starting Admin...");
 
-    JsonConfig json_config = JsonConfigParser::load(config_path);
+    ifstream config_file(config_path);
+    if (!config_file.good()) {
+        cerr << "Error: Cannot open config file: " << config_path << endl;
+        exit(1);
+    }
+    stringstream config_buffer;
+    config_buffer << config_file.rdbuf();
+    JsonConfig json_config = JsonConfig(nlohmann::json::parse(config_buffer.str()));
 
     Utils::init_random(0);
 
