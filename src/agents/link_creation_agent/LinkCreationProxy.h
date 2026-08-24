@@ -31,6 +31,10 @@ class LinkCreationProxy : public BaseQueryProxy {
     static string LINK_CREATION_STRENGTH_THRESHOLD;
     static string LINK_CREATION_LOG_FILE_NAME;
 
+    // LOG_NEW_LINKS is an optional parameter but it is not part of the configuration file as it
+    // is meant to be used only in tests.
+    static string LOG_NEW_LINKS;
+
     LinkCreationProxy();
 
     LinkCreationProxy(const vector<string>& tokens,

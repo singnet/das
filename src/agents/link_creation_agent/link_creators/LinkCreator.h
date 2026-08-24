@@ -113,6 +113,20 @@ class LinkCreator {
      */
     inline string& get_log_file() { return _link_creation_log_file_name; }
 
+    /**
+     * Gets the flag which indicates is newly created links are supposed to be logged in the
+     *
+     * @return the flag which indicates is newly created links are supposed to be logged in the default logger.
+     */
+    inline bool log_new_links() { return _log_new_links; }
+
+    /**
+     * Sets the flag which indicates is newly created links are supposed to be logged in the
+     *
+     * @param flag which indicates is newly created links are supposed to be logged in the default logger.
+     */
+    inline void set_log_new_links(bool value) { _log_new_links = value; }
+
     // ----------------------------------------------------------------------------------
     // Concrete sub-classes API
       
@@ -155,6 +169,7 @@ class LinkCreator {
     double _strength_threshold;
     vector<vector<string>> _buffer_determiners;
     string _link_creation_log_file_name;
+    bool _log_new_links;
 };
 
 }  // namespace link_creators

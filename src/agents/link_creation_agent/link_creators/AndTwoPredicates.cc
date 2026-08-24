@@ -1,4 +1,3 @@
-#define LOG_LEVEL DEBUG_LEVEL
 #include "AndTwoPredicates.h"
 #include "tags.h"
 

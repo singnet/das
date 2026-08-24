@@ -1,4 +1,3 @@
-#define LOG_LEVEL DEBUG_LEVEL
 #include "LinkCreationProcessor.h"
 
 #if defined(__GLIBC__)
@@ -138,6 +137,7 @@ void LinkCreationProcessor::link_creation(shared_ptr<StoppableThread> monitor,
                                           shared_ptr<LinkCreationProxy> proxy) {
     STACK_TRACE();
     unsigned int count_created = 0;
+    unsigned int count_used_query_answers = 0;
     unsigned int unproductive_visit = 0;
     unsigned int visit_attempts = 0;
     shared_ptr<QueryAnswer> query_answer;
@@ -153,14 +153,16 @@ void LinkCreationProcessor::link_creation(shared_ptr<StoppableThread> monitor,
                 }
                 Utils::sleep();
             } else {
-                LOG_DEBUG("Processing query answer " + to_string(count_created) + ": " +
+                LOG_DEBUG("Processing query answer " + to_string(count_used_query_answers) + ": " +
                           query_answer->to_string(USE_MORK));
                 stats = proxy->link_creation(query_answer);
                 if (stats.created > 0) {
-                    count_created++;
+                    count_created += stats.created;
+                    count_used_query_answers++;
                     unproductive_visit = 0;
                     visit_attempts = 0;
-                    if (limit_reached(proxy, count_created, LinkCreationProxy::MAX_SUCCESSFUL_CREATION_PER_ROUND)) {
+                    proxy->push(query_answer);
+                    if (limit_reached(proxy, count_used_query_answers, LinkCreationProxy::MAX_SUCCESSFUL_CREATION_PER_ROUND)) {
                         break;
                     }
                 } else if (stats.visited) {
@@ -183,5 +185,6 @@ void LinkCreationProcessor::link_creation(shared_ptr<StoppableThread> monitor,
         }
         proxy->inc_round_count();
     }
-    LOG_DEBUG("Built " + to_string(count_created) + " links");
+    LOG_INFO("Used a total of " + to_string(count_used_query_answers) + " query answers to create new links");
+    LOG_INFO("Built a total of " + to_string(count_created) + " links");
 }

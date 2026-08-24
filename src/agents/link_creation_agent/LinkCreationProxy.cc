@@ -1,4 +1,3 @@
-#define LOG_LEVEL DEBUG_LEVEL
 #include "LinkCreationProxy.h"
 
 #include "AttentionBrokerClient.h"
@@ -19,6 +18,7 @@ string LinkCreationProxy::MAX_VISIT_ATTEMPTS_PER_ROUND = "max_visit_attempts_per
 string LinkCreationProxy::MAX_ROUNDS = "max_rounds";
 string LinkCreationProxy::LINK_CREATION_STRENGTH_THRESHOLD = "link_creation_strength_threshold";
 string LinkCreationProxy::LINK_CREATION_LOG_FILE_NAME = "link_creation_log_file_name";
+string LinkCreationProxy::LOG_NEW_LINKS = "log_new_links";
 
 LinkCreationProxy::LinkCreationProxy() {
     // constructor typically used in processor
@@ -43,6 +43,7 @@ void LinkCreationProxy::init() {
     this->command = ServiceBus::LINK_CREATION;
     this->link_creation_function_object = shared_ptr<LinkCreator>(nullptr);
     this->round_count = 0;
+    this->parameters[LOG_NEW_LINKS] = true;
     this->parameters += SystemParametersSingleton::get_instance()->get_link_creation_agent_params();
 }
 
@@ -132,6 +133,7 @@ void LinkCreationProxy::set_link_creator_function_tag(const string& tag) {
             this->link_creation_function_object = LinkCreatorRegistry::function(tag);
             this->link_creation_function_object->strength_threshold(this->parameters.get<double>(LINK_CREATION_STRENGTH_THRESHOLD));
             this->link_creation_function_object->set_log_file(this->parameters.get<string>(LINK_CREATION_LOG_FILE_NAME));
+            this->link_creation_function_object->set_log_new_links(this->parameters.get<bool>(LOG_NEW_LINKS));
         }
     }
 }
