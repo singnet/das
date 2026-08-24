@@ -13,6 +13,7 @@ using namespace agents;
 string BaseProxy::ABORT = "abort";
 string BaseProxy::FINISHED = "finished";
 string BaseProxy::ALLOW_CYCLE_START = "allow_cycle_start";
+string BaseProxy::CYCLE_ENDED = "cycle_ended";
 
 string BaseProxy::ORCHESTRATION_SCHEMA = "orchestration_schema";
 
@@ -21,6 +22,7 @@ BaseProxy::BaseProxy() {
     this->abort_flag = false;
     this->error_flag = false;
     this->cycle_start_allowed_flag = false;
+    this->waiting_to_start_new_cycle = true;
     this->parameters = SystemParametersSingleton::get_instance()->get_base_proxy_params();
 
     set_orchestration_schema(
@@ -46,6 +48,18 @@ void BaseProxy::abort() {
     this->abort_flag = true;
 }
 
+void BaseProxy::allow_cycle_start() {
+    lock_guard<mutex> semaphore(this->api_mutex);
+    if (this->waiting_to_start_new_cycle) {
+        if (!this->command_finished_flag) {
+            to_remote_peer(ALLOW_CYCLE_START, {});
+            this->waiting_to_start_new_cycle = false;
+        }
+    }  else {
+        RAISE_ERROR("Remote peer is not waiting to start a new cycle");
+    }
+}
+
 void BaseProxy::tokenize(vector<string>& output) {
     vector<string> parameters_tokens = this->parameters.tokenize();
     parameters_tokens.insert(parameters_tokens.begin(), std::to_string(parameters_tokens.size()));
@@ -54,6 +68,14 @@ void BaseProxy::tokenize(vector<string>& output) {
 
 // -------------------------------------------------------------------------------------------------
 // Server-side API
+
+void BaseProxy::cycle_ended() {
+    lock_guard<mutex> semaphore(this->api_mutex);
+    if (!this->command_finished_flag) {
+        this->waiting_to_start_new_cycle = true;
+        to_remote_peer(CYCLE_ENDED, {});
+    }
+}
 
 void BaseProxy::untokenize(vector<string>& tokens) {
     unsigned int num_property_tokens =
@@ -151,6 +173,12 @@ void BaseProxy::abort(const vector<string>& args) {
 void BaseProxy::allow_cycle_start(const vector<string>& args) {
     lock_guard<mutex> semaphore(this->api_mutex);
     this->cycle_start_allowed_flag = true;
+    this->waiting_to_start_new_cycle = false;
+}
+
+void BaseProxy::cycle_ended(const vector<string>& args) {
+    lock_guard<mutex> semaphore(this->api_mutex);
+    this->waiting_to_start_new_cycle = true;
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -162,5 +190,17 @@ void BaseProxy::set_orchestration_schema(ORCHESTRATION_SCHEMA_TYPE value) {
         RAISE_ERROR("Invalid orchestration tag: " + std::to_string(value));
     } else {
         this->orchestration_schema = value;
+        if (value == NONE) {
+            this->cycle_start_allowed_flag = true;
+            this->waiting_to_start_new_cycle = false;
+        } else {
+            this->cycle_start_allowed_flag = false;
+            this->waiting_to_start_new_cycle = true;
+        }
     }
+}
+
+bool BaseProxy::get_waiting_flag() {
+    lock_guard<mutex> semaphore(this->api_mutex);
+    return this->waiting_to_start_new_cycle;
 }

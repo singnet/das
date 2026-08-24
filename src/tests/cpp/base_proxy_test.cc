@@ -22,17 +22,26 @@ class TestProxy : public BaseProxy {
     void set_orchestration(unsigned int value) {
         set_orchestration_schema((BaseProxy::ORCHESTRATION_SCHEMA_TYPE) value);
     }
+    bool waiting_flag() {
+        return get_waiting_flag();
+    }
 };
 
 TEST(BaseProxyTest, basics) {
     TestProxy proxy;
+    EXPECT_FALSE(proxy.waiting_flag());
     EXPECT_TRUE(proxy.cycle_start_allowed());
     EXPECT_TRUE(proxy.cycle_start_allowed());
     proxy.set_orchestration(1);
+    EXPECT_TRUE(proxy.waiting_flag());
     EXPECT_FALSE(proxy.cycle_start_allowed());
+    EXPECT_TRUE(proxy.waiting_flag());
     EXPECT_FALSE(proxy.cycle_start_allowed());
+    EXPECT_TRUE(proxy.waiting_flag());
     proxy.allow_cycle_start({});
+    EXPECT_FALSE(proxy.waiting_flag());
     EXPECT_TRUE(proxy.cycle_start_allowed());
+    EXPECT_FALSE(proxy.waiting_flag());
     EXPECT_FALSE(proxy.cycle_start_allowed());
 }
 
