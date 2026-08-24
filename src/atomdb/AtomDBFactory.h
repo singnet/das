@@ -27,8 +27,10 @@ namespace atomdb {
 class AtomDBFactory {
    public:
     /**
-     * @brief Creates a AtomDB and wraps it with ProtectedAtomDB when mode is
-     * PROTECTED or FORWARD.
+     * @brief Creates an AtomDB from config.
+     *
+     * Interim behavior: ProtectedAtomDB wrapping is disabled. Configurations whose
+     * resulting AtomDB reports PROTECTED or FORWARD raise at the end of create().
      */
     static shared_ptr<AtomDB> create(const JsonConfig& config, const string& context = "");
 
@@ -41,7 +43,11 @@ class AtomDBFactory {
                                                       const string& context = "");
 
     /**
-     * @brief Wraps an AtomDB with ProtectedAtomDB when mode is PROTECTED or FORWARD.
+     * @brief Applies protection wrapping when enabled.
+     *
+     * Interim behavior: returns atomdb unchanged when mode is UNPROTECTED (or already
+     * wrapped). Raises when mode is PROTECTED or FORWARD because ProtectedAtomDB
+     * integration is not yet available.
      */
     static shared_ptr<AtomDB> wrap_if_protected(shared_ptr<AtomDB> atomdb);
 };
