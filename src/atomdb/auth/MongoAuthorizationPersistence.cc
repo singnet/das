@@ -19,7 +19,8 @@ MongoAuthorizationPersistence::MongoAuthorizationPersistence(const string& endpo
                                                              const string& username,
                                                              const string& password,
                                                              const string& database_name,
-                                                             const string& collection_name) {
+                                                             const string& collection_name)
+    : database_name(database_name), collection_name(collection_name) {
     if (endpoint.empty() || endpoint == ":" || username.empty() || password.empty()) {
         RAISE_ERROR("Invalid MongoDB configuration: need non-empty username, username, and password.");
     }
@@ -76,15 +77,18 @@ void MongoAuthorizationPersistence::save(const string& public_key,
 
         bool entry_exists = false;
 
-        for (const auto& document_entry : access_document->entries) {
-            if (document_entry.schema.handle() == entry.schema.handle()) {
-                schemas.append(this->entry_to_document(entry));
-                entry_exists = true;
-            } else {
-                schemas.append(this->entry_to_document(document_entry));
+        if (access_document->entries.size() > 0) {
+            for (const auto& document_entry : access_document->entries) {
+                if (document_entry.schema.handle() == entry.schema.handle()) {
+                    schemas.append(this->entry_to_document(entry));
+                    entry_exists = true;
+                } else {
+                    schemas.append(this->entry_to_document(document_entry));
+                }
             }
+        } else {
+            schemas.append(this->entry_to_document(entry));
         }
-
         if (!entry_exists) {
             schemas.append(this->entry_to_document(entry));
         }
@@ -122,12 +126,20 @@ void MongoAuthorizationPersistence::remove(const string& public_key,
     if (!access_document) return;
 
     auto schemas = bsoncxx::builder::basic::array{};
+    bool has_schemas = false;
+
     for (const auto& document_entry : access_document->entries) {
         if (document_entry.schema.handle() == entry.schema.handle()) {
             continue;  // Skip the entry to remove
         } else {
             schemas.append(this->entry_to_document(document_entry));
+            has_schemas = true;
         }
+    }
+
+    if (!has_schemas) {
+        this->remove_all(public_key);
+        return;
     }
 
     string id = Hasher::plain_string_hash(access_document->access_key);
