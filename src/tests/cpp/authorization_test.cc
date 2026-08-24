@@ -157,7 +157,7 @@ TEST(ManifestAuthorizerTest, IsAuthorized) {
     EXPECT_FALSE(authorizer->is_authorized(link_handle, "pk", AuthorizationOperation::WRITE, *db));
 }
 
-TEST(AuthorizationManagerTest, AuthorizeThenReadAndWriteFlags) {
+TEST(AuthorizationManagerTest, AuthorizeRevokeAndPermissionFlags) {
     auto persistence = make_shared<DummyPersistence>();
     AuthorizationManager manager(persistence);
 
