@@ -1548,26 +1548,15 @@ void RedisMongoDB::flush_redis_by_prefix(const string& prefix) {
 }
 
 void RedisMongoDB::drop_all() {
-    optional<bsoncxx::document::value> preserved_protection_config;
-    const auto protection_config_id = protection_config_document_id();
-    {
-        auto conn = this->mongodb_pool->acquire();
-        auto config_collection = (*conn)[MONGODB_DB_NAME][MONGODB_CONFIG_COLLECTION_NAME];
-        if (auto config_doc = config_collection.find_one(
-                bsoncxx::v_noabi::builder::basic::make_document(bsoncxx::v_noabi::builder::basic::kvp(
-                    MONGODB_FIELD_NAME[MONGODB_FIELD::ID], protection_config_id)))) {
-            preserved_protection_config = std::move(*config_doc);
-        }
-    }
-
-    // Drop MongoDB database
     auto conn = this->mongodb_pool->acquire();
-    (*conn)[MONGODB_DB_NAME].drop();
+    auto database = (*conn)[MONGODB_DB_NAME];
 
-    if (preserved_protection_config) {
-        auto restore_conn = this->mongodb_pool->acquire();
-        auto config_collection = (*restore_conn)[MONGODB_DB_NAME][MONGODB_CONFIG_COLLECTION_NAME];
-        config_collection.insert_one(preserved_protection_config->view());
+    for (auto&& collection_info : database.list_collections()) {
+        auto name = string(collection_info["name"].get_string().value);
+        if (name == MONGODB_CONFIG_COLLECTION_NAME) {
+            continue;
+        }
+        database[name].drop();
     }
 
     // Drop Redis database (by prefixes)

@@ -31,7 +31,7 @@ RemoteAtomDBPeer::RemoteAtomDBPeer(shared_ptr<AtomDB> remote_atomdb,
       local_persistence_(local_persistence) {
     if (local_persistence_ &&
         local_persistence_->get_protection_mode() != atomdb_api_types::ProtectionMode::UNPROTECTED) {
-        RAISE_ERROR("RemoteAtomDBPeer does not support non-UNPROTECTED local persistence");
+        RAISE_ERROR("RemoteAtomDBPeer supports only UNPROTECTED local persistence");
     }
     start_cleanup_thread();
 }

@@ -117,7 +117,7 @@ shared_ptr<AtomDB> AtomDBFactory::wrap_if_protected(shared_ptr<AtomDB> atomdb) {
     }
 
     // Interim fail-closed: PROTECTED and FORWARD both require ProtectedAtomDB, which is not
-    // enabled yet. Federation (RemoteAtomDB) may report FORWARD when peers are protected;
+    // enabled yet. RemoteAtomDB may report FORWARD when peers are protected;
     // that case is rejected here until wrapping is restored.
     // TODO: return make_shared<ProtectedAtomDB>(atomdb) when authorization integration is complete.
     if (mode == atomdb_api_types::ProtectionMode::PROTECTED ||
