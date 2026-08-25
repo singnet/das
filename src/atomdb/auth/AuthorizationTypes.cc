@@ -6,7 +6,11 @@ using namespace commons;
 using namespace atoms;
 
 AuthorizationSchema::AuthorizationSchema(const LinkSchema& schema, bool read, bool write)
-    : schema_(schema), read_(read), write_(write) {}
+    : schema_(schema), read_(read), write_(write) {
+    if (!read && !write) {
+        RAISE_ERROR("At least one of read or write must be true");
+    }
+}
 
 AuthorizationSchema::AuthorizationSchema(const vector<string>& tokens, bool read, bool write)
     : schema_(tokens), read_(read), write_(write) {}
@@ -46,7 +50,14 @@ bool AuthorizationSchema::match(const string& handle, HandleDecoder& decoder) co
 AuthorizationProfile::AuthorizationProfile(const string& access_key,
                                            bool full_access,
                                            vector<AuthorizationSchema> schemas)
-    : access_key_(access_key), full_access_(full_access), schemas_(schemas) {}
+    : access_key_(access_key), full_access_(full_access), schemas_(schemas) {
+    if (full_access && !schemas.empty()) {
+        RAISE_ERROR("schemas must be empty when full_access is true");
+    }
+    if (!full_access && schemas.empty()) {
+        RAISE_ERROR("schemas must be non-empty when full_access is false");
+    }
+}
 
 bool AuthorizationProfile::is_full_access() const { return this->full_access_; }
 
