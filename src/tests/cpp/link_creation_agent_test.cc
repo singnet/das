@@ -24,7 +24,7 @@ class TestLinkCreator : public LinkCreator {
 };
 
 TEST(LinkCreation, link_creator_function) {
-    LinkCreationProxy proxy1({""}, "link_creation_test", "unit_test");
+    LinkCreationProxy proxy1({""}, "link_creation_test", "unit_test", BaseProxy::NONE);
     EXPECT_EQ(proxy1.link_creation(make_shared<QueryAnswer>("blah", 0.0)).created, 4);
     EXPECT_EQ(proxy1.link_creation(make_shared<QueryAnswer>("blahhh", 0.5)).created, 6);
     EXPECT_EQ(proxy1.link_creation(make_shared<QueryAnswer>("blahh", 1.0)).created, 5);
@@ -38,12 +38,15 @@ TEST(LinkCreation, link_creator_function) {
     EXPECT_THROW(LinkCreationProxy proxy2({""},
                                           "link_creation_test",
                                           LinkCreatorRegistry::REMOTE_FUNCTION,
+                                          BaseProxy::NONE,
                                           make_shared<TestLinkCreator>()),
                  runtime_error);
 }
 
 TEST(LinkCreation, proxy_object) {
-    LinkCreationProxy proxy({"t0", "t1"}, "context", "unit_test");
+    LinkCreationProxy proxy({"t0", "t1"}, "context", "unit_test", BaseProxy::SYNC_ON_CYCLE_START);
+    proxy.parameters[LinkCreationProxy::MAX_SUCCESSFUL_CREATION_PER_ROUND] = (unsigned int) 2;
+
     vector<string> tokens1, tokens2, tokens3;
     proxy.tokenize(tokens1);
     tokens2 = tokens1;
@@ -53,6 +56,7 @@ TEST(LinkCreation, proxy_object) {
     cout << "tokens1: " << Utils::join(tokens1) << endl;
     cout << "tokens3: " << Utils::join(tokens3) << endl;
     EXPECT_EQ(tokens1, tokens3);
+    FAIL();
 }
 
 int main(int argc, char** argv) {

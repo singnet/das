@@ -40,6 +40,7 @@ class LinkCreationProxy : public BaseQueryProxy {
     LinkCreationProxy(const vector<string>& tokens,
                       const string& context,
                       const string& link_creator_tag,
+                      BaseProxy::ORCHESTRATION_SCHEMA_TYPE orchestration,
                       const shared_ptr<LinkCreator> link_creator = shared_ptr<LinkCreator>(nullptr));
 
     ~LinkCreationProxy();

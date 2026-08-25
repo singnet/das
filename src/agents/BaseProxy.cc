@@ -23,6 +23,7 @@ BaseProxy::BaseProxy() {
     this->error_flag = false;
     this->cycle_start_allowed_flag = false;
     this->waiting_to_start_new_cycle = true;
+    this->waiting_log_flag = true;
     this->parameters = SystemParametersSingleton::get_instance()->get_base_proxy_params();
 
     set_orchestration_schema(
@@ -72,8 +73,18 @@ void BaseProxy::tokenize(vector<string>& output) {
 void BaseProxy::cycle_ended() {
     lock_guard<mutex> semaphore(this->api_mutex);
     if (!this->command_finished_flag) {
-        this->waiting_to_start_new_cycle = true;
-        to_remote_peer(CYCLE_ENDED, {});
+        switch (this->orchestration_schema) {
+            case NONE:
+                break;
+            case SYNC_ON_CYCLE_START:
+                this->waiting_to_start_new_cycle = true;
+                this->waiting_log_flag = true;
+                to_remote_peer(CYCLE_ENDED, {});
+                break;
+            default:
+                RAISE_ERROR("Invalid orchestration schema: " + std::to_string(this->orchestration_schema));
+                break;
+        }
     }
 }
 
@@ -99,14 +110,19 @@ bool BaseProxy::is_aborting() {
     return this->abort_flag;
 }
 
-bool BaseProxy::cycle_start_allowed() {
+bool BaseProxy::is_cycle_start_allowed() {
     lock_guard<mutex> semaphore(this->api_mutex);
     switch (this->orchestration_schema) {
         case NONE:
             return true;
         case SYNC_ON_CYCLE_START:
+            if (this->waiting_log_flag) {
+                this->waiting_log_flag = false;
+                LOG_INFO("Waiting for orchestrator to start a new cycle");
+            }
             if (this->cycle_start_allowed_flag) {
                 this->cycle_start_allowed_flag = false;
+                this->waiting_log_flag = true;
                 return true;
             } else {
                 return false;
@@ -151,6 +167,8 @@ bool BaseProxy::from_remote_peer(const string& command, const vector<string>& ar
             abort(args);
         } else if (command == ALLOW_CYCLE_START) {
             allow_cycle_start(args);
+        } else if (command == CYCLE_ENDED) {
+            cycle_ended(args);
         } else {
             return false;
         }
@@ -196,6 +214,7 @@ void BaseProxy::set_orchestration_schema(ORCHESTRATION_SCHEMA_TYPE value) {
         } else {
             this->cycle_start_allowed_flag = false;
             this->waiting_to_start_new_cycle = true;
+            this->waiting_log_flag = true;
         }
     }
 }

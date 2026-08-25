@@ -61,9 +61,9 @@ class BaseProxy : public BusCommandProxy {
     void allow_cycle_start();
 
     /**
-     * Notifies remote proxy that a cycle just ended.
+     * Return true iff the remote peer is waiting to start a new cycle.
      */
-    void cycle_ended();
+    bool get_waiting_flag();
 
     /**
      * Write a tokenized representation of this proxy in the passed `output` vector.
@@ -98,7 +98,12 @@ class BaseProxy : public BusCommandProxy {
      *
      * @return true iff processor has green light to start a new cycle.
      */
-    bool cycle_start_allowed();
+    bool is_cycle_start_allowed();
+
+    /**
+     * Notifies remote proxy that a cycle just ended.
+     */
+    void cycle_ended();
 
     /**
      * Returns a string representation with all command parameter values.
@@ -162,7 +167,6 @@ class BaseProxy : public BusCommandProxy {
 
    protected:
     void set_orchestration_schema(ORCHESTRATION_SCHEMA_TYPE value);
-    bool get_waiting_flag(); // used in unit tests
 
    private:
     mutex api_mutex;
@@ -170,6 +174,7 @@ class BaseProxy : public BusCommandProxy {
     bool command_finished_flag;
     ORCHESTRATION_SCHEMA_TYPE orchestration_schema;
     bool cycle_start_allowed_flag;
+    bool waiting_log_flag;
     bool waiting_to_start_new_cycle; // disregarded if orchestration_schema is NONE.
 };
 

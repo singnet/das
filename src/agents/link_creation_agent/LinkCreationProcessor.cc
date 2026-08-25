@@ -1,3 +1,5 @@
+#define LOG_LEVEL DEBUG_LEVEL
+
 #include "LinkCreationProcessor.h"
 
 #if defined(__GLIBC__)
@@ -138,11 +140,19 @@ void LinkCreationProcessor::link_creation(shared_ptr<StoppableThread> monitor,
     STACK_TRACE();
     unsigned int count_created = 0;
     unsigned int count_used_query_answers = 0;
+    unsigned int count_query_answers_in_cycle = 0;
+    unsigned int count_iterated_query_answers = 0;
     unsigned int unproductive_visit = 0;
     unsigned int visit_attempts = 0;
     shared_ptr<QueryAnswer> query_answer;
     LinkCreationStats stats;
     while (!(monitor->stopped() || proxy->stop_criteria_met())) {
+        while (!monitor->stopped() && !proxy->is_cycle_start_allowed()) {
+            Utils::sleep();
+        }
+        if (monitor->stopped()) {
+            break;
+        }
         // Starting one round of link creation
         auto pm_proxy = issue_link_creation_query(proxy);
         while (!(monitor->stopped())) {
@@ -153,20 +163,24 @@ void LinkCreationProcessor::link_creation(shared_ptr<StoppableThread> monitor,
                 }
                 Utils::sleep();
             } else {
-                LOG_DEBUG("Processing query answer " + to_string(count_used_query_answers) + ": " +
+                LOG_DEBUG("Iterating query answer " + to_string(count_iterated_query_answers++) + ": " +
                           query_answer->to_string(USE_MORK));
                 stats = proxy->link_creation(query_answer);
                 if (stats.created > 0) {
                     count_created += stats.created;
                     count_used_query_answers++;
+                    count_query_answers_in_cycle++;
+                    LOG_DEBUG("Created links: " + std::to_string(count_query_answers_in_cycle));
                     unproductive_visit = 0;
                     visit_attempts = 0;
                     proxy->push(query_answer);
-                    if (limit_reached(proxy, count_used_query_answers, LinkCreationProxy::MAX_SUCCESSFUL_CREATION_PER_ROUND)) {
+                    if (limit_reached(proxy, count_query_answers_in_cycle, LinkCreationProxy::MAX_SUCCESSFUL_CREATION_PER_ROUND)) {
+                        count_query_answers_in_cycle = 0;
                         break;
                     }
                 } else if (stats.visited) {
                     unproductive_visit++;
+                    LOG_DEBUG("Unproductive visit: " + std::to_string(unproductive_visit));
                     visit_attempts = 0;
                     if (limit_reached(proxy, unproductive_visit, LinkCreationProxy::MAX_UNPRODUCTIVE_VISITS_PER_ROUND)) {
                         break;
@@ -180,10 +194,14 @@ void LinkCreationProcessor::link_creation(shared_ptr<StoppableThread> monitor,
             }
         }
         proxy->flush_determiners();
+        proxy->flush_answer_bundle();
+        proxy->cycle_ended();
         if (!pm_proxy->finished()) {
+            // aborting pattern matching query
             pm_proxy->abort();
         }
         proxy->inc_round_count();
+        LOG_DEBUG("Cycle ended");
     }
     LOG_INFO("Used a total of " + to_string(count_used_query_answers) + " query answers to create new links");
     LOG_INFO("Built a total of " + to_string(count_created) + " links");

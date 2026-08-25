@@ -29,12 +29,15 @@ LinkCreationProxy::LinkCreationProxy() {
 LinkCreationProxy::LinkCreationProxy(const vector<string>& tokens,
                                      const string& context,
                                      const string& link_creator_tag,
+                                     BaseProxy::ORCHESTRATION_SCHEMA_TYPE orchestration,
                                      const shared_ptr<LinkCreator> link_creation_function)
     : BaseQueryProxy(tokens, context) {
     // constructor typically used in requestor
     init();
     this->link_creation_function_object = link_creation_function;
     set_link_creator_function_tag(link_creator_tag);
+    set_orchestration_schema(orchestration);
+
 }
 
 LinkCreationProxy::~LinkCreationProxy() {}
