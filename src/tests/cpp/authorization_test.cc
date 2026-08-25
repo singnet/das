@@ -11,7 +11,6 @@
 #include "InMemoryDB.h"
 #include "Link.h"
 #include "LinkSchema.h"
-#include "ManifestAuthorizer.h"
 #include "Node.h"
 
 using namespace atomdb;
@@ -41,29 +40,41 @@ AccessPermissionEntry read_only_inheritance_entry() {
 
 class DummyPersistence : public AuthorizationPersistence {
    public:
-    map<string, vector<string>> documents;
+    map<string, vector<AccessPermissionEntry>> documents;
 
-    vector<atomdb_api_types::AccessPermissionEntry> list(const string& public_key) override {
-        return {};
+    vector<AccessPermissionEntry> list(const string& public_key) override {
+        auto it = documents.find(public_key);
+        if (it == documents.end()) {
+            return {};
+        }
+        return it->second;
     }
 
-    void save(const string& public_key, const atomdb_api_types::AccessPermissionEntry& entry) override {
-        auto& handles = documents[public_key];
-        handles.push_back(entry.schema.handle());
+    void save(const string& public_key, const AccessPermissionEntry& entry) override {
+        auto& entries = documents[public_key];
+        for (auto& existing : entries) {
+            if (existing.schema.handle() == entry.schema.handle()) {
+                existing = entry;
+                return;
+            }
+        }
+        entries.push_back(entry);
     }
 
-    void remove(const string& public_key,
-                const atomdb_api_types::AccessPermissionEntry& entry) override {
+    void remove(const string& public_key, const AccessPermissionEntry& entry) override {
         auto it = documents.find(public_key);
         if (it == documents.end()) {
             return;
         }
 
-        auto& handles = it->second;
-
+        auto& entries = it->second;
         auto handle = entry.schema.handle();
-
-        handles.erase(std::remove(handles.begin(), handles.end(), handle), handles.end());
+        entries.erase(remove_if(entries.begin(),
+                                entries.end(),
+                                [&handle](const AccessPermissionEntry& existing) {
+                                    return existing.schema.handle() == handle;
+                                }),
+                      entries.end());
     }
 
     void remove_all(const string& public_key) override { documents.erase(public_key); }
@@ -86,78 +97,86 @@ shared_ptr<InMemoryDB> db_with_inheritance_link(string* link_handle) {
     return db;
 }
 
+AuthorizationManifest manifest_from_persistence(const DummyPersistence& persistence) {
+    vector<AccessPermissionDocument> documents;
+    documents.reserve(persistence.documents.size());
+    for (const auto& [public_key, entries] : persistence.documents) {
+        documents.emplace_back(public_key, false, entries);
+    }
+    return AuthorizationManifest(documents);
+}
+
 }  // namespace
 
-TEST(AuthorizationManifestTest, ManagesAuthorizationEntriesAndAccess) {
-    AuthorizationManifest manifest;
-    string public_key = "pk1";
+TEST(AuthorizationManifestTest, BuildsProfilesFromDocuments) {
+    vector<AccessPermissionDocument> documents = {
+        AccessPermissionDocument("pk1", false, {read_only_inheritance_entry()}),
+        AccessPermissionDocument("pk2", true, {}),
+    };
+    AuthorizationManifest manifest(documents);
 
-    EXPECT_FALSE(manifest.is_registered(public_key));
-    EXPECT_FALSE(manifest.full_access(public_key));
+    EXPECT_TRUE(manifest.is_registered("pk1"));
+    EXPECT_TRUE(manifest.is_registered("pk2"));
+    EXPECT_FALSE(manifest.is_registered("unknown"));
 
-    EXPECT_EQ(manifest.get_document(public_key), nullptr);
+    EXPECT_FALSE(manifest.full_access("pk1"));
+    EXPECT_TRUE(manifest.full_access("pk2"));
 
-    AccessPermissionEntry entry = read_only_inheritance_entry();
-    manifest.add(public_key, entry);
+    auto profile = manifest.lookup("pk1");
+    ASSERT_NE(profile, nullptr);
+    EXPECT_FALSE(profile->is_full_access());
 
-    ASSERT_TRUE(manifest.is_registered(public_key));
+    const auto& schemas = profile->schemas();
+    ASSERT_EQ(schemas.size(), 1u);
+    EXPECT_TRUE(schemas[0].allows(AuthorizationOperation::READ));
+    EXPECT_FALSE(schemas[0].allows(AuthorizationOperation::WRITE));
+    EXPECT_EQ(schemas[0].schema().handle(), read_only_inheritance_entry().schema.handle());
 
-    auto doc = manifest.get_document(public_key);
-    ASSERT_NE(doc, nullptr);
-
-    auto entries = doc->entries;
-    ASSERT_EQ(entries.size(), 1u);
-    EXPECT_TRUE(entries[0].read);
-    EXPECT_FALSE(entries[0].write);
-    EXPECT_EQ(entries[0].schema.handle(), entry.schema.handle());
-
-    manifest.remove(public_key, entry);
-    EXPECT_TRUE(manifest.is_registered(public_key));
-
-    EXPECT_TRUE(manifest.get_document(public_key)->entries.empty());
-
-    manifest.set(AccessPermissionDocument(public_key, true, {}));
-    EXPECT_TRUE(manifest.full_access(public_key));
-
-    manifest.remove_all(public_key);
-    EXPECT_FALSE(manifest.is_registered(public_key));
+    EXPECT_EQ(manifest.lookup("unknown"), nullptr);
 }
 
-TEST(AuthorizationManifestTest, AddReplacesEntryWithSameSchemaHandle) {
-    AuthorizationManifest manifest;
-    string public_key = "pk1";
-    manifest.add(public_key, AccessPermissionEntry(inheritance_mammal_tokens(), true, false));
-    manifest.add(public_key, AccessPermissionEntry(inheritance_mammal_tokens(), false, true));
-
-    auto entries = manifest.get_document(public_key)->entries;
-
-    ASSERT_EQ(entries.size(), 1u);
-    EXPECT_FALSE(entries[0].read);
-    EXPECT_TRUE(entries[0].write);
+TEST(AuthorizationManifestTest, EmptyDocuments) {
+    AuthorizationManifest manifest({});
+    EXPECT_FALSE(manifest.is_registered("pk"));
+    EXPECT_FALSE(manifest.full_access("pk"));
+    EXPECT_EQ(manifest.lookup("pk"), nullptr);
 }
 
-TEST(ManifestAuthorizerTest, IsAuthorized) {
+TEST(AuthorizationManifestTest, IsAuthorized) {
     string link_handle;
     auto db = db_with_inheritance_link(&link_handle);
 
-    auto manifest = make_shared<AuthorizationManifest>();
-    auto authorizer = make_shared<ManifestAuthorizer>(manifest);
+    AccessPermissionEntry entry = read_only_inheritance_entry();
+    AuthorizationManifest manifest({AccessPermissionDocument("pk", false, {entry})});
 
     auto link = db->get_link(link_handle);
     ASSERT_NE(link, nullptr);
-    EXPECT_FALSE(authorizer->is_authorized(*link, "unknown", AuthorizationOperation::READ, *db));
-    EXPECT_FALSE(authorizer->is_authorized(link_handle, "unknown", AuthorizationOperation::READ, *db));
 
-    AccessPermissionEntry entry = read_only_inheritance_entry();
-    manifest->add("pk", entry);
-    EXPECT_TRUE(authorizer->is_authorized(*link, "pk", AuthorizationOperation::READ, *db));
-    EXPECT_TRUE(authorizer->is_authorized(link_handle, "pk", AuthorizationOperation::READ, *db));
+    EXPECT_FALSE(manifest.is_authorized(*link, "unknown", AuthorizationOperation::READ, *db));
+    EXPECT_FALSE(manifest.is_authorized(link_handle, "unknown", AuthorizationOperation::READ, *db));
 
-    EXPECT_FALSE(authorizer->is_authorized(*link, "pk", AuthorizationOperation::WRITE, *db));
-    EXPECT_FALSE(authorizer->is_authorized(link_handle, "pk", AuthorizationOperation::WRITE, *db));
+    EXPECT_TRUE(manifest.is_authorized(*link, "pk", AuthorizationOperation::READ, *db));
+    EXPECT_TRUE(manifest.is_authorized(link_handle, "pk", AuthorizationOperation::READ, *db));
+
+    EXPECT_FALSE(manifest.is_authorized(*link, "pk", AuthorizationOperation::WRITE, *db));
+    EXPECT_FALSE(manifest.is_authorized(link_handle, "pk", AuthorizationOperation::WRITE, *db));
 }
 
-TEST(AuthorizationManagerTest, AuthorizeThenReadAndWriteFlags) {
+TEST(AuthorizationManifestTest, FullAccessGrantsAllOperations) {
+    string link_handle;
+    auto db = db_with_inheritance_link(&link_handle);
+
+    AuthorizationManifest manifest({AccessPermissionDocument("pk", true, {})});
+
+    auto link = db->get_link(link_handle);
+    ASSERT_NE(link, nullptr);
+
+    EXPECT_TRUE(manifest.is_authorized(*link, "pk", AuthorizationOperation::READ, *db));
+    EXPECT_TRUE(manifest.is_authorized(*link, "pk", AuthorizationOperation::WRITE, *db));
+    EXPECT_TRUE(manifest.is_authorized(link_handle, "pk", AuthorizationOperation::WRITE, *db));
+}
+
+TEST(AuthorizationManagerTest, ManifestReflectsPersistedPermissions) {
     string link_handle;
     auto db = db_with_inheritance_link(&link_handle);
 
@@ -166,17 +185,35 @@ TEST(AuthorizationManagerTest, AuthorizeThenReadAndWriteFlags) {
     AccessPermissionEntry entry = read_only_inheritance_entry();
 
     manager.authorize("pk", entry);
+
+    AuthorizationManifest manifest = manifest_from_persistence(*persistence);
+    auto link = db->get_link(link_handle);
+    ASSERT_NE(link, nullptr);
+
+    EXPECT_TRUE(manifest.is_authorized(*link, "pk", AuthorizationOperation::READ, *db));
+    EXPECT_FALSE(manifest.is_authorized(*link, "pk", AuthorizationOperation::WRITE, *db));
+}
+
+TEST(AuthorizationManagerTest, AuthorizeThenReadAndWriteFlags) {
+    auto persistence = make_shared<DummyPersistence>();
+    AuthorizationManager manager(persistence);
+    AccessPermissionEntry entry = read_only_inheritance_entry();
+
+    manager.authorize("pk", entry);
     manager.authorize("pk2", entry);
 
-    EXPECT_EQ(persistence->documents.size(), 2);
-    EXPECT_EQ(persistence->documents["pk"], vector<string>{entry.schema.handle()});
-    EXPECT_EQ(persistence->documents["pk2"], vector<string>{entry.schema.handle()});
+    EXPECT_EQ(persistence->documents.size(), 2u);
+    ASSERT_EQ(persistence->documents["pk"].size(), 1u);
+    ASSERT_EQ(persistence->documents["pk2"].size(), 1u);
+    EXPECT_EQ(persistence->documents["pk"][0].schema.handle(), entry.schema.handle());
+    EXPECT_EQ(persistence->documents["pk2"][0].schema.handle(), entry.schema.handle());
 
     manager.revoke("pk", entry);
-    EXPECT_EQ(persistence->documents.size(), 2);
-    EXPECT_EQ(persistence->documents["pk"], vector<string>{});
-    EXPECT_EQ(persistence->documents["pk2"], vector<string>{entry.schema.handle()});
+    EXPECT_EQ(persistence->documents.size(), 2u);
+    EXPECT_TRUE(persistence->documents["pk"].empty());
+    EXPECT_EQ(persistence->documents["pk2"].size(), 1u);
 
     manager.revoke_all("pk");
-    EXPECT_EQ(persistence->documents.size(), 1);
+    EXPECT_EQ(persistence->documents.size(), 1u);
+    EXPECT_EQ(persistence->documents.count("pk"), 0u);
 }
