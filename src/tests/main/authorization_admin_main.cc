@@ -88,8 +88,8 @@ int main(int argc, char* argv[]) {
         usage(argv[0]);
     }
 
-    if (permission != "read" && permission != "write") {
-        cerr << "Error: --permission must be 'read' or 'write'.\n\n";
+    if (permission != "read" && permission != "write" && permission != "read-write") {
+        cerr << "Error: --permission must be 'read', 'write' or 'read-write'.\n\n";
         exit(1);
     }
 
@@ -126,6 +126,12 @@ int main(int argc, char* argv[]) {
     } else if (permission == "write") {
         read = false;
         write = true;
+    } else if (permission == "read-write") {
+        read = true;
+        write = true;
+    } else {
+        LOG_ERROR("Invalid --permission value: must be 'read', 'write', or 'read-write'");
+        exit(1);
     }
 
     auto entry = atomdb_api_types::AccessPermissionEntry(tokens, read, write);
