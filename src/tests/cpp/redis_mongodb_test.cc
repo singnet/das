@@ -1434,21 +1434,27 @@ TEST_F(RedisMongoDBTest, GetAccessPermissionsReturnsStoredDocuments) {
 
     auto admin_permissions = db->get_access_permissions(PublicKey("key_admin"));
     ASSERT_EQ(admin_permissions.size(), 1u);
-    EXPECT_EQ(admin_permissions[0].access_key, "key_admin");
-    EXPECT_TRUE(admin_permissions[0].full_access);
-    EXPECT_TRUE(admin_permissions[0].entries.empty());
+    EXPECT_EQ(admin_permissions[0]->get_access_key(), "key_admin");
+    EXPECT_TRUE(admin_permissions[0]->get_full_access());
+    EXPECT_EQ(admin_permissions[0]->get_entries_size(), 0u);
 
     auto reader_permissions = db->get_access_permissions(PublicKey("key_reader"));
     ASSERT_EQ(reader_permissions.size(), 1u);
-    EXPECT_EQ(reader_permissions[0].access_key, "key_reader");
-    EXPECT_FALSE(reader_permissions[0].full_access);
-    ASSERT_EQ(reader_permissions[0].entries.size(), 1u);
-    EXPECT_TRUE(reader_permissions[0].entries[0].read);
-    EXPECT_FALSE(reader_permissions[0].entries[0].write);
+    EXPECT_EQ(reader_permissions[0]->get_access_key(), "key_reader");
+    EXPECT_FALSE(reader_permissions[0]->get_full_access());
+    ASSERT_EQ(reader_permissions[0]->get_entries_size(), 1u);
+    const auto& reader_entry = reader_permissions[0]->get_entry(0);
+    EXPECT_TRUE(reader_entry.get_read());
+    EXPECT_FALSE(reader_entry.get_write());
     vector<string> expected_tokens = {
         "LINK_TEMPLATE", "Expression", "2", "NODE", "Symbol", "Similarity", "VARIABLE", "VARIABLE"};
     LinkSchema expected_schema(expected_tokens);
-    EXPECT_EQ(reader_permissions[0].entries[0].schema.handle(), expected_schema.handle());
+    vector<string> actual_tokens;
+    actual_tokens.reserve(reader_entry.get_tokens_size());
+    for (unsigned int i = 0; i < reader_entry.get_tokens_size(); ++i) {
+        actual_tokens.push_back(reader_entry.get_token(i));
+    }
+    EXPECT_EQ(LinkSchema(actual_tokens).handle(), expected_schema.handle());
 
     auto map_permissions = db->get_access_permissions(
         PublicKey(map<string, string>{{"peer_a", "key_admin"}, {"peer_b", "key_reader"}}));
