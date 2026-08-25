@@ -183,7 +183,7 @@ bool ProtectedAtomDB::allow_nested_indexing() { return this->backend->allow_nest
 bool ProtectedAtomDB::composite_type_enabled() const { return this->backend->composite_type_enabled(); }
 
 atomdb_api_types::ProtectionMode ProtectedAtomDB::get_protection_mode() const {
-    return atomdb_api_types::ProtectionMode::UNPROTECTED;
+    return this->backend->get_protection_mode();
 }
 
 // --------------------------------------------------------------------------------

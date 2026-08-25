@@ -1285,10 +1285,30 @@ void RedisMongoDB::load_protection_mode() {
     auto conn = this->mongodb_pool->acquire();
     auto config_collection = (*conn)[MONGODB_DB_NAME][MONGODB_CONFIG_COLLECTION_NAME];
     auto config_doc = config_collection.find_one(
-        bsoncxx::builder::basic::make_document(bsoncxx::builder::basic::kvp("protected", true)));
-    this->protection_mode = static_cast<atomdb_api_types::ProtectionMode>(
-        config_doc ? atomdb_api_types::ProtectionMode::PROTECTED
-                   : atomdb_api_types::ProtectionMode::UNPROTECTED);
+        bsoncxx::v_noabi::builder::basic::make_document(bsoncxx::v_noabi::builder::basic::kvp(
+            MONGODB_FIELD_NAME[MONGODB_FIELD::ID], protection_config_document_id())));
+
+    if (!config_doc) {
+        this->protection_mode = atomdb_api_types::ProtectionMode::UNPROTECTED;
+        return;
+    }
+
+    const auto view = config_doc->view();
+    auto protected_it = view.find("protected");
+    if (protected_it == view.end()) {
+        RAISE_ERROR("RedisMongoDB config document missing required boolean field 'protected'");
+    }
+    if (protected_it->type() != bsoncxx::type::k_bool) {
+        RAISE_ERROR("RedisMongoDB config document field 'protected' must be a boolean");
+    }
+
+    this->protection_mode = protected_it->get_bool().value
+                                ? atomdb_api_types::ProtectionMode::PROTECTED
+                                : atomdb_api_types::ProtectionMode::UNPROTECTED;
+}
+
+string RedisMongoDB::protection_config_document_id() {
+    return Hasher::plain_string_hash(MONGODB_CONFIG_COLLECTION_NAME);
 }
 
 void RedisMongoDB::load_pattern_index_schema() {
@@ -1482,9 +1502,27 @@ void RedisMongoDB::flush_redis_by_prefix(const string& prefix) {
 }
 
 void RedisMongoDB::drop_all() {
+    optional<bsoncxx::document::value> preserved_protection_config;
+    const auto protection_config_id = protection_config_document_id();
+    {
+        auto conn = this->mongodb_pool->acquire();
+        auto config_collection = (*conn)[MONGODB_DB_NAME][MONGODB_CONFIG_COLLECTION_NAME];
+        if (auto config_doc = config_collection.find_one(
+                bsoncxx::v_noabi::builder::basic::make_document(bsoncxx::v_noabi::builder::basic::kvp(
+                    MONGODB_FIELD_NAME[MONGODB_FIELD::ID], protection_config_id)))) {
+            preserved_protection_config = std::move(*config_doc);
+        }
+    }
+
     // Drop MongoDB database
     auto conn = this->mongodb_pool->acquire();
     (*conn)[MONGODB_DB_NAME].drop();
+
+    if (preserved_protection_config) {
+        auto restore_conn = this->mongodb_pool->acquire();
+        auto config_collection = (*restore_conn)[MONGODB_DB_NAME][MONGODB_CONFIG_COLLECTION_NAME];
+        config_collection.insert_one(preserved_protection_config->view());
+    }
 
     // Drop Redis database (by prefixes)
     if (!skip_redis_) {
