@@ -20,6 +20,10 @@ class AuthorizationSchema {
 
     bool allows(AuthorizationOperation operation) const;
     const LinkSchema& schema() const;
+    bool read() const;
+    bool write() const;
+    bool match(const Atom& atom, HandleDecoder& decoder) const;
+    bool match(const string& handle, HandleDecoder& decoder) const;
 
    private:
     LinkSchema schema_;

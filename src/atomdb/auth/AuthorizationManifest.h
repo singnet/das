@@ -23,7 +23,8 @@ namespace atomdb {
  */
 class AuthorizationManifest {
    public:
-    explicit AuthorizationManifest(const vector<atomdb_api_types::AccessPermissionDocument>& documents);
+    explicit AuthorizationManifest(
+        const vector<shared_ptr<atomdb_api_types::AccessPermissionDocument>>& documents);
     ~AuthorizationManifest() = default;
 
     /**
@@ -58,9 +59,6 @@ class AuthorizationManifest {
 
    private:
     map<string, AuthorizationProfile> profiles;
-
-    bool matches_schema(const LinkSchema& schema, const Atom& atom, HandleDecoder& decoder) const;
-    bool matches_schema(const LinkSchema& schema, const string& handle, HandleDecoder& decoder) const;
 };
 
 }  // namespace atomdb

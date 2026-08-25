@@ -26,6 +26,17 @@ cc_library(
 )
 
 cc_library(
+    name = "in_memory_access_permission_types",
+    srcs = ["InMemoryAccessPermissionTypes.cc"],
+    hdrs = ["InMemoryAccessPermissionTypes.h"],
+    includes = ["."],
+    deps = [
+        "//atomdb:atomdb_api_types",
+        "//commons:commons_lib",
+    ],
+)
+
+cc_library(
     name = "test_system_params",
     srcs = ["TestSystemParams.cc"],
     hdrs = ["TestSystemParams.h"],

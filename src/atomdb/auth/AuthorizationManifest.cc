@@ -13,19 +13,27 @@ using namespace atomdb;
 // Public methods
 
 AuthorizationManifest::AuthorizationManifest(
-    const vector<atomdb_api_types::AccessPermissionDocument>& documents) {
+    const vector<shared_ptr<atomdb_api_types::AccessPermissionDocument>>& documents) {
     for (const auto& doc : documents) {
         vector<AuthorizationSchema> schemas;
-        schemas.reserve(doc.entries.size());
+        schemas.reserve(doc->get_entries_size());
 
-        for (const auto& entry : doc.entries) {
-            schemas.emplace_back(entry.schema, entry.read, entry.write);
+        for (unsigned int i = 0; i < doc->get_entries_size(); ++i) {
+            const auto& entry = doc->get_entry(i);
+            vector<string> tokens;
+            tokens.reserve(entry.get_tokens_size());
+            for (unsigned int j = 0; j < entry.get_tokens_size(); ++j) {
+                tokens.push_back(entry.get_token(j));
+            }
+            schemas.emplace_back(tokens, entry.get_read(), entry.get_write());
         }
 
         auto [it, inserted] = this->profiles.emplace(
-            doc.access_key, AuthorizationProfile(doc.access_key, doc.full_access, std::move(schemas)));
+            doc->get_access_key(),
+            AuthorizationProfile(doc->get_access_key(), doc->get_full_access(), std::move(schemas)));
         if (!inserted) {
-            RAISE_ERROR("Duplicate access_key in authorization manifest: " + doc.access_key);
+            RAISE_ERROR(string("Duplicate access_key in authorization manifest: ") +
+                        doc->get_access_key());
         }
     }
 }
@@ -42,8 +50,8 @@ bool AuthorizationManifest::is_authorized(const Atom& atom,
     }
 
     auto profile = this->lookup(public_key);
-    for (const auto& rule : profile->schemas()) {
-        if (rule.allows(operation) && this->matches_schema(rule.schema(), atom, decoder)) {
+    for (const auto& schema : profile->schemas()) {
+        if (schema.allows(operation) && schema.match(atom, decoder)) {
             return true;
         }
     }
@@ -62,8 +70,8 @@ bool AuthorizationManifest::is_authorized(const string& handle,
     }
 
     auto profile = this->lookup(public_key);
-    for (const auto& rule : profile->schemas()) {
-        if (rule.allows(operation) && this->matches_schema(rule.schema(), handle, decoder)) {
+    for (const auto& schema : profile->schemas()) {
+        if (schema.allows(operation) && schema.match(handle, decoder)) {
             return true;
         }
     }
@@ -87,27 +95,4 @@ AuthorizationProfile* AuthorizationManifest::lookup(const string& public_key) {
         return nullptr;
     }
     return &it->second;
-}
-
-// --------------------------------------------------------------------------------
-// Private methods
-
-bool AuthorizationManifest::matches_schema(const LinkSchema& schema,
-                                           const Atom& atom,
-                                           HandleDecoder& decoder) const {
-    Assignment assignment;
-    LinkSchema local_schema(schema);
-    if (Atom::is_link(atom)) {
-        auto& link = const_cast<Link&>(static_cast<const Link&>(atom));
-        return local_schema.match(link, assignment, decoder);
-    }
-    return local_schema.match(atom.handle(), assignment, decoder);
-}
-
-bool AuthorizationManifest::matches_schema(const LinkSchema& schema,
-                                           const string& handle,
-                                           HandleDecoder& decoder) const {
-    Assignment assignment;
-    LinkSchema local_schema(schema);
-    return local_schema.match(handle, assignment, decoder);
 }

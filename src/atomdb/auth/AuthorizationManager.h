@@ -4,7 +4,6 @@
 #include <memory>
 #include <string>
 
-#include "AtomDBAPITypes.h"
 #include "AuthorizationPersistence.h"
 
 using namespace std;
@@ -27,17 +26,17 @@ class AuthorizationManager {
     /**
      * @brief Lists all permissions granted to public_key.
      */
-    vector<atomdb_api_types::AccessPermissionEntry> list(const string& public_key);
+    vector<AuthorizationSchema> list(const string& public_key);
 
     /**
      * @brief Grants an authorization entry to public_key.
      */
-    void authorize(const string& public_key, const atomdb_api_types::AccessPermissionEntry& entry);
+    void authorize(const string& public_key, const AuthorizationSchema& entry);
 
     /**
      * @brief Revokes an authorization entry from public_key.
      */
-    void revoke(const string& public_key, const atomdb_api_types::AccessPermissionEntry& entry);
+    void revoke(const string& public_key, const AuthorizationSchema& entry);
 
     /**
      * @brief Revokes all authorization entries from public_key.

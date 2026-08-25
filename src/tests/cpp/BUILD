@@ -880,6 +880,7 @@ cc_test(
         "//atomdb/auth:auth_lib",
         "//atomdb/inmemorydb:inmemorydb_lib",
         "//commons/atoms:atoms_lib",
+        "//tests/cpp/test_commons:in_memory_access_permission_types",
         "@com_github_google_googletest//:gtest_main",
     ],
 )

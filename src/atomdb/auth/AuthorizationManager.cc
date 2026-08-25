@@ -17,18 +17,15 @@ AuthorizationManager::AuthorizationManager(shared_ptr<AuthorizationPersistence> 
 // --------------------------------------------------------------------------------
 // Public methods
 
-vector<atomdb_api_types::AccessPermissionEntry> atomdb::AuthorizationManager::list(
-    const string& public_key) {
+vector<AuthorizationSchema> atomdb::AuthorizationManager::list(const string& public_key) {
     return this->persistence->list(public_key);
 }
 
-void AuthorizationManager::authorize(const string& public_key,
-                                     const atomdb_api_types::AccessPermissionEntry& entry) {
+void AuthorizationManager::authorize(const string& public_key, const AuthorizationSchema& entry) {
     this->persistence->save(public_key, entry);
 }
 
-void AuthorizationManager::revoke(const string& public_key,
-                                  const atomdb_api_types::AccessPermissionEntry& entry) {
+void AuthorizationManager::revoke(const string& public_key, const AuthorizationSchema& entry) {
     this->persistence->remove(public_key, entry);
 }
 

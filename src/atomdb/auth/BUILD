@@ -8,7 +8,7 @@ cc_library(
     deps = [
         ":authorization_manager",
         ":authorization_manifest",
-        ":mongo_authorization_persistence",
+        ":mongodb_authorization_persistence",
     ],
 )
 
@@ -17,22 +17,34 @@ cc_library(
     hdrs = ["AuthorizationPersistence.h"],
     includes = ["."],
     deps = [
-        "//atomdb:atomdb_api_types",
+        ":authorization_types",
     ],
 )
 
 cc_library(
-    name = "mongo_authorization_persistence",
-    srcs = ["MongoAuthorizationPersistence.cc"],
-    hdrs = ["MongoAuthorizationPersistence.h"],
+    name = "mongodb_authorization_profile",
+    srcs = ["MongodbAuthorizationProfile.cc"],
+    hdrs = ["MongodbAuthorizationProfile.h"],
+    includes = ["."],
+    deps = [
+        "//commons:commons_lib",
+        "//hasher:hasher_lib",
+    ],
+)
+
+cc_library(
+    name = "mongodb_authorization_persistence",
+    srcs = ["MongodbAuthorizationPersistence.cc"],
+    hdrs = ["MongodbAuthorizationPersistence.h"],
     includes = ["."],
     deps = [
         ":authorization_persistence",
-        "//atomdb:atomdb_api_types",
+        ":authorization_types",
+        ":mongodb_authorization_profile",
+        "//atomdb/redis_mongodb:redis_mongodb_api_types",
         "//commons:commons_lib",
         "//commons/atoms:atoms_lib",
         "//hasher:hasher_lib",
-        "@nlohmann_json//:json",
     ],
 )
 
@@ -42,9 +54,9 @@ cc_library(
     hdrs = ["AuthorizationManager.h"],
     includes = ["."],
     deps = [
-        ":mongo_authorization_persistence",
-        "//atomdb",
-        "//atomdb:atomdb_api_types",
+        ":authorization_persistence",
+        ":authorization_types",
+        ":mongodb_authorization_persistence",
         "//commons:commons_lib",
         "//commons/atoms:atoms_lib",
     ],

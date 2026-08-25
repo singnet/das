@@ -23,6 +23,26 @@ bool AuthorizationSchema::allows(AuthorizationOperation operation) const {
 
 const LinkSchema& AuthorizationSchema::schema() const { return this->schema_; }
 
+bool AuthorizationSchema::read() const { return this->read_; }
+
+bool AuthorizationSchema::write() const { return this->write_; }
+
+bool AuthorizationSchema::match(const Atom& atom, HandleDecoder& decoder) const {
+    Assignment assignment;
+    LinkSchema schema = this->schema_;
+    if (Atom::is_link(atom)) {
+        auto& link = *(Link*) &static_cast<const Link&>(atom);
+        return schema.match(link, assignment, decoder);
+    }
+    return schema.match(atom.handle(), assignment, decoder);
+}
+
+bool AuthorizationSchema::match(const string& handle, HandleDecoder& decoder) const {
+    Assignment assignment;
+    LinkSchema schema = this->schema_;
+    return schema.match(handle, assignment, decoder);
+}
+
 AuthorizationProfile::AuthorizationProfile(const string& access_key,
                                            bool full_access,
                                            vector<AuthorizationSchema> schemas)
