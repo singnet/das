@@ -98,5 +98,46 @@ class MongodbDocument : public AtomDocument {
     bsoncxx::v_noabi::stdx::optional<bsoncxx::v_noabi::document::value> document;
 };
 
+class MongodbAccessPermissionEntry : public AccessPermissionEntry {
+   public:
+    explicit MongodbAccessPermissionEntry(bsoncxx::v_noabi::document::view entry_view);
+    ~MongodbAccessPermissionEntry() override = default;
+
+    bool get_read() const override;
+    bool get_write() const override;
+    unsigned int get_tokens_size() const override;
+    const char* get_token(unsigned int index) const override;
+
+   private:
+    bsoncxx::v_noabi::document::view entry_view_;
+};
+
+class MongodbAccessPermissionDocument : public AccessPermissionDocument {
+   public:
+    explicit MongodbAccessPermissionDocument(bsoncxx::v_noabi::document::value document);
+    ~MongodbAccessPermissionDocument() override = default;
+
+    // entries_ hold views into document_'s buffer, so copying or moving this object
+    // would leave those views pointing at another object's storage.
+    MongodbAccessPermissionDocument(const MongodbAccessPermissionDocument&) = delete;
+    MongodbAccessPermissionDocument& operator=(const MongodbAccessPermissionDocument&) = delete;
+    MongodbAccessPermissionDocument(MongodbAccessPermissionDocument&&) = delete;
+    MongodbAccessPermissionDocument& operator=(MongodbAccessPermissionDocument&&) = delete;
+
+    bsoncxx::v_noabi::document::value value() const;
+
+    const char* get_access_key() const override;
+    bool get_full_access() const override;
+    unsigned int get_entries_size() const override;
+    const AccessPermissionEntry& get_entry(unsigned int index) const override;
+
+   private:
+    bsoncxx::v_noabi::document::value document_;
+    vector<MongodbAccessPermissionEntry> entries_;
+
+    void validate_document_view(bsoncxx::v_noabi::document::view view) const;
+    bsoncxx::v_noabi::document::view document_view() const;
+};
+
 }  // namespace atomdb_api_types
 }  // namespace atomdb

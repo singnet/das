@@ -119,7 +119,7 @@ class RemoteAtomDBPeer : public AtomDB, public processor::ThreadMethod {
      * Delegates the lookup to the remote AtomDB; local persistence is not consulted.
      * Returns an empty vector if there is no remote AtomDB or it has no matching permissions.
      */
-    vector<atomdb_api_types::AccessPermissionDocument> get_access_permissions(
+    vector<shared_ptr<atomdb_api_types::AccessPermissionDocument>> get_access_permissions(
         const atomdb_api_types::PublicKey& public_key) const override;
 
    private:

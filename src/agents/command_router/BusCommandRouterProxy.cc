@@ -31,7 +31,7 @@ BusCommandRouterProxy::BusCommandRouterProxy(const string& router_command, const
 BusCommandRouterProxy::~BusCommandRouterProxy() {}
 
 void BusCommandRouterProxy::apply_default_parameters(Properties& parameters) {
-    parameters = SystemParametersSingleton::get_instance()->get_command_router_params();
+    parameters += SystemParametersSingleton::get_instance()->get_command_router_params();
 }
 
 void BusCommandRouterProxy::pack_command_line_args() {

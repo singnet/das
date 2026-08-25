@@ -190,7 +190,6 @@ class QueryEvolutionProxy : public BaseQueryProxy {
     void eval_fitness_response(const vector<string>& args);
 
    private:
-    void set_default_query_parameters();
     void set_fitness_function_tag(const string& tag);
     void init();
 
