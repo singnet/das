@@ -13,7 +13,11 @@ AuthorizationSchema::AuthorizationSchema(const LinkSchema& schema, bool read, bo
 }
 
 AuthorizationSchema::AuthorizationSchema(const vector<string>& tokens, bool read, bool write)
-    : schema_(tokens), read_(read), write_(write) {}
+    : schema_(tokens), read_(read), write_(write) {
+    if (!read && !write) {
+        RAISE_ERROR("At least one of read or write must be true");
+    }
+}
 
 bool AuthorizationSchema::allows(AuthorizationOperation operation) const {
     switch (operation) {
