@@ -37,7 +37,7 @@ class RedisMongoDB : public AtomDB {
      * Looks up access-permission documents in MongoDB for the given public key(s).
      * Returns an empty vector if no matching documents exist.
      */
-    vector<atomdb_api_types::AccessPermissionDocument> get_access_permissions(
+    vector<shared_ptr<atomdb_api_types::AccessPermissionDocument>> get_access_permissions(
         const atomdb_api_types::PublicKey& public_key) const override;
     atomdb_api_types::ProtectionMode get_protection_mode() const override;
 
@@ -180,7 +180,7 @@ class RedisMongoDB : public AtomDB {
      * @brief Loads and parses one access_permissions Mongo document for the given public key.
      * @return nullopt when no document exists for that key.
      */
-    optional<atomdb_api_types::AccessPermissionDocument> load_access_permission_document(
+    optional<shared_ptr<atomdb_api_types::AccessPermissionDocument>> load_access_permission_document(
         const string& public_key) const;
 
     vector<shared_ptr<atomdb_api_types::AtomDocument>> get_documents(const vector<string>& handles,
@@ -216,6 +216,7 @@ class RedisMongoDB : public AtomDB {
 
     void load_pattern_index_schema();
     void load_protection_mode();
+    static string protection_config_document_id();
     vector<string> match_pattern_index_schema(const Link* link);
     vector<vector<string>> index_entries_combinations(unsigned int arity);
 

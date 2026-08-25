@@ -20,6 +20,7 @@
 #include "Link.h"
 #include "LinkSchema.h"
 #include "Node.h"
+#include "ProtectedAtomDB.h"
 #include "RemoteAtomDB.h"
 #include "RemoteAtomDBPeer.h"
 
@@ -751,6 +752,13 @@ class ProtectedInMemoryDB : public InMemoryDB {
     ProtectionMode get_protection_mode() const override { return ProtectionMode::PROTECTED; }
 };
 
+class ForwardInMemoryDB : public InMemoryDB {
+   public:
+    explicit ForwardInMemoryDB(const string& context) : InMemoryDB(context) {}
+
+    ProtectionMode get_protection_mode() const override { return ProtectionMode::FORWARD; }
+};
+
 TEST(RemoteAtomDBFederationTest, MetadataAggregationFromNestedPeer) {
     auto backend = make_shared<NestedInMemoryDB>("fed_nested_backend_");
     auto handles = populate_inheritance_mammal_links(backend);
@@ -877,12 +885,34 @@ TEST(RemoteAtomDBFederationTest, PeerIsProtectedFollowsRemoteBackend) {
         EXPECT_EQ(peer->get_protection_mode(), ProtectionMode::PROTECTED);
     }
 
+    // ProtectedAtomDB wrapper as remote backend propagates protection mode.
+    {
+        auto remote =
+            make_shared<ProtectedAtomDB>(make_shared<ProtectedInMemoryDB>("prot_wrapped_remote_"));
+        auto peer = make_shared<RemoteAtomDBPeer>(remote, nullptr, "peer");
+        EXPECT_EQ(peer->get_protection_mode(), ProtectionMode::PROTECTED);
+    }
+
     // Protected local persistence is not supported.
     {
         auto remote = make_shared<InMemoryDB>("prot_local_remote_");
         auto local = make_shared<ProtectedInMemoryDB>("prot_local_local_");
-        auto peer = make_shared<RemoteAtomDBPeer>(remote, local, "peer");
-        EXPECT_THROW(peer->get_protection_mode(), runtime_error);
+        EXPECT_THROW(make_shared<RemoteAtomDBPeer>(remote, local, "peer"), runtime_error);
+    }
+
+    // FORWARD local persistence is not supported either.
+    {
+        auto remote = make_shared<InMemoryDB>("forward_local_remote_");
+        auto local = make_shared<ForwardInMemoryDB>("forward_local_local_");
+        EXPECT_THROW(make_shared<RemoteAtomDBPeer>(remote, local, "peer"), runtime_error);
+    }
+
+    // Factory-style ProtectedAtomDB wrapper over a protected backend is rejected for local persistence.
+    {
+        auto remote = make_shared<InMemoryDB>("wrapped_local_remote_");
+        auto local =
+            make_shared<ProtectedAtomDB>(make_shared<ProtectedInMemoryDB>("wrapped_local_local_"));
+        EXPECT_THROW(make_shared<RemoteAtomDBPeer>(remote, local, "peer"), runtime_error);
     }
 }
 
@@ -909,6 +939,18 @@ TEST(RemoteAtomDBFederationTest, IsProtectedWhenAnyPeerIsProtected) {
     {
         auto unprotected_remote = make_shared<InMemoryDB>("fed_prot_mixed_remote_");
         auto protected_remote = make_shared<ProtectedInMemoryDB>("fed_prot_mixed_protected_");
+        map<string, shared_ptr<RemoteAtomDBPeer>> peers;
+        peers["unprotected"] = make_shared<RemoteAtomDBPeer>(unprotected_remote, nullptr, "unprotected");
+        peers["protected"] = make_shared<RemoteAtomDBPeer>(protected_remote, nullptr, "protected");
+        auto db = make_shared<RemoteAtomDB>(peers);
+        EXPECT_EQ(db->get_protection_mode(), ProtectionMode::FORWARD);
+    }
+
+    // ProtectedAtomDB-wrapped remote peer propagates to the federation facade.
+    {
+        auto unprotected_remote = make_shared<InMemoryDB>("fed_wrapped_remote_");
+        auto protected_remote =
+            make_shared<ProtectedAtomDB>(make_shared<ProtectedInMemoryDB>("fed_wrapped_protected_"));
         map<string, shared_ptr<RemoteAtomDBPeer>> peers;
         peers["unprotected"] = make_shared<RemoteAtomDBPeer>(unprotected_remote, nullptr, "unprotected");
         peers["protected"] = make_shared<RemoteAtomDBPeer>(protected_remote, nullptr, "protected");

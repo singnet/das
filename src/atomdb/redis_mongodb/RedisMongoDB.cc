@@ -62,9 +62,9 @@ RedisMongoDB::~RedisMongoDB() {
 
 bool RedisMongoDB::allow_nested_indexing() { return false; }
 
-vector<atomdb_api_types::AccessPermissionDocument> RedisMongoDB::get_access_permissions(
+vector<shared_ptr<atomdb_api_types::AccessPermissionDocument>> RedisMongoDB::get_access_permissions(
     const atomdb_api_types::PublicKey& public_key) const {
-    vector<atomdb_api_types::AccessPermissionDocument> documents;
+    vector<shared_ptr<atomdb_api_types::AccessPermissionDocument>> documents;
 
     if (public_key.is_single_key()) {
         auto document = this->load_access_permission_document(public_key.keys[0]);
@@ -84,8 +84,8 @@ vector<atomdb_api_types::AccessPermissionDocument> RedisMongoDB::get_access_perm
     return documents;
 }
 
-optional<atomdb_api_types::AccessPermissionDocument> RedisMongoDB::load_access_permission_document(
-    const string& public_key) const {
+optional<shared_ptr<atomdb_api_types::AccessPermissionDocument>>
+RedisMongoDB::load_access_permission_document(const string& public_key) const {
     string handle = Hasher::plain_string_hash(public_key);
 
     auto access_permission_doc = this->get_document(handle, MONGODB_ACCESS_PERMISSIONS_COLLECTION_NAME);
@@ -95,57 +95,11 @@ optional<atomdb_api_types::AccessPermissionDocument> RedisMongoDB::load_access_p
     }
 
     auto mongodb_doc = dynamic_pointer_cast<atomdb_api_types::MongodbDocument>(access_permission_doc);
-    auto document = nlohmann::json::parse(bsoncxx::to_json(mongodb_doc->value().view()));
-    if (!document.is_object()) {
-        RAISE_ERROR("AccessPermissionDocument must be a JSON object");
-    }
-    if (!document.contains("public_key") || !document["public_key"].is_string()) {
-        RAISE_ERROR("AccessPermissionDocument missing required string filed 'public_key'");
-    }
-    if (document["public_key"].get<string>() != public_key) {
+    auto document = make_shared<atomdb_api_types::MongodbAccessPermissionDocument>(mongodb_doc->value());
+    if (string(document->get_access_key()) != public_key) {
         RAISE_ERROR("AccessPermissionDocument public_key does not match its lookup key");
     }
-    if (!document.contains("full_access") || !document["full_access"].is_boolean()) {
-        RAISE_ERROR("AccessPermissionDocument missing required boolean field 'full_access'");
-    }
-    if (!document.contains("allowed_schemas") || !document["allowed_schemas"].is_array()) {
-        RAISE_ERROR("AccessPermissionDocument missing required array field 'allowed_schemas'");
-    }
-
-    vector<atomdb_api_types::AccessPermissionEntry> entries;
-    for (const auto& item : document["allowed_schemas"]) {
-        if (!item.is_object()) {
-            RAISE_ERROR("AccessPermissionDocument allowed_schemas item must be an object");
-        }
-        if (!item.contains("tokens") || !item["tokens"].is_array()) {
-            RAISE_ERROR(
-                "AccessPermissionDocument allowed_schemas item missing required array field "
-                "'tokens'");
-        }
-        if (!item.contains("read") || !item["read"].is_boolean()) {
-            RAISE_ERROR(
-                "AccessPermissionDocument allowed_schemas item missing required boolean field "
-                "'read'");
-        }
-        if (!item.contains("write") || !item["write"].is_boolean()) {
-            RAISE_ERROR(
-                "AccessPermissionDocument allowed_schemas item missing required boolean field "
-                "'write'");
-        }
-
-        vector<string> tokens;
-        for (const auto& token : item["tokens"]) {
-            if (!token.is_string() || token.get<string>().empty()) {
-                RAISE_ERROR("AccessPermissionDocument allowed_schemas tokens must be non-empty strings");
-            }
-            tokens.push_back(token.get<string>());
-        }
-
-        entries.emplace_back(tokens, item["read"].get<bool>(), item["write"].get<bool>());
-    }
-
-    return atomdb_api_types::AccessPermissionDocument(
-        public_key, document["full_access"].get<bool>(), entries);
+    return document;
 }
 
 atomdb_api_types::ProtectionMode RedisMongoDB::get_protection_mode() const {
@@ -1331,10 +1285,30 @@ void RedisMongoDB::load_protection_mode() {
     auto conn = this->mongodb_pool->acquire();
     auto config_collection = (*conn)[MONGODB_DB_NAME][MONGODB_CONFIG_COLLECTION_NAME];
     auto config_doc = config_collection.find_one(
-        bsoncxx::builder::basic::make_document(bsoncxx::builder::basic::kvp("protected", true)));
-    this->protection_mode = static_cast<atomdb_api_types::ProtectionMode>(
-        config_doc ? atomdb_api_types::ProtectionMode::PROTECTED
-                   : atomdb_api_types::ProtectionMode::UNPROTECTED);
+        bsoncxx::v_noabi::builder::basic::make_document(bsoncxx::v_noabi::builder::basic::kvp(
+            MONGODB_FIELD_NAME[MONGODB_FIELD::ID], protection_config_document_id())));
+
+    if (!config_doc) {
+        this->protection_mode = atomdb_api_types::ProtectionMode::UNPROTECTED;
+        return;
+    }
+
+    const auto view = config_doc->view();
+    auto protected_it = view.find("protected");
+    if (protected_it == view.end()) {
+        RAISE_ERROR("RedisMongoDB config document missing required boolean field 'protected'");
+    }
+    if (protected_it->type() != bsoncxx::type::k_bool) {
+        RAISE_ERROR("RedisMongoDB config document field 'protected' must be a boolean");
+    }
+
+    this->protection_mode = protected_it->get_bool().value
+                                ? atomdb_api_types::ProtectionMode::PROTECTED
+                                : atomdb_api_types::ProtectionMode::UNPROTECTED;
+}
+
+string RedisMongoDB::protection_config_document_id() {
+    return Hasher::plain_string_hash(MONGODB_CONFIG_COLLECTION_NAME);
 }
 
 void RedisMongoDB::load_pattern_index_schema() {
@@ -1528,9 +1502,16 @@ void RedisMongoDB::flush_redis_by_prefix(const string& prefix) {
 }
 
 void RedisMongoDB::drop_all() {
-    // Drop MongoDB database
     auto conn = this->mongodb_pool->acquire();
-    (*conn)[MONGODB_DB_NAME].drop();
+    auto database = (*conn)[MONGODB_DB_NAME];
+
+    for (auto&& collection_info : database.list_collections()) {
+        auto name = string(collection_info["name"].get_string().value);
+        if (name == MONGODB_CONFIG_COLLECTION_NAME) {
+            continue;
+        }
+        database[name].drop();
+    }
 
     // Drop Redis database (by prefixes)
     if (!skip_redis_) {

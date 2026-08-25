@@ -12,65 +12,86 @@ using namespace atomdb;
 // --------------------------------------------------------------------------------
 // Public methods
 
-void AuthorizationManifest::set(const atomdb_api_types::AccessPermissionDocument& document) {
-    this->documents.insert_or_assign(document.access_key, document);
-}
+AuthorizationManifest::AuthorizationManifest(
+    const vector<shared_ptr<atomdb_api_types::AccessPermissionDocument>>& documents) {
+    for (const auto& doc : documents) {
+        vector<AuthorizationSchema> schemas;
+        schemas.reserve(doc->get_entries_size());
 
-void AuthorizationManifest::add(const string& public_key,
-                                const atomdb_api_types::AccessPermissionEntry& entry) {
-    auto document = this->get_document(public_key);
-
-    if (document == nullptr) {
-        this->documents.emplace(public_key,
-                                atomdb_api_types::AccessPermissionDocument(public_key, false, {entry}));
-        return;
-    }
-
-    vector<atomdb_api_types::AccessPermissionEntry>& entries = document->entries;
-
-    for (auto& existing : entries) {
-        if (existing.schema.handle() == entry.schema.handle()) {
-            existing = entry;
-            return;
+        for (unsigned int i = 0; i < doc->get_entries_size(); ++i) {
+            const auto& entry = doc->get_entry(i);
+            vector<string> tokens;
+            tokens.reserve(entry.get_tokens_size());
+            for (unsigned int j = 0; j < entry.get_tokens_size(); ++j) {
+                tokens.push_back(entry.get_token(j));
+            }
+            schemas.emplace_back(tokens, entry.get_read(), entry.get_write());
         }
-    }
 
-    entries.push_back(entry);
-}
-
-void AuthorizationManifest::remove(const string& public_key,
-                                   const atomdb_api_types::AccessPermissionEntry& entry) {
-    auto document = this->get_document(public_key);
-
-    if (document == nullptr) return;
-
-    vector<atomdb_api_types::AccessPermissionEntry>& entries = document->entries;
-
-    for (auto it = entries.begin(); it != entries.end(); ++it) {
-        if (it->schema.handle() == entry.schema.handle()) {
-            entries.erase(it);
-            return;
+        auto [it, inserted] = this->profiles.emplace(
+            doc->get_access_key(),
+            AuthorizationProfile(doc->get_access_key(), doc->get_full_access(), std::move(schemas)));
+        if (!inserted) {
+            RAISE_ERROR(string("Duplicate access_key in authorization manifest: ") +
+                        doc->get_access_key());
         }
     }
 }
 
-void AuthorizationManifest::remove_all(const string& public_key) { this->documents.erase(public_key); }
+bool AuthorizationManifest::is_authorized(const Atom& atom,
+                                          const string& public_key,
+                                          AuthorizationOperation operation,
+                                          HandleDecoder& decoder) {
+    if (!this->is_registered(public_key)) {
+        return false;
+    }
+    if (this->full_access(public_key)) {
+        return true;
+    }
+
+    auto profile = this->lookup(public_key);
+    for (const auto& schema : profile->schemas()) {
+        if (schema.allows(operation) && schema.match(atom, decoder)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool AuthorizationManifest::is_authorized(const string& handle,
+                                          const string& public_key,
+                                          AuthorizationOperation operation,
+                                          HandleDecoder& decoder) {
+    if (!this->is_registered(public_key)) {
+        return false;
+    }
+    if (this->full_access(public_key)) {
+        return true;
+    }
+
+    auto profile = this->lookup(public_key);
+    for (const auto& schema : profile->schemas()) {
+        if (schema.allows(operation) && schema.match(handle, decoder)) {
+            return true;
+        }
+    }
+    return false;
+}
 
 bool AuthorizationManifest::is_registered(const string& public_key) const {
-    return this->documents.find(public_key) != this->documents.end();
+    return this->profiles.find(public_key) != this->profiles.end();
 }
 
 bool AuthorizationManifest::full_access(const string& public_key) {
-    auto document = this->get_document(public_key);
-    if (document == nullptr) return false;
-    return document->full_access;
+    auto profile = this->lookup(public_key);
+    if (profile == nullptr) return false;
+    return profile->is_full_access();
 }
 
-atomdb_api_types::AccessPermissionDocument* AuthorizationManifest::get_document(
-    const string& public_key) {
-    auto it = this->documents.find(public_key);
+AuthorizationProfile* AuthorizationManifest::lookup(const string& public_key) {
+    auto it = this->profiles.find(public_key);
 
-    if (it == this->documents.end()) {
+    if (it == this->profiles.end()) {
         return nullptr;
     }
     return &it->second;

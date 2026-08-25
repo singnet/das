@@ -6,7 +6,7 @@
 #include <vector>
 
 #include "AtomDB.h"
-#include "ManifestAuthorizer.h"
+#include "AuthorizationManifest.h"
 
 using namespace std;
 using namespace atoms;
@@ -22,6 +22,9 @@ namespace atomdb {
  *
  * When the backend reports ProtectionMode::FORWARD, this wrapper forwards the
  * access key without applying local authorization post-processing.
+ *
+ * get_protection_mode() reports the backend's mode so callers can detect protected
+ * or federated persistence without inspecting the wrapper type.
  */
 class ProtectedAtomDB : public AtomDB {
    public:
@@ -164,7 +167,7 @@ class ProtectedAtomDB : public AtomDB {
 
    private:
     shared_ptr<AtomDB> backend;
-    shared_ptr<ManifestAuthorizer> auth;
+    shared_ptr<AuthorizationManifest> auth;
 
     [[noreturn]] static void raise_public_key_required(const string& method_name);
 };

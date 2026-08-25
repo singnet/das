@@ -30,8 +30,8 @@ RemoteAtomDBPeer::RemoteAtomDBPeer(shared_ptr<AtomDB> remote_atomdb,
       atomdb_(remote_atomdb),
       local_persistence_(local_persistence) {
     if (local_persistence_ &&
-        local_persistence_->get_protection_mode() == atomdb_api_types::ProtectionMode::PROTECTED) {
-        RAISE_ERROR("RemoteAtomDBPeer does not support protected local persistence");
+        local_persistence_->get_protection_mode() != atomdb_api_types::ProtectionMode::UNPROTECTED) {
+        RAISE_ERROR("RemoteAtomDBPeer supports only UNPROTECTED local persistence");
     }
     start_cleanup_thread();
 }
@@ -43,7 +43,7 @@ bool RemoteAtomDBPeer::allow_nested_indexing() { return atomdb_->allow_nested_in
 bool RemoteAtomDBPeer::composite_type_enabled() const {
     return local_persistence_ && local_persistence_->composite_type_enabled();
 }
-vector<atomdb_api_types::AccessPermissionDocument> RemoteAtomDBPeer::get_access_permissions(
+vector<shared_ptr<atomdb_api_types::AccessPermissionDocument>> RemoteAtomDBPeer::get_access_permissions(
     const atomdb_api_types::PublicKey& public_key) const {
     if (!atomdb_) return AtomDB::get_access_permissions(public_key);
     return atomdb_->get_access_permissions(public_key);

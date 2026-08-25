@@ -6,8 +6,9 @@
 #include <string>
 
 #include "AuthorizationManager.h"
+#include "AuthorizationTypes.h"
 #include "JsonConfig.h"
-#include "MongoAuthorizationPersistence.h"
+#include "MongodbAuthorizationPersistence.h"
 #include "Utils.h"
 #include "nlohmann/json.hpp"
 
@@ -113,7 +114,7 @@ int main(int argc, char* argv[]) {
     string collection = json_config.at_path("mongodb.collection_name").get_or<string>("");
 
     auto persistence =
-        make_shared<MongoAuthorizationPersistence>(endpoint, username, password, database, collection);
+        make_shared<MongodbAuthorizationPersistence>(endpoint, username, password, database, collection);
     auto manager = make_shared<AuthorizationManager>(persistence);
 
     vector<string> tokens = parse_tokens(tokens_str);
@@ -134,12 +135,12 @@ int main(int argc, char* argv[]) {
         exit(1);
     }
 
-    auto entry = atomdb_api_types::AccessPermissionEntry(tokens, read, write);
+    auto schema = AuthorizationSchema(tokens, read, write);
 
     if (action == "authorize") {
-        manager->authorize(public_key, entry);
+        manager->authorize(public_key, schema);
     } else if (action == "revoke") {
-        manager->revoke(public_key, entry);
+        manager->revoke(public_key, schema);
     }
 
     LOG_INFO("Admin finished successfully.");

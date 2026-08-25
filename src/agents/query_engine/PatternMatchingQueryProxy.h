@@ -113,7 +113,6 @@ class PatternMatchingQueryProxy : public BaseQueryProxy {
 
    private:
     void init();
-    void set_default_parameters();
 
     mutex api_mutex;
 };
