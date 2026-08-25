@@ -1434,13 +1434,13 @@ TEST_F(RedisMongoDBTest, GetAccessPermissionsReturnsStoredDocuments) {
 
     auto admin_permissions = db->get_access_permissions(PublicKey("key_admin"));
     ASSERT_EQ(admin_permissions.size(), 1u);
-    EXPECT_EQ(admin_permissions[0]->get_access_key(), "key_admin");
+    EXPECT_STREQ(admin_permissions[0]->get_access_key(), "key_admin");
     EXPECT_TRUE(admin_permissions[0]->get_full_access());
     EXPECT_EQ(admin_permissions[0]->get_entries_size(), 0u);
 
     auto reader_permissions = db->get_access_permissions(PublicKey("key_reader"));
     ASSERT_EQ(reader_permissions.size(), 1u);
-    EXPECT_EQ(reader_permissions[0]->get_access_key(), "key_reader");
+    EXPECT_STREQ(reader_permissions[0]->get_access_key(), "key_reader");
     EXPECT_FALSE(reader_permissions[0]->get_full_access());
     ASSERT_EQ(reader_permissions[0]->get_entries_size(), 1u);
     const auto& reader_entry = reader_permissions[0]->get_entry(0);
