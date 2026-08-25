@@ -18,6 +18,7 @@ class SystemParameters {
     SystemParameters(const JsonConfig& das_config);
 
     // Agents parameters getters
+    Properties get_base_proxy_params() const;
     Properties get_base_query_params() const;
     Properties get_query_agent_params() const;
     Properties get_link_creation_agent_params() const;

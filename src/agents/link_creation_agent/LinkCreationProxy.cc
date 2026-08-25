@@ -19,7 +19,6 @@ LinkCreationProxy::LinkCreationProxy() {
     // constructor typically used in processor
     lock_guard<mutex> semaphore(this->api_mutex);
     init();
-    set_default_query_parameters();
 }
 
 LinkCreationProxy::LinkCreationProxy(const vector<string>& tokens,
@@ -29,7 +28,6 @@ LinkCreationProxy::LinkCreationProxy(const vector<string>& tokens,
     : BaseQueryProxy(tokens, context) {
     // constructor typically used in requestor
     init();
-    set_default_query_parameters();
     this->link_creation_function_object = link_creation_function;
     set_link_creator_function_tag(link_creator_tag);
 }
@@ -40,10 +38,7 @@ void LinkCreationProxy::init() {
     this->command = ServiceBus::LINK_CREATION;
     this->link_creation_function_object = shared_ptr<LinkCreator>(nullptr);
     this->round_count = 0;
-}
-
-void LinkCreationProxy::set_default_query_parameters() {
-    this->parameters = SystemParametersSingleton::get_instance()->get_link_creation_agent_params();
+    this->parameters += SystemParametersSingleton::get_instance()->get_link_creation_agent_params();
 }
 
 string LinkCreationProxy::to_string() {
