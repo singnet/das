@@ -111,22 +111,19 @@ shared_ptr<InMemoryDB> db_with_inheritance_link(string* link_handle) {
 }
 
 AuthorizationManifest manifest_from_persistence(const DummyPersistence& persistence) {
-    vector<shared_ptr<AccessPermissionDocument>> documents;
-    documents.reserve(persistence.documents.size());
+    AuthorizationManifest manifest;
     for (const auto& [public_key, entries] : persistence.documents) {
-        documents.push_back(make_document(public_key, false, entries));
+        manifest.add_document(make_document(public_key, false, entries));
     }
-    return AuthorizationManifest(documents);
+    return manifest;
 }
 
 }  // namespace
 
 TEST(AuthorizationManifestTest, BuildsProfilesFromDocuments) {
-    vector<shared_ptr<AccessPermissionDocument>> documents = {
-        make_document("pk1", false, {read_only_inheritance_schema()}),
-        make_document("pk2", true, {}),
-    };
-    AuthorizationManifest manifest(documents);
+    AuthorizationManifest manifest;
+    manifest.add_document(make_document("pk1", false, {read_only_inheritance_schema()}));
+    manifest.add_document(make_document("pk2", true, {}));
 
     EXPECT_TRUE(manifest.is_registered("pk1"));
     EXPECT_TRUE(manifest.is_registered("pk2"));
@@ -149,7 +146,7 @@ TEST(AuthorizationManifestTest, BuildsProfilesFromDocuments) {
 }
 
 TEST(AuthorizationManifestTest, EmptyDocuments) {
-    AuthorizationManifest manifest({});
+    AuthorizationManifest manifest;
     EXPECT_FALSE(manifest.is_registered("pk"));
     EXPECT_FALSE(manifest.full_access("pk"));
     EXPECT_EQ(manifest.lookup("pk"), nullptr);
@@ -160,7 +157,8 @@ TEST(AuthorizationManifestTest, IsAuthorized) {
     auto db = db_with_inheritance_link(&link_handle);
 
     AuthorizationSchema schema = read_only_inheritance_schema();
-    AuthorizationManifest manifest({make_document("pk", false, {schema})});
+    AuthorizationManifest manifest;
+    manifest.add_document(make_document("pk", false, {schema}));
 
     auto link = db->get_link(link_handle);
     ASSERT_NE(link, nullptr);
@@ -179,7 +177,8 @@ TEST(AuthorizationManifestTest, FullAccessGrantsAllOperations) {
     string link_handle;
     auto db = db_with_inheritance_link(&link_handle);
 
-    AuthorizationManifest manifest({make_document("pk", true, {})});
+    AuthorizationManifest manifest;
+    manifest.add_document(make_document("pk", true, {}));
 
     auto link = db->get_link(link_handle);
     ASSERT_NE(link, nullptr);
