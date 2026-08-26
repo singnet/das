@@ -269,3 +269,96 @@ MongodbDocument::MongodbDocument(const atoms::Link* link,
     add_custom_attributes(doc, link->custom_attributes);
     this->document = doc.extract();
 }
+
+MongodbAccessPermissionEntry::MongodbAccessPermissionEntry(bsoncxx::document::view entry_view)
+    : entry_view_(entry_view) {}
+
+bool MongodbAccessPermissionEntry::get_read() const {
+    return this->entry_view_["read"].get_bool().value;
+}
+
+bool MongodbAccessPermissionEntry::get_write() const {
+    return this->entry_view_["write"].get_bool().value;
+}
+
+unsigned int MongodbAccessPermissionEntry::get_tokens_size() const {
+    auto tokens = this->entry_view_["tokens"].get_array().value;
+    return static_cast<unsigned int>(std::distance(tokens.begin(), tokens.end()));
+}
+
+const char* MongodbAccessPermissionEntry::get_token(unsigned int index) const {
+    auto tokens = this->entry_view_["tokens"].get_array().value;
+    if (index >= this->get_tokens_size()) {
+        RAISE_ERROR("Access permission entry token index out of bounds: " + to_string(index));
+    }
+    return tokens[index].get_string().value.data();
+}
+
+MongodbAccessPermissionDocument::MongodbAccessPermissionDocument(bsoncxx::document::value document)
+    : document_(std::move(document)) {
+    this->validate_document_view(this->document_view());
+    for (const auto& item : this->document_view()["allowed_schemas"].get_array().value) {
+        this->entries_.emplace_back(item.get_document().value);
+    }
+}
+
+void MongodbAccessPermissionDocument::validate_document_view(bsoncxx::document::view view) const {
+    if (!view["public_key"] || view["public_key"].type() != bsoncxx::type::k_string) {
+        RAISE_ERROR("AccessPermissionDocument missing required string field 'public_key'");
+    }
+    if (!view["full_access"] || view["full_access"].type() != bsoncxx::type::k_bool) {
+        RAISE_ERROR("AccessPermissionDocument missing required boolean field 'full_access'");
+    }
+    if (!view["allowed_schemas"] || view["allowed_schemas"].type() != bsoncxx::type::k_array) {
+        RAISE_ERROR("AccessPermissionDocument missing required array field 'allowed_schemas'");
+    }
+
+    for (const auto& item : view["allowed_schemas"].get_array().value) {
+        if (item.type() != bsoncxx::type::k_document) {
+            RAISE_ERROR("AccessPermissionDocument allowed_schemas item must be an object");
+        }
+        auto entry_view = item.get_document().value;
+        if (!entry_view["tokens"] || entry_view["tokens"].type() != bsoncxx::type::k_array) {
+            RAISE_ERROR(
+                "AccessPermissionDocument allowed_schemas item missing required array field 'tokens'");
+        }
+        if (!entry_view["read"] || entry_view["read"].type() != bsoncxx::type::k_bool) {
+            RAISE_ERROR(
+                "AccessPermissionDocument allowed_schemas item missing required boolean field 'read'");
+        }
+        if (!entry_view["write"] || entry_view["write"].type() != bsoncxx::type::k_bool) {
+            RAISE_ERROR(
+                "AccessPermissionDocument allowed_schemas item missing required boolean field 'write'");
+        }
+        for (const auto& token : entry_view["tokens"].get_array().value) {
+            if (token.type() != bsoncxx::type::k_string || token.get_string().value.size() == 0) {
+                RAISE_ERROR("AccessPermissionDocument allowed_schemas tokens must be non-empty strings");
+            }
+        }
+    }
+}
+
+bsoncxx::document::value MongodbAccessPermissionDocument::value() const { return this->document_; }
+
+bsoncxx::document::view MongodbAccessPermissionDocument::document_view() const {
+    return this->document_.view();
+}
+
+const char* MongodbAccessPermissionDocument::get_access_key() const {
+    return this->document_view()["public_key"].get_string().value.data();
+}
+
+bool MongodbAccessPermissionDocument::get_full_access() const {
+    return this->document_view()["full_access"].get_bool().value;
+}
+
+unsigned int MongodbAccessPermissionDocument::get_entries_size() const {
+    return static_cast<unsigned int>(this->entries_.size());
+}
+
+const AccessPermissionEntry& MongodbAccessPermissionDocument::get_entry(unsigned int index) const {
+    if (index >= this->entries_.size()) {
+        RAISE_ERROR("Access permission entry index out of bounds: " + to_string(index));
+    }
+    return this->entries_[index];
+}

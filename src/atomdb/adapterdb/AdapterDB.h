@@ -114,7 +114,7 @@ class AdapterDB : public AtomDB {
      * Forwards the lookup to the backend once it is ready.
      * Returns an empty vector if the backend has no matching permissions.
      */
-    vector<atomdb_api_types::AccessPermissionDocument> get_access_permissions(
+    vector<shared_ptr<atomdb_api_types::AccessPermissionDocument>> get_access_permissions(
         const atomdb_api_types::PublicKey& public_key) const override;
 
    private:
