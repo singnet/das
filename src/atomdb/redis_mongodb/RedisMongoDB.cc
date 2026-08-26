@@ -1553,10 +1553,9 @@ void RedisMongoDB::drop_all() {
 
     for (auto&& collection_info : database.list_collections()) {
         auto name = string(collection_info["name"].get_string().value);
-        if (name == MONGODB_CONFIG_COLLECTION_NAME) {
-            continue;
+        if (name != MONGODB_CONFIG_COLLECTION_NAME) {
+            database[name].drop();
         }
-        database[name].drop();
     }
 
     // Drop Redis database (by prefixes)
