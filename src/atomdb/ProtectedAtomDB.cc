@@ -11,13 +11,10 @@ using namespace commons;
 // --------------------------------------------------------------------------------
 // Constructors and destructors
 
-ProtectedAtomDB::ProtectedAtomDB(shared_ptr<AtomDB> backend) : backend(backend) {
+ProtectedAtomDB::ProtectedAtomDB(shared_ptr<AtomDB> backend) : backend(backend), manifest() {
     if (this->backend == nullptr) {
         RAISE_ERROR("ProtectedAtomDB requires a non-null backend AtomDB");
     }
-
-    // TODO: initialize AuthorizationManifest
-
     LOG_INFO("ProtectedAtomDB initialized");
 }
 

@@ -19,12 +19,10 @@ namespace atomdb {
  * @brief In-memory representation of the authorization state.
  *
  * Stores the authorization profiles used by the authorization checks.
- * The manifest is independent of the underlying persistence mechanism.
  */
 class AuthorizationManifest {
    public:
-    explicit AuthorizationManifest(
-        const vector<shared_ptr<atomdb_api_types::AccessPermissionDocument>>& documents);
+    AuthorizationManifest() = default;
     ~AuthorizationManifest() = default;
 
     /**
@@ -56,6 +54,15 @@ class AuthorizationManifest {
      * @brief Returns a profile from public_key.
      */
     AuthorizationProfile* lookup(const string& public_key);
+
+    /**
+     * @brief Adds an authorization document to the manifest.
+     *
+     * Builds an AuthorizationProfile from the document and stores it in the
+     * in-memory cache keyed by access_key. Raises an error if the access_key
+     * is already registered.
+     */
+    void add_document(const shared_ptr<atomdb_api_types::AccessPermissionDocument>& document);
 
    private:
     map<string, AuthorizationProfile> profiles;

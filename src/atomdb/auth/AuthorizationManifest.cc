@@ -12,32 +12,6 @@ using namespace atomdb;
 // --------------------------------------------------------------------------------
 // Public methods
 
-AuthorizationManifest::AuthorizationManifest(
-    const vector<shared_ptr<atomdb_api_types::AccessPermissionDocument>>& documents) {
-    for (const auto& doc : documents) {
-        vector<AuthorizationSchema> schemas;
-        schemas.reserve(doc->get_entries_size());
-
-        for (unsigned int i = 0; i < doc->get_entries_size(); ++i) {
-            const auto& entry = doc->get_entry(i);
-            vector<string> tokens;
-            tokens.reserve(entry.get_tokens_size());
-            for (unsigned int j = 0; j < entry.get_tokens_size(); ++j) {
-                tokens.push_back(entry.get_token(j));
-            }
-            schemas.emplace_back(tokens, entry.get_read(), entry.get_write());
-        }
-
-        auto [it, inserted] = this->profiles.emplace(
-            doc->get_access_key(),
-            AuthorizationProfile(doc->get_access_key(), doc->get_full_access(), std::move(schemas)));
-        if (!inserted) {
-            RAISE_ERROR(string("Duplicate access_key in authorization manifest: ") +
-                        doc->get_access_key());
-        }
-    }
-}
-
 bool AuthorizationManifest::is_authorized(const Atom& atom,
                                           const string& public_key,
                                           AuthorizationOperation operation,
@@ -95,4 +69,29 @@ AuthorizationProfile* AuthorizationManifest::lookup(const string& public_key) {
         return nullptr;
     }
     return &it->second;
+}
+
+void AuthorizationManifest::add_document(
+    const shared_ptr<atomdb_api_types::AccessPermissionDocument>& document) {
+    vector<AuthorizationSchema> schemas;
+    schemas.reserve(document->get_entries_size());
+
+    for (unsigned int i = 0; i < document->get_entries_size(); ++i) {
+        const auto& entry = document->get_entry(i);
+        vector<string> tokens;
+        tokens.reserve(entry.get_tokens_size());
+        for (unsigned int j = 0; j < entry.get_tokens_size(); ++j) {
+            tokens.push_back(entry.get_token(j));
+        }
+        schemas.emplace_back(tokens, entry.get_read(), entry.get_write());
+    }
+
+    auto [it, inserted] = this->profiles.emplace(
+        document->get_access_key(),
+        AuthorizationProfile(
+            document->get_access_key(), document->get_full_access(), std::move(schemas)));
+    if (!inserted) {
+        RAISE_ERROR(string("Duplicate access_key in authorization manifest: ") +
+                    document->get_access_key());
+    }
 }
