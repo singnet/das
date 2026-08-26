@@ -151,7 +151,7 @@ class BusNode : public DistributedAlgorithmNode {
      * @param command Command being looked up
      * @return The node_id of the BusNode with command's ownership or "" is none is set
      */
-    const string& get_ownership(const string& command);
+    const string get_ownership(const string& command);
 
     /**
      * Set ownership of passed commands to this node and broadcast this information

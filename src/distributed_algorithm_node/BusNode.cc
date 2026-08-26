@@ -85,7 +85,7 @@ void BusNode::set_ownership(const string& command, const string& node_id) {
     this->bus.set_ownership(command, node_id);
 }
 
-const string& BusNode::get_ownership(const string& command) {
+const string BusNode::get_ownership(const string& command) {
     lock_guard<recursive_mutex> semaphore(this->api_mutex);
     return this->bus.get_ownership(command);
 }
