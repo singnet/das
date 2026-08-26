@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <mutex>
 
 #include "DistributedAlgorithmNode.h"
 
@@ -183,6 +184,7 @@ class BusNode : public DistributedAlgorithmNode {
 
    private:
     set<string> my_commands;
+    recursive_mutex api_mutex;
 
     void join_bus();
     void broadcast_my_commands(const string& target_id = "");
