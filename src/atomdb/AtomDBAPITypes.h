@@ -73,15 +73,13 @@ class AtomDocument {
 
 class AccessPermissionEntry {
    public:
-    LinkSchema schema;
-    bool read;
-    bool write;
+    AccessPermissionEntry() = default;
+    virtual ~AccessPermissionEntry() = default;
 
-    AccessPermissionEntry(const LinkSchema& schema, bool read, bool write)
-        : schema(schema), read(read), write(write) {}
-
-    AccessPermissionEntry(const vector<string>& tokens, bool read, bool write)
-        : schema(tokens), read(read), write(write) {}
+    virtual bool get_read() const = 0;
+    virtual bool get_write() const = 0;
+    virtual unsigned int get_tokens_size() const = 0;
+    virtual const char* get_token(unsigned int index) const = 0;
 };
 
 class PublicKey {
@@ -103,21 +101,13 @@ class PublicKey {
 
 class AccessPermissionDocument {
    public:
-    string access_key;
-    bool full_access;
-    vector<AccessPermissionEntry> entries;
+    AccessPermissionDocument() = default;
+    virtual ~AccessPermissionDocument() = default;
 
-    AccessPermissionDocument(const string& access_key,
-                             bool full_access,
-                             const vector<AccessPermissionEntry>& entries)
-        : access_key(access_key), full_access(full_access), entries(entries) {
-        if (full_access && !entries.empty()) {
-            RAISE_ERROR("entries must be empty when full_access is true");
-        }
-        if (!full_access && entries.empty()) {
-            RAISE_ERROR("entries must be non-empty when full_access is false");
-        }
-    }
+    virtual const char* get_access_key() const = 0;
+    virtual bool get_full_access() const = 0;
+    virtual unsigned int get_entries_size() const = 0;
+    virtual const AccessPermissionEntry& get_entry(unsigned int index) const = 0;
 };
 
 /**
