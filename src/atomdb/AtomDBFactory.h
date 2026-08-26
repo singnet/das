@@ -42,9 +42,6 @@ class AtomDBFactory {
     /**
      * @brief Applies protection wrapping when enabled.
      *
-     * Interim behavior: returns atomdb unchanged when mode is UNPROTECTED (or already
-     * wrapped). Raises when mode is PROTECTED or FORWARD because ProtectedAtomDB
-     * integration is not yet available.
      */
     static shared_ptr<AtomDB> wrap_if_protected(shared_ptr<AtomDB> atomdb);
 };
