@@ -1508,6 +1508,24 @@ TEST_F(RedisMongoDBTest, GetAccessPermissionsRejectsInvalidDocument) {
     collection.delete_many({});
 }
 
+TEST(MongodbAccessPermissionEntryTest, GetTokensSizeReturnsArrayLength) {
+    using bsoncxx::builder::basic::kvp;
+    using bsoncxx::builder::basic::make_document;
+
+    for (unsigned int size = 0; size <= 5; ++size) {
+        bsoncxx::builder::basic::array tokens_array;
+        for (unsigned int i = 0; i < size; ++i) {
+            tokens_array.append("token_" + to_string(i));
+        }
+        auto document =
+            make_document(kvp("tokens", tokens_array), kvp("read", true), kvp("write", false));
+
+        MongodbAccessPermissionEntry entry(document.view());
+
+        EXPECT_EQ(entry.get_tokens_size(), size);
+    }
+}
+
 TEST_F(RedisMongoDBTest, IsProtectedWhenPersistedConfigIsTrue) {
     using bsoncxx::builder::basic::kvp;
     using bsoncxx::builder::basic::make_document;

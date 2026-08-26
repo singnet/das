@@ -117,8 +117,10 @@ class MongodbAccessPermissionDocument : public AccessPermissionDocument {
     explicit MongodbAccessPermissionDocument(bsoncxx::v_noabi::document::value document);
     ~MongodbAccessPermissionDocument() override = default;
 
-    // entries_ hold views into document_'s buffer, so copying or moving this object
-    // would leave those views pointing at another object's storage.
+    /**
+     * Keep this document non-copyable and non-movable because entries_ holds
+     * views into document_'s buffer.
+     */
     MongodbAccessPermissionDocument(const MongodbAccessPermissionDocument&) = delete;
     MongodbAccessPermissionDocument& operator=(const MongodbAccessPermissionDocument&) = delete;
     MongodbAccessPermissionDocument(MongodbAccessPermissionDocument&&) = delete;
