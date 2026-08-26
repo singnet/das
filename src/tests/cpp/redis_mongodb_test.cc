@@ -39,7 +39,7 @@ string protection_config_document_id() {
 }
 
 template <typename Database>
-bool mongodb_collection_exists(const Database& database, const string& name) {
+bool mongodb_collection_exists(Database& database, const string& name) {
     for (auto&& collection_info : database.list_collections()) {
         if (string(collection_info["name"].get_string().value) == name) {
             return true;
