@@ -149,6 +149,9 @@ bool scan_for_refs(const nlohmann::json& node) {
 
 }  // namespace
 
+// -------------------------------------------------------------------------------------------------
+// URI and payload handling
+// -------------------------------------------------------------------------------------------------
 pair<string, string> VaultJsonResolver::parse_uri(const string& uri) {
     if (uri.rfind(kScheme, 0) != 0) {
         RAISE_ERROR("VaultJsonResolver: not a vault:// URI: " + uri);
@@ -192,6 +195,9 @@ nlohmann::json VaultJsonResolver::inject_payload(const nlohmann::json& data) {
     return data;
 }
 
+// -------------------------------------------------------------------------------------------------
+// Resolution API
+// -------------------------------------------------------------------------------------------------
 bool VaultJsonResolver::has_vault_refs(const nlohmann::json& root) {
     if (!root.is_object()) {
         return scan_for_refs(root);
