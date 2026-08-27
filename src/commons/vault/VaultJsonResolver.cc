@@ -74,7 +74,8 @@ string prompt_for_token() {
 string vault_endpoint_from_config(const nlohmann::json& vault) {
     string endpoint = require_string(vault, "endpoint", "VaultJsonResolver");
     if (endpoint.find("://") == string::npos) {
-        return "https://" + endpoint;
+        RAISE_ERROR("VaultJsonResolver: vault.endpoint must include a scheme, e.g. \"http://" +
+                    endpoint + "\" or \"https://" + endpoint + "\"");
     }
     return endpoint;
 }

@@ -22,7 +22,12 @@ cc_library(
         "vault/OpenBaoClient.h",
         "vault/VaultClient.h",
     ],
+    defines = ["CPPHTTPLIB_OPENSSL_SUPPORT"],
     includes = ["vault"],
+    linkopts = [
+        "-lssl",
+        "-lcrypto",
+    ],
     deps = [
         ":utils_lib",
         "@nlohmann_json//:json",

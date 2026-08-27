@@ -30,12 +30,15 @@ JsonConfig parse_and_validate(const string& json_str) {
     } catch (const exception& e) {
         RAISE_ERROR("Invalid JSON in config: " + string(e.what()));
     }
+
+    vault::VaultJsonResolver::resolve_from_config(config);
+
     for (const string& key : required_fields_by_version()) {
         if (config.at_path(key).is_null()) {
             RAISE_ERROR("Missing required field: " + key);
         }
     }
-    vault::VaultJsonResolver::resolve_from_config(config);
+
     return config;
 }
 
