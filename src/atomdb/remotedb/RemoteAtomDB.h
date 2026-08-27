@@ -28,6 +28,7 @@ class RemoteAtomDB : public AtomDB {
 
     bool allow_nested_indexing() override;
     bool composite_type_enabled() const override;
+    atomdb_api_types::ProtectionMode get_protection_mode() const override;
 
     shared_ptr<Atom> get_atom(const string& handle) override;
     shared_ptr<Node> get_node(const string& handle) override;

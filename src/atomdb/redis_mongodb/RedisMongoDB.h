@@ -39,6 +39,7 @@ class RedisMongoDB : public AtomDB {
      */
     vector<shared_ptr<atomdb_api_types::AccessPermissionDocument>> get_access_permissions(
         const atomdb_api_types::PublicKey& public_key) const override;
+    atomdb_api_types::ProtectionMode get_protection_mode() const override;
 
     static string REDIS_PATTERNS_PREFIX;
     static string REDIS_OUTGOING_PREFIX;
@@ -47,6 +48,7 @@ class RedisMongoDB : public AtomDB {
     static string MONGODB_DB_NAME;
     static string MONGODB_NODES_COLLECTION_NAME;
     static string MONGODB_LINKS_COLLECTION_NAME;
+    static string MONGODB_CONFIG_COLLECTION_NAME;
     static string MONGODB_PATTERN_INDEX_SCHEMA_COLLECTION_NAME;
     static string MONGODB_ACCESS_PERMISSIONS_COLLECTION_NAME;
     static string MONGODB_FIELD_NAME[MONGODB_FIELD::size];
@@ -60,6 +62,7 @@ class RedisMongoDB : public AtomDB {
         MONGODB_DB_NAME = context + "das";
         MONGODB_NODES_COLLECTION_NAME = context + "nodes";
         MONGODB_LINKS_COLLECTION_NAME = context + "links";
+        MONGODB_CONFIG_COLLECTION_NAME = context + "config";
         MONGODB_PATTERN_INDEX_SCHEMA_COLLECTION_NAME = context + "pattern_index_schema";
         MONGODB_ACCESS_PERMISSIONS_COLLECTION_NAME = context + "access_permissions";
         MONGODB_FIELD_NAME[MONGODB_FIELD::ID] = "_id";
@@ -162,6 +165,7 @@ class RedisMongoDB : public AtomDB {
     bool skip_redis_;
     bool composite_type_enabled_;
     bool cluster_flag;
+    atomdb_api_types::ProtectionMode protection_mode;
     RedisContextPool* redis_pool;
     mongocxx::pool* mongodb_pool;
     atomic<uint> patterns_next_score{0};
@@ -211,6 +215,8 @@ class RedisMongoDB : public AtomDB {
     void update_incoming_set(const string& key, const string& value);
 
     void load_pattern_index_schema();
+    void load_protection_mode();
+    static string protection_config_document_id();
     vector<string> match_pattern_index_schema(const Link* link);
     vector<vector<string>> index_entries_combinations(unsigned int arity);
 
