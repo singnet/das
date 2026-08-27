@@ -8,6 +8,7 @@
 #include <vector>
 
 #include "Utils.h"
+#include "VaultJsonResolver.h"
 
 using namespace std;
 using nlohmann::json;
@@ -17,7 +18,8 @@ namespace commons {
 namespace {
 
 const vector<string> required_fields_by_version() {
-    static const vector<string> required = {"atomdb", "atomdb.type", "loaders", "agents"};
+    static const vector<string> required = {
+        "atomdb", "atomdb.type", "loaders", "agents", "vault", "vault.type", "vault.endpoint"};
     return required;
 }
 
@@ -33,6 +35,7 @@ JsonConfig parse_and_validate(const string& json_str) {
             RAISE_ERROR("Missing required field: " + key);
         }
     }
+    openbao::VaultJsonResolver::resolve_with_openbao(config);
     return config;
 }
 

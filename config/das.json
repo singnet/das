@@ -14,21 +14,7 @@
                 }
             ]
         },
-        "mongodb": {
-            "image": "mongodb/mongodb-community-server:8.2-ubuntu2204",
-            "endpoint": "localhost:40021",
-            "username": "admin",
-            "password": "admin",
-            "cluster": false,
-            "cluster_secret_key": "8UDJSgpUCaVOTQG",
-            "nodes": [
-                {
-                    "context": "default",
-                    "ip": "localhost",
-                    "username": "arturgontijo"
-                }
-            ]
-        },
+        "mongodb": "vault://test/dbs/mongodb",
         "adapterdb": {
             "endpoint": "localhost:40023",
             "type": "postgres",
@@ -142,6 +128,10 @@
         "morkdb": {
             "image": "trueagi/das:mork-loader-1.1.0"
         }
+    },
+    "vault": {
+        "type": "openbao",
+        "endpoint": "localhost:8200"
     },
     "agents": {
         "schema_version": "1.1.0",

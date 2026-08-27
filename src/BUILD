@@ -196,6 +196,17 @@ cc_binary(
 )
 
 cc_binary(
+    name = "openbao_client",
+    srcs = [],
+    defines = ["BAZEL_BUILD"],
+    linkstatic = 1,
+    deps = [
+        "//commons:commons_lib",
+        "//tests/main:openbao_client_main_lib",
+    ],
+)
+
+cc_binary(
     name = "busnode",
     srcs = [],
     defines = ["BAZEL_BUILD"],
@@ -229,6 +240,7 @@ genrule(
         ":busnode",
         ":busclient",
         ":database_adapter",
+        ":openbao_client",
     ],
     outs = ["ci_binaries.stamp"],
     cmd = "touch $@",
