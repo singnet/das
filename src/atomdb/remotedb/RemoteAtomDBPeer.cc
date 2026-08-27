@@ -39,7 +39,7 @@ bool RemoteAtomDBPeer::allow_nested_indexing() { return atomdb_->allow_nested_in
 bool RemoteAtomDBPeer::composite_type_enabled() const {
     return local_persistence_ && local_persistence_->composite_type_enabled();
 }
-vector<atomdb_api_types::AccessPermissionDocument> RemoteAtomDBPeer::get_access_permissions(
+vector<shared_ptr<atomdb_api_types::AccessPermissionDocument>> RemoteAtomDBPeer::get_access_permissions(
     const atomdb_api_types::PublicKey& public_key) const {
     if (!atomdb_) return AtomDB::get_access_permissions(public_key);
     return atomdb_->get_access_permissions(public_key);
