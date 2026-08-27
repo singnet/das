@@ -85,11 +85,12 @@ unique_ptr<VaultClient> make_vault_client(const nlohmann::json& root) {
     }
     const nlohmann::json& vault_section = root["vault"];
     string type = require_string(vault_section, "type", "VaultJsonResolver");
-    if (type != "openbao") {
-        RAISE_ERROR("VaultJsonResolver: unsupported vault.type \"" + type + "\"");
+    if (type == "openbao") {
+        string addr = vault_endpoint_from_config(vault_section);
+        return make_unique<OpenBaoClient>(std::move(addr), prompt_for_token());
     }
-    string addr = vault_endpoint_from_config(vault_section);
-    return make_unique<OpenBaoClient>(std::move(addr), prompt_for_token());
+    RAISE_ERROR("VaultJsonResolver: unsupported vault.type \"" + type +
+                "\" (only openbao is supported)");
 }
 
 bool is_vault_ref(const nlohmann::json& value) {
