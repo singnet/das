@@ -10,7 +10,7 @@
 
 using namespace std;
 using namespace commons;
-using namespace openbao;
+using namespace vault;
 
 namespace {
 

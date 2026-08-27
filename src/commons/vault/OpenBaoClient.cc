@@ -10,7 +10,7 @@
 
 using namespace commons;
 
-namespace openbao {
+namespace vault {
 
 const int HTTP_TIMEOUT_SECONDS = 15;
 
@@ -80,7 +80,7 @@ nlohmann::json OpenBaoClient::get_json(const string& api_path) {
     return body;
 }
 
-nlohmann::json OpenBaoClient::kv_data(const string& mount, const string& path) {
+nlohmann::json OpenBaoClient::get_data(const string& mount, const string& path) {
     string api_path = trim_path(mount) + "/data/" + trim_path(path);
     nlohmann::json body = get_json(api_path);
     if (body.is_object() && body.contains("data") && body["data"].is_object() &&
@@ -90,4 +90,4 @@ nlohmann::json OpenBaoClient::kv_data(const string& mount, const string& path) {
     RAISE_ERROR("OpenBaoClient: KV v2 payload missing data.data for path " + mount + "/" + path);
 }
 
-}  // namespace openbao
+}  // namespace vault

@@ -18,7 +18,10 @@ cc_library(
 cc_library(
     name = "openbao_client",
     srcs = ["vault/OpenBaoClient.cc"],
-    hdrs = ["vault/OpenBaoClient.h"],
+    hdrs = [
+        "vault/OpenBaoClient.h",
+        "vault/VaultClient.h",
+    ],
     includes = ["vault"],
     deps = [
         ":utils_lib",

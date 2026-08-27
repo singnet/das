@@ -35,7 +35,7 @@ JsonConfig parse_and_validate(const string& json_str) {
             RAISE_ERROR("Missing required field: " + key);
         }
     }
-    openbao::VaultJsonResolver::resolve_with_openbao(config);
+    vault::VaultJsonResolver::resolve_from_config(config);
     return config;
 }
 

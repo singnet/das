@@ -4,6 +4,7 @@
 #include <unistd.h>
 
 #include <iostream>
+#include <memory>
 #include <unordered_map>
 
 #include "OpenBaoClient.h"
@@ -11,7 +12,7 @@
 
 using namespace commons;
 
-namespace openbao {
+namespace vault {
 namespace {
 
 string require_string(const nlohmann::json& obj, const string& key, const string& context) {
@@ -70,20 +71,25 @@ string prompt_for_token() {
     return token;
 }
 
-string vault_addr_from_config(const nlohmann::json& root) {
-    if (!root.is_object() || !root.contains("vault") || !root["vault"].is_object()) {
-        RAISE_ERROR("VaultJsonResolver: missing 'vault' section in config");
-    }
-    const nlohmann::json& vault = root["vault"];
-    string type = require_string(vault, "type", "VaultJsonResolver");
-    if (type != "openbao") {
-        RAISE_ERROR("VaultJsonResolver: vault.type must be \"openbao\" (got \"" + type + "\")");
-    }
+string vault_endpoint_from_config(const nlohmann::json& vault) {
     string endpoint = require_string(vault, "endpoint", "VaultJsonResolver");
     if (endpoint.find("://") == string::npos) {
         return "https://" + endpoint;
     }
     return endpoint;
+}
+
+unique_ptr<VaultClient> make_vault_client(const nlohmann::json& root) {
+    if (!root.is_object() || !root.contains("vault") || !root["vault"].is_object()) {
+        RAISE_ERROR("VaultJsonResolver: missing 'vault' section in config");
+    }
+    const nlohmann::json& vault_section = root["vault"];
+    string type = require_string(vault_section, "type", "VaultJsonResolver");
+    if (type != "openbao") {
+        RAISE_ERROR("VaultJsonResolver: unsupported vault.type \"" + type + "\"");
+    }
+    string addr = vault_endpoint_from_config(vault_section);
+    return make_unique<OpenBaoClient>(std::move(addr), prompt_for_token());
 }
 
 bool is_vault_ref(const nlohmann::json& value) {
@@ -206,15 +212,16 @@ void VaultJsonResolver::resolve(nlohmann::json& root, const Fetcher& fetcher) {
     }
 }
 
-void VaultJsonResolver::resolve_with_openbao(nlohmann::json& root) {
+void VaultJsonResolver::resolve_from_config(nlohmann::json& root) {
     if (!has_vault_refs(root)) {
         return;
     }
 
-    OpenBaoClient client(vault_addr_from_config(root), prompt_for_token());
+    unique_ptr<VaultClient> client = make_vault_client(root);
 
-    resolve(root,
-            [&client](const string& mount, const string& path) { return client.kv_data(mount, path); });
+    resolve(root, [&client](const string& mount, const string& path) {
+        return client->get_data(mount, path);
+    });
 }
 
-}  // namespace openbao
+}  // namespace vault

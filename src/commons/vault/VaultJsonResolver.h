@@ -7,7 +7,7 @@
 
 using namespace std;
 
-namespace openbao {
+namespace vault {
 
 /**
  * Resolves vault:// references inside a DAS JSON config tree.
@@ -53,11 +53,11 @@ class VaultJsonResolver {
     static void resolve(nlohmann::json& root, const Fetcher& fetcher);
 
     /**
-     * Resolve using OpenBao at root["vault"].endpoint.
-     * Prompts on the terminal for a token when vault:// refs exist.
+     * Resolve vault:// refs using root["vault"] (type + endpoint).
+     * Prompts on the terminal for a token when refs exist.
      * No-op (no HTTP) when there are no vault:// refs.
      */
-    static void resolve_with_openbao(nlohmann::json& root);
+    static void resolve_from_config(nlohmann::json& root);
 };
 
-}  // namespace openbao
+}  // namespace vault

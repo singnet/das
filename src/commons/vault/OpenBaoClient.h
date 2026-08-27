@@ -4,29 +4,30 @@
 #include <nlohmann/json.hpp>
 #include <string>
 
+#include "VaultClient.h"
+
 using namespace std;
 
 namespace httplib {
 class Client;
 }
 
-namespace openbao {
+namespace vault {
 
 /**
- * HTTP client for OpenBao KV v2 reads used to resolve vault:// config refs.
+ * OpenBao (Vault-compatible) KV v2 client.
  *
  *   mount "test", path "dbs/mongodb" -> GET /v1/test/data/dbs/mongodb
  */
-class OpenBaoClient {
+class OpenBaoClient : public VaultClient {
    public:
     OpenBaoClient(string addr, string token);
-    ~OpenBaoClient();
+    ~OpenBaoClient() override;
 
     OpenBaoClient(const OpenBaoClient&) = delete;
     OpenBaoClient& operator=(const OpenBaoClient&) = delete;
 
-    /** KV v2 secret payload only (data.data). Raises on non-200. */
-    nlohmann::json kv_data(const string& mount, const string& path);
+    nlohmann::json get_data(const string& mount, const string& path) override;
 
    private:
     string trim_path(const string& path) const;
@@ -37,4 +38,4 @@ class OpenBaoClient {
     unique_ptr<httplib::Client> cli_;
 };
 
-}  // namespace openbao
+}  // namespace vault
