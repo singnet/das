@@ -80,6 +80,11 @@ bool BaseQueryProxy::finished() {
     return (this->is_aborting() || (BaseProxy::finished() && this->answer_queue.empty()));
 }
 
+bool BaseQueryProxy::finished_cycle() {
+    lock_guard<mutex> semaphore(this->api_mutex);
+    return (this->is_aborting() || (BaseProxy::finished_cycle() && this->answer_queue.empty()));
+}
+
 // -------------------------------------------------------------------------------------------------
 // Server-side API
 

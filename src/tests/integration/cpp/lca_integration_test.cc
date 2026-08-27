@@ -1,5 +1,3 @@
-#define LOG_LEVEL DEBUG_LEVEL
-
 #include "AtomDBSingleton.h"
 #include "JsonConfigParser.h"
 #include "Logger.h"
@@ -46,12 +44,22 @@ static void finish_test_case(const string& test_case, bool success) {
 
 static bool assert_equal(unsigned int v1, unsigned int v2, const string& tag) {
     if (v1 == v2) {
-        LOG_DEBUG("ASSERT PASSED - " + tag + " - " + to_string(v1) + " == " + to_string(v2));
+        LOG_DEBUG("ASSERT PASSED - " + tag + ": " + to_string(v1) + " == " + to_string(v2));
         return true;
     } else {
-        LOG_ERROR("ASSERT FAILED - " + tag + " - " + to_string(v1) + " != " + to_string(v2));
+        LOG_INFO("ASSERT FAILED - " + tag + ": " + to_string(v1) + " != " + to_string(v2));
         return false;
     }
+}
+
+static void timeout_after_minutes(unsigned int minutes) {
+    std::thread t([](unsigned int minutes) {
+        Utils::sleep(minutes * 60000);
+        LOG_INFO("================================================================================");
+        LOG_INFO("TIMEOUT after " + to_string(minutes) + " minute" + string(minutes != 1 ? "s" : ""));
+        exit(1);
+    }, minutes);
+    t.detach();
 }
 
 shared_ptr<LinkCreationProxy> make_proxy(BaseProxy::ORCHESTRATION_SCHEMA_TYPE orchestration = BaseProxy::NONE) {
@@ -124,38 +132,30 @@ static bool test_cycles() {
     string test_case = start_test_case("test_cycles()");
     bool success = true;
 
-    //unsigned int PROXIES = 5;
-    //unsigned int CYCLES = 10;
-    unsigned int PROXIES = 1;
-    unsigned int CYCLES = 1;
+    unsigned int CYCLES = 6;
 
-    //unsigned int creations_per_cycle[PROXIES] = {100, 200, 300, 400, 500};
-    //unsigned int num_cycles[PROXIES] = {5, 4, 3, 2, 1};
-    //unsigned int total_creation[PROXIES] = {0, 0, 0, 0, 0};
-    //unsigned int creation[PROXIES] = {0, 0, 0, 0, 0};
-    //shared_ptr<LinkCreationProxy> proxy[PROXIES] = {nullptr, nullptr, nullptr, nullptr, nullptr};
-    unsigned int creations_per_cycle[PROXIES] = {100};
-    unsigned int num_cycles[PROXIES] = {5};
-    unsigned int total_creation[PROXIES] = {0};
-    unsigned int creation[PROXIES] = {0};
-    shared_ptr<LinkCreationProxy> proxy[PROXIES] = {nullptr, nullptr, nullptr, nullptr, nullptr};
+    vector<unsigned int> creations_per_cycle = {100, 200, 300, 400, 500};
+    vector<unsigned int> num_cycles = {5, 4, 3, 2, 1};
+    vector<unsigned int> total_creation = {0, 0, 0, 0, 0};
+    vector<unsigned int> creation = {0, 0, 0, 0, 0};
+    vector<shared_ptr<LinkCreationProxy>> proxy = {nullptr, nullptr, nullptr, nullptr, nullptr};
 
-    for (unsigned int i = 0; i < PROXIES; i++) {
+    for (unsigned int i = 0; i < proxy.size(); i++) {
         proxy[i] = make_proxy(BaseProxy::SYNC_ON_CYCLE_START);
-        proxy[i]->parameters[LinkCreationProxy::MAX_SUCCESSFUL_CREATION_PER_ROUND] = (unsigned int) 100; // XXXXX creations_per_cycle[i];
+        proxy[i]->parameters[LinkCreationProxy::MAX_SUCCESSFUL_CREATION_PER_ROUND] = (unsigned int) creations_per_cycle[i];
         proxy[i]->parameters[LinkCreationProxy::MAX_ROUNDS] = (unsigned int) num_cycles[i];
         proxy[i]->parameters[BaseProxy::ORCHESTRATION_SCHEMA] = (unsigned int) BaseProxy::SYNC_ON_CYCLE_START;
         ServiceBusSingleton::get_instance()->issue_bus_command(proxy[i]);
     }
-    Utils::sleep(5000);
-    for (unsigned int i = 0; i < PROXIES; i++) {
-        proxy[i]->allow_cycle_start();
-    }
 
+    bool last_answer_was_null = false;
     for (unsigned int j = 0; j < CYCLES; j++) {
-        for (unsigned int i = 0; i < PROXIES; i++) {
+        for (unsigned int i = 0; i < proxy.size(); i++) {
+            if (j < num_cycles[i]) {
+                proxy[i]->allow_cycle_start();
+            }
             while (true) {
-                if (proxy[i]->finished() || proxy[i]->get_waiting_flag()) {
+                if (proxy[i]->finished() || proxy[i]->finished_cycle()) {
                     break;
                 }
                 shared_ptr<QueryAnswer> answer = proxy[i]->pop();
@@ -166,8 +166,16 @@ static bool test_cycles() {
                     total_creation[i]++;
                 }
             }
-            success &= assert_equal(creation[i], creations_per_cycle[i], "creations in proxy[" + to_string(i) + "] in cycle " + to_string(j));
+            if (j < num_cycles[i]) {
+                success &= assert_equal(creation[i], creations_per_cycle[i], "creations in proxy[" + to_string(i) + "] at cycle " + to_string(j));
+            } else {
+                success &= assert_equal(creation[i], 0, "creations in proxy[" + to_string(i) + "] at cycle " + to_string(j));
+            }
+            creation[i] = 0;
         }
+    }
+    for (unsigned int i = 0; i < proxy.size(); i++) {
+        success &= assert_equal(total_creation[i], creations_per_cycle[i] * num_cycles[i], "total creations in proxy[" + to_string(i) + "]");
     }
 
     finish_test_case(test_case, success);
@@ -191,7 +199,8 @@ int main(int argc, char* argv[]) {
 
     insert_type_symbols();
     bool success = true;
-    //success &= test_and_two_predicates();
+    timeout_after_minutes(15);
+    success &= test_and_two_predicates();
     success &= test_cycles();
     LOG_INFO("================================================================================");
     if (success) {

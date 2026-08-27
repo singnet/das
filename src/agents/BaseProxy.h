@@ -48,6 +48,13 @@ class BaseProxy : public BusCommandProxy {
     virtual bool finished();
 
     /**
+     * Returns true iff all QueryAnswer objects have been iterated AND is waiting for new cycle.
+     *
+     * @return true iff all QueryAnswer objects have been iterated AND is waiting for new cycle.
+     */
+    virtual bool finished_cycle();
+
+    /**
      * Abort a query.
      *
      * When the caller calls this method, a message is sent to the query processor to abort

@@ -40,6 +40,11 @@ bool BaseProxy::finished() {
     return this->abort_flag || this->command_finished_flag;
 }
 
+bool BaseProxy::finished_cycle() {
+    lock_guard<mutex> semaphore(this->api_mutex);
+    return this->abort_flag || this->waiting_to_start_new_cycle;
+}
+
 void BaseProxy::abort() {
     lock_guard<mutex> semaphore(this->api_mutex);
     // RAISE_ERROR("Method not implemented");

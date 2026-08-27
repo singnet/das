@@ -135,6 +135,13 @@ class BaseQueryProxy : public BaseProxy {
      */
     virtual bool finished();
 
+    /**
+     * Returns true iff all QueryAnswer objects have been iterated AND is waiting for new cycle.
+     *
+     * @return true iff all QueryAnswer objects have been iterated AND is waiting for new cycle.
+     */
+    virtual bool finished_cycle();
+
     // ---------------------------------------------------------------------------------------------
     // Server-side API
 

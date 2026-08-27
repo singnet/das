@@ -56,7 +56,6 @@ TEST(LinkCreation, proxy_object) {
     cout << "tokens1: " << Utils::join(tokens1) << endl;
     cout << "tokens3: " << Utils::join(tokens3) << endl;
     EXPECT_EQ(tokens1, tokens3);
-    FAIL();
 }
 
 int main(int argc, char** argv) {
