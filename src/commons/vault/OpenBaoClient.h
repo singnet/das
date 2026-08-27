@@ -4,8 +4,6 @@
 #include <nlohmann/json.hpp>
 #include <string>
 
-#include "OpenBaoConfig.h"
-
 using namespace std;
 
 namespace httplib {
@@ -21,7 +19,7 @@ namespace openbao {
  */
 class OpenBaoClient {
    public:
-    explicit OpenBaoClient(OpenBaoConfig config);
+    OpenBaoClient(string addr, string token);
     ~OpenBaoClient();
 
     OpenBaoClient(const OpenBaoClient&) = delete;
@@ -34,7 +32,8 @@ class OpenBaoClient {
     string trim_path(const string& path) const;
     nlohmann::json get_json(const string& api_path);
 
-    OpenBaoConfig config_;
+    string addr_;
+    string token_;
     unique_ptr<httplib::Client> cli_;
 };
 

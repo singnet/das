@@ -14,8 +14,8 @@ namespace commons {
  *
  * Required fields include vault, vault.type, and vault.endpoint.
  * Any string value starting with vault:// is replaced by the KV payload from
- * OpenBao (token from VAULT_TOKEN or BAO_TOKEN). If there are no vault://
- * refs, OpenBao is not contacted.
+ * OpenBao. The token is entered on the terminal (not stored in das.json).
+ * If there are no vault:// refs, OpenBao is not contacted.
  */
 class JsonConfigParser {
    public:

@@ -1,6 +1,5 @@
 #include <gtest/gtest.h>
 
-#include <cstdlib>
 #include <stdexcept>
 #include <string>
 #include <unordered_map>
@@ -227,9 +226,7 @@ TEST(VaultJsonResolverTest, HasVaultRefsIgnoresVaultBlock) {
     EXPECT_TRUE(VaultJsonResolver::has_vault_refs(root));
 }
 
-TEST(ConfigParserTest, VaultRefsWithoutTokenFail) {
-    unsetenv("VAULT_TOKEN");
-    unsetenv("BAO_TOKEN");
+TEST(ConfigParserTest, VaultRefsWithoutTerminalTokenFail) {
     string with_ref = R"({
       "atomdb": {
         "type": "redismongodb",

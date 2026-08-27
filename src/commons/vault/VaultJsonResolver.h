@@ -53,7 +53,8 @@ class VaultJsonResolver {
     static void resolve(nlohmann::json& root, const Fetcher& fetcher);
 
     /**
-     * Resolve using OpenBao at root["vault"].endpoint and VAULT_TOKEN/BAO_TOKEN.
+     * Resolve using OpenBao at root["vault"].endpoint.
+     * Prompts on the terminal for a token when vault:// refs exist.
      * No-op (no HTTP) when there are no vault:// refs.
      */
     static void resolve_with_openbao(nlohmann::json& root);

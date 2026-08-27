@@ -16,23 +16,11 @@ cc_library(
 )
 
 cc_library(
-    name = "openbao_config",
-    srcs = ["vault/OpenBaoConfig.cc"],
-    hdrs = ["vault/OpenBaoConfig.h"],
-    includes = ["vault"],
-    deps = [
-        ":utils_lib",
-        "@nlohmann_json//:json",
-    ],
-)
-
-cc_library(
     name = "openbao_client",
     srcs = ["vault/OpenBaoClient.cc"],
     hdrs = ["vault/OpenBaoClient.h"],
     includes = ["vault"],
     deps = [
-        ":openbao_config",
         ":utils_lib",
         "@nlohmann_json//:json",
     ],
@@ -45,7 +33,6 @@ cc_library(
     includes = ["vault"],
     deps = [
         ":openbao_client",
-        ":openbao_config",
         ":utils_lib",
         "@nlohmann_json//:json",
     ],

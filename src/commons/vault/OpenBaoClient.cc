@@ -14,19 +14,20 @@ namespace openbao {
 
 const int HTTP_TIMEOUT_SECONDS = 15;
 
-OpenBaoClient::OpenBaoClient(OpenBaoConfig config) : config_(std::move(config)) {
-    config_.addr = Utils::trim(config_.addr);
-    while (!config_.addr.empty() && config_.addr.back() == '/') {
-        config_.addr.pop_back();
+OpenBaoClient::OpenBaoClient(string addr, string token)
+    : addr_(std::move(addr)), token_(std::move(token)) {
+    addr_ = Utils::trim(addr_);
+    while (!addr_.empty() && addr_.back() == '/') {
+        addr_.pop_back();
     }
-    if (config_.addr.empty()) {
+    if (addr_.empty()) {
         RAISE_ERROR("OpenBaoClient: addr is empty");
     }
-    if (config_.token.empty()) {
-        RAISE_ERROR("OpenBaoClient: no token (set VAULT_TOKEN or BAO_TOKEN in the environment)");
+    if (token_.empty()) {
+        RAISE_ERROR("OpenBaoClient: no token");
     }
 
-    cli_ = make_unique<httplib::Client>(config_.addr);
+    cli_ = make_unique<httplib::Client>(addr_);
     cli_->set_connection_timeout(HTTP_TIMEOUT_SECONDS);
     cli_->set_read_timeout(HTTP_TIMEOUT_SECONDS);
     cli_->set_write_timeout(HTTP_TIMEOUT_SECONDS);
@@ -49,11 +50,11 @@ nlohmann::json OpenBaoClient::get_json(const string& api_path) {
     httplib::Headers headers;
     headers.emplace("Accept", "application/json");
     headers.emplace("X-Vault-Request", "true");
-    headers.emplace("X-Vault-Token", config_.token);
+    headers.emplace("X-Vault-Token", token_);
 
     auto result = cli_->Get("/v1/" + api_path, headers);
     if (!result) {
-        RAISE_ERROR("OpenBaoClient: failed to reach " + config_.addr + "/v1/" + api_path);
+        RAISE_ERROR("OpenBaoClient: failed to reach " + addr_ + "/v1/" + api_path);
     }
 
     nlohmann::json body = nullptr;

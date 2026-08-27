@@ -1,15 +1,90 @@
 #include "VaultJsonResolver.h"
 
+#include <termios.h>
+#include <unistd.h>
+
+#include <iostream>
 #include <unordered_map>
 
 #include "OpenBaoClient.h"
-#include "OpenBaoConfig.h"
 #include "Utils.h"
 
 using namespace commons;
 
 namespace openbao {
 namespace {
+
+string require_string(const nlohmann::json& obj, const string& key, const string& context) {
+    if (!obj.is_object() || !obj.contains(key) || !obj[key].is_string()) {
+        RAISE_ERROR(context + ": missing or invalid '" + key + "'");
+    }
+    string value = obj[key].get<string>();
+    if (value.empty()) {
+        RAISE_ERROR(context + ": '" + key + "' must be non-empty");
+    }
+    return value;
+}
+
+struct HideStdinEcho {
+    termios previous{};
+    bool active = false;
+
+    HideStdinEcho() {
+        if (tcgetattr(STDIN_FILENO, &previous) != 0) return;
+        termios hidden = previous;
+        hidden.c_lflag &= static_cast<tcflag_t>(~ECHO);
+        if (tcsetattr(STDIN_FILENO, TCSANOW, &hidden) == 0) {
+            active = true;
+        }
+    }
+
+    ~HideStdinEcho() {
+        if (active) {
+            tcsetattr(STDIN_FILENO, TCSANOW, &previous);
+        }
+    }
+};
+
+string prompt_for_token() {
+    if (!isatty(STDIN_FILENO)) {
+        RAISE_ERROR(
+            "VaultJsonResolver: vault:// refs require a token entered in the terminal "
+            "(stdin is not a TTY)");
+    }
+
+    cerr << "Vault token: " << flush;
+    string token;
+    {
+        HideStdinEcho hide_echo;
+        if (!getline(cin, token)) {
+            cerr << endl;
+            RAISE_ERROR("VaultJsonResolver: failed to read vault token from the terminal");
+        }
+    }
+    cerr << endl;
+
+    token = Utils::trim(token);
+    if (token.empty()) {
+        RAISE_ERROR("VaultJsonResolver: vault token must be non-empty");
+    }
+    return token;
+}
+
+string vault_addr_from_config(const nlohmann::json& root) {
+    if (!root.is_object() || !root.contains("vault") || !root["vault"].is_object()) {
+        RAISE_ERROR("VaultJsonResolver: missing 'vault' section in config");
+    }
+    const nlohmann::json& vault = root["vault"];
+    string type = require_string(vault, "type", "VaultJsonResolver");
+    if (type != "openbao") {
+        RAISE_ERROR("VaultJsonResolver: vault.type must be \"openbao\" (got \"" + type + "\")");
+    }
+    string endpoint = require_string(vault, "endpoint", "VaultJsonResolver");
+    if (endpoint.find("://") == string::npos) {
+        return "https://" + endpoint;
+    }
+    return endpoint;
+}
 
 bool is_vault_ref(const nlohmann::json& value) {
     return value.is_string() && value.get_ref<const string&>().rfind(VaultJsonResolver::kScheme, 0) == 0;
@@ -136,9 +211,7 @@ void VaultJsonResolver::resolve_with_openbao(nlohmann::json& root) {
         return;
     }
 
-    OpenBaoConfig config = OpenBaoConfig::from_json(root);
-    config.load_token_from_env();
-    OpenBaoClient client(config);
+    OpenBaoClient client(vault_addr_from_config(root), prompt_for_token());
 
     resolve(root,
             [&client](const string& mount, const string& path) { return client.kv_data(mount, path); });
