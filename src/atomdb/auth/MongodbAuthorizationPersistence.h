@@ -44,6 +44,7 @@ class MongodbAuthorizationPersistence : public AuthorizationPersistence {
     static bsoncxx::document::value to_bson(const AuthorizationProfile& profile);
     shared_ptr<atomdb_api_types::MongodbAccessPermissionDocument> get_document(
         mongocxx::collection& collection, const string& public_key);
+    void delete_document(mongocxx::collection& collection, const string& public_key);
 };
 
 }  // namespace atomdb
