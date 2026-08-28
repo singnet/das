@@ -128,15 +128,11 @@ void walk_and_resolve(nlohmann::json& node,
 
     string uri = node.get<string>();
     auto cached = cache.find(uri);
-    nlohmann::json data;
-    if (cached != cache.end()) {
-        data = cached->second;
-    } else {
+    if (cached == cache.end()) {
         auto mount_and_path = VaultJsonResolver::parse_uri(uri);
-        data = fetcher(mount_and_path.first, mount_and_path.second);
-        cache.emplace(uri, data);
+        cached = cache.emplace(uri, fetcher(mount_and_path.first, mount_and_path.second)).first;
     }
-    node = VaultJsonResolver::inject_payload(data, key);
+    node = VaultJsonResolver::inject_payload(cached->second, key);
 }
 
 bool scan_for_refs(const nlohmann::json& node) {
