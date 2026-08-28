@@ -43,11 +43,25 @@ class AuthorizationProfile {
                          vector<AuthorizationSchema> schemas);
     ~AuthorizationProfile() = default;
 
+    /**
+     * @brief Returns an AuthorizationProfile built from an AccessPermissionDocument.
+     */
     static AuthorizationProfile from_document(
         const atomdb_api_types::AccessPermissionDocument& document);
 
+    /**
+     * @brief Returns the access key associated with this profile.
+     */
     const string& access_key() const;
+
+    /**
+     * @brief Returns whether this profile grants unrestricted access.
+     */
     bool is_full_access() const;
+
+    /**
+     * @brief Returns the authorization schemas granted by this profile.
+     */
     const vector<AuthorizationSchema>& schemas() const;
 
     /**

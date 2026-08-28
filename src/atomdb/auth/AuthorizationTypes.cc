@@ -61,9 +61,6 @@ AuthorizationProfile::AuthorizationProfile(const string& access_key,
     if (full_access && !schemas.empty()) {
         RAISE_ERROR("schemas must be empty when full_access is true");
     }
-    if (!full_access && schemas.empty()) {
-        RAISE_ERROR("schemas must be non-empty when full_access is false");
-    }
 }
 
 AuthorizationProfile AuthorizationProfile::from_document(
