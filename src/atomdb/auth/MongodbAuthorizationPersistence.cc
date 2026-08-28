@@ -22,8 +22,11 @@ MongodbAuthorizationPersistence::MongodbAuthorizationPersistence(const string& e
                                                                  const string& database_name,
                                                                  const string& collection_name)
     : database_name(database_name), collection_name(collection_name) {
-    if (endpoint.empty() || endpoint == ":" || username.empty() || password.empty() || database_name.empty() || collection_name.empty()) {
-        RAISE_ERROR("Invalid MongoDB configuration: need non-empty endpoint, username, password, database_name and collection_name.");
+    if (endpoint.empty() || endpoint == ":" || username.empty() || password.empty() ||
+        database_name.empty() || collection_name.empty()) {
+        RAISE_ERROR(
+            "Invalid MongoDB configuration: need non-empty endpoint, username, password, database_name "
+            "and collection_name.");
     }
 
     string url = "mongodb://" + username + ":" + password + "@" + endpoint;
