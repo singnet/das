@@ -1,5 +1,6 @@
 #pragma once
 
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -9,6 +10,10 @@ using namespace commons;
 using namespace atoms;
 
 namespace atomdb {
+
+namespace atomdb_api_types {
+class AccessPermissionDocument;
+}
 
 enum class AuthorizationOperation { READ, WRITE };
 
@@ -38,8 +43,22 @@ class AuthorizationProfile {
                          vector<AuthorizationSchema> schemas);
     ~AuthorizationProfile() = default;
 
+    static AuthorizationProfile from_document(
+        const atomdb_api_types::AccessPermissionDocument& document);
+
+    const string& access_key() const;
     bool is_full_access() const;
     const vector<AuthorizationSchema>& schemas() const;
+
+    /**
+     * @brief Returns a copy with schema inserted or replaced by LinkSchema handle.
+     */
+    AuthorizationProfile with_schema(const AuthorizationSchema& schema) const;
+
+    /**
+     * @brief Returns a copy without schema, or nullopt when the last schema is removed.
+     */
+    std::optional<AuthorizationProfile> without_schema(const AuthorizationSchema& schema) const;
 
    private:
     string access_key_;

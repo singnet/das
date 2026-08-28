@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <memory>
+#include <stdexcept>
 #include <string>
 #include <vector>
 
@@ -188,6 +189,43 @@ TEST(AuthorizationManifestTest, FullAccessGrantsAllOperations) {
     EXPECT_TRUE(manifest.is_authorized(link_handle, "pk", AuthorizationOperation::WRITE, *db));
 }
 
+TEST(AuthorizationProfileTest, FromDocumentWithAndWithoutSchema) {
+    auto document = make_document("pk", false, {read_only_inheritance_schema()});
+    auto profile = AuthorizationProfile::from_document(*document);
+
+    EXPECT_EQ(profile.access_key(), "pk");
+    EXPECT_FALSE(profile.is_full_access());
+    ASSERT_EQ(profile.schemas().size(), 1u);
+    EXPECT_TRUE(profile.schemas()[0].read());
+    EXPECT_FALSE(profile.schemas()[0].write());
+
+    AuthorizationSchema read_write(inheritance_mammal_tokens(), true, true);
+    auto replaced = profile.with_schema(read_write);
+    ASSERT_EQ(replaced.schemas().size(), 1u);
+    EXPECT_TRUE(replaced.schemas()[0].write());
+
+    auto extra_tokens = inheritance_mammal_tokens();
+    extra_tokens.back() = "\"animal\"";
+    AuthorizationSchema extra(extra_tokens, true, false);
+    auto appended = replaced.with_schema(extra);
+    ASSERT_EQ(appended.schemas().size(), 2u);
+
+    auto after_one_removed = appended.without_schema(extra);
+    ASSERT_TRUE(after_one_removed.has_value());
+    EXPECT_EQ(after_one_removed->schemas().size(), 1u);
+
+    auto after_last_removed = after_one_removed->without_schema(read_write);
+    EXPECT_FALSE(after_last_removed.has_value());
+}
+
+TEST(AuthorizationProfileTest, FullAccessRejectsSchemas) {
+    auto document = make_document("pk", true, {});
+    auto profile = AuthorizationProfile::from_document(*document);
+    EXPECT_TRUE(profile.is_full_access());
+    EXPECT_TRUE(profile.schemas().empty());
+    EXPECT_THROW(profile.with_schema(read_only_inheritance_schema()), runtime_error);
+}
+
 TEST(AuthorizationManagerTest, ManifestReflectsPersistedPermissions) {
     string link_handle;
     auto db = db_with_inheritance_link(&link_handle);
@@ -219,6 +257,12 @@ TEST(AuthorizationManagerTest, AuthorizeThenReadAndWriteFlags) {
     ASSERT_EQ(persistence->documents["pk2"].size(), 1u);
     EXPECT_EQ(persistence->documents["pk"][0].schema().handle(), schema.schema().handle());
     EXPECT_EQ(persistence->documents["pk2"][0].schema().handle(), schema.schema().handle());
+
+    const auto entries = manager.list("pk");
+    ASSERT_EQ(entries.size(), 1u);
+    EXPECT_TRUE(entries[0].read());
+    EXPECT_FALSE(entries[0].write());
+    EXPECT_TRUE(manager.list("unknown").empty());
 
     manager.revoke("pk", schema);
     EXPECT_EQ(persistence->documents.size(), 2u);

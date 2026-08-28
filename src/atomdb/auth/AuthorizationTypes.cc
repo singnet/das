@@ -1,5 +1,8 @@
 #include "AuthorizationTypes.h"
 
+#include "AtomDBAPITypes.h"
+#include "Utils.h"
+
 using namespace std;
 using namespace atomdb;
 using namespace commons;
@@ -63,6 +66,64 @@ AuthorizationProfile::AuthorizationProfile(const string& access_key,
     }
 }
 
+AuthorizationProfile AuthorizationProfile::from_document(
+    const atomdb_api_types::AccessPermissionDocument& document) {
+    vector<AuthorizationSchema> schemas;
+    schemas.reserve(document.get_entries_size());
+    for (unsigned int i = 0; i < document.get_entries_size(); ++i) {
+        const auto& entry = document.get_entry(i);
+        vector<string> tokens;
+        tokens.reserve(entry.get_tokens_size());
+        for (unsigned int j = 0; j < entry.get_tokens_size(); ++j) {
+            tokens.push_back(entry.get_token(j));
+        }
+        schemas.emplace_back(tokens, entry.get_read(), entry.get_write());
+    }
+    return AuthorizationProfile(document.get_access_key(), document.get_full_access(), move(schemas));
+}
+
+const string& AuthorizationProfile::access_key() const { return this->access_key_; }
+
 bool AuthorizationProfile::is_full_access() const { return this->full_access_; }
 
 const vector<AuthorizationSchema>& AuthorizationProfile::schemas() const { return this->schemas_; }
+
+AuthorizationProfile AuthorizationProfile::with_schema(const AuthorizationSchema& schema) const {
+    if (this->full_access_) {
+        RAISE_ERROR("Cannot add authorization schemas to a full_access profile");
+    }
+
+    vector<AuthorizationSchema> schemas;
+    schemas.reserve(this->schemas_.size() + 1);
+    bool replaced = false;
+    for (const auto& existing : this->schemas_) {
+        if (existing.schema().handle() == schema.schema().handle()) {
+            schemas.push_back(schema);
+            replaced = true;
+        } else {
+            schemas.push_back(existing);
+        }
+    }
+    if (!replaced) {
+        schemas.push_back(schema);
+    }
+    return AuthorizationProfile(this->access_key_, this->full_access_, move(schemas));
+}
+
+optional<AuthorizationProfile> AuthorizationProfile::without_schema(
+    const AuthorizationSchema& schema) const {
+    vector<AuthorizationSchema> schemas;
+    schemas.reserve(this->schemas_.size());
+    for (const auto& existing : this->schemas_) {
+        if (existing.schema().handle() != schema.schema().handle()) {
+            schemas.push_back(existing);
+        }
+    }
+    if (schemas.size() == this->schemas_.size()) {
+        return *this;
+    }
+    if (schemas.empty()) {
+        return nullopt;
+    }
+    return AuthorizationProfile(this->access_key_, this->full_access_, move(schemas));
+}

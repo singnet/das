@@ -1,13 +1,7 @@
 #pragma once
 
-#include <bsoncxx/builder/basic/array.hpp>
-#include <bsoncxx/builder/basic/document.hpp>
-#include <bsoncxx/builder/stream/document.hpp>
-#include <bsoncxx/builder/stream/helpers.hpp>
-#include <bsoncxx/json.hpp>
 #include <memory>
 #include <mongocxx/collection.hpp>
-#include <mongocxx/options/replace.hpp>
 #include <mongocxx/pool.hpp>
 #include <string>
 
@@ -38,8 +32,8 @@ class MongodbAuthorizationPersistence : public AuthorizationPersistence {
     ~MongodbAuthorizationPersistence();
 
     vector<AuthorizationSchema> list(const string& public_key) override;
-    void save(const string& public_key, const AuthorizationSchema& entry) override;
-    void remove(const string& public_key, const AuthorizationSchema& entry) override;
+    void save(const string& public_key, const AuthorizationSchema& schema) override;
+    void remove(const string& public_key, const AuthorizationSchema& schema) override;
     void remove_all(const string& public_key) override;
 
    private:
@@ -47,8 +41,7 @@ class MongodbAuthorizationPersistence : public AuthorizationPersistence {
     string database_name;
     string collection_name;
 
-    static vector<AuthorizationSchema> schemas_from_document(
-        const atomdb_api_types::AccessPermissionDocument& document);
+    static bsoncxx::document::value to_bson(const AuthorizationProfile& profile);
     shared_ptr<atomdb_api_types::MongodbAccessPermissionDocument> get_document(
         mongocxx::collection& collection, const string& public_key);
 };
