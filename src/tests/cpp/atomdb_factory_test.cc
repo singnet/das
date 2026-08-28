@@ -172,4 +172,6 @@ TEST(AtomDBFactoryTest, CreateRemoteAtomDBIsNotWrapped) {
     ASSERT_NE(db, nullptr);
     EXPECT_NE(dynamic_pointer_cast<RemoteAtomDB>(db), nullptr);
     EXPECT_EQ(dynamic_pointer_cast<ProtectedAtomDB>(db), nullptr);
+    EXPECT_NE(dynamic_pointer_cast<AtomDBPublicKeyAPI>(db), nullptr);
+    EXPECT_EQ(db->get_protection_mode(), ProtectionMode::UNPROTECTED);
 }

@@ -14,14 +14,18 @@
 
 #include "Atom.h"
 #include "AtomDBFactory.h"
+#include "AtomDBPublicKeyAPI.h"
 #include "AtomDBSingleton.h"
 #include "Hasher.h"
+#include "JsonConfig.h"
 #include "Link.h"
 #include "Merger.h"
 #include "MettaMapping.h"
 #include "MockAnimalsData.h"
 #include "Node.h"
+#include "ProtectedAtomDB.h"
 #include "RedisMongoDB.h"
+#include "RemoteAtomDB.h"
 #include "TestAtomDBJsonConfig.h"
 #include "UntypedVariable.h"
 #include "Wildcard.h"
@@ -30,6 +34,7 @@
 using namespace atomdb;
 using namespace atomdb::atomdb_api_types;
 using namespace atoms;
+using namespace commons;
 using namespace std;
 
 namespace {
@@ -84,7 +89,7 @@ class RedisMongoDBTest : public ::testing::Test {
         ASSERT_NE(db, nullptr) << "Failed to cast AtomDB to RedisMongoDB";
     }
 
-    void TearDown() override {}
+    void TearDown() override { RedisMongoDB::initialize_statics("test_"); }
 
     string exp_hash(vector<string> targets) {
         char* symbol = (char*) "Symbol";
@@ -114,6 +119,57 @@ class TestRedisMongoDB : public RedisMongoDB {
     TestRedisMongoDB(const string& context, const JsonConfig& config)
         : RedisMongoDB(context, true, config) {}
 };
+
+namespace {
+
+JsonConfig remotedb_config_with_redismongo_peers(const string& peer_a_context,
+                                                 const string& peer_b_context) {
+    auto peer_a = test_atomdb_json_config().get_json();
+    peer_a["uid"] = "peerA";
+    peer_a["type"] = "redismongodb";
+    peer_a["context"] = peer_a_context;
+
+    auto peer_b = test_atomdb_json_config().get_json();
+    peer_b["uid"] = "peerB";
+    peer_b["type"] = "redismongodb";
+    peer_b["context"] = peer_b_context;
+
+    nlohmann::json json;
+    json["type"] = "remotedb";
+    json["remote_peers"] = nlohmann::json::array({peer_a, peer_b});
+    return JsonConfig(json);
+}
+
+void set_redismongo_protection_flag(const string& context, bool is_protected) {
+    using bsoncxx::builder::basic::kvp;
+    using bsoncxx::builder::basic::make_document;
+
+    TestRedisMongoDB seeder(context, test_atomdb_json_config());
+    auto conn = seeder.get_mongo_pool()->acquire();
+    auto collection =
+        (*conn)[RedisMongoDB::MONGODB_DB_NAME][RedisMongoDB::MONGODB_CONFIG_COLLECTION_NAME];
+    collection.delete_many({});
+    collection.insert_one(
+        make_document(kvp("_id", protection_config_document_id()), kvp("protected", is_protected)));
+}
+
+void insert_full_access_permission(const string& context, const string& public_key) {
+    using bsoncxx::builder::basic::kvp;
+    using bsoncxx::builder::basic::make_array;
+    using bsoncxx::builder::basic::make_document;
+
+    TestRedisMongoDB seeder(context, test_atomdb_json_config());
+    auto conn = seeder.get_mongo_pool()->acquire();
+    auto collection =
+        (*conn)[RedisMongoDB::MONGODB_DB_NAME][RedisMongoDB::MONGODB_ACCESS_PERMISSIONS_COLLECTION_NAME];
+    collection.delete_many({});
+    collection.insert_one(make_document(kvp("_id", Hasher::plain_string_hash(public_key)),
+                                        kvp("public_key", public_key),
+                                        kvp("full_access", true),
+                                        kvp("allowed_schemas", make_array())));
+}
+
+}  // namespace
 
 TEST_F(RedisMongoDBTest, ConcurrentQueryForPattern) {
     const int num_threads = 4;
@@ -1680,6 +1736,104 @@ TEST_F(RedisMongoDBTest, IgnoresConflictingProtectionConfigurationDocuments) {
     EXPECT_EQ(loaded.get_protection_mode(), atomdb_api_types::ProtectionMode::PROTECTED);
 
     collection.delete_many({});
+}
+
+TEST_F(RedisMongoDBTest, FactoryDoesNotWrapUnprotectedRedisMongoDB) {
+    auto created = AtomDBFactory::create(test_atomdb_json_config(), "test_");
+    ASSERT_NE(created, nullptr);
+    EXPECT_EQ(created->get_protection_mode(), ProtectionMode::UNPROTECTED);
+    EXPECT_NE(dynamic_pointer_cast<RedisMongoDB>(created), nullptr);
+    EXPECT_EQ(dynamic_pointer_cast<ProtectedAtomDB>(created), nullptr);
+}
+
+TEST_F(RedisMongoDBTest, FactoryWrapsProtectedRedisMongoDB) {
+    set_redismongo_protection_flag("test_", true);
+    insert_full_access_permission("test_", "admin");
+
+    Node node("Symbol", "\"protected_factory_node\"");
+    string handle = db->add_node(&node);
+
+    auto created = AtomDBFactory::create(test_atomdb_json_config(), "test_");
+    ASSERT_NE(created, nullptr);
+    EXPECT_EQ(created->get_protection_mode(), ProtectionMode::PROTECTED);
+    EXPECT_NE(dynamic_pointer_cast<ProtectedAtomDB>(created), nullptr);
+    EXPECT_NE(dynamic_pointer_cast<AtomDBPublicKeyAPI>(created), nullptr);
+    EXPECT_EQ(dynamic_pointer_cast<RedisMongoDB>(created), nullptr);
+
+    EXPECT_THROW(created->get_atom(handle), runtime_error);
+
+    auto keyed = dynamic_pointer_cast<AtomDBPublicKeyAPI>(created);
+    ASSERT_NE(keyed, nullptr);
+    auto allowed = keyed->get_atom(handle, PublicKey("admin"));
+    ASSERT_NE(allowed, nullptr);
+    EXPECT_EQ(allowed->handle(), handle);
+    EXPECT_EQ(keyed->get_atom(handle, PublicKey("other")), nullptr);
+
+    db->delete_node(handle);
+    auto conn = db->get_mongo_pool()->acquire();
+    (*conn)[RedisMongoDB::MONGODB_DB_NAME][RedisMongoDB::MONGODB_CONFIG_COLLECTION_NAME].delete_many({});
+    (*conn)[RedisMongoDB::MONGODB_DB_NAME][RedisMongoDB::MONGODB_ACCESS_PERMISSIONS_COLLECTION_NAME]
+        .delete_many({});
+}
+
+TEST_F(RedisMongoDBTest, SingletonRemoteMixedRedisMongoPeersCallerFlow) {
+    const string peer_a_context = "flow_peerA_";
+    const string peer_b_context = "flow_peerB_";
+
+    set_redismongo_protection_flag(peer_a_context, true);
+    insert_full_access_permission(peer_a_context, "admin");
+    set_redismongo_protection_flag(peer_b_context, false);
+
+    auto previous = AtomDBSingleton::get_instance();
+    struct RestoreSingleton {
+        shared_ptr<AtomDB> previous;
+        ~RestoreSingleton() {
+            AtomDBSingleton::provide(previous);
+            RedisMongoDB::initialize_statics("test_");
+        }
+    } restore{previous};
+
+    // Same path as AtomDBSingleton::init(remotedb_config): factory create, then the singleton.
+    auto created =
+        AtomDBFactory::create(remotedb_config_with_redismongo_peers(peer_a_context, peer_b_context));
+    ASSERT_NE(created, nullptr);
+    AtomDBSingleton::provide(created);
+    auto atomdb = AtomDBSingleton::get_instance();
+
+    EXPECT_EQ(atomdb->get_protection_mode(), ProtectionMode::FORWARD);
+    EXPECT_EQ(dynamic_pointer_cast<ProtectedAtomDB>(atomdb), nullptr);
+    EXPECT_NE(dynamic_pointer_cast<AtomDBPublicKeyAPI>(atomdb), nullptr);
+
+    auto remote = dynamic_pointer_cast<RemoteAtomDB>(atomdb);
+    ASSERT_NE(remote, nullptr);
+    ASSERT_NE(remote->get_peer("peerA"), nullptr);
+    EXPECT_NE(dynamic_pointer_cast<ProtectedAtomDB>(remote->get_peer("peerA")->get_remote_atomdb()),
+              nullptr);
+    EXPECT_NE(dynamic_pointer_cast<RedisMongoDB>(remote->get_peer("peerB")->get_remote_atomdb()),
+              nullptr);
+    EXPECT_EQ(dynamic_pointer_cast<ProtectedAtomDB>(remote->get_peer("peerB")->get_remote_atomdb()),
+              nullptr);
+
+    EXPECT_THROW(atomdb->get_atom("any_handle"), runtime_error);
+
+    auto keyed = dynamic_pointer_cast<AtomDBPublicKeyAPI>(atomdb);
+    ASSERT_NE(keyed, nullptr);
+
+    auto redismongo_b =
+        dynamic_pointer_cast<RedisMongoDB>(remote->get_peer("peerB")->get_remote_atomdb());
+    ASSERT_NE(redismongo_b, nullptr);
+    Node open_node("Symbol", "\"flow_open_node\"");
+    string open_handle = redismongo_b->add_node(&open_node);
+
+    PublicKey keys(map<string, string>{{"peerA", "admin"}, {"peerB", "unused"}});
+    auto from_b = keyed->get_atom(open_handle, keys);
+    ASSERT_NE(from_b, nullptr);
+    EXPECT_EQ(from_b->handle(), open_handle);
+
+    PublicKey denied(map<string, string>{{"peerA", "bad"}, {"peerB", "unused"}});
+    auto still_from_b = keyed->get_atom(open_handle, denied);
+    ASSERT_NE(still_from_b, nullptr);
+    EXPECT_EQ(still_from_b->handle(), open_handle);
 }
 
 int main(int argc, char** argv) {

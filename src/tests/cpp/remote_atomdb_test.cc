@@ -1010,6 +1010,9 @@ TEST(RemoteAtomDBFederationTest, GetAtomForwardsPublicKeyPerPeer) {
 
     PublicKey denied(map<string, string>{{"peerA", "bad"}, {"peerB", "unused"}});
     EXPECT_EQ(db->get_atom(protected_handle, denied), nullptr);
+    auto still_from_b = db->get_atom(open_handle, denied);
+    ASSERT_NE(still_from_b, nullptr);
+    EXPECT_EQ(still_from_b->handle(), open_handle);
 }
 
 TEST(RemoteAtomDBFederationTest, CacheFirstProbingAcrossPeers) {

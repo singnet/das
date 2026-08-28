@@ -138,5 +138,12 @@ TEST(ProtectedAtomDBTest, GetAtomAuthorizesWithPublicKey) {
     EXPECT_EQ(allowed->handle(), handle);
 
     EXPECT_EQ(db.get_atom(handle, other), nullptr);
-    EXPECT_EQ(db.get_atom("missing", admin), nullptr);
+
+    Node missing_node("Symbol", "\"missing_protected_node\"");
+    EXPECT_EQ(db.get_atom(missing_node.handle(), admin), nullptr);
+
+    auto node_again = db.get_node(handle, admin);
+    ASSERT_NE(node_again, nullptr);
+    EXPECT_EQ(node_again->handle(), handle);
+    EXPECT_EQ(db.get_node(handle, other), nullptr);
 }
