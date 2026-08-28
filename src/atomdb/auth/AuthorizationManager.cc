@@ -21,12 +21,12 @@ vector<AuthorizationSchema> atomdb::AuthorizationManager::list(const string& pub
     return this->persistence->list(public_key);
 }
 
-void AuthorizationManager::authorize(const string& public_key, const AuthorizationSchema& entry) {
-    this->persistence->save(public_key, entry);
+void AuthorizationManager::authorize(const string& public_key, const AuthorizationSchema& schema) {
+    this->persistence->save(public_key, schema);
 }
 
-void AuthorizationManager::revoke(const string& public_key, const AuthorizationSchema& entry) {
-    this->persistence->remove(public_key, entry);
+void AuthorizationManager::revoke(const string& public_key, const AuthorizationSchema& schema) {
+    this->persistence->remove(public_key, schema);
 }
 
 void AuthorizationManager::revoke_all(const string& public_key) {

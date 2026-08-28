@@ -29,17 +29,17 @@ class AuthorizationManager {
     vector<AuthorizationSchema> list(const string& public_key);
 
     /**
-     * @brief Grants an authorization entry to public_key.
+     * @brief Grants an authorization schema to public_key.
      */
-    void authorize(const string& public_key, const AuthorizationSchema& entry);
+    void authorize(const string& public_key, const AuthorizationSchema& schema);
 
     /**
-     * @brief Revokes an authorization entry from public_key.
+     * @brief Revokes an authorization schema from public_key.
      */
-    void revoke(const string& public_key, const AuthorizationSchema& entry);
+    void revoke(const string& public_key, const AuthorizationSchema& schema);
 
     /**
-     * @brief Revokes all authorization entries from public_key.
+     * @brief Revokes all authorization schemas from public_key.
      */
     void revoke_all(const string& public_key);
 

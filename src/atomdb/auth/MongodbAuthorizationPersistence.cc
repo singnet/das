@@ -1,29 +1,17 @@
 #include "MongodbAuthorizationPersistence.h"
 
+#include <bsoncxx/builder/basic/array.hpp>
+#include <bsoncxx/builder/basic/document.hpp>
+#include <mongocxx/options/replace.hpp>
+
 #include "Hasher.h"
-#include "JsonConfig.h"
 #include "MongoInitializer.h"
-#include "MongodbAuthorizationProfile.h"
 #include "Utils.h"
 #define LOG_LEVEL INFO_LEVEL
 #include "Logger.h"
 
 using namespace atomdb;
-using namespace atomdb_api_types;
 using namespace commons;
-
-namespace {
-
-vector<string> tokens_from_entry(const AccessPermissionEntry& entry) {
-    vector<string> tokens;
-    tokens.reserve(entry.get_tokens_size());
-    for (unsigned int i = 0; i < entry.get_tokens_size(); ++i) {
-        tokens.push_back(entry.get_token(i));
-    }
-    return tokens;
-}
-
-}  // namespace
 
 // --------------------------------------------------------------------------------
 // Constructors
@@ -67,49 +55,26 @@ vector<AuthorizationSchema> MongodbAuthorizationPersistence::list(const string& 
     auto collection = (*conn)[this->database_name][this->collection_name];
     auto document = this->get_document(collection, public_key);
     if (!document) return {};
-    return schemas_from_document(*document);
+    auto profile = AuthorizationProfile::from_document(*document);
+    return profile.schemas();
 }
 
-void MongodbAuthorizationPersistence::save(const string& public_key, const AuthorizationSchema& entry) {
+void MongodbAuthorizationPersistence::save(const string& public_key, const AuthorizationSchema& schema) {
     auto conn = this->mongodb_pool->acquire();
     auto collection = (*conn)[this->database_name][this->collection_name];
 
-    auto access_document = this->get_document(collection, public_key);
-
-    MongodbAuthorizationProfile profile;
-    if (access_document) {
-        profile.set_access_key(access_document->get_access_key());
-        profile.set_full_access(access_document->get_full_access());
-
-        bool entry_exists = false;
-        for (unsigned int i = 0; i < access_document->get_entries_size(); ++i) {
-            const auto& document_entry = access_document->get_entry(i);
-            if (LinkSchema(tokens_from_entry(document_entry)).handle() == entry.schema().handle()) {
-                profile.append_entry(LinkSchema(entry.schema()).tokenize(), entry.read(), entry.write());
-                entry_exists = true;
-            } else {
-                profile.append_entry(tokens_from_entry(document_entry),
-                                     document_entry.get_read(),
-                                     document_entry.get_write());
-            }
-        }
-
-        if (!entry_exists) {
-            profile.append_entry(LinkSchema(entry.schema()).tokenize(), entry.read(), entry.write());
-        }
-    } else {
-        profile.set_access_key(public_key);
-        profile.set_full_access(false);
-        profile.append_entry(LinkSchema(entry.schema()).tokenize(), entry.read(), entry.write());
-    }
+    auto document = this->get_document(collection, public_key);
+    auto profile = document ? AuthorizationProfile::from_document(*document).with_schema(schema)
+                            : AuthorizationProfile(public_key, false, {schema});
 
     auto filter = bsoncxx::builder::basic::make_document(
-        bsoncxx::builder::basic::kvp("_id", Hasher::plain_string_hash(profile.get_access_key())));
+        bsoncxx::builder::basic::kvp("_id", Hasher::plain_string_hash(public_key)));
 
     mongocxx::options::replace opts;
     opts.upsert(true);
 
-    auto reply = collection.replace_one(filter.view(), profile.value().view(), opts);
+    auto bson = to_bson(profile);
+    auto reply = collection.replace_one(filter.view(), bson.view(), opts);
 
     if (!reply) {
         RAISE_ERROR("Failed to update authorization entry in MongoDB");
@@ -117,38 +82,24 @@ void MongodbAuthorizationPersistence::save(const string& public_key, const Autho
 }
 
 void MongodbAuthorizationPersistence::remove(const string& public_key,
-                                             const AuthorizationSchema& entry) {
+                                             const AuthorizationSchema& schema) {
     auto conn = this->mongodb_pool->acquire();
     auto collection = (*conn)[this->database_name][this->collection_name];
 
-    auto access_document = this->get_document(collection, public_key);
+    auto document = this->get_document(collection, public_key);
+    if (!document) return;
 
-    if (!access_document) return;
-
-    MongodbAuthorizationProfile profile;
-    profile.set_access_key(access_document->get_access_key());
-    profile.set_full_access(access_document->get_full_access());
-
-    bool has_schemas = false;
-    for (unsigned int i = 0; i < access_document->get_entries_size(); ++i) {
-        const auto& document_entry = access_document->get_entry(i);
-        if (LinkSchema(tokens_from_entry(document_entry)).handle() == entry.schema().handle()) {
-            continue;
-        }
-        profile.append_entry(
-            tokens_from_entry(document_entry), document_entry.get_read(), document_entry.get_write());
-        has_schemas = true;
-    }
-
-    if (!has_schemas) {
+    auto profile = AuthorizationProfile::from_document(*document).without_schema(schema);
+    if (!profile) {
         this->remove_all(public_key);
         return;
     }
 
-    auto filter = bsoncxx::builder::basic::make_document(bsoncxx::builder::basic::kvp(
-        "_id", Hasher::plain_string_hash(access_document->get_access_key())));
+    auto filter = bsoncxx::builder::basic::make_document(
+        bsoncxx::builder::basic::kvp("_id", Hasher::plain_string_hash(public_key)));
 
-    auto reply = collection.replace_one(filter.view(), profile.value().view());
+    auto bson = to_bson(*profile);
+    auto reply = collection.replace_one(filter.view(), bson.view());
 
     if (!reply) {
         RAISE_ERROR("Failed to update authorization entry in MongoDB");
@@ -168,23 +119,33 @@ void MongodbAuthorizationPersistence::remove_all(const string& public_key) {
 // --------------------------------------------------------------------------------
 // Private methods
 
-vector<AuthorizationSchema> MongodbAuthorizationPersistence::schemas_from_document(
-    const AccessPermissionDocument& document) {
-    vector<AuthorizationSchema> schemas;
-    schemas.reserve(document.get_entries_size());
-    for (unsigned int i = 0; i < document.get_entries_size(); ++i) {
-        const auto& entry = document.get_entry(i);
-        schemas.emplace_back(tokens_from_entry(entry), entry.get_read(), entry.get_write());
+bsoncxx::document::value MongodbAuthorizationPersistence::to_bson(const AuthorizationProfile& profile) {
+    bsoncxx::builder::basic::array schemas;
+    for (const auto& schema : profile.schemas()) {
+        auto tokens_array = bsoncxx::builder::basic::array{};
+        for (const auto& token : LinkSchema(schema.schema()).tokenize()) {
+            tokens_array.append(token);
+        }
+        schemas.append(bsoncxx::builder::basic::make_document(
+            bsoncxx::builder::basic::kvp("tokens", tokens_array),
+            bsoncxx::builder::basic::kvp("read", schema.read()),
+            bsoncxx::builder::basic::kvp("write", schema.write())));
     }
-    return schemas;
+
+    return bsoncxx::builder::basic::make_document(
+        bsoncxx::builder::basic::kvp("_id", Hasher::plain_string_hash(profile.access_key())),
+        bsoncxx::builder::basic::kvp("public_key", profile.access_key()),
+        bsoncxx::builder::basic::kvp("full_access", profile.is_full_access()),
+        bsoncxx::builder::basic::kvp("allowed_schemas", schemas));
 }
 
-shared_ptr<MongodbAccessPermissionDocument> MongodbAuthorizationPersistence::get_document(
-    mongocxx::collection& collection, const string& public_key) {
+shared_ptr<atomdb_api_types::MongodbAccessPermissionDocument>
+MongodbAuthorizationPersistence::get_document(mongocxx::collection& collection,
+                                              const string& public_key) {
     auto reply = collection.find_one(bsoncxx::v_noabi::builder::basic::make_document(
         bsoncxx::v_noabi::builder::basic::kvp("_id", Hasher::plain_string_hash(public_key))));
 
     if (!reply) return nullptr;
 
-    return make_shared<MongodbAccessPermissionDocument>(reply.value());
+    return make_shared<atomdb_api_types::MongodbAccessPermissionDocument>(reply.value());
 }

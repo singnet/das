@@ -22,17 +22,6 @@ cc_library(
 )
 
 cc_library(
-    name = "mongodb_authorization_profile",
-    srcs = ["MongodbAuthorizationProfile.cc"],
-    hdrs = ["MongodbAuthorizationProfile.h"],
-    includes = ["."],
-    deps = [
-        "//commons:commons_lib",
-        "//hasher:hasher_lib",
-    ],
-)
-
-cc_library(
     name = "mongodb_authorization_persistence",
     srcs = ["MongodbAuthorizationPersistence.cc"],
     hdrs = ["MongodbAuthorizationPersistence.h"],
@@ -40,7 +29,6 @@ cc_library(
     deps = [
         ":authorization_persistence",
         ":authorization_types",
-        ":mongodb_authorization_profile",
         "//atomdb/redis_mongodb:redis_mongodb_api_types",
         "//commons:commons_lib",
         "//commons/atoms:atoms_lib",

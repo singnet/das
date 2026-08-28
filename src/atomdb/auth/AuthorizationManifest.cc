@@ -73,23 +73,12 @@ AuthorizationProfile* AuthorizationManifest::lookup(const string& public_key) {
 
 void AuthorizationManifest::add_document(
     const shared_ptr<atomdb_api_types::AccessPermissionDocument>& document) {
-    vector<AuthorizationSchema> schemas;
-    schemas.reserve(document->get_entries_size());
-
-    for (unsigned int i = 0; i < document->get_entries_size(); ++i) {
-        const auto& entry = document->get_entry(i);
-        vector<string> tokens;
-        tokens.reserve(entry.get_tokens_size());
-        for (unsigned int j = 0; j < entry.get_tokens_size(); ++j) {
-            tokens.push_back(entry.get_token(j));
-        }
-        schemas.emplace_back(tokens, entry.get_read(), entry.get_write());
+    if (document == nullptr) {
+        RAISE_ERROR("Authorization manifest document cannot be null");
     }
 
-    auto [it, inserted] = this->profiles.emplace(
-        document->get_access_key(),
-        AuthorizationProfile(
-            document->get_access_key(), document->get_full_access(), std::move(schemas)));
+    auto [it, inserted] = this->profiles.emplace(document->get_access_key(),
+                                                 AuthorizationProfile::from_document(*document));
     if (!inserted) {
         RAISE_ERROR(string("Duplicate access_key in authorization manifest: ") +
                     document->get_access_key());

@@ -23,17 +23,17 @@ class AuthorizationPersistence {
     virtual vector<AuthorizationSchema> list(const string& public_key) = 0;
 
     /**
-     * @brief Persists an authorization entry for public_key.
+     * @brief Persists an authorization schema for public_key.
      */
-    virtual void save(const string& public_key, const AuthorizationSchema& entry) = 0;
+    virtual void save(const string& public_key, const AuthorizationSchema& schema) = 0;
 
     /**
-     * @brief Removes an authorization entry from public_key.
+     * @brief Removes an authorization schema from public_key.
      */
-    virtual void remove(const string& public_key, const AuthorizationSchema& entry) = 0;
+    virtual void remove(const string& public_key, const AuthorizationSchema& schema) = 0;
 
     /**
-     * @brief Removes all authorization entries for public_key.
+     * @brief Removes all authorization schemas for public_key.
      */
     virtual void remove_all(const string& public_key) = 0;
 };
