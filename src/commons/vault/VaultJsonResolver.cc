@@ -100,35 +100,43 @@ bool is_vault_ref(const nlohmann::json& value) {
 
 void walk_and_resolve(nlohmann::json& node,
                       const VaultJsonResolver::Fetcher& fetcher,
-                      unordered_map<string, nlohmann::json>& cache) {
+                      unordered_map<string, nlohmann::json>& cache,
+                      const string& key) {
     if (node.is_object()) {
         for (auto it = node.begin(); it != node.end(); ++it) {
-            walk_and_resolve(it.value(), fetcher, cache);
+            walk_and_resolve(it.value(), fetcher, cache, it.key());
         }
         return;
     }
     if (node.is_array()) {
         for (auto& element : node) {
-            walk_and_resolve(element, fetcher, cache);
+            if (is_vault_ref(element)) {
+                RAISE_ERROR(
+                    "VaultJsonResolver: vault:// is not allowed as an array element "
+                    "(KV key is taken from the DAS config file key)");
+            }
+            walk_and_resolve(element, fetcher, cache, key);
         }
         return;
     }
     if (!is_vault_ref(node)) {
         return;
     }
+    if (key.empty()) {
+        RAISE_ERROR("VaultJsonResolver: vault:// ref is missing a DAS config file key");
+    }
 
     string uri = node.get<string>();
     auto cached = cache.find(uri);
+    nlohmann::json data;
     if (cached != cache.end()) {
-        node = cached->second;
-        return;
+        data = cached->second;
+    } else {
+        auto mount_and_path = VaultJsonResolver::parse_uri(uri);
+        data = fetcher(mount_and_path.first, mount_and_path.second);
+        cache.emplace(uri, data);
     }
-
-    auto mount_and_path = VaultJsonResolver::parse_uri(uri);
-    nlohmann::json data = fetcher(mount_and_path.first, mount_and_path.second);
-    nlohmann::json injected = VaultJsonResolver::inject_payload(data);
-    cache.emplace(uri, injected);
-    node = std::move(injected);
+    node = VaultJsonResolver::inject_payload(data, key);
 }
 
 bool scan_for_refs(const nlohmann::json& node) {
@@ -182,17 +190,19 @@ pair<string, string> VaultJsonResolver::parse_uri(const string& uri) {
     return {mount, path};
 }
 
-nlohmann::json VaultJsonResolver::inject_payload(const nlohmann::json& data) {
+nlohmann::json VaultJsonResolver::inject_payload(const nlohmann::json& data, const string& key) {
     if (!data.is_object()) {
-        RAISE_ERROR("VaultJsonResolver: KV v2 data.data must be a JSON object");
+        RAISE_ERROR("VaultJsonResolver: KV data must be a JSON object");
     }
-    if (data.empty()) {
-        RAISE_ERROR("VaultJsonResolver: KV v2 data.data is empty");
+    if (key.empty()) {
+        RAISE_ERROR("VaultJsonResolver: missing DAS config file key for vault payload");
     }
-    if (data.size() == 1) {
-        return data.begin().value();
+    auto it = data.find(key);
+    if (it == data.end()) {
+        RAISE_ERROR("VaultJsonResolver: KV payload missing key \"" + key +
+                    "\" (keys in the secret must match DAS config file)");
     }
-    return data;
+    return *it;
 }
 
 // -------------------------------------------------------------------------------------------------
@@ -216,7 +226,7 @@ void VaultJsonResolver::resolve(nlohmann::json& root, const Fetcher& fetcher) {
     unordered_map<string, nlohmann::json> cache;
     for (auto it = root.begin(); it != root.end(); ++it) {
         if (it.key() == "vault") continue;
-        walk_and_resolve(it.value(), fetcher, cache);
+        walk_and_resolve(it.value(), fetcher, cache, it.key());
     }
 }
 

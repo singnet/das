@@ -14,7 +14,21 @@
                 }
             ]
         },
-        "mongodb": "vault://test/dbs/mongodb",
+        "mongodb": {
+            "image": "mongodb/mongodb-community-server:8.2-ubuntu2204",
+            "endpoint": "localhost:40021",
+            "username": "admin",
+            "password": "admin",
+            "cluster": false,
+            "cluster_secret_key": "8UDJSgpUCaVOTQG",
+            "nodes": [
+                {
+                    "context": "default",
+                    "ip": "localhost",
+                    "username": "arturgontijo"
+                }
+            ]
+        },
         "adapterdb": {
             "endpoint": "localhost:40023",
             "type": "postgres",

@@ -15,12 +15,12 @@ namespace vault {
  * URI form:
  *   vault://<mount>/<secret-path>
  * Example:
- *   vault://test/dbs/mongodb_user  ->  GET /v1/test/data/dbs/mongodb_user
+ *   vault://test/db  ->  GET /v1/test/data/db
  *
- * KV v2 always stores an object in data.data. Injection rule:
- *   - Exactly one key  -> replace the config node with that key's value
- *     (so {"value":"admin"} or {"username":"admin"} becomes "admin")
- *   - Multiple keys    -> replace the config node with the whole object
+ * KV v2 data.data must be an object whose keys match DAS config file keys.
+ * A config node `"mongodb": "vault://test/db"` is replaced by data.data["mongodb"]
+ * (string, object, or array). Missing keys are an error.
+ * vault:// is not allowed as a JSON array element (no key).
  *
  * Strings inside the top-level "vault" block are never resolved.
  */
@@ -38,16 +38,18 @@ class VaultJsonResolver {
     static pair<string, string> parse_uri(const string& uri);
 
     /**
-     * Apply single-key unwrap vs whole-object inject rule to a KV data.data payload.
+     * Return data[key] from a KV v2 data.data object.
+     * key is the das.json key being replaced. Raises if data is not an object
+     * or does not contain key.
      */
-    static nlohmann::json inject_payload(const nlohmann::json& data);
+    static nlohmann::json inject_payload(const nlohmann::json& data, const string& key);
 
     /** True if any vault:// string exists outside the vault block. */
     static bool has_vault_refs(const nlohmann::json& root);
 
     /**
-     * Walk root and replace every vault:// string with fetched/injected data.
-     * Uses fetcher for KV reads; caches by full URI.
+     * Walk root and replace every vault:// string with data.data[<key>].
+     * Uses fetcher for KV reads; caches raw payloads by URI.
      * Does not modify root["vault"].
      */
     static void resolve(nlohmann::json& root, const Fetcher& fetcher);

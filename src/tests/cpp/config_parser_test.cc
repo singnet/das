@@ -152,42 +152,49 @@ TEST(VaultJsonResolverTest, ParseUriRejectsMissingPath) {
     EXPECT_THROW(VaultJsonResolver::parse_uri("vault://"), runtime_error);
 }
 
-TEST(VaultJsonResolverTest, InjectSingleKeyUnwrapsValue) {
-    nlohmann::json data = {{"value", "admin"}};
-    EXPECT_EQ(VaultJsonResolver::inject_payload(data), "admin");
-
-    nlohmann::json data2 = {{"username", "admin"}};
-    EXPECT_EQ(VaultJsonResolver::inject_payload(data2), "admin");
-}
-
-TEST(VaultJsonResolverTest, InjectMultiKeyKeepsObject) {
+TEST(VaultJsonResolverTest, InjectPayloadPicksMatchingField) {
     nlohmann::json data = {
         {"endpoint", "localhost:40021"}, {"username", "admin"}, {"password", "secret"}};
-    auto injected = VaultJsonResolver::inject_payload(data);
+    EXPECT_EQ(VaultJsonResolver::inject_payload(data, "username"), "admin");
+    EXPECT_EQ(VaultJsonResolver::inject_payload(data, "password"), "secret");
+
+    nlohmann::json wrapped = {{"mongodb", data}};
+    auto injected = VaultJsonResolver::inject_payload(wrapped, "mongodb");
     EXPECT_TRUE(injected.is_object());
+    EXPECT_EQ(injected["endpoint"], "localhost:40021");
     EXPECT_EQ(injected["username"], "admin");
-    EXPECT_EQ(injected["password"], "secret");
 }
 
-TEST(VaultJsonResolverTest, ScalarAndObjectReplacement) {
-    nlohmann::json root = {{"vault", {{"type", "openbao"}, {"endpoint", "localhost:8200"}}},
+TEST(VaultJsonResolverTest, InjectPayloadMissingFieldFails) {
+    nlohmann::json data = {{"username", "admin"}};
+    EXPECT_THROW(VaultJsonResolver::inject_payload(data, "password"), runtime_error);
+    EXPECT_THROW(VaultJsonResolver::inject_payload(data, ""), runtime_error);
+}
+
+TEST(VaultJsonResolverTest, KeyMatchingReplacement) {
+    nlohmann::json mongodb = {{"image", "mongodb/img"},
+                              {"endpoint", "localhost:40021"},
+                              {"username", "admin"},
+                              {"password", "s3cret"}};
+    nlohmann::json root = {{"vault", {{"type", "openbao"}, {"endpoint", "http://localhost:8200"}}},
                            {"atomdb",
-                            {{"mongodb",
-                              {{"image", "mongodb/img"},
-                               {"endpoint", "vault://test/dbs/mongodb_endpoint"},
-                               {"username", "vault://test/dbs/mongodb_user"},
-                               {"password", "vault://test/dbs/mongodb_pass"}}},
-                             {"peer", "vault://test/dbs/mongodb"}}}};
+                            {{"mongodb", "vault://test/db"},
+                             {"peer",
+                              {{"endpoint", "vault://test/db"},
+                               {"username", "vault://test/db"},
+                               {"password", "vault://test/db"}}}}}};
 
     unordered_map<string, nlohmann::json> store = {
-        {"test|dbs/mongodb_endpoint", {{"value", "localhost:40021"}}},
-        {"test|dbs/mongodb_user", {{"username", "admin"}}},
-        {"test|dbs/mongodb_pass", {{"password", "s3cret"}}},
-        {"test|dbs/mongodb",
-         {{"endpoint", "localhost:40021"}, {"username", "admin"}, {"password", "s3cret"}}},
+        {"test|db",
+         {{"mongodb", mongodb},
+          {"endpoint", "localhost:40021"},
+          {"username", "admin"},
+          {"password", "s3cret"}}},
     };
 
-    VaultJsonResolver::resolve(root, [&store](const string& mount, const string& path) {
+    int fetches = 0;
+    VaultJsonResolver::resolve(root, [&store, &fetches](const string& mount, const string& path) {
+        fetches++;
         string key = mount + "|" + path;
         auto it = store.find(key);
         if (it == store.end()) {
@@ -196,14 +203,36 @@ TEST(VaultJsonResolverTest, ScalarAndObjectReplacement) {
         return it->second;
     });
 
+    EXPECT_EQ(fetches, 1);
     EXPECT_EQ(root["atomdb"]["mongodb"]["image"], "mongodb/img");
     EXPECT_EQ(root["atomdb"]["mongodb"]["endpoint"], "localhost:40021");
     EXPECT_EQ(root["atomdb"]["mongodb"]["username"], "admin");
     EXPECT_EQ(root["atomdb"]["mongodb"]["password"], "s3cret");
-    EXPECT_TRUE(root["atomdb"]["peer"].is_object());
+    EXPECT_EQ(root["atomdb"]["peer"]["endpoint"], "localhost:40021");
     EXPECT_EQ(root["atomdb"]["peer"]["username"], "admin");
-    // vault block untouched
-    EXPECT_EQ(root["vault"]["endpoint"], "localhost:8200");
+    EXPECT_EQ(root["atomdb"]["peer"]["password"], "s3cret");
+    EXPECT_EQ(root["vault"]["endpoint"], "http://localhost:8200");
+}
+
+TEST(VaultJsonResolverTest, AttentionObjectFromMatchingKey) {
+    nlohmann::json root = {{"vault", {{"type", "openbao"}, {"endpoint", "http://localhost:8200"}}},
+                           {"agents", {{"attention", "vault://test/agents"}}}};
+    VaultJsonResolver::resolve(root, [](const string&, const string&) {
+        return nlohmann::json{{"attention", {{"endpoint", "localhost:40001"}}}};
+    });
+    EXPECT_TRUE(root["agents"]["attention"].is_object());
+    EXPECT_EQ(root["agents"]["attention"]["endpoint"], "localhost:40001");
+}
+
+TEST(VaultJsonResolverTest, ArrayElementVaultRefFails) {
+    nlohmann::json root = {{"vault", {{"type", "openbao"}, {"endpoint", "http://localhost:8200"}}},
+                           {"nodes", nlohmann::json::array({"vault://test/db"})}};
+    EXPECT_THROW(
+        VaultJsonResolver::resolve(root,
+                                   [](const string&, const string&) {
+                                       return nlohmann::json{{"nodes", nlohmann::json::array()}};
+                                   }),
+        runtime_error);
 }
 
 TEST(VaultJsonResolverTest, MissingSecretFails) {
