@@ -70,8 +70,7 @@ class AuthorizationProfile {
     AuthorizationProfile with_schema(const AuthorizationSchema& schema) const;
 
     /**
-     * @brief Returns a copy without schema, or an empty restricted profile when
-     *        the last schema is removed.
+     * @brief Returns a copy without schema, or nullopt when the last schema is removed.
      */
     std::optional<AuthorizationProfile> without_schema(const AuthorizationSchema& schema) const;
 

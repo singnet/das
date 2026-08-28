@@ -119,5 +119,8 @@ optional<AuthorizationProfile> AuthorizationProfile::without_schema(
     if (schemas.size() == this->schemas_.size()) {
         return *this;
     }
+    if (schemas.empty()) {
+        return nullopt;
+    }
     return AuthorizationProfile(this->access_key_, this->full_access_, move(schemas));
 }

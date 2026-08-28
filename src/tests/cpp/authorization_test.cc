@@ -236,10 +236,7 @@ TEST(AuthorizationProfileTest, FromDocumentWithAndWithoutSchema) {
     EXPECT_EQ(after_one_removed->schemas().size(), 1u);
 
     auto after_last_removed = after_one_removed->without_schema(read_write);
-    ASSERT_TRUE(after_last_removed.has_value());
-    EXPECT_EQ(after_last_removed->access_key(), "pk");
-    EXPECT_FALSE(after_last_removed->is_full_access());
-    EXPECT_TRUE(after_last_removed->schemas().empty());
+    EXPECT_FALSE(after_last_removed.has_value());
 }
 
 TEST(AuthorizationProfileTest, FullAccessRejectsSchemas) {
@@ -298,7 +295,7 @@ TEST(AuthorizationManagerTest, AuthorizeThenReadAndWriteFlags) {
     EXPECT_EQ(persistence->documents.count("pk"), 0u);
 }
 
-TEST(MongodbAuthorizationPersistenceTest, RemoveLastSchemaKeepsEmptyRestrictedProfile) {
+TEST(MongodbAuthorizationPersistenceTest, RemoveLastSchemaDeletesDocument) {
     auto config = test_atomdb_json_config();
     string endpoint = config.at_path("mongodb.endpoint").get_or<string>("localhost:40021");
     string username = config.at_path("mongodb.username").get_or<string>("admin");
@@ -314,30 +311,16 @@ TEST(MongodbAuthorizationPersistenceTest, RemoveLastSchemaKeepsEmptyRestrictedPr
     persistence->save(public_key, schema);
     persistence->remove(public_key, schema);
 
+    EXPECT_TRUE(persistence->list(public_key).empty());
+
     mongocxx::client client{mongocxx::uri{"mongodb://" + username + ":" + password + "@" + endpoint}};
     auto collection = client[database_name][collection_name];
     auto reply = collection.find_one(
         bsoncxx::builder::basic::make_document(bsoncxx::builder::basic::kvp("public_key", public_key)));
-    ASSERT_TRUE(static_cast<bool>(reply));
-
-    auto document = make_shared<MongodbAccessPermissionDocument>(reply.value());
-    auto profile = AuthorizationProfile::from_document(*document);
-    EXPECT_EQ(profile.access_key(), public_key);
-    EXPECT_FALSE(profile.is_full_access());
-    EXPECT_TRUE(profile.schemas().empty());
-
-    string link_handle;
-    auto db = db_with_inheritance_link(&link_handle);
-    auto link = db->get_link(link_handle);
-    ASSERT_NE(link, nullptr);
+    EXPECT_FALSE(static_cast<bool>(reply));
 
     AuthorizationManifest manifest;
-    manifest.add_document(document);
-    EXPECT_TRUE(manifest.is_registered(public_key));
-    EXPECT_FALSE(manifest.is_authorized(*link, public_key, AuthorizationOperation::READ, *db));
-    EXPECT_FALSE(manifest.is_authorized(*link, public_key, AuthorizationOperation::WRITE, *db));
-
-    persistence->remove_all(public_key);
+    EXPECT_FALSE(manifest.is_registered(public_key));
 }
 
 TEST(MongodbAuthorizationPersistenceTest, RemoveDoesNotDeadlockWithMaxPoolSize1) {
