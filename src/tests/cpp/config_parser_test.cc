@@ -255,6 +255,92 @@ TEST(VaultJsonResolverTest, HasVaultRefsIgnoresVaultBlock) {
     EXPECT_TRUE(VaultJsonResolver::has_vault_refs(root));
 }
 
+namespace {
+
+void expect_resolve_from_config_rejects_without_prompt(nlohmann::json root, const string& must_contain) {
+    try {
+        VaultJsonResolver::resolve_from_config(root);
+        FAIL() << "expected resolve_from_config to throw";
+    } catch (const runtime_error& e) {
+        string msg = e.what();
+        EXPECT_NE(msg.find(must_contain), string::npos) << msg;
+        EXPECT_EQ(msg.find("stdin is not a TTY"), string::npos) << msg;
+        EXPECT_EQ(msg.find("failed to read vault token"), string::npos) << msg;
+    }
+}
+
+nlohmann::json vault_root_with(const nlohmann::json& extra) {
+    nlohmann::json root = extra;
+    root["vault"] = {{"type", "openbao"}, {"endpoint", "http://localhost:8200"}};
+    return root;
+}
+
+}  // namespace
+
+TEST(VaultJsonResolverTest, MalformedUriDoesNotPromptOrContactVault) {
+    expect_resolve_from_config_rejects_without_prompt(vault_root_with({{"password", "vault://test"}}),
+                                                      "vault://<mount>/<secret-path>");
+}
+
+TEST(VaultJsonResolverTest, ArrayVaultRefDoesNotPromptOrContactVault) {
+    expect_resolve_from_config_rejects_without_prompt(
+        vault_root_with({{"nodes", nlohmann::json::array({"vault://test/db"})}}),
+        "not allowed as an array element");
+}
+
+TEST(VaultJsonResolverTest, EmptyConfigKeyDoesNotPromptOrContactVault) {
+    nlohmann::json root = vault_root_with(nlohmann::json::object());
+    root[""] = "vault://test/db";
+    expect_resolve_from_config_rejects_without_prompt(root, "missing a DAS config file key");
+}
+
+TEST(VaultJsonResolverTest, MissingEndpointSchemeDoesNotPrompt) {
+    nlohmann::json root = vault_root_with({{"password", "vault://test/db"}});
+    root["vault"]["endpoint"] = "localhost:8200";
+    expect_resolve_from_config_rejects_without_prompt(root, "must include a scheme");
+}
+
+TEST(VaultJsonResolverTest, UnsupportedEndpointSchemeDoesNotPrompt) {
+    nlohmann::json root = vault_root_with({{"password", "vault://test/db"}});
+    root["vault"]["endpoint"] = "ftp://localhost:8200";
+    expect_resolve_from_config_rejects_without_prompt(root, "scheme must be http or https");
+
+    root["vault"]["endpoint"] = "file:///tmp/vault";
+    expect_resolve_from_config_rejects_without_prompt(root, "scheme must be http or https");
+}
+
+TEST(VaultJsonResolverTest, HttpAndHttpsEndpointsReachTokenPrompt) {
+    nlohmann::json root = vault_root_with({{"password", "vault://test/db"}});
+    for (const char* endpoint : {"http://localhost:8200", "https://localhost:8200"}) {
+        root["vault"]["endpoint"] = endpoint;
+        try {
+            VaultJsonResolver::resolve_from_config(root);
+            FAIL() << "expected token prompt failure for " << endpoint;
+        } catch (const runtime_error& e) {
+            string msg = e.what();
+            EXPECT_NE(msg.find("stdin is not a TTY"), string::npos) << endpoint << ": " << msg;
+            EXPECT_EQ(msg.find("scheme must be http or https"), string::npos) << endpoint << ": " << msg;
+        }
+    }
+}
+
+TEST(ConfigParserTest, MalformedVaultUriFailsBeforeTokenPrompt) {
+    string json = R"({
+      "atomdb": { "type": "redismongodb", "password": "vault://test" },
+      "loaders": {},
+      "agents": {},
+      "vault": { "type": "openbao", "endpoint": "http://localhost:8200" }
+    })";
+    try {
+        JsonConfigParser::load_from_string(json);
+        FAIL() << "expected load_from_string to throw";
+    } catch (const runtime_error& e) {
+        string msg = e.what();
+        EXPECT_NE(msg.find("vault://<mount>/<secret-path>"), string::npos) << msg;
+        EXPECT_EQ(msg.find("stdin is not a TTY"), string::npos) << msg;
+    }
+}
+
 TEST(ConfigParserTest, VaultRefsWithoutTerminalTokenFail) {
     string with_ref = R"({
       "atomdb": {

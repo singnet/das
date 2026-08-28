@@ -56,8 +56,8 @@ class VaultJsonResolver {
 
     /**
      * Resolve vault:// refs using root["vault"] (type + endpoint).
-     * Prompts on the terminal for a token when refs exist.
-     * No-op (no HTTP) when there are no vault:// refs.
+     * Validates URI syntax, array placement, and field names before prompting
+     * for a token or contacting OpenBao. No-op when there are no vault:// refs.
      */
     static void resolve_from_config(nlohmann::json& root);
 };

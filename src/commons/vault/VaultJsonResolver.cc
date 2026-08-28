@@ -3,6 +3,7 @@
 #include <termios.h>
 #include <unistd.h>
 
+#include <cctype>
 #include <iostream>
 #include <memory>
 #include <unordered_map>
@@ -76,9 +77,18 @@ string prompt_for_token() {
 
 string vault_endpoint_from_config(const nlohmann::json& vault) {
     string endpoint = require_string(vault, "endpoint", "VaultJsonResolver");
-    if (endpoint.find("://") == string::npos) {
+    size_t scheme_end = endpoint.find("://");
+    if (scheme_end == string::npos) {
         RAISE_ERROR("VaultJsonResolver: vault.endpoint must include a scheme, e.g. \"http://" +
                     endpoint + "\" or \"https://" + endpoint + "\"");
+    }
+    string scheme = endpoint.substr(0, scheme_end);
+    for (char& c : scheme) {
+        c = static_cast<char>(tolower(static_cast<unsigned char>(c)));
+    }
+    if (scheme != "http" && scheme != "https") {
+        RAISE_ERROR("VaultJsonResolver: vault.endpoint scheme must be http or https (got \"" +
+                    endpoint.substr(0, scheme_end) + "\")");
     }
     return endpoint;
 }
@@ -101,6 +111,51 @@ bool is_vault_ref(const nlohmann::json& value) {
     return value.is_string() && value.get_ref<const string&>().rfind(VaultJsonResolver::kScheme, 0) == 0;
 }
 
+// { "nodes": ["vault://test/db"] } is not allowed.
+void reject_array_vault_ref(const nlohmann::json& element) {
+    if (is_vault_ref(element)) {
+        RAISE_ERROR(
+            "VaultJsonResolver: vault:// is not allowed as an array element "
+            "(KV key is taken from the DAS config file key)");
+    }
+}
+
+void check_vault_ref(const string& uri, const string& key) {
+    if (key.empty()) {
+        RAISE_ERROR("VaultJsonResolver: vault:// ref is missing a DAS config file key");
+    }
+    VaultJsonResolver::parse_uri(uri);
+}
+
+void validate_node(const nlohmann::json& node, const string& key) {
+    if (node.is_object()) {
+        for (auto it = node.begin(); it != node.end(); ++it) {
+            validate_node(it.value(), it.key());
+        }
+        return;
+    }
+    if (node.is_array()) {
+        for (const auto& element : node) {
+            reject_array_vault_ref(element);
+            validate_node(element, key);
+        }
+        return;
+    }
+    if (is_vault_ref(node)) {
+        check_vault_ref(node.get_ref<const string&>(), key);
+    }
+}
+
+void validate_refs(const nlohmann::json& root) {
+    if (!root.is_object()) {
+        RAISE_ERROR("VaultJsonResolver: config root must be a JSON object");
+    }
+    for (auto it = root.begin(); it != root.end(); ++it) {
+        if (it.key() == "vault") continue;
+        validate_node(it.value(), it.key());
+    }
+}
+
 void walk_and_resolve(nlohmann::json& node,
                       const VaultJsonResolver::Fetcher& fetcher,
                       unordered_map<string, nlohmann::json>& cache,
@@ -113,11 +168,7 @@ void walk_and_resolve(nlohmann::json& node,
     }
     if (node.is_array()) {
         for (auto& element : node) {
-            if (is_vault_ref(element)) {
-                RAISE_ERROR(
-                    "VaultJsonResolver: vault:// is not allowed as an array element "
-                    "(KV key is taken from the DAS config file key)");
-            }
+            reject_array_vault_ref(element);
             walk_and_resolve(element, fetcher, cache, key);
         }
         return;
@@ -125,9 +176,7 @@ void walk_and_resolve(nlohmann::json& node,
     if (!is_vault_ref(node)) {
         return;
     }
-    if (key.empty()) {
-        RAISE_ERROR("VaultJsonResolver: vault:// ref is missing a DAS config file key");
-    }
+    check_vault_ref(node.get_ref<const string&>(), key);
 
     string uri = node.get<string>();
     auto cached = cache.find(uri);
@@ -233,6 +282,8 @@ void VaultJsonResolver::resolve_from_config(nlohmann::json& root) {
     if (!has_vault_refs(root)) {
         return;
     }
+
+    validate_refs(root);
 
     unique_ptr<VaultClient> client = make_vault_client(root);
 
