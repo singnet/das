@@ -64,10 +64,15 @@ bool AdapterDB::composite_type_enabled() const {
     this->ensure_backend_ready();
     return this->atomdb_backend->composite_type_enabled();
 }
-vector<atomdb_api_types::AccessPermissionDocument> AdapterDB::get_access_permissions(
+vector<shared_ptr<atomdb_api_types::AccessPermissionDocument>> AdapterDB::get_access_permissions(
     const atomdb_api_types::PublicKey& public_key) const {
     this->ensure_backend_ready();
     return this->atomdb_backend->get_access_permissions(public_key);
+}
+
+atomdb_api_types::ProtectionMode AdapterDB::get_protection_mode() const {
+    this->ensure_backend_ready();
+    return this->atomdb_backend->get_protection_mode();
 }
 
 shared_ptr<Atom> AdapterDB::get_atom(const string& handle) {

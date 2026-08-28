@@ -40,7 +40,8 @@ class AtomDBFactory {
                                                       const string& context = "");
 
     /**
-     * @brief Wraps an AtomDB with ProtectedAtomDB when protected and not already wrapped.
+     * @brief Applies protection wrapping when enabled.
+     *
      */
     static shared_ptr<AtomDB> wrap_if_protected(shared_ptr<AtomDB> atomdb);
 };

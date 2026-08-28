@@ -52,6 +52,7 @@ class AtomDB : public HandleDecoder {
 
     virtual bool allow_nested_indexing() = 0;
     virtual bool composite_type_enabled() const = 0;
+    virtual atomdb_api_types::ProtectionMode get_protection_mode() const = 0;
 
     virtual shared_ptr<Atom> get_atom(const string& handle) = 0;  // HandleDecoder interface
     virtual shared_ptr<Node> get_node(const string& handle) = 0;
@@ -114,7 +115,7 @@ class AtomDB : public HandleDecoder {
 
     bool empty() const { return atom_count() == 0; }
 
-    virtual vector<atomdb_api_types::AccessPermissionDocument> get_access_permissions(
+    virtual vector<shared_ptr<atomdb_api_types::AccessPermissionDocument>> get_access_permissions(
         const atomdb_api_types::PublicKey& public_key) const {
         return {};
     }

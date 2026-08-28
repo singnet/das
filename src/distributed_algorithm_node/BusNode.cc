@@ -40,6 +40,7 @@ BusNode::BusNode(const string& node_id,
 // DistributedAlgorithmNode virtual API
 
 void BusNode::node_joined_network(const string& node_id) {
+    lock_guard<recursive_mutex> semaphore(this->api_mutex);
     if (this->is_master) {
         LOG_INFO("New element " << node_id << " joined the service BUS");
     }
@@ -48,6 +49,7 @@ void BusNode::node_joined_network(const string& node_id) {
 }
 
 string BusNode::cast_leadership_vote() {
+    lock_guard<recursive_mutex> semaphore(this->api_mutex);
     if (this->is_master) {
         return this->node_id();
     } else {
@@ -56,6 +58,7 @@ string BusNode::cast_leadership_vote() {
 }
 
 shared_ptr<Message> BusNode::message_factory(string& command, vector<string>& args) {
+    lock_guard<recursive_mutex> semaphore(this->api_mutex);
     shared_ptr<Message> message = DistributedAlgorithmNode::message_factory(command, args);
     if (message) {
         return message;
@@ -78,12 +81,17 @@ shared_ptr<Message> BusNode::message_factory(string& command, vector<string>& ar
 // BusNode public methods
 
 void BusNode::set_ownership(const string& command, const string& node_id) {
+    lock_guard<recursive_mutex> semaphore(this->api_mutex);
     this->bus.set_ownership(command, node_id);
 }
 
-const string& BusNode::get_ownership(const string& command) { return this->bus.get_ownership(command); }
+const string BusNode::get_ownership(const string& command) {
+    lock_guard<recursive_mutex> semaphore(this->api_mutex);
+    return this->bus.get_ownership(command);
+}
 
 void BusNode::send_bus_command(const string& command, const vector<string>& args) {
+    lock_guard<recursive_mutex> semaphore(this->api_mutex);
     string target_id = this->bus.get_ownership(command);
     if (target_id == "") {
         RAISE_ERROR("Bus: no owner is defined for command <" + command + ">");
@@ -95,6 +103,7 @@ void BusNode::send_bus_command(const string& command, const vector<string>& args
 }
 
 void BusNode::take_ownership(const set<string>& commands) {
+    lock_guard<recursive_mutex> semaphore(this->api_mutex);
     for (auto command : commands) {
         LOG_INFO("BUS node " << this->node_id() << " is taking ownership of command " << command);
         this->bus.set_ownership(command, node_id());
@@ -104,6 +113,7 @@ void BusNode::take_ownership(const set<string>& commands) {
 }
 
 string BusNode::to_string() {
+    lock_guard<recursive_mutex> semaphore(this->api_mutex);
     string answer = DistributedAlgorithmNode::to_string();
     answer += " Bus: " + this->bus.to_string();
     return answer;

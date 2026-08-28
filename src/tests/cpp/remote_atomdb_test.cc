@@ -20,6 +20,7 @@
 #include "Link.h"
 #include "LinkSchema.h"
 #include "Node.h"
+#include "ProtectedAtomDB.h"
 #include "RemoteAtomDB.h"
 #include "RemoteAtomDBPeer.h"
 
@@ -743,6 +744,21 @@ class CompositeTypeEnabledInMemoryDB : public InMemoryDB {
     bool composite_type_enabled() const override { return true; }
 };
 
+// Backend pointing at a protected database, like a RedisMongoDB whose Mongo config flags it.
+class ProtectedInMemoryDB : public InMemoryDB {
+   public:
+    explicit ProtectedInMemoryDB(const string& context) : InMemoryDB(context) {}
+
+    ProtectionMode get_protection_mode() const override { return ProtectionMode::PROTECTED; }
+};
+
+class ForwardInMemoryDB : public InMemoryDB {
+   public:
+    explicit ForwardInMemoryDB(const string& context) : InMemoryDB(context) {}
+
+    ProtectionMode get_protection_mode() const override { return ProtectionMode::FORWARD; }
+};
+
 TEST(RemoteAtomDBFederationTest, MetadataAggregationFromNestedPeer) {
     auto backend = make_shared<NestedInMemoryDB>("fed_nested_backend_");
     auto handles = populate_inheritance_mammal_links(backend);
@@ -842,6 +858,104 @@ TEST(RemoteAtomDBFederationTest, CompositeTypeEnabledAggregation) {
         peers["peer2"] = make_shared<RemoteAtomDBPeer>(remote2, local2, "peer2");
         auto db = make_shared<RemoteAtomDB>(peers);
         EXPECT_TRUE(db->composite_type_enabled());
+    }
+}
+
+TEST(RemoteAtomDBFederationTest, PeerIsProtectedFollowsRemoteBackend) {
+    // Neither the remote backend nor the local persistence is protected.
+    {
+        auto remote = make_shared<InMemoryDB>("prot_none_remote_");
+        auto local = make_shared<InMemoryDB>("prot_none_local_");
+        auto peer = make_shared<RemoteAtomDBPeer>(remote, local, "peer");
+        EXPECT_EQ(peer->get_protection_mode(), ProtectionMode::UNPROTECTED);
+    }
+
+    // Read-only peer (no local persistence) over an unprotected remote.
+    {
+        auto remote = make_shared<InMemoryDB>("prot_readonly_remote_");
+        auto peer = make_shared<RemoteAtomDBPeer>(remote, nullptr, "peer");
+        EXPECT_EQ(peer->get_protection_mode(), ProtectionMode::UNPROTECTED);
+    }
+
+    // Protected remote backend.
+    {
+        auto remote = make_shared<ProtectedInMemoryDB>("prot_remote_remote_");
+        auto local = make_shared<InMemoryDB>("prot_remote_local_");
+        auto peer = make_shared<RemoteAtomDBPeer>(remote, local, "peer");
+        EXPECT_EQ(peer->get_protection_mode(), ProtectionMode::PROTECTED);
+    }
+
+    // ProtectedAtomDB wrapper as remote backend propagates protection mode.
+    {
+        auto remote =
+            make_shared<ProtectedAtomDB>(make_shared<ProtectedInMemoryDB>("prot_wrapped_remote_"));
+        auto peer = make_shared<RemoteAtomDBPeer>(remote, nullptr, "peer");
+        EXPECT_EQ(peer->get_protection_mode(), ProtectionMode::PROTECTED);
+    }
+
+    // Protected local persistence is not supported.
+    {
+        auto remote = make_shared<InMemoryDB>("prot_local_remote_");
+        auto local = make_shared<ProtectedInMemoryDB>("prot_local_local_");
+        EXPECT_THROW(make_shared<RemoteAtomDBPeer>(remote, local, "peer"), runtime_error);
+    }
+
+    // FORWARD local persistence is not supported either.
+    {
+        auto remote = make_shared<InMemoryDB>("forward_local_remote_");
+        auto local = make_shared<ForwardInMemoryDB>("forward_local_local_");
+        EXPECT_THROW(make_shared<RemoteAtomDBPeer>(remote, local, "peer"), runtime_error);
+    }
+
+    // Factory-style ProtectedAtomDB wrapper over a protected backend is rejected for local persistence.
+    {
+        auto remote = make_shared<InMemoryDB>("wrapped_local_remote_");
+        auto local =
+            make_shared<ProtectedAtomDB>(make_shared<ProtectedInMemoryDB>("wrapped_local_local_"));
+        EXPECT_THROW(make_shared<RemoteAtomDBPeer>(remote, local, "peer"), runtime_error);
+    }
+}
+
+TEST(RemoteAtomDBFederationTest, IsProtectedWhenAnyPeerIsProtected) {
+    // No peers -> nothing to protect.
+    {
+        map<string, shared_ptr<RemoteAtomDBPeer>> peers;
+        auto db = make_shared<RemoteAtomDB>(peers);
+        EXPECT_EQ(db->get_protection_mode(), ProtectionMode::UNPROTECTED);
+    }
+
+    // All peers unprotected.
+    {
+        auto remote1 = make_shared<InMemoryDB>("fed_prot_off_remote1_");
+        auto remote2 = make_shared<InMemoryDB>("fed_prot_off_remote2_");
+        map<string, shared_ptr<RemoteAtomDBPeer>> peers;
+        peers["peer1"] = make_shared<RemoteAtomDBPeer>(remote1, nullptr, "peer1");
+        peers["peer2"] = make_shared<RemoteAtomDBPeer>(remote2, nullptr, "peer2");
+        auto db = make_shared<RemoteAtomDB>(peers);
+        EXPECT_EQ(db->get_protection_mode(), ProtectionMode::UNPROTECTED);
+    }
+
+    // A single protected peer makes the facade FORWARD (no local post-processing).
+    {
+        auto unprotected_remote = make_shared<InMemoryDB>("fed_prot_mixed_remote_");
+        auto protected_remote = make_shared<ProtectedInMemoryDB>("fed_prot_mixed_protected_");
+        map<string, shared_ptr<RemoteAtomDBPeer>> peers;
+        peers["unprotected"] = make_shared<RemoteAtomDBPeer>(unprotected_remote, nullptr, "unprotected");
+        peers["protected"] = make_shared<RemoteAtomDBPeer>(protected_remote, nullptr, "protected");
+        auto db = make_shared<RemoteAtomDB>(peers);
+        EXPECT_EQ(db->get_protection_mode(), ProtectionMode::FORWARD);
+    }
+
+    // ProtectedAtomDB-wrapped remote peer propagates to the federation facade.
+    {
+        auto unprotected_remote = make_shared<InMemoryDB>("fed_wrapped_remote_");
+        auto protected_remote =
+            make_shared<ProtectedAtomDB>(make_shared<ProtectedInMemoryDB>("fed_wrapped_protected_"));
+        map<string, shared_ptr<RemoteAtomDBPeer>> peers;
+        peers["unprotected"] = make_shared<RemoteAtomDBPeer>(unprotected_remote, nullptr, "unprotected");
+        peers["protected"] = make_shared<RemoteAtomDBPeer>(protected_remote, nullptr, "protected");
+        auto db = make_shared<RemoteAtomDB>(peers);
+        EXPECT_EQ(db->get_protection_mode(), ProtectionMode::FORWARD);
     }
 }
 

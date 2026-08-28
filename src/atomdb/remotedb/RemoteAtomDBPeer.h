@@ -43,6 +43,7 @@ class RemoteAtomDBPeer : public AtomDB, public processor::ThreadMethod {
 
     bool allow_nested_indexing() override;
     bool composite_type_enabled() const override;
+    atomdb_api_types::ProtectionMode get_protection_mode() const override;
 
     shared_ptr<Atom> get_atom(const string& handle) override;
     shared_ptr<Node> get_node(const string& handle) override;
@@ -118,7 +119,7 @@ class RemoteAtomDBPeer : public AtomDB, public processor::ThreadMethod {
      * Delegates the lookup to the remote AtomDB; local persistence is not consulted.
      * Returns an empty vector if there is no remote AtomDB or it has no matching permissions.
      */
-    vector<atomdb_api_types::AccessPermissionDocument> get_access_permissions(
+    vector<shared_ptr<atomdb_api_types::AccessPermissionDocument>> get_access_permissions(
         const atomdb_api_types::PublicKey& public_key) const override;
 
    private:
