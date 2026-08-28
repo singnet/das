@@ -31,12 +31,15 @@ struct HideStdinEcho {
     bool active = false;
 
     HideStdinEcho() {
-        if (tcgetattr(STDIN_FILENO, &previous) != 0) return;
+        if (tcgetattr(STDIN_FILENO, &previous) != 0) {
+            RAISE_ERROR("VaultJsonResolver: failed to read terminal settings");
+        }
         termios hidden = previous;
         hidden.c_lflag &= static_cast<tcflag_t>(~ECHO);
-        if (tcsetattr(STDIN_FILENO, TCSANOW, &hidden) == 0) {
-            active = true;
+        if (tcsetattr(STDIN_FILENO, TCSANOW, &hidden) != 0) {
+            RAISE_ERROR("VaultJsonResolver: failed to disable terminal echo");
         }
+        active = true;
     }
 
     ~HideStdinEcho() {
