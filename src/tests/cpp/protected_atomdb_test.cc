@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 
+#include "InMemoryAccessPermissionTypes.h"
 #include "InMemoryDB.h"
 #include "Link.h"
 #include "Node.h"
@@ -23,6 +24,27 @@ class ProtectedInMemoryDB : public InMemoryDB {
     atomdb_api_types::ProtectionMode get_protection_mode() const override {
         return atomdb_api_types::ProtectionMode::PROTECTED;
     }
+};
+
+class FullAccessProtectedInMemoryDB : public ProtectedInMemoryDB {
+   public:
+    explicit FullAccessProtectedInMemoryDB(const string& context, const string& allowed_key)
+        : ProtectedInMemoryDB(context), allowed_key(allowed_key) {}
+
+    vector<shared_ptr<atomdb_api_types::AccessPermissionDocument>> get_access_permissions(
+        const atomdb_api_types::PublicKey& public_key) const override {
+        if (!public_key.is_single_key() || public_key.keys.empty() ||
+            public_key.keys[0] != this->allowed_key) {
+            return {};
+        }
+        auto document = make_shared<InMemoryAccessPermissionDocument>();
+        document->set_access_key(this->allowed_key);
+        document->set_full_access(true);
+        return {document};
+    }
+
+   private:
+    string allowed_key;
 };
 
 shared_ptr<ProtectedAtomDB> make_protected_db(const string& context = "protected_atomdb_test_") {
@@ -100,4 +122,21 @@ TEST(ProtectedAtomDBTest, RejectsOperationsWithoutPublicKey) {
     EXPECT_THROW(db->node_count(), runtime_error);
     EXPECT_THROW(db->link_count(), runtime_error);
     EXPECT_THROW(db->atom_count(), runtime_error);
+}
+
+TEST(ProtectedAtomDBTest, GetAtomAuthorizesWithPublicKey) {
+    auto backend = make_shared<FullAccessProtectedInMemoryDB>("protected_get_atom_", "admin");
+    Node node("Symbol", "\"protected_node\"");
+    string handle = backend->add_node(&node);
+
+    ProtectedAtomDB db(backend);
+    PublicKey admin("admin");
+    PublicKey other("other");
+
+    auto allowed = db.get_atom(handle, admin);
+    ASSERT_NE(allowed, nullptr);
+    EXPECT_EQ(allowed->handle(), handle);
+
+    EXPECT_EQ(db.get_atom(handle, other), nullptr);
+    EXPECT_EQ(db.get_atom("missing", admin), nullptr);
 }

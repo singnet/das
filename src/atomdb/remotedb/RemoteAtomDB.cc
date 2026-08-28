@@ -8,6 +8,7 @@
 #include <sstream>
 #include <utility>
 
+#include "AtomDBPublicKeyAPI.h"
 #include "InMemoryDB.h"
 #include "InMemoryDBAPITypes.h"
 #include "Link.h"
@@ -86,7 +87,62 @@ bool RemoteAtomDB::composite_type_enabled() const {
 
 bool RemoteAtomDB::allow_nested_indexing() { return nested_indexing_; }
 
+void RemoteAtomDB::raise_public_key_required(const string& method_name) {
+    RAISE_ERROR("RemoteAtomDB::" + method_name +
+                "() is unavailable when any peer is protected. Use AtomDBPublicKeyAPI passing a "
+                "PublicKey.");
+}
+
+void RemoteAtomDB::raise_keyed_not_implemented(const string& method_name) {
+    RAISE_ERROR("RemoteAtomDB::" + method_name + "(..., public_key) is not implemented yet");
+}
+
+namespace {
+
+optional<atomdb_api_types::PublicKey> public_key_for_peer(const atomdb_api_types::PublicKey& public_key,
+                                                          const string& uid) {
+    if (public_key.is_single_key()) {
+        if (public_key.keys.empty()) {
+            return nullopt;
+        }
+        return public_key;
+    }
+    auto it = public_key.peer_to_key.find(uid);
+    if (it == public_key.peer_to_key.end()) {
+        return nullopt;
+    }
+    if (it->second >= public_key.keys.size()) {
+        RAISE_ERROR("PublicKey peer_to_key index out of range for peer: " + uid);
+    }
+    return atomdb_api_types::PublicKey(public_key.keys[it->second]);
+}
+
+}  // namespace
+
+shared_ptr<Atom> RemoteAtomDB::get_atom_from_peer(shared_ptr<RemoteAtomDBPeer> peer,
+                                                  const string& uid,
+                                                  const string& handle,
+                                                  const atomdb_api_types::PublicKey& public_key) {
+    if (peer->get_protection_mode() == atomdb_api_types::ProtectionMode::UNPROTECTED) {
+        return peer->get_atom(handle);
+    }
+
+    auto peer_key = public_key_for_peer(public_key, uid);
+    if (!peer_key.has_value()) {
+        return nullptr;
+    }
+
+    auto keyed = dynamic_pointer_cast<AtomDBPublicKeyAPI>(peer->get_remote_atomdb());
+    if (keyed == nullptr) {
+        RAISE_ERROR("Protected peer [" + uid + "] does not implement AtomDBPublicKeyAPI");
+    }
+    return keyed->get_atom(handle, peer_key.value());
+}
+
 shared_ptr<Atom> RemoteAtomDB::get_atom(const string& handle) {
+    if (this->get_protection_mode() != atomdb_api_types::ProtectionMode::UNPROTECTED) {
+        raise_public_key_required("get_atom");
+    }
     // Writable peers first: their write buffer / local_persistence are the source of truth
     // for updated custom attributes (strength) that share a content-addressed handle.
     for (auto& [uid, peer] : writable_peers_) {
@@ -440,4 +496,205 @@ void RemoteAtomDB::release_caches(const LinkSchema& link_schema, bool persist, b
         LOG_DEBUG("release_caches(" << link_schema.handle() << ") from peer [" << uid << "]");
         peer->release(link_schema, persist, force);
     }
+}
+
+vector<shared_ptr<atomdb_api_types::AccessPermissionDocument>> RemoteAtomDB::get_access_permissions(
+    const atomdb_api_types::PublicKey& public_key) const {
+    vector<shared_ptr<atomdb_api_types::AccessPermissionDocument>> documents;
+
+    if (public_key.is_single_key()) {
+        for (auto& [uid, peer] : remote_db_) {
+            auto peer_docs = peer->get_access_permissions(public_key);
+            documents.insert(documents.end(), peer_docs.begin(), peer_docs.end());
+        }
+        return documents;
+    }
+
+    for (const auto& [uid, idx] : public_key.peer_to_key) {
+        auto it = remote_db_.find(uid);
+        if (it == remote_db_.end() || idx >= public_key.keys.size()) {
+            continue;
+        }
+        auto peer_docs =
+            it->second->get_access_permissions(atomdb_api_types::PublicKey(public_key.keys[idx]));
+        documents.insert(documents.end(), peer_docs.begin(), peer_docs.end());
+    }
+    return documents;
+}
+
+shared_ptr<Atom> RemoteAtomDB::get_atom(const string& handle,
+                                        const atomdb_api_types::PublicKey& public_key) {
+    for (auto& [uid, peer] : writable_peers_) {
+        auto atom = this->get_atom_from_peer(peer, uid, handle, public_key);
+        if (atom) {
+            LOG_DEBUG("get_atom(" << handle << ", public_key) fetched from writable peer [" << uid
+                                  << "]");
+            return atom;
+        }
+    }
+
+    for (auto& [uid, peer] : readonly_peers_) {
+        if (peer->get_protection_mode() == atomdb_api_types::ProtectionMode::UNPROTECTED) {
+            auto atom = peer->get_cached_atom(handle);
+            if (atom) return atom;
+        }
+    }
+    for (auto& [uid, peer] : readonly_peers_) {
+        auto atom = this->get_atom_from_peer(peer, uid, handle, public_key);
+        if (atom) {
+            LOG_DEBUG("get_atom(" << handle << ", public_key) fetched from [" << uid << "]");
+            return atom;
+        }
+    }
+    LOG_DEBUG("get_atom(" << handle << ", public_key) not found in any peer");
+    return nullptr;
+}
+
+shared_ptr<Node> RemoteAtomDB::get_node(const string& handle,
+                                        const atomdb_api_types::PublicKey& public_key) {
+    return dynamic_pointer_cast<Node>(this->get_atom(handle, public_key));
+}
+
+shared_ptr<Link> RemoteAtomDB::get_link(const string& handle,
+                                        const atomdb_api_types::PublicKey& public_key) {
+    return dynamic_pointer_cast<Link>(this->get_atom(handle, public_key));
+}
+
+vector<shared_ptr<Atom>> RemoteAtomDB::get_matching_atoms(
+    bool is_toplevel, Atom& key, const atomdb_api_types::PublicKey& public_key) {
+    raise_keyed_not_implemented("get_matching_atoms");
+}
+
+shared_ptr<atomdb_api_types::HandleSet> RemoteAtomDB::query_for_pattern(
+    const LinkSchema& link_schema, const atomdb_api_types::PublicKey& public_key) {
+    raise_keyed_not_implemented("query_for_pattern");
+}
+
+shared_ptr<atomdb_api_types::HandleList> RemoteAtomDB::query_for_targets(
+    const string& handle, const atomdb_api_types::PublicKey& public_key) {
+    raise_keyed_not_implemented("query_for_targets");
+}
+
+shared_ptr<atomdb_api_types::HandleSet> RemoteAtomDB::query_for_incoming_set(
+    const string& handle, const atomdb_api_types::PublicKey& public_key) {
+    raise_keyed_not_implemented("query_for_incoming_set");
+}
+
+bool RemoteAtomDB::atom_exists(const string& handle, const atomdb_api_types::PublicKey& public_key) {
+    raise_keyed_not_implemented("atom_exists");
+}
+
+bool RemoteAtomDB::node_exists(const string& handle, const atomdb_api_types::PublicKey& public_key) {
+    raise_keyed_not_implemented("node_exists");
+}
+
+bool RemoteAtomDB::link_exists(const string& handle, const atomdb_api_types::PublicKey& public_key) {
+    raise_keyed_not_implemented("link_exists");
+}
+
+set<string> RemoteAtomDB::atoms_exist(const vector<string>& handles,
+                                      const atomdb_api_types::PublicKey& public_key) {
+    raise_keyed_not_implemented("atoms_exist");
+}
+
+set<string> RemoteAtomDB::nodes_exist(const vector<string>& handles,
+                                      const atomdb_api_types::PublicKey& public_key) {
+    raise_keyed_not_implemented("nodes_exist");
+}
+
+set<string> RemoteAtomDB::links_exist(const vector<string>& handles,
+                                      const atomdb_api_types::PublicKey& public_key) {
+    raise_keyed_not_implemented("links_exist");
+}
+
+string RemoteAtomDB::add_atom(const atoms::Atom* atom,
+                              const atomdb_api_types::PublicKey& public_key,
+                              const atoms::Merger* merger) {
+    raise_keyed_not_implemented("add_atom");
+}
+
+string RemoteAtomDB::add_node(const atoms::Node* node,
+                              const atomdb_api_types::PublicKey& public_key,
+                              const atoms::Merger* merger) {
+    raise_keyed_not_implemented("add_node");
+}
+
+string RemoteAtomDB::add_link(const atoms::Link* link,
+                              const atomdb_api_types::PublicKey& public_key,
+                              const atoms::Merger* merger) {
+    raise_keyed_not_implemented("add_link");
+}
+
+vector<string> RemoteAtomDB::add_atoms(const vector<atoms::Atom*>& atoms,
+                                       const atomdb_api_types::PublicKey& public_key,
+                                       bool is_transactional,
+                                       const atoms::Merger* merger) {
+    raise_keyed_not_implemented("add_atoms");
+}
+
+vector<string> RemoteAtomDB::add_nodes(const vector<atoms::Node*>& nodes,
+                                       const atomdb_api_types::PublicKey& public_key,
+                                       bool is_transactional,
+                                       const atoms::Merger* merger) {
+    raise_keyed_not_implemented("add_nodes");
+}
+
+vector<string> RemoteAtomDB::add_links(const vector<atoms::Link*>& links,
+                                       const atomdb_api_types::PublicKey& public_key,
+                                       bool is_transactional,
+                                       const atoms::Merger* merger) {
+    raise_keyed_not_implemented("add_links");
+}
+
+bool RemoteAtomDB::delete_atom(const string& handle,
+                               const atomdb_api_types::PublicKey& public_key,
+                               bool delete_link_targets) {
+    raise_keyed_not_implemented("delete_atom");
+}
+
+bool RemoteAtomDB::delete_node(const string& handle,
+                               const atomdb_api_types::PublicKey& public_key,
+                               bool delete_link_targets) {
+    raise_keyed_not_implemented("delete_node");
+}
+
+bool RemoteAtomDB::delete_link(const string& handle,
+                               const atomdb_api_types::PublicKey& public_key,
+                               bool delete_link_targets) {
+    raise_keyed_not_implemented("delete_link");
+}
+
+uint RemoteAtomDB::delete_atoms(const vector<string>& handles,
+                                const atomdb_api_types::PublicKey& public_key,
+                                bool delete_link_targets) {
+    raise_keyed_not_implemented("delete_atoms");
+}
+
+uint RemoteAtomDB::delete_nodes(const vector<string>& handles,
+                                const atomdb_api_types::PublicKey& public_key,
+                                bool delete_link_targets) {
+    raise_keyed_not_implemented("delete_nodes");
+}
+
+uint RemoteAtomDB::delete_links(const vector<string>& handles,
+                                const atomdb_api_types::PublicKey& public_key,
+                                bool delete_link_targets) {
+    raise_keyed_not_implemented("delete_links");
+}
+
+void RemoteAtomDB::re_index_patterns(const atomdb_api_types::PublicKey& public_key,
+                                     bool flush_patterns) {
+    raise_keyed_not_implemented("re_index_patterns");
+}
+
+size_t RemoteAtomDB::node_count(const atomdb_api_types::PublicKey& public_key) const {
+    raise_keyed_not_implemented("node_count");
+}
+
+size_t RemoteAtomDB::link_count(const atomdb_api_types::PublicKey& public_key) const {
+    raise_keyed_not_implemented("link_count");
+}
+
+size_t RemoteAtomDB::atom_count(const atomdb_api_types::PublicKey& public_key) const {
+    raise_keyed_not_implemented("atom_count");
 }

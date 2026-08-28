@@ -1,6 +1,7 @@
 #include "AtomDBFactory.h"
 
 #include "AdapterDB.h"
+#include "AtomDBPublicKeyAPI.h"
 #include "InMemoryDB.h"
 #include "MorkDB.h"
 #include "ProtectedAtomDB.h"
@@ -19,18 +20,14 @@ shared_ptr<AtomDB> AtomDBFactory::create(const JsonConfig& config, const string&
 
     AtomDBType type = AtomDB::string_to_type(atomdb_type);
 
-    shared_ptr<AtomDB> atomdb;
-
     if (type == AtomDBType::RedisMongoDB || type == AtomDBType::MorkDB ||
         type == AtomDBType::InMemoryDB) {
-        atomdb = create_basic_atomdb(config, context);
+        return create_basic_atomdb(config, context);
     } else if (type == AtomDBType::RemoteAtomDB || type == AtomDBType::AdapterDB) {
-        atomdb = create_composite_atomdb(config, context);
+        return create_composite_atomdb(config, context);
     } else {
         RAISE_ERROR("AtomDBFactory: unsupported AtomDB type: " + atomdb_type);
     }
-
-    return wrap_if_protected(atomdb);
 }
 
 // --------------------------------------------------------------------------------
@@ -54,7 +51,7 @@ shared_ptr<AtomDB> AtomDBFactory::create_basic_atomdb(const JsonConfig& config, 
         RAISE_ERROR("AtomDBFactory: '" + atomdb_type + "' is not a basic AtomDB type");
     }
 
-    return atomdb;
+    return wrap_if_protected(atomdb);
 }
 
 shared_ptr<AtomDB> AtomDBFactory::create_composite_atomdb(const JsonConfig& config,
@@ -110,20 +107,13 @@ shared_ptr<AtomDB> AtomDBFactory::wrap_if_protected(shared_ptr<AtomDB> atomdb) {
 
     const auto mode = atomdb->get_protection_mode();
 
-    // Interim: ProtectedAtomDB wrapping is disabled; pass UNPROTECTED backends through unchanged.
     if (mode == atomdb_api_types::ProtectionMode::UNPROTECTED ||
-        dynamic_pointer_cast<ProtectedAtomDB>(atomdb)) {
+        mode == atomdb_api_types::ProtectionMode::FORWARD ||
+        dynamic_pointer_cast<AtomDBPublicKeyAPI>(atomdb)) {
         return atomdb;
+    } else if (mode == atomdb_api_types::ProtectionMode::PROTECTED) {
+        return make_shared<ProtectedAtomDB>(atomdb);
+    } else {
+        RAISE_ERROR("AtomDBFactory::wrap_if_protected() encountered unknown protection mode");
     }
-
-    // Interim fail-closed: PROTECTED and FORWARD both require ProtectedAtomDB, which is not
-    // enabled yet. RemoteAtomDB may report FORWARD when peers are protected;
-    // that case is rejected here until wrapping is restored.
-    // TODO: return make_shared<ProtectedAtomDB>(atomdb) when authorization integration is complete.
-    if (mode == atomdb_api_types::ProtectionMode::PROTECTED ||
-        mode == atomdb_api_types::ProtectionMode::FORWARD) {
-        RAISE_ERROR("Protected AtomDB support is not available");
-    }
-
-    RAISE_ERROR("AtomDBFactory::wrap_if_protected() encountered unknown protection mode");
 }

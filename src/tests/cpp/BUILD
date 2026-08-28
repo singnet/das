@@ -864,6 +864,7 @@ cc_test(
         "//atomdb:protected_atomdb",
         "//atomdb/inmemorydb:inmemorydb_lib",
         "//commons/atoms:atoms_lib",
+        "//tests/cpp/test_commons:in_memory_access_permission_types",
         "@com_github_google_googletest//:gtest_main",
     ],
 )
@@ -903,6 +904,7 @@ cc_test(
     ],
     linkstatic = 1,
     deps = [
+        "//atomdb",
         "//atomdb:atomdb_factory",
         "//atomdb:protected_atomdb",
         "//atomdb/adapterdb:adapterdb_lib",
@@ -965,6 +967,7 @@ cc_test(
         "//atomdb/inmemorydb:inmemorydb_lib",
         "//atomdb/remotedb:remotedb_lib",
         "//commons/atoms:atoms_lib",
+        "//tests/cpp/test_commons:in_memory_access_permission_types",
         "@com_github_google_googletest//:gtest",
     ],
 )

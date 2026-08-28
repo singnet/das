@@ -7,6 +7,7 @@
 
 #include "AdapterDB.h"
 #include "AtomDBFactory.h"
+#include "AtomDBPublicKeyAPI.h"
 #include "InMemoryDB.h"
 #include "JsonConfig.h"
 #include "MorkDB.h"
@@ -162,5 +163,13 @@ TEST(AtomDBFactoryTest, CreateInMemoryDBIsNotProtected) {
     auto db = AtomDBFactory::create(config_with_type("inmemorydb"), "factory_unprotected_");
     ASSERT_NE(db, nullptr);
     EXPECT_EQ(db->get_protection_mode(), ProtectionMode::UNPROTECTED);
+    EXPECT_EQ(dynamic_pointer_cast<ProtectedAtomDB>(db), nullptr);
+    EXPECT_EQ(dynamic_pointer_cast<AtomDBPublicKeyAPI>(db), nullptr);
+}
+
+TEST(AtomDBFactoryTest, CreateRemoteAtomDBIsNotWrapped) {
+    auto db = AtomDBFactory::create(remotedb_config_with_inmemory_peers(), "");
+    ASSERT_NE(db, nullptr);
+    EXPECT_NE(dynamic_pointer_cast<RemoteAtomDB>(db), nullptr);
     EXPECT_EQ(dynamic_pointer_cast<ProtectedAtomDB>(db), nullptr);
 }

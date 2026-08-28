@@ -40,10 +40,14 @@ cc_library(
 
 cc_library(
     name = "atomdb",
-    hdrs = ["AtomDB.h"],
+    hdrs = [
+        "AtomDB.h",
+        "AtomDBPublicKeyAPI.h",
+    ],
     includes = ["."],
     deps = [
         ":atomdb_api_types",
+        "//commons:commons_lib",
         "//commons/atoms:atoms_lib",
     ],
 )

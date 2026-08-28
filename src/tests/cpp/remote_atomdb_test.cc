@@ -14,6 +14,7 @@
 
 #include "Assignment.h"
 #include "AtomDBFactory.h"
+#include "InMemoryAccessPermissionTypes.h"
 #include "InMemoryDB.h"
 #include "InMemoryDBAPITypes.h"
 #include "JsonConfig.h"
@@ -752,6 +753,27 @@ class ProtectedInMemoryDB : public InMemoryDB {
     ProtectionMode get_protection_mode() const override { return ProtectionMode::PROTECTED; }
 };
 
+class FullAccessProtectedInMemoryDB : public ProtectedInMemoryDB {
+   public:
+    explicit FullAccessProtectedInMemoryDB(const string& context, const string& allowed_key)
+        : ProtectedInMemoryDB(context), allowed_key(allowed_key) {}
+
+    vector<shared_ptr<AccessPermissionDocument>> get_access_permissions(
+        const PublicKey& public_key) const override {
+        if (!public_key.is_single_key() || public_key.keys.empty() ||
+            public_key.keys[0] != this->allowed_key) {
+            return {};
+        }
+        auto document = make_shared<InMemoryAccessPermissionDocument>();
+        document->set_access_key(this->allowed_key);
+        document->set_full_access(true);
+        return {document};
+    }
+
+   private:
+    string allowed_key;
+};
+
 class ForwardInMemoryDB : public InMemoryDB {
    public:
     explicit ForwardInMemoryDB(const string& context) : InMemoryDB(context) {}
@@ -957,6 +979,37 @@ TEST(RemoteAtomDBFederationTest, IsProtectedWhenAnyPeerIsProtected) {
         auto db = make_shared<RemoteAtomDB>(peers);
         EXPECT_EQ(db->get_protection_mode(), ProtectionMode::FORWARD);
     }
+}
+
+TEST(RemoteAtomDBFederationTest, GetAtomForwardsPublicKeyPerPeer) {
+    auto protected_backend = make_shared<FullAccessProtectedInMemoryDB>("fed_key_protected_", "admin");
+    auto unprotected_backend = make_shared<InMemoryDB>("fed_key_open_");
+
+    auto only_protected = new Node("Symbol", "\"only_protected\"");
+    string protected_handle = protected_backend->add_node(only_protected);
+    auto only_open = new Node("Symbol", "\"only_open\"");
+    string open_handle = unprotected_backend->add_node(only_open);
+
+    map<string, shared_ptr<RemoteAtomDBPeer>> peers;
+    peers["peerA"] =
+        make_shared<RemoteAtomDBPeer>(make_shared<ProtectedAtomDB>(protected_backend), nullptr, "peerA");
+    peers["peerB"] = make_shared<RemoteAtomDBPeer>(unprotected_backend, nullptr, "peerB");
+    auto db = make_shared<RemoteAtomDB>(peers);
+
+    EXPECT_EQ(db->get_protection_mode(), ProtectionMode::FORWARD);
+    EXPECT_THROW(db->get_atom(protected_handle), runtime_error);
+
+    PublicKey keys(map<string, string>{{"peerA", "admin"}, {"peerB", "unused"}});
+    auto from_a = db->get_atom(protected_handle, keys);
+    ASSERT_NE(from_a, nullptr);
+    EXPECT_EQ(from_a->handle(), protected_handle);
+
+    auto from_b = db->get_atom(open_handle, keys);
+    ASSERT_NE(from_b, nullptr);
+    EXPECT_EQ(from_b->handle(), open_handle);
+
+    PublicKey denied(map<string, string>{{"peerA", "bad"}, {"peerB", "unused"}});
+    EXPECT_EQ(db->get_atom(protected_handle, denied), nullptr);
 }
 
 TEST(RemoteAtomDBFederationTest, CacheFirstProbingAcrossPeers) {
