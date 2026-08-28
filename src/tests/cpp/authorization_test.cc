@@ -1,7 +1,11 @@
 #include <gtest/gtest.h>
 
 #include <algorithm>
+#include <bsoncxx/builder/basic/document.hpp>
+#include <bsoncxx/builder/basic/kvp.hpp>
 #include <memory>
+#include <mongocxx/client.hpp>
+#include <mongocxx/uri.hpp>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -13,7 +17,10 @@
 #include "InMemoryDB.h"
 #include "Link.h"
 #include "LinkSchema.h"
+#include "MongodbAuthorizationPersistence.h"
 #include "Node.h"
+#include "RedisMongoDBAPITypes.h"
+#include "TestAtomDBJsonConfig.h"
 
 using namespace atomdb;
 using namespace atomdb_api_types;
@@ -119,6 +126,20 @@ AuthorizationManifest manifest_from_persistence(const DummyPersistence& persiste
     return manifest;
 }
 
+unique_ptr<MongodbAuthorizationPersistence> make_mongo_persistence(const string& database_name,
+                                                                   const string& collection_name,
+                                                                   const string& uri_query = "") {
+    auto config = test_atomdb_json_config();
+    string endpoint = config.at_path("mongodb.endpoint").get_or<string>("localhost:40021");
+    if (!uri_query.empty()) {
+        endpoint += "/?" + uri_query;
+    }
+    string username = config.at_path("mongodb.username").get_or<string>("admin");
+    string password = config.at_path("mongodb.password").get_or<string>("admin");
+    return make_unique<MongodbAuthorizationPersistence>(
+        endpoint, username, password, database_name, collection_name);
+}
+
 }  // namespace
 
 TEST(AuthorizationManifestTest, BuildsProfilesFromDocuments) {
@@ -215,7 +236,10 @@ TEST(AuthorizationProfileTest, FromDocumentWithAndWithoutSchema) {
     EXPECT_EQ(after_one_removed->schemas().size(), 1u);
 
     auto after_last_removed = after_one_removed->without_schema(read_write);
-    EXPECT_FALSE(after_last_removed.has_value());
+    ASSERT_TRUE(after_last_removed.has_value());
+    EXPECT_EQ(after_last_removed->access_key(), "pk");
+    EXPECT_FALSE(after_last_removed->is_full_access());
+    EXPECT_TRUE(after_last_removed->schemas().empty());
 }
 
 TEST(AuthorizationProfileTest, FullAccessRejectsSchemas) {
@@ -272,4 +296,87 @@ TEST(AuthorizationManagerTest, AuthorizeThenReadAndWriteFlags) {
     manager.revoke_all("pk");
     EXPECT_EQ(persistence->documents.size(), 1u);
     EXPECT_EQ(persistence->documents.count("pk"), 0u);
+}
+
+TEST(MongodbAuthorizationPersistenceTest, RemoveLastSchemaKeepsEmptyRestrictedProfile) {
+    auto config = test_atomdb_json_config();
+    string endpoint = config.at_path("mongodb.endpoint").get_or<string>("localhost:40021");
+    string username = config.at_path("mongodb.username").get_or<string>("admin");
+    string password = config.at_path("mongodb.password").get_or<string>("admin");
+    const string database_name = "auth_remove_regression_das";
+    const string collection_name = "access_permissions";
+    const string public_key = "pk_remove_last_schema";
+
+    auto persistence = make_mongo_persistence(database_name, collection_name);
+    persistence->remove_all(public_key);
+
+    AuthorizationSchema schema = read_only_inheritance_schema();
+    persistence->save(public_key, schema);
+    persistence->remove(public_key, schema);
+
+    mongocxx::client client{mongocxx::uri{"mongodb://" + username + ":" + password + "@" + endpoint}};
+    auto collection = client[database_name][collection_name];
+    auto reply = collection.find_one(
+        bsoncxx::builder::basic::make_document(bsoncxx::builder::basic::kvp("public_key", public_key)));
+    ASSERT_TRUE(static_cast<bool>(reply));
+
+    auto document = make_shared<MongodbAccessPermissionDocument>(reply.value());
+    auto profile = AuthorizationProfile::from_document(*document);
+    EXPECT_EQ(profile.access_key(), public_key);
+    EXPECT_FALSE(profile.is_full_access());
+    EXPECT_TRUE(profile.schemas().empty());
+
+    string link_handle;
+    auto db = db_with_inheritance_link(&link_handle);
+    auto link = db->get_link(link_handle);
+    ASSERT_NE(link, nullptr);
+
+    AuthorizationManifest manifest;
+    manifest.add_document(document);
+    EXPECT_TRUE(manifest.is_registered(public_key));
+    EXPECT_FALSE(manifest.is_authorized(*link, public_key, AuthorizationOperation::READ, *db));
+    EXPECT_FALSE(manifest.is_authorized(*link, public_key, AuthorizationOperation::WRITE, *db));
+
+    persistence->remove_all(public_key);
+}
+
+TEST(MongodbAuthorizationPersistenceTest, RemoveDoesNotDeadlockWithMaxPoolSize1) {
+    const string database_name = "auth_remove_pool_regression_das";
+    const string collection_name = "access_permissions";
+    const string public_key = "pk_max_pool_size_1";
+
+    auto persistence = make_mongo_persistence(database_name, collection_name, "maxPoolSize=1");
+    persistence->remove_all(public_key);
+
+    AuthorizationSchema schema = read_only_inheritance_schema();
+    persistence->save(public_key, schema);
+    persistence->remove(public_key, schema);
+    EXPECT_TRUE(persistence->list(public_key).empty());
+
+    persistence->remove_all(public_key);
+    EXPECT_TRUE(persistence->list(public_key).empty());
+}
+
+TEST(MongodbAuthorizationPersistenceTest, RemoveAllRaisesOnUnacknowledgedDelete) {
+    const string database_name = "auth_remove_w0_regression_das";
+    const string collection_name = "access_permissions";
+    const string public_key = "pk_unacked_delete";
+
+    auto setup = make_mongo_persistence(database_name, collection_name);
+    setup->remove_all(public_key);
+    setup->save(public_key, read_only_inheritance_schema());
+
+    auto unacked = make_mongo_persistence(database_name, collection_name, "w=0");
+    EXPECT_THROW(
+        {
+            try {
+                unacked->remove_all(public_key);
+            } catch (const runtime_error& error) {
+                EXPECT_STREQ(error.what(), "Failed to remove authorization document from MongoDB");
+                throw;
+            }
+        },
+        runtime_error);
+
+    setup->remove_all(public_key);
 }

@@ -91,7 +91,7 @@ void MongodbAuthorizationPersistence::remove(const string& public_key,
 
     auto profile = AuthorizationProfile::from_document(*document).without_schema(schema);
     if (!profile) {
-        this->remove_all(public_key);
+        this->delete_document(collection, public_key);
         return;
     }
 
@@ -109,11 +109,7 @@ void MongodbAuthorizationPersistence::remove(const string& public_key,
 void MongodbAuthorizationPersistence::remove_all(const string& public_key) {
     auto conn = this->mongodb_pool->acquire();
     auto collection = (*conn)[this->database_name][this->collection_name];
-    auto reply = collection.delete_one(bsoncxx::builder::basic::make_document(
-        bsoncxx::builder::basic::kvp("_id", Hasher::plain_string_hash(public_key))));
-    if (!reply) {
-        RAISE_ERROR("Failed to remove authorization document from MongoDB");
-    }
+    this->delete_document(collection, public_key);
 }
 
 // --------------------------------------------------------------------------------
@@ -148,4 +144,13 @@ MongodbAuthorizationPersistence::get_document(mongocxx::collection& collection,
     if (!reply) return nullptr;
 
     return make_shared<atomdb_api_types::MongodbAccessPermissionDocument>(reply.value());
+}
+
+void MongodbAuthorizationPersistence::delete_document(mongocxx::collection& collection,
+                                                      const string& public_key) {
+    auto reply = collection.delete_one(bsoncxx::builder::basic::make_document(
+        bsoncxx::builder::basic::kvp("_id", Hasher::plain_string_hash(public_key))));
+    if (!reply) {
+        RAISE_ERROR("Failed to remove authorization document from MongoDB");
+    }
 }

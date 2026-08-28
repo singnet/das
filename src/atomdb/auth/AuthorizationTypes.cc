@@ -61,9 +61,6 @@ AuthorizationProfile::AuthorizationProfile(const string& access_key,
     if (full_access && !schemas.empty()) {
         RAISE_ERROR("schemas must be empty when full_access is true");
     }
-    if (!full_access && schemas.empty()) {
-        RAISE_ERROR("schemas must be non-empty when full_access is false");
-    }
 }
 
 AuthorizationProfile AuthorizationProfile::from_document(
@@ -121,9 +118,6 @@ optional<AuthorizationProfile> AuthorizationProfile::without_schema(
     }
     if (schemas.size() == this->schemas_.size()) {
         return *this;
-    }
-    if (schemas.empty()) {
-        return nullopt;
     }
     return AuthorizationProfile(this->access_key_, this->full_access_, move(schemas));
 }
