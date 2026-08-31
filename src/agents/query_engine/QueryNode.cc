@@ -1,10 +1,9 @@
 #include "QueryNode.h"
 
 #include "LeadershipBroker.h"
+#include "Logger.h"
 #include "MessageBroker.h"
 #include "Utils.h"
-
-#include "Logger.h"
 
 using namespace query_node;
 using namespace std;

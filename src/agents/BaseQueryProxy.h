@@ -38,11 +38,11 @@ class BaseQueryProxy : public BaseProxy {
     // Constructors, destructors and static state
 
     // Commands allowed at the proxy level (caller <--> processor)
-    static string ANSWER_BUNDLE;      // Delivery of a bundle with QueryAnswer objects
-    static string BUILT_ATOMS_BUNDLE; // Delivery of a bundle with handles of newly built atoms
-    static string ABORT;              // Abort current query
-    static string FINISHED;           // Notification that all query results have already been
-                                      // delivered
+    static string ANSWER_BUNDLE;       // Delivery of a bundle with QueryAnswer objects
+    static string BUILT_ATOMS_BUNDLE;  // Delivery of a bundle with handles of newly built atoms
+    static string ABORT;               // Abort current query
+    static string FINISHED;            // Notification that all query results have already been
+                                       // delivered
 
     // Query command's optional parameters
     static string UNIQUE_ASSIGNMENT_FLAG;  // When true, query operators (e.g. And, Or) don't output

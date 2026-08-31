@@ -61,7 +61,7 @@ void BaseProxy::allow_cycle_start() {
             to_remote_peer(ALLOW_CYCLE_START, {});
             this->waiting_to_start_new_cycle = false;
         }
-    }  else {
+    } else {
         RAISE_ERROR("Remote peer is not waiting to start a new cycle");
     }
 }
@@ -87,7 +87,8 @@ void BaseProxy::cycle_ended() {
                 to_remote_peer(CYCLE_ENDED, {});
                 break;
             default:
-                RAISE_ERROR("Invalid orchestration schema: " + std::to_string(this->orchestration_schema));
+                RAISE_ERROR("Invalid orchestration schema: " +
+                            std::to_string(this->orchestration_schema));
                 break;
         }
     }
