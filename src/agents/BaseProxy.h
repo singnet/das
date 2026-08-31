@@ -182,7 +182,7 @@ class BaseProxy : public BusCommandProxy {
     ORCHESTRATION_SCHEMA_TYPE orchestration_schema;
     bool cycle_start_allowed_flag;
     bool waiting_log_flag;
-    bool waiting_to_start_new_cycle; // disregarded if orchestration_schema is NONE.
+    bool waiting_to_start_new_cycle;  // disregarded if orchestration_schema is NONE.
 };
 
 }  // namespace agents

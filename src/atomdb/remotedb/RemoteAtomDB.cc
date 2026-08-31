@@ -31,6 +31,15 @@ RemoteAtomDB::RemoteAtomDB(map<string, shared_ptr<RemoteAtomDBPeer>> peers)
 
 RemoteAtomDB::~RemoteAtomDB() = default;
 
+atomdb_api_types::ProtectionMode RemoteAtomDB::get_protection_mode() const {
+    for (auto& [uid, peer] : remote_db_) {
+        if (peer->get_protection_mode() != atomdb_api_types::ProtectionMode::UNPROTECTED) {
+            return atomdb_api_types::ProtectionMode::FORWARD;
+        }
+    }
+    return atomdb_api_types::ProtectionMode::UNPROTECTED;
+}
+
 void RemoteAtomDB::finalize_peer_lists() {
     writable_peers_.clear();
     readonly_peers_.clear();

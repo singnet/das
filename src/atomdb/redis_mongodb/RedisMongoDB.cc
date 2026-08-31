@@ -34,6 +34,7 @@ uint RedisMongoDB::REDIS_CHUNK_SIZE;
 string RedisMongoDB::MONGODB_DB_NAME;
 string RedisMongoDB::MONGODB_NODES_COLLECTION_NAME;
 string RedisMongoDB::MONGODB_LINKS_COLLECTION_NAME;
+string RedisMongoDB::MONGODB_CONFIG_COLLECTION_NAME;
 string RedisMongoDB::MONGODB_PATTERN_INDEX_SCHEMA_COLLECTION_NAME;
 string RedisMongoDB::MONGODB_ACCESS_PERMISSIONS_COLLECTION_NAME;
 string RedisMongoDB::MONGODB_FIELD_NAME[MONGODB_FIELD::size];
@@ -43,9 +44,11 @@ RedisMongoDB::RedisMongoDB(const string& context, bool skip_redis, const JsonCon
     : context(context),
       skip_redis_(skip_redis),
       composite_type_enabled_(config.at_path("composite_type_enabled").get_or<bool>(true)),
-      cluster_flag(false) {
+      cluster_flag(false),
+      protection_mode(atomdb_api_types::ProtectionMode::PROTECTED) {
     initialize_statics(context);
     mongodb_setup(config);
+    load_protection_mode();
     load_pattern_index_schema();
     redis_setup(config);
     this->patterns_next_score.store(get_next_score(REDIS_PATTERNS_PREFIX + ":next_score"));
@@ -97,6 +100,10 @@ RedisMongoDB::load_access_permission_document(const string& public_key) const {
         RAISE_ERROR("AccessPermissionDocument public_key does not match its lookup key");
     }
     return document;
+}
+
+atomdb_api_types::ProtectionMode RedisMongoDB::get_protection_mode() const {
+    return this->protection_mode;
 }
 
 void RedisMongoDB::redis_setup(const JsonConfig& config) {
@@ -1274,6 +1281,36 @@ void RedisMongoDB::add_pattern_index_schema(const string& tokens,
     this->pattern_index_schema_next_priority++;
 }
 
+void RedisMongoDB::load_protection_mode() {
+    auto conn = this->mongodb_pool->acquire();
+    auto config_collection = (*conn)[MONGODB_DB_NAME][MONGODB_CONFIG_COLLECTION_NAME];
+    auto config_doc = config_collection.find_one(
+        bsoncxx::v_noabi::builder::basic::make_document(bsoncxx::v_noabi::builder::basic::kvp(
+            MONGODB_FIELD_NAME[MONGODB_FIELD::ID], protection_config_document_id())));
+
+    if (!config_doc) {
+        this->protection_mode = atomdb_api_types::ProtectionMode::UNPROTECTED;
+        return;
+    }
+
+    const auto view = config_doc->view();
+    auto protected_it = view.find("protected");
+    if (protected_it == view.end()) {
+        RAISE_ERROR("RedisMongoDB config document missing required boolean field 'protected'");
+    }
+    if (protected_it->type() != bsoncxx::type::k_bool) {
+        RAISE_ERROR("RedisMongoDB config document field 'protected' must be a boolean");
+    }
+
+    this->protection_mode = protected_it->get_bool().value
+                                ? atomdb_api_types::ProtectionMode::PROTECTED
+                                : atomdb_api_types::ProtectionMode::UNPROTECTED;
+}
+
+string RedisMongoDB::protection_config_document_id() {
+    return Hasher::plain_string_hash(MONGODB_CONFIG_COLLECTION_NAME);
+}
+
 void RedisMongoDB::load_pattern_index_schema() {
     this->pattern_index_schema_map.clear();
     auto conn = this->mongodb_pool->acquire();
@@ -1465,9 +1502,15 @@ void RedisMongoDB::flush_redis_by_prefix(const string& prefix) {
 }
 
 void RedisMongoDB::drop_all() {
-    // Drop MongoDB database
     auto conn = this->mongodb_pool->acquire();
-    (*conn)[MONGODB_DB_NAME].drop();
+    auto database = (*conn)[MONGODB_DB_NAME];
+
+    for (auto&& collection_info : database.list_collections()) {
+        auto name = string(collection_info["name"].get_string().value);
+        if (name != MONGODB_CONFIG_COLLECTION_NAME) {
+            database[name].drop();
+        }
+    }
 
     // Drop Redis database (by prefixes)
     if (!skip_redis_) {

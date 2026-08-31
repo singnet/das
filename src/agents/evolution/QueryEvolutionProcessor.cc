@@ -618,6 +618,7 @@ void QueryEvolutionProcessor::evolve_query(shared_ptr<StoppableThread> monitor,
         RAM_FOOTPRINT_CHECK(evolution, "Generation " + std::to_string(this->generation_count));
         STOP_WATCH_FINISH(generation, "OneGeneration");
         this->generation_count++;
+        proxy->cycle_ended();
     }
     proxy->flush_answer_bundle();
     proxy->cycle_ended();

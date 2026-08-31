@@ -1,8 +1,8 @@
 #include "PatternMatchingQueryProxy.h"
 
+#include "Logger.h"
 #include "ServiceBus.h"
 #include "SystemParametersSingleton.h"
-#include "Logger.h"
 
 using namespace query_engine;
 
