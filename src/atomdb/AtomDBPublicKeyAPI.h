@@ -24,9 +24,9 @@ namespace atomdb {
  * Callers consult get_protection_mode() on AtomDB; when the mode is PROTECTED
  * or FORWARD they use this API instead of the unkeyed AtomDB methods.
  */
-class AtomDBPublicKeyAPI {
+class AtomDBKeySensitiveAPI {
    public:
-    virtual ~AtomDBPublicKeyAPI() = default;
+    virtual ~AtomDBKeySensitiveAPI() = default;
 
     virtual shared_ptr<Atom> get_atom(const string& handle,
                                       const atomdb_api_types::PublicKey& public_key) = 0;

@@ -6,7 +6,7 @@
 #include <vector>
 
 #include "AtomDB.h"
-#include "AtomDBPublicKeyAPI.h"
+#include "AtomDBKeySensitiveAPI.h"
 #include "AuthorizationManifest.h"
 
 using namespace std;
@@ -17,13 +17,13 @@ namespace atomdb {
 /**
  * @brief Authorization wrapper around a protected AtomDB backend.
  *
- * Implements AtomDB (unkeyed methods reject the call) and AtomDBPublicKeyAPI
+ * Implements AtomDB (unkeyed methods reject the call) and AtomDBKeySensitiveAPI
  * (authorize, then delegate to the backend).
  *
  * get_protection_mode() reports the backend's mode so callers can detect
  * protected persistence without inspecting the wrapper type.
  */
-class ProtectedAtomDB : public AtomDB, public AtomDBPublicKeyAPI {
+class ProtectedAtomDB : public AtomDB, public AtomDBKeySensitiveAPI {
    public:
     /**
      * @param backend Shared concrete AtomDB to wrap.

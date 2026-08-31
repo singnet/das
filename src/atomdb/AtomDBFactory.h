@@ -29,7 +29,7 @@ class AtomDBFactory {
     /**
      * @brief Creates an AtomDB. Basic PROTECTED backends are wrapped with ProtectedAtomDB.
      * Composite types (RemoteAtomDB, AdapterDB) are returned as-is; RemoteAtomDB implements
-     * AtomDBPublicKeyAPI when any peer is protected.
+     * AtomDBKeySensitiveAPI when any peer is protected.
      */
     static shared_ptr<AtomDB> create(const JsonConfig& config, const string& context = "");
 
@@ -43,7 +43,7 @@ class AtomDBFactory {
 
     /**
      * @brief Wraps a basic AtomDB with ProtectedAtomDB when its mode is PROTECTED.
-     * Types that already implement AtomDBPublicKeyAPI (or are UNPROTECTED) are returned as-is.
+     * Types that already implement AtomDBKeySensitiveAPI (or are UNPROTECTED) are returned as-is.
      */
     static shared_ptr<AtomDB> wrap_if_protected(shared_ptr<AtomDB> atomdb);
 };

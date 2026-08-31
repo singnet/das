@@ -127,7 +127,7 @@ shared_ptr<Atom> ProtectedAtomDB::get_atom(const string& handle,
     if (this->get_protection_mode() == atomdb_api_types::ProtectionMode::FORWARD) {
         RAISE_ERROR(
             "ProtectedAtomDB::get_atom(handle, public_key) is not used in FORWARD mode; "
-            "call AtomDBPublicKeyAPI on RemoteAtomDB");
+            "call AtomDBKeySensitiveAPI on RemoteAtomDB");
     }
     if (!this->can_read(public_key, handle)) {
         return nullptr;
@@ -410,8 +410,9 @@ size_t ProtectedAtomDB::atom_count() const { raise_public_key_required("atom_cou
 // Private methods
 
 void ProtectedAtomDB::raise_public_key_required(const string& method_name) {
-    RAISE_ERROR("ProtectedAtomDB::" + method_name +
-                "() is unavailable in protected AtomDBs. Use AtomDBPublicKeyAPI passing a PublicKey.");
+    RAISE_ERROR(
+        "ProtectedAtomDB::" + method_name +
+        "() is unavailable in protected AtomDBs. Use AtomDBKeySensitiveAPI passing a PublicKey.");
 }
 
 bool ProtectedAtomDB::ensure_registered(const atomdb_api_types::PublicKey& public_key) {

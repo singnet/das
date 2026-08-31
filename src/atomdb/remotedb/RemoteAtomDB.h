@@ -6,7 +6,7 @@
 #include <vector>
 
 #include "AtomDB.h"
-#include "AtomDBPublicKeyAPI.h"
+#include "AtomDBKeySensitiveAPI.h"
 #include "JsonConfig.h"
 #include "RemoteAtomDBPeer.h"
 
@@ -19,9 +19,9 @@ namespace atomdb {
  * Each peer maintains its own cache, remote connection, and local persistence.
  *
  * When any peer is protected, get_protection_mode() is FORWARD and callers must
- * use AtomDBPublicKeyAPI. Unkeyed AtomDB methods then reject the call.
+ * use AtomDBKeySensitiveAPI. Unkeyed AtomDB methods then reject the call.
  */
-class RemoteAtomDB : public AtomDB, public AtomDBPublicKeyAPI {
+class RemoteAtomDB : public AtomDB, public AtomDBKeySensitiveAPI {
    public:
     /**
      * Dependency-injection constructor for pre-built peers.

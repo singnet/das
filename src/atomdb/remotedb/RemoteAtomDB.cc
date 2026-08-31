@@ -8,7 +8,7 @@
 #include <sstream>
 #include <utility>
 
-#include "AtomDBPublicKeyAPI.h"
+#include "AtomDBKeySensitiveAPI.h"
 #include "InMemoryDB.h"
 #include "InMemoryDBAPITypes.h"
 #include "Link.h"
@@ -89,7 +89,7 @@ bool RemoteAtomDB::allow_nested_indexing() { return nested_indexing_; }
 
 void RemoteAtomDB::raise_public_key_required(const string& method_name) {
     RAISE_ERROR("RemoteAtomDB::" + method_name +
-                "() is unavailable when any peer is protected. Use AtomDBPublicKeyAPI passing a "
+                "() is unavailable when any peer is protected. Use AtomDBKeySensitiveAPI passing a "
                 "PublicKey.");
 }
 
@@ -132,9 +132,9 @@ shared_ptr<Atom> RemoteAtomDB::get_atom_from_peer(shared_ptr<RemoteAtomDBPeer> p
         return nullptr;
     }
 
-    auto keyed = dynamic_pointer_cast<AtomDBPublicKeyAPI>(peer->get_remote_atomdb());
+    auto keyed = dynamic_pointer_cast<AtomDBKeySensitiveAPI>(peer->get_remote_atomdb());
     if (keyed == nullptr) {
-        RAISE_ERROR("Protected peer [" + uid + "] does not implement AtomDBPublicKeyAPI");
+        RAISE_ERROR("Protected peer [" + uid + "] does not implement AtomDBKeySensitiveAPI");
     }
     return keyed->get_atom(handle, peer_key.value());
 }

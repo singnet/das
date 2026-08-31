@@ -14,7 +14,7 @@
 
 #include "Atom.h"
 #include "AtomDBFactory.h"
-#include "AtomDBPublicKeyAPI.h"
+#include "AtomDBKeySensitiveAPI.h"
 #include "AtomDBSingleton.h"
 #include "Hasher.h"
 #include "JsonConfig.h"
@@ -1757,12 +1757,12 @@ TEST_F(RedisMongoDBTest, FactoryWrapsProtectedRedisMongoDB) {
     ASSERT_NE(created, nullptr);
     EXPECT_EQ(created->get_protection_mode(), ProtectionMode::PROTECTED);
     EXPECT_NE(dynamic_pointer_cast<ProtectedAtomDB>(created), nullptr);
-    EXPECT_NE(dynamic_pointer_cast<AtomDBPublicKeyAPI>(created), nullptr);
+    EXPECT_NE(dynamic_pointer_cast<AtomDBKeySensitiveAPI>(created), nullptr);
     EXPECT_EQ(dynamic_pointer_cast<RedisMongoDB>(created), nullptr);
 
     EXPECT_THROW(created->get_atom(handle), runtime_error);
 
-    auto keyed = dynamic_pointer_cast<AtomDBPublicKeyAPI>(created);
+    auto keyed = dynamic_pointer_cast<AtomDBKeySensitiveAPI>(created);
     ASSERT_NE(keyed, nullptr);
     auto allowed = keyed->get_atom(handle, PublicKey("admin"));
     ASSERT_NE(allowed, nullptr);
@@ -1802,7 +1802,7 @@ TEST_F(RedisMongoDBTest, SingletonRemoteMixedRedisMongoPeersCallerFlow) {
 
     EXPECT_EQ(atomdb->get_protection_mode(), ProtectionMode::FORWARD);
     EXPECT_EQ(dynamic_pointer_cast<ProtectedAtomDB>(atomdb), nullptr);
-    EXPECT_NE(dynamic_pointer_cast<AtomDBPublicKeyAPI>(atomdb), nullptr);
+    EXPECT_NE(dynamic_pointer_cast<AtomDBKeySensitiveAPI>(atomdb), nullptr);
 
     auto remote = dynamic_pointer_cast<RemoteAtomDB>(atomdb);
     ASSERT_NE(remote, nullptr);
@@ -1816,7 +1816,7 @@ TEST_F(RedisMongoDBTest, SingletonRemoteMixedRedisMongoPeersCallerFlow) {
 
     EXPECT_THROW(atomdb->get_atom("any_handle"), runtime_error);
 
-    auto keyed = dynamic_pointer_cast<AtomDBPublicKeyAPI>(atomdb);
+    auto keyed = dynamic_pointer_cast<AtomDBKeySensitiveAPI>(atomdb);
     ASSERT_NE(keyed, nullptr);
 
     auto redismongo_b =

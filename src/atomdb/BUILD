@@ -42,7 +42,7 @@ cc_library(
     name = "atomdb",
     hdrs = [
         "AtomDB.h",
-        "AtomDBPublicKeyAPI.h",
+        "AtomDBKeySensitiveAPI.h",
     ],
     includes = ["."],
     deps = [
