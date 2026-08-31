@@ -29,7 +29,10 @@ class BaseProxy : public BusCommandProxy {
     // Commands allowed at the proxy level (caller <--> processor)
     static string ABORT;              // Abort current command
     static string FINISHED;           // Notification that all results have already been delivered
-    static string ALLOW_CYCLE_START;  // Orchestration command to allow the beginning of a new cycle
+    static string ALLOW_CYCLE_START;  // Orchestration command to allow the beginning of a new
+                                      // cycle in the remote peer.
+    static string CYCLE_ENDED;        // Orchestration command to notify remote peer that a cycle
+                                      // just ended
 
     BaseProxy();
     virtual ~BaseProxy();
@@ -45,12 +48,29 @@ class BaseProxy : public BusCommandProxy {
     virtual bool finished();
 
     /**
+     * Returns true iff all QueryAnswer objects have been iterated AND is waiting for new cycle.
+     *
+     * @return true iff all QueryAnswer objects have been iterated AND is waiting for new cycle.
+     */
+    virtual bool finished_cycle();
+
+    /**
      * Abort a query.
      *
      * When the caller calls this method, a message is sent to the query processor to abort
      * the search for QueryAnswers.
      */
     void abort();
+
+    /**
+     * Allows remote proxy to start a new cycle.
+     */
+    void allow_cycle_start();
+
+    /**
+     * Return true iff the remote peer is waiting to start a new cycle.
+     */
+    bool get_waiting_flag();
 
     /**
      * Write a tokenized representation of this proxy in the passed `output` vector.
@@ -85,7 +105,12 @@ class BaseProxy : public BusCommandProxy {
      *
      * @return true iff processor has green light to start a new cycle.
      */
-    bool cycle_start_allowed();
+    bool is_cycle_start_allowed();
+
+    /**
+     * Notifies remote proxy that a cycle just ended.
+     */
+    void cycle_ended();
 
     /**
      * Returns a string representation with all command parameter values.
@@ -133,6 +158,13 @@ class BaseProxy : public BusCommandProxy {
      */
     void allow_cycle_start(const vector<string>& args);
 
+    /**
+     * Piggyback method called by CYCLE_ENDED command
+     *
+     * @param args Command arguments (empty for CYCLE_ENDED command)
+     */
+    void cycle_ended(const vector<string>& args);
+
     virtual void pack_command_line_args() = 0;
 
     Properties parameters;
@@ -147,8 +179,10 @@ class BaseProxy : public BusCommandProxy {
     mutex api_mutex;
     bool abort_flag;
     bool command_finished_flag;
-    bool cycle_start_allowed_flag;
     ORCHESTRATION_SCHEMA_TYPE orchestration_schema;
+    bool cycle_start_allowed_flag;
+    bool waiting_log_flag;
+    bool waiting_to_start_new_cycle; // disregarded if orchestration_schema is NONE.
 };
 
 }  // namespace agents
