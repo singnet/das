@@ -31,10 +31,12 @@ static void insert_type_symbols() {
 static string start_test_case(const string& test_case) {
     LOG_INFO("--------------------------------------------------------------------------------");
     LOG_INFO("START " + test_case);
+    LOG_INFO("Atom count: " + to_string(AtomDBSingleton::get_instance()->atom_count()));
     return test_case;
 }
 
 static void finish_test_case(const string& test_case, bool success) {
+    LOG_INFO("Atom count: " + to_string(AtomDBSingleton::get_instance()->atom_count()));
     if (success) {
         LOG_INFO("OK - " + test_case);
     } else {
@@ -191,11 +193,8 @@ int main(int argc, char* argv[]) {
     insert_type_symbols();
     bool success = true;
     timeout_after_minutes(10);
-    LOG_INFO("Atom count: " + to_string(AtomDBSingleton::get_instance()->atom_count()));
     success &= test_cycles();
-    LOG_INFO("Atom count: " + to_string(AtomDBSingleton::get_instance()->atom_count()));
     success &= test_and_two_predicates();
-    LOG_INFO("Atom count: " + to_string(AtomDBSingleton::get_instance()->atom_count()));
     LOG_INFO("================================================================================");
     if (success) {
         LOG_INFO("OK - ALL TEST CASES PASSED");
