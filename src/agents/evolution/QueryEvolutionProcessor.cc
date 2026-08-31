@@ -618,9 +618,9 @@ void QueryEvolutionProcessor::evolve_query(shared_ptr<StoppableThread> monitor,
         RAM_FOOTPRINT_CHECK(evolution, "Generation " + std::to_string(this->generation_count));
         STOP_WATCH_FINISH(generation, "OneGeneration");
         this->generation_count++;
+        proxy->cycle_ended();
     }
     proxy->flush_answer_bundle();
-    proxy->cycle_ended();
     if (this->generation_count > 0) {
         LOG_INFO("--------------------");
         LOG_INFO("Last generation with answer improvement: " +
