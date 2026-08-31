@@ -1,10 +1,30 @@
 #!/bin/bash
 
-# Usage: NO COMMAND LINE PARAMETERS
+# Usage: lca_test_environment.sh [-y]
+#
+#     -y bypasses the warning message about stopping any running docker containers
 
-KBGZ="inference_toy_1000_5_3_abcde_100_90.metta.gz"
+if [[ "$*" != *"-y"* ]]; then
+    while true; do
+        read -p "Any running docker containers will be stopped/pruned. Do you want to proceed? (y/n): " yn
+        case $yn in
+            [Yy]* )
+                echo "Proceeding..."
+                break
+                ;;
+            [Nn]* )
+                echo "Operation canceled."
+                exit 1
+                ;;
+            * )
+                echo "Please answer yes (y) or no (n)."
+                ;;
+        esac
+    done
+fi
+
+KBGZ="inference_toy_500_5_3_abcde_50_40.metta.gz"
 KB="${KBGZ%.*}"
-
 cp "$(dirname "$0")"/../assets/$KBGZ /tmp
 gunzip --quiet --force /tmp/$KBGZ
 das-cli db stop --prune >> /tmp/atomdb.log 2>&1
@@ -17,3 +37,4 @@ make run-busnode OPTIONS="--service=query-engine --config=/opt/das/config/das.js
 sleep 5
 make run-busnode OPTIONS="--service=link-creation-agent --bus-endpoint=localhost:40002 --config=/opt/das/config/das.json" >> /tmp/link_creation_agent.log 2>&1 &
 sleep 5
+exit 0

@@ -147,6 +147,8 @@ class LinkCreator {
      */
     inline const string& context() { return this->_context; }
 
+    vector<string> newly_created_links;
+
    protected:
     inline void visit(const string& key) { this->_visited.insert(key); }
     inline bool visited(const string& key) { return (this->_visited.find(key) != this->_visited.end()); }

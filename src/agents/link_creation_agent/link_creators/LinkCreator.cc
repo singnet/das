@@ -27,6 +27,7 @@ bool LinkCreator::add_or_update_link(const vector<string>& targets,
         new_link_created_flag = true;
         LOG_DEBUG("Adding new Link to AtomDB");
         db->add_link(new_link.get());
+        this->newly_created_links.push_back(handle);
         if (log_new_links()) {
             LOG_INFO("ADD LINK: [" + std::to_string(strength) + "] " + new_link->metta_representation(*decoder()));
         }

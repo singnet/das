@@ -2,8 +2,6 @@
 
 #include "ServiceBus.h"
 #include "SystemParametersSingleton.h"
-
-#define LOG_LEVEL INFO_LEVEL
 #include "Logger.h"
 
 using namespace query_engine;

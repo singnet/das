@@ -94,22 +94,9 @@ static bool test_and_two_predicates() {
 
     string test_case = start_test_case("test_and_two_predicates()");
     bool success = true;
-
-    vector<string> query_tokens = {
-        AND_OPERATOR, "2",
-            LINK_TEMPLATE, EXPRESSION, "3",
-                NODE, SYMBOL, EVALUATION_TAG,
-                VARIABLE, PREDICATE1,
-                VARIABLE, CONCEPT,
-            LINK_TEMPLATE, EXPRESSION, "3",
-                NODE, SYMBOL, EVALUATION_TAG,
-                VARIABLE, PREDICATE2,
-                VARIABLE, CONCEPT,
-    };
-
     auto proxy = make_proxy();
-
     ServiceBusSingleton::get_instance()->issue_bus_command(proxy);
+
     while (true) {
         if (proxy->finished()) {
             break;
@@ -119,8 +106,8 @@ static bool test_and_two_predicates() {
             Utils::sleep();
         }
     }
-    unsigned int expected = 13207;
-    success &= assert_equal(proxy->get_count(), expected, "link creation count");
+    success &= assert_equal(proxy->get_count(), 7816, "link creation count");
+    AtomDBSingleton::get_instance()->delete_atoms(proxy->get_built_atoms());
 
     finish_test_case(test_case, success);
     return success;
@@ -148,7 +135,6 @@ static bool test_cycles() {
         ServiceBusSingleton::get_instance()->issue_bus_command(proxy[i]);
     }
 
-    bool last_answer_was_null = false;
     for (unsigned int j = 0; j < CYCLES; j++) {
         for (unsigned int i = 0; i < proxy.size(); i++) {
             if (j < num_cycles[i]) {
@@ -175,9 +161,14 @@ static bool test_cycles() {
         }
     }
     for (unsigned int i = 0; i < proxy.size(); i++) {
-        success &= assert_equal(total_creation[i], creations_per_cycle[i] * num_cycles[i], "total creations in proxy[" + to_string(i) + "]");
+        while (! proxy[i]->finished()) {
+            Utils::sleep();
+        }
     }
-
+    for (unsigned int i = 0; i < proxy.size(); i++) {
+        success &= assert_equal(total_creation[i], creations_per_cycle[i] * num_cycles[i], "total creations in proxy[" + to_string(i) + "]");
+        AtomDBSingleton::get_instance()->delete_atoms(proxy[i]->get_built_atoms());
+    }
     finish_test_case(test_case, success);
     return success;
 }
@@ -199,9 +190,12 @@ int main(int argc, char* argv[]) {
 
     insert_type_symbols();
     bool success = true;
-    timeout_after_minutes(15);
-    success &= test_and_two_predicates();
+    timeout_after_minutes(10);
+    LOG_INFO("Atom count: " + to_string(AtomDBSingleton::get_instance()->atom_count()));
     success &= test_cycles();
+    LOG_INFO("Atom count: " + to_string(AtomDBSingleton::get_instance()->atom_count()));
+    success &= test_and_two_predicates();
+    LOG_INFO("Atom count: " + to_string(AtomDBSingleton::get_instance()->atom_count()));
     LOG_INFO("================================================================================");
     if (success) {
         LOG_INFO("OK - ALL TEST CASES PASSED");

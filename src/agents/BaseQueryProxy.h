@@ -38,9 +38,11 @@ class BaseQueryProxy : public BaseProxy {
     // Constructors, destructors and static state
 
     // Commands allowed at the proxy level (caller <--> processor)
-    static string ANSWER_BUNDLE;  // Delivery of a bundle with QueryAnswer objects
-    static string ABORT;          // Abort current query
-    static string FINISHED;       // Notification that all query results have alkready been delivered
+    static string ANSWER_BUNDLE;      // Delivery of a bundle with QueryAnswer objects
+    static string BUILT_ATOMS_BUNDLE; // Delivery of a bundle with handles of newly built atoms
+    static string ABORT;              // Abort current query
+    static string FINISHED;           // Notification that all query results have already been
+                                      // delivered
 
     // Query command's optional parameters
     static string UNIQUE_ASSIGNMENT_FLAG;  // When true, query operators (e.g. And, Or) don't output
@@ -142,6 +144,13 @@ class BaseQueryProxy : public BaseProxy {
      */
     virtual bool finished_cycle();
 
+    /**
+     * Returns the handles of the atoms newly built so far.
+     *
+     * @return the handles of the atoms newly built so far.
+     */
+    vector<string> get_built_atoms();
+
     // ---------------------------------------------------------------------------------------------
     // Server-side API
 
@@ -160,6 +169,14 @@ class BaseQueryProxy : public BaseProxy {
      * @param answer Answer to push.
      */
     virtual void push(shared_ptr<QueryAnswer> answer);
+
+    /**
+     * Push the handle of a newly built atom to the proxy. This handle will end in the peer proxy
+     * but it may not happen immediatelly because of the buffering algorithm.
+     *
+     * @param answer Answer to push.
+     */
+    virtual void push_built_atom(const string& handle);
 
     /**
      * Send current answer bundle to remote client peer.
@@ -218,6 +235,13 @@ class BaseQueryProxy : public BaseProxy {
     void answer_bundle(const vector<string>& args);
 
     /**
+     * Piggyback method called by BUILT_ATOMS_BUNDLE command
+     *
+     * @param args Command arguments (tokenized QueryAnswer objects)
+     */
+    void built_atoms_bundle(const vector<string>& args);
+
+    /**
      * Piggyback method called by FINISHED command
      *
      * @param args Command arguments (empty for FINISHED command)
@@ -230,12 +254,14 @@ class BaseQueryProxy : public BaseProxy {
     void init();
     void recursive_metta_mapping(string handle, map<string, string>& table);
 
-    mutex api_mutex;
+    recursive_mutex api_mutex;
     SharedQueue answer_queue;
+    vector<string> built_atoms;
     unsigned int answer_count;
     string context;
     vector<string> query_tokens;
     vector<string> answer_bundle_vector;
+    vector<string> built_atoms_bundle_vector;
     shared_ptr<AtomDB> atomdb;
 };
 

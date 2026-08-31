@@ -1,5 +1,3 @@
-#define LOG_LEVEL DEBUG_LEVEL
-
 #include "LinkCreationProcessor.h"
 
 #if defined(__GLIBC__)
@@ -163,7 +161,8 @@ void LinkCreationProcessor::link_creation(shared_ptr<StoppableThread> monitor,
                 }
                 Utils::sleep();
             } else {
-                LOG_DEBUG("Iterating query answer " + to_string(count_iterated_query_answers++) + ": " +
+                count_iterated_query_answers++;
+                LOG_DEBUG("Iterating query answer " + to_string(count_iterated_query_answers) + ": " +
                           query_answer->to_string(USE_MORK));
                 stats = proxy->link_creation(query_answer);
                 if (stats.created > 0) {
@@ -197,12 +196,13 @@ void LinkCreationProcessor::link_creation(shared_ptr<StoppableThread> monitor,
         proxy->flush_answer_bundle();
         proxy->cycle_ended();
         if (!pm_proxy->finished()) {
-            // aborting pattern matching query
+            // stopping pattern matching query
             pm_proxy->abort();
         }
         proxy->inc_round_count();
         LOG_DEBUG("Cycle ended");
     }
+    LOG_INFO("Iterated through a total of " + to_string(count_iterated_query_answers) + " query answers");
     LOG_INFO("Used a total of " + to_string(count_used_query_answers) + " query answers to create new links");
     LOG_INFO("Built a total of " + to_string(count_created) + " links");
 }
