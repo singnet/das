@@ -23,6 +23,11 @@ if [[ "$*" != *"-y"* ]]; then
     done
 fi
 
+if ! command -v das-cli &>/dev/null; then
+    echo "ERROR: Can't find das-cli"
+    exit 1
+fi
+
 KBGZ="inference_toy_500_5_3_abcde_50_40.metta.gz"
 KB="${KBGZ%.*}"
 cp "$(dirname "$0")"/../assets/$KBGZ /tmp
