@@ -243,6 +243,11 @@ bool BaseQueryProxy::from_remote_peer(const string& command, const vector<string
     }
 }
 
+void BaseQueryProxy::cycle_ended() {
+    flush_answer_bundle();
+    BaseProxy::cycle_ended();
+}
+
 void BaseQueryProxy::answer_bundle(const vector<string>& args) {
     lock_guard<recursive_mutex> semaphore(this->api_mutex);
     if (!this->is_aborting()) {
