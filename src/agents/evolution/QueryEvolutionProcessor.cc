@@ -598,7 +598,6 @@ void QueryEvolutionProcessor::evolve_query(shared_ptr<StoppableThread> monitor,
 #endif
         proxy->new_population_sampled(population);
         if (population.size() > 0) {
-            proxy->flush_answer_bundle();
             STOP_WATCH_START(selection);
             select_best_individuals(proxy, population, selected);
             STOP_WATCH_FINISH(selection, "EvolutionIndividualSelection");
@@ -620,8 +619,6 @@ void QueryEvolutionProcessor::evolve_query(shared_ptr<StoppableThread> monitor,
         this->generation_count++;
         proxy->cycle_ended();
     }
-    proxy->flush_answer_bundle();
-    proxy->cycle_ended();
     if (this->generation_count > 0) {
         LOG_INFO("--------------------");
         LOG_INFO("Last generation with answer improvement: " +

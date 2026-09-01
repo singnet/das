@@ -45,6 +45,7 @@ LinkCreationProxy::~LinkCreationProxy() {}
 void LinkCreationProxy::init() {
     this->command = ServiceBus::LINK_CREATION;
     this->link_creation_function_object = shared_ptr<LinkCreator>(nullptr);
+    this->link_creator_function_tag = "";
     this->round_count = 0;
     this->parameters[LOG_NEW_LINKS] = true;
     this->parameters += SystemParametersSingleton::get_instance()->get_link_creation_agent_params();
