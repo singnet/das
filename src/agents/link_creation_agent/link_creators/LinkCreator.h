@@ -59,7 +59,7 @@ class LinkCreator {
 
     // ----------------------------------------------------------------------------------
     // LCA API
-      
+
     /**
      * Reset the structure that keeps track of already visited groups of handles.
      *
@@ -116,20 +116,22 @@ class LinkCreator {
     /**
      * Gets the flag which indicates is newly created links are supposed to be logged in the
      *
-     * @return the flag which indicates is newly created links are supposed to be logged in the default logger.
+     * @return the flag which indicates is newly created links are supposed to be logged in the default
+     * logger.
      */
     inline bool log_new_links() { return _log_new_links; }
 
     /**
      * Sets the flag which indicates is newly created links are supposed to be logged in the
      *
-     * @param flag which indicates is newly created links are supposed to be logged in the default logger.
+     * @param flag which indicates is newly created links are supposed to be logged in the default
+     * logger.
      */
     inline void set_log_new_links(bool value) { _log_new_links = value; }
 
     // ----------------------------------------------------------------------------------
     // Concrete sub-classes API
-      
+
    public:
     /**
      * Create or update one or more links using the passed QueryAnswer. A LinkCreationStats object is

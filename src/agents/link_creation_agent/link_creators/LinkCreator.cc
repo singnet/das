@@ -1,19 +1,19 @@
+#include "LinkCreator.h"
+
 #include <fstream>
 
-#include "Link.h"
-#include "LinkCreator.h"
 #include "AttentionBrokerClient.h"
+#include "Link.h"
 
 using namespace link_creators;
 using namespace attention_broker;
 
-bool LinkCreator::add_or_update_link(const vector<string>& targets,
-                                     double strength) {
-
+bool LinkCreator::add_or_update_link(const vector<string>& targets, double strength) {
     STACK_TRACE();
     auto db = atomdb();
     bool new_link_created_flag = false;
-    shared_ptr<Link> new_link = make_shared<Link>(Link(EXPRESSION, targets, true, {{STRENGTH_TAG, strength}}));
+    shared_ptr<Link> new_link =
+        make_shared<Link>(Link(EXPRESSION, targets, true, {{STRENGTH_TAG, strength}}));
     LOG_DEBUG("Add or update: " + new_link->to_string());
     string handle = new_link->handle();
     if (db->link_exists(handle)) {
@@ -29,7 +29,8 @@ bool LinkCreator::add_or_update_link(const vector<string>& targets,
         db->add_link(new_link.get());
         this->newly_created_links.push_back(handle);
         if (log_new_links()) {
-            LOG_INFO("ADD LINK: [" + std::to_string(strength) + "] " + new_link->metta_representation(*decoder()));
+            LOG_INFO("ADD LINK: [" + std::to_string(strength) + "] " +
+                     new_link->metta_representation(*decoder()));
         }
         vector<string> determiners = {handle};
         determiners.insert(determiners.end(), targets.begin(), targets.end());

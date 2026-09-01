@@ -37,7 +37,6 @@ LinkCreationProxy::LinkCreationProxy(const vector<string>& tokens,
     this->link_creation_function_object = link_creation_function;
     set_link_creator_function_tag(link_creator_tag);
     set_orchestration_schema(orchestration);
-
 }
 
 LinkCreationProxy::~LinkCreationProxy() {}
@@ -63,9 +62,9 @@ string LinkCreationProxy::to_string() {
 // -------------------------------------------------------------------------------------------------
 // Client-side API
 
-void LinkCreationProxy::pack_command_line_args() { 
+void LinkCreationProxy::pack_command_line_args() {
     STACK_TRACE();
-    tokenize(this->args); 
+    tokenize(this->args);
 }
 
 void LinkCreationProxy::tokenize(vector<string>& output) {
@@ -138,9 +137,12 @@ void LinkCreationProxy::set_link_creator_function_tag(const string& tag) {
         this->link_creator_function_tag = tag;
         if (tag != LinkCreatorRegistry::REMOTE_FUNCTION) {
             this->link_creation_function_object = LinkCreatorRegistry::function(tag);
-            this->link_creation_function_object->strength_threshold(this->parameters.get<double>(LINK_CREATION_STRENGTH_THRESHOLD));
-            this->link_creation_function_object->set_log_file(this->parameters.get<string>(LINK_CREATION_LOG_FILE_NAME));
-            this->link_creation_function_object->set_log_new_links(this->parameters.get<bool>(LOG_NEW_LINKS));
+            this->link_creation_function_object->strength_threshold(
+                this->parameters.get<double>(LINK_CREATION_STRENGTH_THRESHOLD));
+            this->link_creation_function_object->set_log_file(
+                this->parameters.get<string>(LINK_CREATION_LOG_FILE_NAME));
+            this->link_creation_function_object->set_log_new_links(
+                this->parameters.get<bool>(LOG_NEW_LINKS));
         }
     }
 }
@@ -161,7 +163,8 @@ bool LinkCreationProxy::is_link_creation_function_remote() {
 void LinkCreationProxy::flush_determiners() {
     STACK_TRACE();
     if (this->link_creation_function_object != nullptr) {
-        AttentionBrokerClient::set_determiners(this->link_creation_function_object->buffer_determiners(), get_context());
+        AttentionBrokerClient::set_determiners(this->link_creation_function_object->buffer_determiners(),
+                                               get_context());
         this->link_creation_function_object->clear_determiners();
     }
 }

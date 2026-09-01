@@ -178,7 +178,6 @@ cc_binary(
     name = "lca_integration_test",
     srcs = [],
     defines = ["BAZEL_BUILD"],
-    linkstatic = 1,
     linkopts = [
         "-L/usr/local/lib",
         "-lhiredis_cluster",
@@ -186,11 +185,11 @@ cc_binary(
         "-lmongocxx",
         "-lbsoncxx",
     ],
+    linkstatic = 1,
     deps = [
         "//tests/integration/cpp:lca_integration_test_lib",
     ],
 )
-
 
 cc_binary(
     name = "database_adapter",

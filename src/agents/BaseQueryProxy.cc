@@ -98,7 +98,8 @@ vector<string> BaseQueryProxy::get_built_atoms() {
 void BaseQueryProxy::push(shared_ptr<QueryAnswer> answer) {
     lock_guard<recursive_mutex> semaphore(this->api_mutex);
     this->answer_bundle_vector.push_back(answer->tokenize());
-    LOG_DEBUG("Answer pushed to bundle: " + answer->to_string() + " tokens: [" + this->answer_bundle_vector.back() + "]");
+    LOG_DEBUG("Answer pushed to bundle: " + answer->to_string() + " tokens: [" +
+              this->answer_bundle_vector.back() + "]");
     if (this->answer_bundle_vector.size() >= this->parameters.get<unsigned int>(MAX_BUNDLE_SIZE)) {
         flush_answer_bundle();
     }

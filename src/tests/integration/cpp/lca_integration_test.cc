@@ -1,13 +1,13 @@
+#include "AndTwoPredicates.h"
 #include "AtomDBSingleton.h"
 #include "JsonConfigParser.h"
+#include "LinkCreationProxy.h"
+#include "LinkCreatorRegistry.h"
 #include "Logger.h"
+#include "PatternMatchingQueryProxy.h"
 #include "ServiceBusSingleton.h"
 #include "SystemParametersSingleton.h"
 #include "Utils.h"
-#include "LinkCreationProxy.h"
-#include "LinkCreatorRegistry.h"
-#include "AndTwoPredicates.h"
-#include "PatternMatchingQueryProxy.h"
 #include "tags.h"
 
 using namespace std;
@@ -55,28 +55,29 @@ static bool assert_equal(unsigned int v1, unsigned int v2, const string& tag) {
 }
 
 static void timeout_after_minutes(unsigned int minutes) {
-    std::thread t([](unsigned int minutes) {
-        Utils::sleep(minutes * 60000);
-        LOG_INFO("================================================================================");
-        LOG_INFO("TIMEOUT after " + to_string(minutes) + " minute" + string(minutes != 1 ? "s" : ""));
-        exit(1);
-    }, minutes);
+    std::thread t(
+        [](unsigned int minutes) {
+            Utils::sleep(minutes * 60000);
+            LOG_INFO("================================================================================");
+            LOG_INFO("TIMEOUT after " + to_string(minutes) + " minute" +
+                     string(minutes != 1 ? "s" : ""));
+            exit(1);
+        },
+        minutes);
     t.detach();
 }
 
-shared_ptr<LinkCreationProxy> make_proxy(BaseProxy::ORCHESTRATION_SCHEMA_TYPE orchestration = BaseProxy::NONE) {
+shared_ptr<LinkCreationProxy> make_proxy(
+    BaseProxy::ORCHESTRATION_SCHEMA_TYPE orchestration = BaseProxy::NONE) {
     vector<string> query_tokens = {
-        AND_OPERATOR, "2",
-            LINK_TEMPLATE, EXPRESSION, "3",
-                NODE, SYMBOL, EVALUATION_TAG,
-                VARIABLE, PREDICATE1,
-                VARIABLE, CONCEPT,
-            LINK_TEMPLATE, EXPRESSION, "3",
-                NODE, SYMBOL, EVALUATION_TAG,
-                VARIABLE, PREDICATE2,
-                VARIABLE, CONCEPT,
+        AND_OPERATOR, "2",     LINK_TEMPLATE,  EXPRESSION, "3",
+        NODE,         SYMBOL,  EVALUATION_TAG, VARIABLE,   PREDICATE1,
+        VARIABLE,     CONCEPT, LINK_TEMPLATE,  EXPRESSION, "3",
+        NODE,         SYMBOL,  EVALUATION_TAG, VARIABLE,   PREDICATE2,
+        VARIABLE,     CONCEPT,
     };
-    auto proxy = make_shared<LinkCreationProxy>(query_tokens, "", LinkCreatorRegistry::AND_TWO_PREDICATES, orchestration);
+    auto proxy = make_shared<LinkCreationProxy>(
+        query_tokens, "", LinkCreatorRegistry::AND_TWO_PREDICATES, orchestration);
     proxy->parameters[LinkCreationProxy::MAX_SUCCESSFUL_CREATION_PER_ROUND] = (unsigned int) 0;
     proxy->parameters[LinkCreationProxy::MAX_UNPRODUCTIVE_VISITS_PER_ROUND] = (unsigned int) 0;
     proxy->parameters[LinkCreationProxy::MAX_VISIT_ATTEMPTS_PER_ROUND] = (unsigned int) 0;
@@ -131,9 +132,11 @@ static bool test_cycles() {
 
     for (unsigned int i = 0; i < proxy.size(); i++) {
         proxy[i] = make_proxy(BaseProxy::SYNC_ON_CYCLE_START);
-        proxy[i]->parameters[LinkCreationProxy::MAX_SUCCESSFUL_CREATION_PER_ROUND] = (unsigned int) creations_per_cycle[i];
+        proxy[i]->parameters[LinkCreationProxy::MAX_SUCCESSFUL_CREATION_PER_ROUND] =
+            (unsigned int) creations_per_cycle[i];
         proxy[i]->parameters[LinkCreationProxy::MAX_ROUNDS] = (unsigned int) num_cycles[i];
-        proxy[i]->parameters[BaseProxy::ORCHESTRATION_SCHEMA] = (unsigned int) BaseProxy::SYNC_ON_CYCLE_START;
+        proxy[i]->parameters[BaseProxy::ORCHESTRATION_SCHEMA] =
+            (unsigned int) BaseProxy::SYNC_ON_CYCLE_START;
         ServiceBusSingleton::get_instance()->issue_bus_command(proxy[i]);
     }
 
@@ -155,20 +158,26 @@ static bool test_cycles() {
                 }
             }
             if (j < num_cycles[i]) {
-                success &= assert_equal(creation[i], creations_per_cycle[i], "creations in proxy[" + to_string(i) + "] at cycle " + to_string(j));
+                success &=
+                    assert_equal(creation[i],
+                                 creations_per_cycle[i],
+                                 "creations in proxy[" + to_string(i) + "] at cycle " + to_string(j));
             } else {
-                success &= assert_equal(creation[i], 0, "creations in proxy[" + to_string(i) + "] at cycle " + to_string(j));
+                success &= assert_equal(
+                    creation[i], 0, "creations in proxy[" + to_string(i) + "] at cycle " + to_string(j));
             }
             creation[i] = 0;
         }
     }
     for (unsigned int i = 0; i < proxy.size(); i++) {
-        while (! proxy[i]->finished()) {
+        while (!proxy[i]->finished()) {
             Utils::sleep();
         }
     }
     for (unsigned int i = 0; i < proxy.size(); i++) {
-        success &= assert_equal(total_creation[i], creations_per_cycle[i] * num_cycles[i], "total creations in proxy[" + to_string(i) + "]");
+        success &= assert_equal(total_creation[i],
+                                creations_per_cycle[i] * num_cycles[i],
+                                "total creations in proxy[" + to_string(i) + "]");
         AtomDBSingleton::get_instance()->delete_atoms(proxy[i]->get_built_atoms());
     }
     finish_test_case(test_case, success);
@@ -183,7 +192,7 @@ int main(int argc, char* argv[]) {
     string client_endpoint = "localhost:35700";
     string server_endpoint = json_config.at_path("agents.query.endpoint").get<string>();
     pair<unsigned int, unsigned int> ports_range = {35701, 35799};
-    
+
     auto atomdb_config = json_config.at_path("atomdb").get_or<JsonConfig>(JsonConfig());
     SystemParametersSingleton::init(json_config);
     AtomDBSingleton::init(atomdb_config);

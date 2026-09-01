@@ -1,12 +1,12 @@
 #include <cmath>
 
+#include "InMemoryDB.h"
 #include "LinkCreationProcessor.h"
 #include "LinkCreationProxy.h"
 #include "LinkCreatorRegistry.h"
 #include "Logger.h"
 #include "ServiceBus.h"
 #include "ServiceBusSingleton.h"
-#include "InMemoryDB.h"
 #include "TestAtomDBJsonConfig.h"
 #include "TestSystemParams.h"
 #include "Utils.h"
@@ -64,20 +64,18 @@ int main(int argc, char** argv) {
     init_test_system_parameters_singleton();
     LinkCreatorRegistry::initialize_statics();
 
-    //string peer1_id = "localhost:40048";
-    //string peer2_id = "localhost:40049";
-    //ServiceBusSingleton::init(peer1_id, "", 41800, 41899);
-    //FitnessFunctionRegistry::initialize_statics();
-    //shared_ptr<ServiceBus> query_bus = ServiceBusSingleton::get_instance();
-    //query_bus->register_processor(make_shared<PatternMatchingQueryProcessor>());
-    //Utils::sleep(1000);
+    // string peer1_id = "localhost:40048";
+    // string peer2_id = "localhost:40049";
+    // ServiceBusSingleton::init(peer1_id, "", 41800, 41899);
+    // FitnessFunctionRegistry::initialize_statics();
+    // shared_ptr<ServiceBus> query_bus = ServiceBusSingleton::get_instance();
+    // query_bus->register_processor(make_shared<PatternMatchingQueryProcessor>());
+    // Utils::sleep(1000);
 
-    //auto processor = make_shared<TestProcessor>();
-    //shared_ptr<ServiceBus> bus = make_shared<ServiceBus>(peer2_id, peer1_id);
-    //Utils::sleep(1000);
-    //bus->register_processor(processor);
-
+    // auto processor = make_shared<TestProcessor>();
+    // shared_ptr<ServiceBus> bus = make_shared<ServiceBus>(peer2_id, peer1_id);
+    // Utils::sleep(1000);
+    // bus->register_processor(processor);
 
     return RUN_ALL_TESTS();
 }
-
