@@ -228,6 +228,11 @@ class BaseQueryProxy : public BaseProxy {
     virtual bool from_remote_peer(const string& command, const vector<string>& args) override;
 
     /**
+     * Notifies remote proxy that a cycle just ended.
+     */
+    void cycle_ended() override;
+
+    /**
      * Piggyback method called by ANSWER_BUNDLE command
      *
      * @param args Command arguments (tokenized QueryAnswer objects)

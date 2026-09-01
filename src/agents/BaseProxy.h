@@ -110,7 +110,7 @@ class BaseProxy : public BusCommandProxy {
     /**
      * Notifies remote proxy that a cycle just ended.
      */
-    void cycle_ended();
+    virtual void cycle_ended();
 
     /**
      * Returns a string representation with all command parameter values.
