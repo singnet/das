@@ -11,6 +11,7 @@ using namespace agents;
 
 string BaseQueryProxy::ABORT = "abort";
 string BaseQueryProxy::ANSWER_BUNDLE = "answer_bundle";
+string BaseQueryProxy::BUILT_ATOMS_BUNDLE = "built_atoms_bundle";
 string BaseQueryProxy::FINISHED = "finished";
 
 string BaseQueryProxy::UNIQUE_ASSIGNMENT_FLAG = "unique_assignment_flag";
@@ -26,13 +27,13 @@ string BaseQueryProxy::ALLOW_INCOMPLETE_CHAIN_PATH = "allow_incomplete_chain_pat
 
 BaseQueryProxy::BaseQueryProxy() {
     // constructor typically used in processor
-    lock_guard<mutex> semaphore(this->api_mutex);
+    lock_guard<recursive_mutex> semaphore(this->api_mutex);
     init();
 }
 
 BaseQueryProxy::BaseQueryProxy(const vector<string>& tokens, const string& context) : BaseProxy() {
     // constructor typically used in requestor
-    lock_guard<mutex> semaphore(this->api_mutex);
+    lock_guard<recursive_mutex> semaphore(this->api_mutex);
     init();
     this->context = context;
     this->query_tokens.insert(this->query_tokens.end(), tokens.begin(), tokens.end());
@@ -50,7 +51,7 @@ BaseQueryProxy::~BaseQueryProxy() {}
 // Client-side API
 
 shared_ptr<QueryAnswer> BaseQueryProxy::pop() {
-    lock_guard<mutex> semaphore(this->api_mutex);
+    lock_guard<recursive_mutex> semaphore(this->api_mutex);
     if (this->is_aborting()) {
         return shared_ptr<QueryAnswer>(NULL);
     } else {
@@ -59,16 +60,17 @@ shared_ptr<QueryAnswer> BaseQueryProxy::pop() {
 }
 
 unsigned int BaseQueryProxy::get_count() {
-    lock_guard<mutex> semaphore(this->api_mutex);
+    lock_guard<recursive_mutex> semaphore(this->api_mutex);
     return this->answer_count;
 }
 
 void BaseQueryProxy::set_count(unsigned int count) {
-    lock_guard<mutex> semaphore(this->api_mutex);
+    lock_guard<recursive_mutex> semaphore(this->api_mutex);
     this->answer_count = count;
 }
 
 void BaseQueryProxy::tokenize(vector<string>& output) {
+    lock_guard<recursive_mutex> semaphore(this->api_mutex);
     output.insert(output.begin(), this->query_tokens.begin(), this->query_tokens.end());
     output.insert(output.begin(), std::to_string(this->query_tokens.size()));
     output.insert(output.begin(), this->get_context());
@@ -76,15 +78,25 @@ void BaseQueryProxy::tokenize(vector<string>& output) {
 }
 
 bool BaseQueryProxy::finished() {
-    lock_guard<mutex> semaphore(this->api_mutex);
+    lock_guard<recursive_mutex> semaphore(this->api_mutex);
     return (this->is_aborting() || (BaseProxy::finished() && this->answer_queue.empty()));
+}
+
+bool BaseQueryProxy::finished_cycle() {
+    lock_guard<recursive_mutex> semaphore(this->api_mutex);
+    return (this->is_aborting() || (BaseProxy::finished_cycle() && this->answer_queue.empty()));
+}
+
+vector<string> BaseQueryProxy::get_built_atoms() {
+    lock_guard<recursive_mutex> semaphore(this->api_mutex);
+    return this->built_atoms;
 }
 
 // -------------------------------------------------------------------------------------------------
 // Server-side API
 
 void BaseQueryProxy::push(shared_ptr<QueryAnswer> answer) {
-    lock_guard<mutex> semaphore(this->api_mutex);
+    lock_guard<recursive_mutex> semaphore(this->api_mutex);
     this->answer_bundle_vector.push_back(answer->tokenize());
     LOG_DEBUG("Answer pushed to bundle: " + answer->to_string() + " tokens: [" +
               this->answer_bundle_vector.back() + "]");
@@ -93,9 +105,21 @@ void BaseQueryProxy::push(shared_ptr<QueryAnswer> answer) {
     }
 }
 
+void BaseQueryProxy::push_built_atom(const string& handle) {
+    lock_guard<recursive_mutex> semaphore(this->api_mutex);
+    this->built_atoms_bundle_vector.push_back(handle);
+    LOG_DEBUG("Built atom pushed to bundle: " + handle);
+}
+
 void BaseQueryProxy::flush_answer_bundle() {
-    LOG_DEBUG("Flushing " << this->answer_bundle_vector.size() << " answers in bundle");
+    lock_guard<recursive_mutex> semaphore(this->api_mutex);
+    if (this->built_atoms_bundle_vector.size() > 0) {
+        LOG_DEBUG("Flushing " << this->built_atoms_bundle_vector.size() << " answers in bundle");
+        to_remote_peer(BUILT_ATOMS_BUNDLE, this->built_atoms_bundle_vector);
+        this->built_atoms_bundle_vector.clear();
+    }
     if (this->answer_bundle_vector.size() > 0) {
+        LOG_DEBUG("Flushing " << this->answer_bundle_vector.size() << " atoms in bundle");
         to_remote_peer(ANSWER_BUNDLE, this->answer_bundle_vector);
         this->answer_bundle_vector.clear();
     }
@@ -103,11 +127,13 @@ void BaseQueryProxy::flush_answer_bundle() {
 }
 
 void BaseQueryProxy::query_processing_finished() {
+    lock_guard<recursive_mutex> semaphore(this->api_mutex);
     flush_answer_bundle();
     to_remote_peer(FINISHED, {});
 }
 
 void BaseQueryProxy::untokenize(vector<string>& tokens) {
+    lock_guard<recursive_mutex> semaphore(this->api_mutex);
     BaseProxy::untokenize(tokens);
     this->context = tokens[0];
     unsigned int num_query_tokens = std::stoi(tokens[1]);
@@ -118,16 +144,17 @@ void BaseQueryProxy::untokenize(vector<string>& tokens) {
 }
 
 const string& BaseQueryProxy::get_context() {
-    lock_guard<mutex> semaphore(this->api_mutex);
+    lock_guard<recursive_mutex> semaphore(this->api_mutex);
     return this->context;
 }
 
 const vector<string>& BaseQueryProxy::get_query_tokens() {
-    lock_guard<mutex> semaphore(this->api_mutex);
+    lock_guard<recursive_mutex> semaphore(this->api_mutex);
     return this->query_tokens;
 }
 
 string BaseQueryProxy::to_string() {
+    lock_guard<recursive_mutex> semaphore(this->api_mutex);
     string answer = "{";
     answer += "context: " + this->get_context();
     answer += ", tokens: [";
@@ -208,6 +235,8 @@ bool BaseQueryProxy::from_remote_peer(const string& command, const vector<string
     } else {
         if (command == ANSWER_BUNDLE) {
             answer_bundle(args);
+        } else if (command == BUILT_ATOMS_BUNDLE) {
+            built_atoms_bundle(args);
         } else {
             return false;
         }
@@ -215,17 +244,35 @@ bool BaseQueryProxy::from_remote_peer(const string& command, const vector<string
     }
 }
 
+void BaseQueryProxy::cycle_ended() {
+    flush_answer_bundle();
+    BaseProxy::cycle_ended();
+}
+
 void BaseQueryProxy::answer_bundle(const vector<string>& args) {
-    lock_guard<mutex> semaphore(this->api_mutex);
+    lock_guard<recursive_mutex> semaphore(this->api_mutex);
     if (!this->is_aborting()) {
         if (args.size() == 0) {
-            RAISE_ERROR("Invalid empty query answer bundle");
+            LOG_INFO("Disregarding empty query answer bundle");
         } else {
             for (auto tokens : args) {
                 QueryAnswer* query_answer = new QueryAnswer();
                 query_answer->untokenize(tokens);
                 this->answer_queue.enqueue((void*) query_answer);
                 this->answer_count++;
+            }
+        }
+    }
+}
+
+void BaseQueryProxy::built_atoms_bundle(const vector<string>& args) {
+    lock_guard<recursive_mutex> semaphore(this->api_mutex);
+    if (!this->is_aborting()) {
+        if (args.size() == 0) {
+            LOG_INFO("Disregarding empty built atoms answer bundle");
+        } else {
+            for (auto handle : args) {
+                this->built_atoms.push_back(handle);
             }
         }
     }

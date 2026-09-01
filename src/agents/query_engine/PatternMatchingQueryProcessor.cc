@@ -134,10 +134,14 @@ void PatternMatchingQueryProcessor::update_attention_broker_single_answer(
         // }
     }
 
-    if (single_answer.size() > 1) {
-        AttentionBrokerClient::correlate(single_answer, proxy->get_context());
+    if (control_single != BaseQueryProxy::NONE) {
+        if (single_answer.size() > 1) {
+            AttentionBrokerClient::correlate(single_answer, proxy->get_context());
+        } else {
+            LOG_DEBUG("Too few handles (" + std::to_string(single_answer.size()) + ") to correlate");
+        }
     } else {
-        LOG_DEBUG("Too few handles (" + std::to_string(single_answer.size()) + ") to correlate");
+        LOG_DEBUG("No correlation update");
     }
 }
 
@@ -163,6 +167,11 @@ void PatternMatchingQueryProcessor::process_query_answers(
     unsigned int max_answers = proxy->parameters.get<unsigned int>(BaseQueryProxy::MAX_ANSWERS);
     bool populate_metta = proxy->parameters.get<bool>(BaseQueryProxy::POPULATE_METTA_MAPPING);
     while ((answer = query_sink->input_buffer->pop_query_answer()) != NULL) {
+        if (proxy->is_aborting()) {
+            LOG_INFO("Query aborted");
+            delete answer;
+            return;
+        }
         answer_count++;
         update_attention_broker_single_answer(proxy, answer, joint_answer);
         if (proxy->parameters.get<bool>(PatternMatchingQueryProxy::COUNT_FLAG)) {
