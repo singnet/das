@@ -25,7 +25,7 @@ class AndTwoPredicates : public LinkCreator {
     ~AndTwoPredicates();
 
     /**
-     * Creates two expressions: (LogicalAnd $PREDICATE1 $PREDICATE2) and 
+     * Creates two expressions: (LogicalAnd $PREDICATE1 $PREDICATE2) and
      * (Evaluation (LogicalAnd $PREDICATE1 $PREDICATE2) $CONCEPT) given a query_answer
      * with proper variable assignment.
      *
