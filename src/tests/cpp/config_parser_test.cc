@@ -45,7 +45,7 @@ const char* kValidConfigV1 = R"({
   },
   "vault": {
     "type": "openbao",
-    "endpoint": "localhost:8200"
+    "endpoint": "localhost:40010"
   }
 })";
 
@@ -128,7 +128,7 @@ TEST(ConfigParserTest, VaultTypeValueNotCheckedWithoutRefs) {
       "atomdb": { "type": "redismongodb" },
       "loaders": {},
       "agents": {},
-      "vault": { "type": "hashicorp", "endpoint": "localhost:8200" }
+      "vault": { "type": "hashicorp", "endpoint": "localhost:40010" }
     })";
     JsonConfig config = JsonConfigParser::load_from_string(other_type);
     EXPECT_EQ(config.at_path("vault.type").get_or<string>(""), "hashicorp");
@@ -176,7 +176,7 @@ TEST(VaultJsonResolverTest, KeyMatchingReplacement) {
                               {"endpoint", "localhost:40021"},
                               {"username", "admin"},
                               {"password", "s3cret"}};
-    nlohmann::json root = {{"vault", {{"type", "openbao"}, {"endpoint", "http://localhost:8200"}}},
+    nlohmann::json root = {{"vault", {{"type", "openbao"}, {"endpoint", "http://localhost:40010"}}},
                            {"atomdb",
                             {{"mongodb", "vault://test/db"},
                              {"peer",
@@ -211,11 +211,11 @@ TEST(VaultJsonResolverTest, KeyMatchingReplacement) {
     EXPECT_EQ(root["atomdb"]["peer"]["endpoint"], "localhost:40021");
     EXPECT_EQ(root["atomdb"]["peer"]["username"], "admin");
     EXPECT_EQ(root["atomdb"]["peer"]["password"], "s3cret");
-    EXPECT_EQ(root["vault"]["endpoint"], "http://localhost:8200");
+    EXPECT_EQ(root["vault"]["endpoint"], "http://localhost:40010");
 }
 
 TEST(VaultJsonResolverTest, AttentionObjectFromMatchingKey) {
-    nlohmann::json root = {{"vault", {{"type", "openbao"}, {"endpoint", "http://localhost:8200"}}},
+    nlohmann::json root = {{"vault", {{"type", "openbao"}, {"endpoint", "http://localhost:40010"}}},
                            {"agents", {{"attention", "vault://test/agents"}}}};
     VaultJsonResolver::resolve(root, [](const string&, const string&) {
         return nlohmann::json{{"attention", {{"endpoint", "localhost:40001"}}}};
@@ -225,7 +225,7 @@ TEST(VaultJsonResolverTest, AttentionObjectFromMatchingKey) {
 }
 
 TEST(VaultJsonResolverTest, ArrayElementVaultRefFails) {
-    nlohmann::json root = {{"vault", {{"type", "openbao"}, {"endpoint", "http://localhost:8200"}}},
+    nlohmann::json root = {{"vault", {{"type", "openbao"}, {"endpoint", "http://localhost:40010"}}},
                            {"nodes", nlohmann::json::array({"vault://test/db"})}};
     EXPECT_THROW(
         VaultJsonResolver::resolve(root,
@@ -236,7 +236,7 @@ TEST(VaultJsonResolverTest, ArrayElementVaultRefFails) {
 }
 
 TEST(VaultJsonResolverTest, MissingSecretFails) {
-    nlohmann::json root = {{"vault", {{"type", "openbao"}, {"endpoint", "localhost:8200"}}},
+    nlohmann::json root = {{"vault", {{"type", "openbao"}, {"endpoint", "localhost:40010"}}},
                            {"password", "vault://test/dbs/missing"}};
 
     EXPECT_THROW(VaultJsonResolver::resolve(root,
@@ -247,7 +247,7 @@ TEST(VaultJsonResolverTest, MissingSecretFails) {
 }
 
 TEST(VaultJsonResolverTest, HasVaultRefsIgnoresVaultBlock) {
-    nlohmann::json root = {{"vault", {{"type", "openbao"}, {"endpoint", "localhost:8200"}}},
+    nlohmann::json root = {{"vault", {{"type", "openbao"}, {"endpoint", "localhost:40010"}}},
                            {"x", "plain"}};
     EXPECT_FALSE(VaultJsonResolver::has_vault_refs(root));
 
@@ -271,7 +271,7 @@ void expect_resolve_from_config_rejects_without_prompt(nlohmann::json root, cons
 
 nlohmann::json vault_root_with(const nlohmann::json& extra) {
     nlohmann::json root = extra;
-    root["vault"] = {{"type", "openbao"}, {"endpoint", "http://localhost:8200"}};
+    root["vault"] = {{"type", "openbao"}, {"endpoint", "http://localhost:40010"}};
     return root;
 }
 
@@ -296,13 +296,13 @@ TEST(VaultJsonResolverTest, EmptyConfigKeyDoesNotPromptOrContactVault) {
 
 TEST(VaultJsonResolverTest, MissingEndpointSchemeDoesNotPrompt) {
     nlohmann::json root = vault_root_with({{"password", "vault://test/db"}});
-    root["vault"]["endpoint"] = "localhost:8200";
+    root["vault"]["endpoint"] = "localhost:40010";
     expect_resolve_from_config_rejects_without_prompt(root, "must include a scheme");
 }
 
 TEST(VaultJsonResolverTest, UnsupportedEndpointSchemeDoesNotPrompt) {
     nlohmann::json root = vault_root_with({{"password", "vault://test/db"}});
-    root["vault"]["endpoint"] = "ftp://localhost:8200";
+    root["vault"]["endpoint"] = "ftp://localhost:40010";
     expect_resolve_from_config_rejects_without_prompt(root, "scheme must be http or https");
 
     root["vault"]["endpoint"] = "file:///tmp/vault";
@@ -311,7 +311,7 @@ TEST(VaultJsonResolverTest, UnsupportedEndpointSchemeDoesNotPrompt) {
 
 TEST(VaultJsonResolverTest, HttpAndHttpsEndpointsReachTokenPrompt) {
     nlohmann::json root = vault_root_with({{"password", "vault://test/db"}});
-    for (const char* endpoint : {"http://localhost:8200", "https://localhost:8200"}) {
+    for (const char* endpoint : {"http://localhost:40010", "https://localhost:40010"}) {
         root["vault"]["endpoint"] = endpoint;
         try {
             VaultJsonResolver::resolve_from_config(root);
@@ -329,7 +329,7 @@ TEST(ConfigParserTest, MalformedVaultUriFailsBeforeTokenPrompt) {
       "atomdb": { "type": "redismongodb", "password": "vault://test" },
       "loaders": {},
       "agents": {},
-      "vault": { "type": "openbao", "endpoint": "http://localhost:8200" }
+      "vault": { "type": "openbao", "endpoint": "http://localhost:40010" }
     })";
     try {
         JsonConfigParser::load_from_string(json);
@@ -349,7 +349,7 @@ TEST(ConfigParserTest, VaultRefsWithoutTerminalTokenFail) {
       },
       "loaders": {},
       "agents": {},
-      "vault": { "type": "openbao", "endpoint": "localhost:8200" }
+      "vault": { "type": "openbao", "endpoint": "localhost:40010" }
     })";
     EXPECT_THROW(JsonConfigParser::load_from_string(with_ref), runtime_error);
 }

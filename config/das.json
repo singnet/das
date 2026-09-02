@@ -145,7 +145,7 @@
     },
     "vault": {
         "type": "openbao",
-        "endpoint": "http://localhost:8200"
+        "endpoint": "http://localhost:40010"
     },
     "agents": {
         "schema_version": "1.1.0",

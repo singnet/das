@@ -121,7 +121,7 @@
     },
     "vault": {
         "type": "openbao",
-        "endpoint": "localhost:8200"
+        "endpoint": "http://localhost:40010"
     },
     "params": {
         "query": {
