@@ -54,7 +54,7 @@ class LinkCreationStats {
  */
 class LinkCreator {
    public:
-    LinkCreator() : _context("") {}
+    LinkCreator();
     virtual ~LinkCreator() {}
 
     // ----------------------------------------------------------------------------------
@@ -91,12 +91,12 @@ class LinkCreator {
      *
      * @return The buffer for Attention Broker's importance determiners.
      */
-    inline const vector<vector<string>>& buffer_determiners() { return _buffer_determiners; }
+    inline const vector<vector<string>>& buffer_determiners() { return this->_buffer_determiners; }
 
     /**
      * Clear the buffer for Attention Broker's importance determiners
      */
-    inline void clear_determiners() { _buffer_determiners.clear(); }
+    inline void clear_determiners() { this->_buffer_determiners.clear(); }
 
     /**
      * Sets the name of the link creation log file. Un empty name means that no logging of
@@ -104,14 +104,14 @@ class LinkCreator {
      *
      * @param file_name The name of the logging file.
      */
-    inline void set_log_file(const string& file_name) { _link_creation_log_file_name = file_name; }
+    inline void set_log_file(const string& file_name) { this->_link_creation_log_file_name = file_name; }
 
     /**
      * Gets the name of the newly created links log file.
      *
      * @return the name of the newly created links log file.
      */
-    inline string& get_log_file() { return _link_creation_log_file_name; }
+    inline string& get_log_file() { return this->_link_creation_log_file_name; }
 
     /**
      * Gets the flag which indicates is newly created links are supposed to be logged in the
@@ -119,7 +119,7 @@ class LinkCreator {
      * @return the flag which indicates is newly created links are supposed to be logged in the default
      * logger.
      */
-    inline bool log_new_links() { return _log_new_links; }
+    inline bool log_new_links() { return this->_log_new_links; }
 
     /**
      * Sets the flag which indicates is newly created links are supposed to be logged in the
@@ -127,7 +127,7 @@ class LinkCreator {
      * @param flag which indicates is newly created links are supposed to be logged in the default
      * logger.
      */
-    inline void set_log_new_links(bool value) { _log_new_links = value; }
+    inline void set_log_new_links(bool value) { this->_log_new_links = value; }
 
     // ----------------------------------------------------------------------------------
     // Concrete sub-classes API
@@ -157,7 +157,7 @@ class LinkCreator {
     inline double strength_threshold() { return this->_strength_threshold; }
     inline shared_ptr<AtomDB> atomdb() { return AtomDBSingleton::get_instance(); }
     inline HandleDecoder* decoder() { return static_pointer_cast<HandleDecoder>(atomdb()).get(); }
-    inline void add_determiners(vector<string>& entry) { _buffer_determiners.push_back(entry); }
+    inline void add_determiners(vector<string>& entry) { this->_buffer_determiners.push_back(entry); }
 
     bool add_or_update_link(const vector<string>& targets, double strength);
     double get_strength(const string& handle);

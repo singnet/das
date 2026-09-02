@@ -140,7 +140,7 @@ void LinkCreationProxy::set_link_creator_function_tag(const string& tag) {
             this->link_creation_function_object->strength_threshold(
                 this->parameters.get<double>(LINK_CREATION_STRENGTH_THRESHOLD));
             this->link_creation_function_object->set_log_file(
-                this->parameters.get<string>(LINK_CREATION_LOG_FILE_NAME));
+                this->parameters.get_or<string>(LINK_CREATION_LOG_FILE_NAME, ""));
             this->link_creation_function_object->set_log_new_links(
                 this->parameters.get<bool>(LOG_NEW_LINKS));
         }

@@ -150,8 +150,8 @@ void LinkCreationProcessor::link_creation(shared_ptr<StoppableThread> monitor,
     STACK_TRACE();
     unsigned int count_created = 0;
     unsigned int count_used_query_answers = 0;
-    unsigned int count_query_answers_in_cycle = 0;
     unsigned int count_iterated_query_answers = 0;
+    unsigned int count_query_answers_in_cycle = 0;
     unsigned int unproductive_visit = 0;
     unsigned int visit_attempts = 0;
     shared_ptr<QueryAnswer> query_answer;
@@ -165,6 +165,9 @@ void LinkCreationProcessor::link_creation(shared_ptr<StoppableThread> monitor,
         }
         // Starting one round of link creation
         auto pm_proxy = issue_link_creation_query(proxy);
+        count_query_answers_in_cycle = 0;
+        visit_attempts = 0;
+        unproductive_visit = 0;
         while (!(monitor->stopped())) {
             // Draining query results
             if ((query_answer = pm_proxy->pop()) == nullptr) {
@@ -188,7 +191,6 @@ void LinkCreationProcessor::link_creation(shared_ptr<StoppableThread> monitor,
                     if (limit_reached(proxy,
                                       count_query_answers_in_cycle,
                                       LinkCreationProxy::MAX_SUCCESSFUL_CREATION_PER_ROUND)) {
-                        count_query_answers_in_cycle = 0;
                         break;
                     }
                 } else if (stats.visited) {

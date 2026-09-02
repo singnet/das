@@ -49,8 +49,7 @@ const char kAgentsJson[] = R"({
         "max_unproductive_visits_per_round": 500,
         "max_visit_attempts_per_round": 20,
         "max_rounds": 5,
-        "link_creation_strength_threshold": 0.1,
-        "link_creation_log_file_name": ""
+        "link_creation_strength_threshold": 0.1
       }
     },
     "evolution": {

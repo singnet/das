@@ -8,6 +8,13 @@
 using namespace link_creators;
 using namespace attention_broker;
 
+LinkCreator::LinkCreator() {
+    this->_context = "";
+    this->_strength_threshold = 0;
+    this->_link_creation_log_file_name = "";
+    this->_log_new_links = false;
+}
+
 bool LinkCreator::add_or_update_link(const vector<string>& targets, double strength) {
     STACK_TRACE();
     auto db = atomdb();

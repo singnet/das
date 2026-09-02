@@ -51,7 +51,6 @@ TEST(SystemParametersTest, get_link_creation_agent_params) {
     EXPECT_EQ(params.get<unsigned int>("max_visit_attempts_per_round"), 20U);
     EXPECT_EQ(params.get<unsigned int>("max_rounds"), 5U);
     EXPECT_EQ(params.get<double>("link_creation_strength_threshold"), 0.1);
-    EXPECT_EQ(params.get<string>("link_creation_log_file_name"), "");
     EXPECT_EQ(params.get<bool>("unique_assignment_flag"), false);
     EXPECT_EQ(params.get<bool>("positive_importance_flag"), false);
     EXPECT_EQ(params.get<bool>("disregard_importance_flag"), false);
