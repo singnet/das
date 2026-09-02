@@ -63,20 +63,19 @@ RedisMongoDB::~RedisMongoDB() {
 bool RedisMongoDB::allow_nested_indexing() { return false; }
 
 vector<shared_ptr<atomdb_api_types::AccessPermissionDocument>> RedisMongoDB::get_access_permissions(
-    const atomdb_api_types::PublicKey& public_key) const {
+    const PublicKey& public_key) const {
     vector<shared_ptr<atomdb_api_types::AccessPermissionDocument>> documents;
 
     if (public_key.is_single_key()) {
-        auto document = this->load_access_permission_document(public_key.keys[0]);
+        auto document = this->load_access_permission_document(public_key.key());
         if (document.has_value()) {
             documents.push_back(document.value());
         }
         return documents;
     }
 
-    for (const auto& [peer_uid, idx] : (public_key.peer_to_key)) {
-        string key = public_key.keys[idx];
-        auto document = this->load_access_permission_document(key);
+    for (const auto& peer_key : public_key.peer_keys()) {
+        auto document = this->load_access_permission_document(peer_key.second);
         if (document.has_value()) {
             documents.push_back(document.value());
         }

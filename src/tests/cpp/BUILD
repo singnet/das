@@ -852,6 +852,21 @@ cc_test(
 )
 
 cc_test(
+    name = "public_key_test",
+    size = "small",
+    srcs = ["public_key_test.cc"],
+    copts = [
+        "-Iexternal/gtest/googletest/include",
+        "-Iexternal/gtest/googletest",
+    ],
+    linkstatic = 1,
+    deps = [
+        "//atomdb:public_key",
+        "@com_github_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
     name = "protected_atomdb_test",
     size = "small",
     srcs = ["protected_atomdb_test.cc"],

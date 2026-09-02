@@ -10,6 +10,7 @@
 #include "LinkSchema.h"
 #include "Merger.h"
 #include "Properties.h"
+#include "PublicKey.h"
 
 using namespace std;
 using namespace commons;
@@ -116,7 +117,7 @@ class AtomDB : public HandleDecoder {
     bool empty() const { return atom_count() == 0; }
 
     virtual vector<shared_ptr<atomdb_api_types::AccessPermissionDocument>> get_access_permissions(
-        const atomdb_api_types::PublicKey& public_key) const {
+        const PublicKey& public_key) const {
         return {};
     }
 };

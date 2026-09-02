@@ -1,8 +1,6 @@
 #pragma once
 
-#include <algorithm>
 #include <map>
-#include <optional>
 #include <vector>
 
 #include "Link.h"
@@ -80,23 +78,6 @@ class AccessPermissionEntry {
     virtual bool get_write() const = 0;
     virtual unsigned int get_tokens_size() const = 0;
     virtual const char* get_token(unsigned int index) const = 0;
-};
-
-class PublicKey {
-   public:
-    vector<string> keys;
-    map<string, unsigned int> peer_to_key;
-
-    bool is_single_key() const { return this->peer_to_key.empty(); }
-
-    explicit PublicKey(const string& key) : keys{key} {}
-    explicit PublicKey(const map<string, string>& peer_keys) {
-        this->keys.reserve(peer_keys.size());
-        for (const auto& [peer, key] : peer_keys) {
-            this->peer_to_key[peer] = this->keys.size();
-            this->keys.push_back(key);
-        }
-    }
 };
 
 class AccessPermissionDocument {
