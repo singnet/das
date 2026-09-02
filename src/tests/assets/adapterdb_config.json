@@ -119,6 +119,10 @@
             "ports_range": "47000:47999"
         }
     },
+    "vault": {
+        "type": "openbao",
+        "endpoint": "http://localhost:40010"
+    },
     "params": {
         "query": {
             "max_answers": 100,

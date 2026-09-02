@@ -1682,6 +1682,44 @@ TEST_F(RedisMongoDBTest, IgnoresConflictingProtectionConfigurationDocuments) {
     collection.delete_many({});
 }
 
+namespace {
+
+void expect_create_fails_with(nlohmann::json json, const string& context, const string& substr) {
+    try {
+        AtomDBFactory::create(commons::JsonConfig(std::move(json)), context);
+        FAIL() << "expected AtomDBFactory::create to throw";
+    } catch (const runtime_error& e) {
+        string msg = e.what();
+        EXPECT_NE(msg.find(substr), string::npos) << msg;
+    }
+}
+
+}  // namespace
+
+TEST(RedisMongoDBConfigValidation, MissingRedisEndpointFailsBeforePool) {
+    auto json = test_atomdb_json_config().get_json();
+    json["redis"].erase("endpoint");
+    expect_create_fails_with(json, "missing_redis_endpoint_", "Invalid Redis configuration");
+}
+
+TEST(RedisMongoDBConfigValidation, MissingMongodbEndpoint) {
+    auto json = test_atomdb_json_config().get_json();
+    json["mongodb"].erase("endpoint");
+    expect_create_fails_with(json, "missing_mongodb_endpoint_", "Invalid MongoDB configuration");
+}
+
+TEST(RedisMongoDBConfigValidation, MissingMongodbUsername) {
+    auto json = test_atomdb_json_config().get_json();
+    json["mongodb"].erase("username");
+    expect_create_fails_with(json, "missing_mongodb_username_", "Invalid MongoDB configuration");
+}
+
+TEST(RedisMongoDBConfigValidation, MissingMongodbPassword) {
+    auto json = test_atomdb_json_config().get_json();
+    json["mongodb"].erase("password");
+    expect_create_fails_with(json, "missing_mongodb_password_", "Invalid MongoDB configuration");
+}
+
 int main(int argc, char** argv) {
     ::testing::InitGoogleTest(&argc, argv);
     ::testing::AddGlobalTestEnvironment(new RedisMongoDBTestEnvironment());

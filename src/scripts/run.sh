@@ -25,6 +25,13 @@ IMAGE_NAME="das-builder:${ARCH}"
 CONTAINER_NAME="das-${BINARY_NAME}-$(uuidgen | cut -d '-' -f 1)-$(date +%Y%m%d%H%M%S)"
 
 ENV_VARS=$(test -f .env && echo "--env-file=.env" || echo "")
+TTY_FLAGS=""
+if [ -t 0 ]; then
+    TTY_FLAGS="-i"
+    if [ -t 1 ]; then
+        TTY_FLAGS="-it"
+    fi
+fi
 
 mkdir -p bin
 docker run --rm \
@@ -34,6 +41,7 @@ docker run --rm \
     --volume /tmp:/tmp \
     --workdir /opt/das \
     $ENV_VARS \
+    $TTY_FLAGS \
     "${IMAGE_NAME}" \
     "bin/$ARCH/${BINARY_NAME}" "$@"
 
