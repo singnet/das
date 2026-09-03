@@ -1,11 +1,13 @@
 #include "LinkCreationProxy.h"
 
+#include "AttentionBrokerClient.h"
 #include "LinkCreatorRegistry.h"
 #include "Logger.h"
 #include "ServiceBus.h"
 #include "SystemParametersSingleton.h"
 
 using namespace link_creation_agent;
+using namespace attention_broker;
 
 // -------------------------------------------------------------------------------------------------
 // Constructors, destructors and initialization
@@ -14,6 +16,9 @@ string LinkCreationProxy::MAX_SUCCESSFUL_CREATION_PER_ROUND = "max_successful_cr
 string LinkCreationProxy::MAX_UNPRODUCTIVE_VISITS_PER_ROUND = "max_unproductive_visits_per_round";
 string LinkCreationProxy::MAX_VISIT_ATTEMPTS_PER_ROUND = "max_visit_attempts_per_round";
 string LinkCreationProxy::MAX_ROUNDS = "max_rounds";
+string LinkCreationProxy::LINK_CREATION_STRENGTH_THRESHOLD = "link_creation_strength_threshold";
+string LinkCreationProxy::LINK_CREATION_LOG_FILE_NAME = "link_creation_log_file_name";
+string LinkCreationProxy::LOG_NEW_LINKS = "log_new_links";
 
 LinkCreationProxy::LinkCreationProxy() {
     // constructor typically used in processor
@@ -24,12 +29,14 @@ LinkCreationProxy::LinkCreationProxy() {
 LinkCreationProxy::LinkCreationProxy(const vector<string>& tokens,
                                      const string& context,
                                      const string& link_creator_tag,
+                                     BaseProxy::ORCHESTRATION_SCHEMA_TYPE orchestration,
                                      const shared_ptr<LinkCreator> link_creation_function)
     : BaseQueryProxy(tokens, context) {
     // constructor typically used in requestor
     init();
     this->link_creation_function_object = link_creation_function;
     set_link_creator_function_tag(link_creator_tag);
+    set_orchestration_schema(orchestration);
 }
 
 LinkCreationProxy::~LinkCreationProxy() {}
@@ -38,10 +45,12 @@ void LinkCreationProxy::init() {
     this->command = ServiceBus::LINK_CREATION;
     this->link_creation_function_object = shared_ptr<LinkCreator>(nullptr);
     this->round_count = 0;
+    this->parameters[LOG_NEW_LINKS] = true;
     this->parameters += SystemParametersSingleton::get_instance()->get_link_creation_agent_params();
 }
 
 string LinkCreationProxy::to_string() {
+    STACK_TRACE();
     lock_guard<mutex> semaphore(this->api_mutex);
     string answer = "{BaseQueryProxy: ";
     answer += BaseQueryProxy::to_string();
@@ -53,9 +62,13 @@ string LinkCreationProxy::to_string() {
 // -------------------------------------------------------------------------------------------------
 // Client-side API
 
-void LinkCreationProxy::pack_command_line_args() { tokenize(this->args); }
+void LinkCreationProxy::pack_command_line_args() {
+    STACK_TRACE();
+    tokenize(this->args);
+}
 
 void LinkCreationProxy::tokenize(vector<string>& output) {
+    STACK_TRACE();
     lock_guard<mutex> semaphore(this->api_mutex);
     output.insert(output.begin(), this->link_creator_function_tag);
     BaseQueryProxy::tokenize(output);
@@ -65,6 +78,7 @@ void LinkCreationProxy::tokenize(vector<string>& output) {
 // Server-side API
 
 void LinkCreationProxy::untokenize(vector<string>& tokens) {
+    STACK_TRACE();
     BaseQueryProxy::untokenize(tokens);
     if (tokens.size() < 1) {
         RAISE_ERROR("Invalid tokens for LinkCreationProxy");
@@ -74,6 +88,7 @@ void LinkCreationProxy::untokenize(vector<string>& tokens) {
 }
 
 LinkCreationStats LinkCreationProxy::link_creation(shared_ptr<QueryAnswer> answer) {
+    STACK_TRACE();
     lock_guard<mutex> semaphore(this->api_mutex);
     LinkCreationStats stats;
     if (this->link_creator_function_tag == "") {
@@ -86,16 +101,28 @@ LinkCreationStats LinkCreationProxy::link_creation(shared_ptr<QueryAnswer> answe
         }
     } else {
         stats = this->link_creation_function_object->create(answer);
+        for (string& handle : this->link_creation_function_object->newly_created_links) {
+            push_built_atom(handle);
+        }
+        this->link_creation_function_object->newly_created_links.clear();
     }
     return stats;
 }
 
 bool LinkCreationProxy::stop_criteria_met() {
+    STACK_TRACE();
     lock_guard<mutex> semaphore(this->api_mutex);
-    return (this->round_count >= this->parameters.get<unsigned int>(MAX_ROUNDS));
+    bool answer = false;
+    unsigned int limit = this->parameters.get<unsigned int>(MAX_ROUNDS);
+    if (limit > 0) {
+        answer = (this->round_count >= limit);
+    }
+    return answer;
 }
 
 void LinkCreationProxy::set_link_creator_function_tag(const string& tag) {
+    STACK_TRACE();
+    LOG_INFO("LinkCreator: " + tag);
     lock_guard<mutex> semaphore(this->api_mutex);
     if (tag == LinkCreatorRegistry::REMOTE_FUNCTION) {
         RAISE_ERROR("Remote evaluation of link creators is not implemented yet.");
@@ -110,25 +137,43 @@ void LinkCreationProxy::set_link_creator_function_tag(const string& tag) {
         this->link_creator_function_tag = tag;
         if (tag != LinkCreatorRegistry::REMOTE_FUNCTION) {
             this->link_creation_function_object = LinkCreatorRegistry::function(tag);
+            this->link_creation_function_object->strength_threshold(
+                this->parameters.get<double>(LINK_CREATION_STRENGTH_THRESHOLD));
+            this->link_creation_function_object->set_log_file(
+                this->parameters.get_or<string>(LINK_CREATION_LOG_FILE_NAME, ""));
+            this->link_creation_function_object->set_log_new_links(
+                this->parameters.get<bool>(LOG_NEW_LINKS));
         }
     }
 }
 
 void LinkCreationProxy::inc_round_count() {
+    STACK_TRACE();
     lock_guard<mutex> semaphore(this->api_mutex);
     this->round_count++;
 }
 
 bool LinkCreationProxy::is_link_creation_function_remote() {
+    STACK_TRACE();
     lock_guard<mutex> semaphore(this->api_mutex);
     return (this->link_creation_function_object == nullptr) &&
            (this->link_creator_function_tag == LinkCreatorRegistry::REMOTE_FUNCTION);
+}
+
+void LinkCreationProxy::flush_determiners() {
+    STACK_TRACE();
+    if (this->link_creation_function_object != nullptr) {
+        AttentionBrokerClient::set_determiners(this->link_creation_function_object->buffer_determiners(),
+                                               get_context());
+        this->link_creation_function_object->clear_determiners();
+    }
 }
 
 // ---------------------------------------------------------------------------------------------
 // Virtual superclass API and the piggyback methods called by it
 
 bool LinkCreationProxy::from_remote_peer(const string& command, const vector<string>& args) {
+    STACK_TRACE();
     LOG_DEBUG("Proxy command: <" << command << "> from " << this->peer_id() << " received in "
                                  << this->my_id());
     if (BaseQueryProxy::from_remote_peer(command, args)) {

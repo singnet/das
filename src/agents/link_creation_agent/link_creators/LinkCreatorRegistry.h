@@ -18,6 +18,8 @@ namespace link_creators {
 class LinkCreatorRegistry {
    public:
     static string REMOTE_FUNCTION;
+    static string UNIT_TEST;
+    static string AND_TWO_PREDICATES;
 
     ~LinkCreatorRegistry() {}
     static shared_ptr<LinkCreator> function(const string& tag);
