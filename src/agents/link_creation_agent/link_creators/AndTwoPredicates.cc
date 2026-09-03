@@ -37,6 +37,7 @@ LinkCreationStats AndTwoPredicates::create(shared_ptr<QueryAnswer> query_answer)
             extract_mentioned_predicates(mentioned_predicates1, predicates[1]);
             if (!Utils::intersects(mentioned_predicates0, mentioned_predicates1)) {
                 vector<string> targets = {LOGICAL_AND_HANDLE, predicates[0], predicates[1]};
+                add_or_update_link(targets, 1.0);
                 stats.created++;
                 double strength = 1;
                 for (string& h : query_answer->get_handles_vector()) {
