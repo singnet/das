@@ -41,6 +41,7 @@ class LinkCreationProcessor : public BusCommandProcessor {
     void thread_process_one_query(shared_ptr<StoppableThread>, shared_ptr<LinkCreationProxy> proxy);
     void remove_processor_thread(const string& stoppable_thread_id);
     void link_creation(shared_ptr<StoppableThread> monitor, shared_ptr<LinkCreationProxy> proxy);
+    bool limit_reached(shared_ptr<LinkCreationProxy> proxy, unsigned int count, string& property);
 
     map<string, shared_ptr<StoppableThread>> processor_threads;
     mutex thread_management_mutex;

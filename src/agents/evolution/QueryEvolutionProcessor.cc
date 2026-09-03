@@ -620,7 +620,6 @@ void QueryEvolutionProcessor::evolve_query(shared_ptr<StoppableThread> monitor,
         this->generation_count++;
         proxy->cycle_ended();
     }
-    proxy->flush_answer_bundle();
     if (this->generation_count > 0) {
         LOG_INFO("--------------------");
         LOG_INFO("Last generation with answer improvement: " +
