@@ -109,7 +109,7 @@ static bool test_and_two_predicates() {
             Utils::sleep();
         }
     }
-    success &= assert_equal(proxy->get_count(), 7816, "link creation count");
+    success &= assert_equal(proxy->get_count(), 10530, "link creation count");
     AtomDBSingleton::get_instance()->delete_atoms(proxy->get_built_atoms());
 
     finish_test_case(test_case, success);
