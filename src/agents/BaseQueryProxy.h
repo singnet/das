@@ -91,6 +91,9 @@ class BaseQueryProxy : public BaseProxy {
     static string ALLOW_INCOMPLETE_CHAIN_PATH;  // When true, CHAIN operator returns incomplete paths
                                                 // as well as complete ones.
 
+    static string PUBLIC_KEY_TOKENS; // A string with a list of tokens which can be used to build a
+                                     // AtomDBAPITypes::PublicKey object. This is required to use
+                                     // public keys(s) when querying a ProtectedAtomDB.
     /**
      * Destructor.
      */

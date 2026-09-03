@@ -26,7 +26,8 @@ const char kAgentsJson[] = R"({
         "use_link_template_cache": false,
         "populate_metta_mapping": false,
         "use_metta_as_query_tokens": false,
-        "allow_incomplete_chain_path": false
+        "allow_incomplete_chain_path": false,
+        "public_key_tokens": ""
       }
     },
     "query": {
