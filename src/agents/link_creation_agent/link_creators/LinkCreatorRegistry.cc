@@ -6,6 +6,7 @@
 // -------------------------------------------------------------------------------------------------
 // ADD your header here
 #include "UnitTestLinkCreator.h"
+#include "Customizable.h"
 #include "AndTwoPredicates.h"
 // -------------------------------------------------------------------------------------------------
 
@@ -15,11 +16,11 @@ using namespace commons;
 bool LinkCreatorRegistry::INITIALIZED = false;
 // -----------------------------------------------------------------------------------------
 // ADD your function here using a unique string key
-// NOTE: "remote_link_creation_function" is reserved and CAN'T be used here.
-// -----------------------------------------------------------------------------------------
 string LinkCreatorRegistry::REMOTE_FUNCTION = "remote_link_creation_function";
 string LinkCreatorRegistry::UNIT_TEST = "unit_test";
+string LinkCreatorRegistry::CUSTOMIZABLE = "customizable";
 string LinkCreatorRegistry::AND_TWO_PREDICATES = "and_two_predicates";
+// -----------------------------------------------------------------------------------------
 
 void LinkCreatorRegistry::initialize_statics() {
     STACK_TRACE();
@@ -42,6 +43,8 @@ shared_ptr<LinkCreator> LinkCreatorRegistry::function(const string& tag) {
         // ADD an "else if" for your function here
         } else if (tag == UNIT_TEST) {
             answer = make_shared<UnitTestLinkCreator>();
+        } else if (tag == UNIT_TEST) {
+            answer = make_shared<Customizable>();
         } else if (tag == AND_TWO_PREDICATES) {
             answer = make_shared<AndTwoPredicates>();
         // -----------------------------------------------------------------------------------------
