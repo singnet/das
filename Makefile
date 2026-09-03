@@ -14,7 +14,7 @@ deploy:
 	@bash $(CURDIR)/scripts/deployment/fn_deploy.sh
 
 integration-tests:
-	@bash $(CURDIR)/scripts/deployment/tests.sh
+	@bash -x $(CURDIR)/src/tests/scripts/all_integration_tests.sh $(OPTIONS)
 
 build-deployment:
 	@docker build -f .docker/deployment/Dockerfile -t das-deployment:latest .
@@ -100,9 +100,13 @@ test-clear:
 test-all-no-cache: setup-test-all
 	@$(MAKE) bazel 'test --show_progress --cache_test_results=no //tests/...'
 
-test-all: 
+unit-tests:
 	@$(MAKE) setup-test-all
 	@$(MAKE) bazel 'test --show_progress //tests/...'
+
+test-all:
+	@$(MAKE) unit-tests
+	@$(MAKE) integration-tests
 
 test-agents-integration:
 	@bash  ./src/scripts/integration_test_setup.sh &
