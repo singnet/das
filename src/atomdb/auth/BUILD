@@ -6,7 +6,6 @@ cc_library(
     name = "auth_lib",
     includes = ["."],
     deps = [
-        ":authorization_manager",
         ":authorization_manifest",
         ":mongodb_authorization_persistence",
     ],
@@ -33,20 +32,6 @@ cc_library(
         "//commons:commons_lib",
         "//commons/atoms:atoms_lib",
         "//hasher:hasher_lib",
-    ],
-)
-
-cc_library(
-    name = "authorization_manager",
-    srcs = ["AuthorizationManager.cc"],
-    hdrs = ["AuthorizationManager.h"],
-    includes = ["."],
-    deps = [
-        ":authorization_persistence",
-        ":authorization_types",
-        ":mongodb_authorization_persistence",
-        "//commons:commons_lib",
-        "//commons/atoms:atoms_lib",
     ],
 )
 

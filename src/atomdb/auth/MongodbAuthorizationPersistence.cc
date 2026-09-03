@@ -3,6 +3,7 @@
 #include <bsoncxx/builder/basic/array.hpp>
 #include <bsoncxx/builder/basic/document.hpp>
 #include <mongocxx/options/replace.hpp>
+#include <utility>
 
 #include "Hasher.h"
 #include "MongoInitializer.h"
@@ -53,22 +54,13 @@ MongodbAuthorizationPersistence::~MongodbAuthorizationPersistence() { delete thi
 // --------------------------------------------------------------------------------
 // Public methods
 
-vector<AuthorizationSchema> MongodbAuthorizationPersistence::list(const string& public_key) {
-    auto conn = this->mongodb_pool->acquire();
-    auto collection = (*conn)[this->database_name][this->collection_name];
-    auto document = this->get_document(collection, public_key);
-    if (!document) return {};
-    auto profile = AuthorizationProfile::from_document(*document);
-    return profile.schemas();
-}
-
-void MongodbAuthorizationPersistence::save(const string& public_key, const AuthorizationSchema& schema) {
+void MongodbAuthorizationPersistence::authorize(const string& public_key,
+                                                vector<pair<LinkSchema, unsigned int>>& schemas) {
     auto conn = this->mongodb_pool->acquire();
     auto collection = (*conn)[this->database_name][this->collection_name];
 
     auto document = this->get_document(collection, public_key);
-    auto profile = document ? AuthorizationProfile::from_document(*document).with_schema(schema)
-                            : AuthorizationProfile(public_key, false, {schema});
+    auto bson = document ? this->to_bson(*document, schemas) : this->to_bson(public_key, schemas);
 
     auto filter = bsoncxx::builder::basic::make_document(
         bsoncxx::builder::basic::kvp("_id", Hasher::plain_string_hash(public_key)));
@@ -76,7 +68,6 @@ void MongodbAuthorizationPersistence::save(const string& public_key, const Autho
     mongocxx::options::replace opts;
     opts.upsert(true);
 
-    auto bson = to_bson(profile);
     auto reply = collection.replace_one(filter.view(), bson.view(), opts);
 
     if (!reply) {
@@ -84,58 +75,55 @@ void MongodbAuthorizationPersistence::save(const string& public_key, const Autho
     }
 }
 
-void MongodbAuthorizationPersistence::remove(const string& public_key,
-                                             const AuthorizationSchema& schema) {
+void MongodbAuthorizationPersistence::revoke(const string& public_key) {
     auto conn = this->mongodb_pool->acquire();
     auto collection = (*conn)[this->database_name][this->collection_name];
-
-    auto document = this->get_document(collection, public_key);
-    if (!document) return;
-
-    auto profile = AuthorizationProfile::from_document(*document).without_schema(schema);
-    if (!profile) {
-        this->delete_document(collection, public_key);
-        return;
-    }
-
-    auto filter = bsoncxx::builder::basic::make_document(
-        bsoncxx::builder::basic::kvp("_id", Hasher::plain_string_hash(public_key)));
-
-    auto bson = to_bson(*profile);
-    auto reply = collection.replace_one(filter.view(), bson.view());
-
+    auto reply = collection.delete_one(bsoncxx::builder::basic::make_document(
+        bsoncxx::builder::basic::kvp("_id", Hasher::plain_string_hash(public_key))));
     if (!reply) {
-        RAISE_ERROR("Failed to update authorization entry in MongoDB");
+        RAISE_ERROR("Failed to remove authorization document from MongoDB");
     }
-}
-
-void MongodbAuthorizationPersistence::remove_all(const string& public_key) {
-    auto conn = this->mongodb_pool->acquire();
-    auto collection = (*conn)[this->database_name][this->collection_name];
-    this->delete_document(collection, public_key);
 }
 
 // --------------------------------------------------------------------------------
 // Private methods
 
-bsoncxx::document::value MongodbAuthorizationPersistence::to_bson(const AuthorizationProfile& profile) {
-    bsoncxx::builder::basic::array schemas;
-    for (const auto& schema : profile.schemas()) {
-        auto tokens_array = bsoncxx::builder::basic::array{};
-        for (const auto& token : LinkSchema(schema.schema()).tokenize()) {
-            tokens_array.append(token);
-        }
-        schemas.append(bsoncxx::builder::basic::make_document(
-            bsoncxx::builder::basic::kvp("tokens", tokens_array),
-            bsoncxx::builder::basic::kvp("read", schema.read()),
-            bsoncxx::builder::basic::kvp("write", schema.write())));
-    }
+bsoncxx::document::value MongodbAuthorizationPersistence::to_bson(
+    const string& public_key, vector<pair<LinkSchema, unsigned int>>& schemas) {
+    bsoncxx::builder::basic::array allowed_schemas;
+    append_schema_entries(allowed_schemas, schemas);
 
     return bsoncxx::builder::basic::make_document(
-        bsoncxx::builder::basic::kvp("_id", Hasher::plain_string_hash(profile.access_key())),
-        bsoncxx::builder::basic::kvp("public_key", profile.access_key()),
-        bsoncxx::builder::basic::kvp("full_access", profile.is_full_access()),
-        bsoncxx::builder::basic::kvp("allowed_schemas", schemas));
+        bsoncxx::builder::basic::kvp("_id", Hasher::plain_string_hash(public_key)),
+        bsoncxx::builder::basic::kvp("public_key", public_key),
+        bsoncxx::builder::basic::kvp("full_access", false),
+        bsoncxx::builder::basic::kvp("allowed_schemas", allowed_schemas));
+}
+
+bsoncxx::document::value MongodbAuthorizationPersistence::to_bson(
+    const atomdb_api_types::MongodbAccessPermissionDocument& document,
+    vector<pair<LinkSchema, unsigned int>>& schemas) {
+    bsoncxx::builder::basic::array allowed_schemas;
+
+    for (unsigned int i = 0; i < document.get_entries_size(); ++i) {
+        const auto& entry = document.get_entry(i);
+        auto tokens_array = bsoncxx::builder::basic::array{};
+        for (unsigned int j = 0; j < entry.get_tokens_size(); ++j) {
+            tokens_array.append(entry.get_token(j));
+        }
+        allowed_schemas.append(bsoncxx::builder::basic::make_document(
+            bsoncxx::builder::basic::kvp("tokens", tokens_array),
+            bsoncxx::builder::basic::kvp("read", entry.get_read()),
+            bsoncxx::builder::basic::kvp("write", entry.get_write())));
+    }
+
+    append_schema_entries(allowed_schemas, schemas);
+
+    return bsoncxx::builder::basic::make_document(
+        bsoncxx::builder::basic::kvp("_id", Hasher::plain_string_hash(document.get_access_key())),
+        bsoncxx::builder::basic::kvp("public_key", document.get_access_key()),
+        bsoncxx::builder::basic::kvp("full_access", document.get_full_access()),
+        bsoncxx::builder::basic::kvp("allowed_schemas", allowed_schemas));
 }
 
 shared_ptr<atomdb_api_types::MongodbAccessPermissionDocument>
@@ -149,11 +137,32 @@ MongodbAuthorizationPersistence::get_document(mongocxx::collection& collection,
     return make_shared<atomdb_api_types::MongodbAccessPermissionDocument>(reply.value());
 }
 
-void MongodbAuthorizationPersistence::delete_document(mongocxx::collection& collection,
-                                                      const string& public_key) {
-    auto reply = collection.delete_one(bsoncxx::builder::basic::make_document(
-        bsoncxx::builder::basic::kvp("_id", Hasher::plain_string_hash(public_key))));
-    if (!reply) {
-        RAISE_ERROR("Failed to remove authorization document from MongoDB");
+void MongodbAuthorizationPersistence::append_schema_entries(
+    bsoncxx::builder::basic::array& allowed_schemas, vector<pair<LinkSchema, unsigned int>>& schemas) {
+    for (auto& [schema, permission] : schemas) {
+        auto tokens_array = bsoncxx::builder::basic::array{};
+        for (const auto& token : schema.tokens()) {
+            tokens_array.append(token);
+        }
+
+        bool read, write;
+
+        if (permission == 1) {
+            read = true;
+            write = false;
+        } else if (permission == 2) {
+            read = false;
+            write = true;
+        } else if (permission == 3) {
+            read = true;
+            write = true;
+        } else {
+            RAISE_ERROR("Invalid permission value: " + to_string(permission));
+        }
+
+        allowed_schemas.append(
+            bsoncxx::builder::basic::make_document(bsoncxx::builder::basic::kvp("tokens", tokens_array),
+                                                   bsoncxx::builder::basic::kvp("read", read),
+                                                   bsoncxx::builder::basic::kvp("write", write)));
     }
 }

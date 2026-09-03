@@ -22,39 +22,29 @@ namespace atomdb {
  */
 class AuthorizationManifest {
    public:
-    AuthorizationManifest() = default;
+    explicit AuthorizationManifest(shared_ptr<AtomDB> atomdb);
     ~AuthorizationManifest() = default;
 
     /**
      * @brief Checks whether public_key is authorized to perform an operation on an atom.
      */
-    bool is_authorized(const Atom& atom,
+    bool is_authorized(shared_ptr<Atom> atom,
                        const string& public_key,
-                       AuthorizationOperation operation,
-                       HandleDecoder& decoder);
+                       AuthorizationOperation operation);
 
     /**
      * @brief Checks whether public_key is authorized to perform an operation on a handle.
      */
-    bool is_authorized(const string& handle,
-                       const string& public_key,
-                       AuthorizationOperation operation,
-                       HandleDecoder& decoder);
+    bool is_authorized(const string& handle, const string& public_key, AuthorizationOperation operation);
+
     /**
      * @brief Returns whether public_key has an authorization document.
      */
-    bool is_registered(const string& public_key) const;
+    inline bool is_registered(const string& public_key) const {
+        return this->profiles.find(public_key) != this->profiles.end();
+    }
 
-    /**
-     * @brief Returns whether public_key has full access.
-     */
-    bool full_access(const string& public_key);
-
-    /**
-     * @brief Returns a profile from public_key.
-     */
-    AuthorizationProfile* lookup(const string& public_key);
-
+   protected:
     /**
      * @brief Adds an authorization document to the manifest.
      *
@@ -65,7 +55,14 @@ class AuthorizationManifest {
     void add_document(const shared_ptr<atomdb_api_types::AccessPermissionDocument>& document);
 
    private:
-    map<string, AuthorizationProfile> profiles;
+    /**
+     * @brief Returns whether public_key has full access.
+     */
+    bool full_access(const string& public_key);
+
+   private:
+    shared_ptr<AtomDB> atomdb;
+    map<string, shared_ptr<AuthorizationProfile>> profiles;
 };
 
 }  // namespace atomdb
