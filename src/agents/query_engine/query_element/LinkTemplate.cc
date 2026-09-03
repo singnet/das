@@ -5,8 +5,8 @@
 #include <random>
 
 #include "AtomDBSingleton.h"
-#include "ProtectedAtomDB.h"
 #include "AttentionBrokerClient.h"
+#include "ProtectedAtomDB.h"
 #include "Terminal.h"
 
 #define LOG_LEVEL INFO_LEVEL
@@ -72,7 +72,7 @@ LinkTemplate::LinkTemplate(const string& type,
             }
             if (!parse_error && (keymap.size() == (tokens.size() / 2))) {
                 // TODO __AUTH__ uncomment line below
-                //this->keychain = new Keychain(keymap);
+                // this->keychain = new Keychain(keymap);
             } else {
                 parse_error = true;
             }
@@ -80,7 +80,10 @@ LinkTemplate::LinkTemplate(const string& type,
             parse_error = true;
         }
         if (parse_error) {
-            RAISE_ERROR("Invalid tokens for public key. Expected a list of (uid, key) pairs (each uid being unique) in a string like 'uid1 key1 uid2 key2 ... uidn keyn' but got: <" +  public_key_tokens + ">");
+            RAISE_ERROR(
+                "Invalid tokens for public key. Expected a list of (uid, key) pairs (each uid being "
+                "unique) in a string like 'uid1 key1 uid2 key2 ... uidn keyn' but got: <" +
+                public_key_tokens + ">");
         }
     }
 }
@@ -210,7 +213,7 @@ void LinkTemplate::processor_method(shared_ptr<StoppableThread> monitor) {
         LOG_INFO("Fetching " + link_schema_handle + " from AtomDB");
         if (protected_atomdb != nullptr) {
             // TODO __AUTH__ uncomment line below
-            //handles = protected_atomdb->query_for_pattern(this->link_schema, this->keychain);
+            // handles = protected_atomdb->query_for_pattern(this->link_schema, this->keychain);
         } else {
             handles = atomdb->query_for_pattern(this->link_schema);
         }
@@ -269,7 +272,8 @@ void LinkTemplate::processor_method(shared_ptr<StoppableThread> monitor) {
                     count_matched++;
                 } else {
                     assignment.clear();
-                    if (this->link_schema.match(string(tagged_handle.first), assignment, *atomdb.get())) {
+                    if (this->link_schema.match(
+                            string(tagged_handle.first), assignment, *atomdb.get())) {
                         if ((this->attention_focus_strictness == 0.0) ||
                             (this->attention_focus_strictness == 1.0)) {
                             this->source_element->add_handle(
