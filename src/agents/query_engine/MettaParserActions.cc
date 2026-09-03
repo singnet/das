@@ -158,7 +158,8 @@ void MettaParserActions::expression_end(bool toplevel, const string& metta_expre
                 this->proxy->parameters.get<bool>(PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG),
                 this->proxy->parameters.get<bool>(PatternMatchingQueryProxy::DISREGARD_IMPORTANCE_FLAG),
                 this->proxy->parameters.get<bool>(PatternMatchingQueryProxy::UNIQUE_VALUE_FLAG),
-                this->proxy->parameters.get<bool>(BaseQueryProxy::USE_LINK_TEMPLATE_CACHE));
+                this->proxy->parameters.get<bool>(BaseQueryProxy::USE_LINK_TEMPLATE_CACHE),
+                this->proxy->parameters.get<string>(BaseQueryProxy::PUBLIC_KEY_TOKENS));
             this->element_stack.push(new_link_template);
         }
     } else if ((this->current_expression_type == AND) || (this->current_expression_type == ANDNOT) ||

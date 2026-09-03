@@ -3,6 +3,7 @@
 #include <mutex>
 #include <string>
 #include <vector>
+#include <map>
 
 #include "Assignment.h"
 #include "AtomDB.h"
@@ -77,6 +78,9 @@ class LinkTemplate : public QueryElement {
     bool disregard_importance_flag;
     bool unique_value_flag;
     bool use_cache;
+    // TODO __AUTH__ change declaration below to 
+    // Keychain keychain;
+    map<string, string> keychain;
     bool inner_flag;
     LinkSchema link_schema;
     shared_ptr<SourceElement> source_element;
@@ -117,7 +121,8 @@ class LinkTemplate : public QueryElement {
                  bool positive_importance_flag,
                  bool disregard_importance_flag,
                  bool unique_value_flag,
-                 bool use_cache);
+                 bool use_cache,
+                 const string& public_key_tokens = "");
 
     /**
      * This method is used when a LinkTemplate is build incrementally e.g. by parsing a
