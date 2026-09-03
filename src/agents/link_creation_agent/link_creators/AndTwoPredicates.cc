@@ -25,7 +25,7 @@ LinkCreationStats AndTwoPredicates::create(shared_ptr<QueryAnswer> query_answer)
         predicates[0] = predicates[1];
         predicates[1] = aux;
     }
-    string key = predicates[0] + " " + predicates[1];
+    string key = predicates[0] + " " + predicates[1] + concept_;
 
     LinkCreationStats stats = LinkCreationStats(false, 0, 0);
     if (predicates[0] != predicates[1]) {
@@ -76,9 +76,8 @@ LinkCreationStats AndTwoPredicates::create(shared_ptr<QueryAnswer> query_answer)
                           ") " + "Skipping link building because predicates intersect.");
             }
         } else {
-            LOG_DEBUG(
-                "(" + predicates[0] + ", " + predicates[1] + ") " +
-                "Skipping link building because targets have already been visited this cycle: " + key);
+            LOG_DEBUG("Skipping link building because targets have already been visited this cycle: " +
+                      key);
         }
     } else {
         LOG_DEBUG("(" + predicates[0] + ", " + predicates[1] + ") " +

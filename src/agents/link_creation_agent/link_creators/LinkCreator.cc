@@ -62,8 +62,14 @@ string LinkCreator::get_node_name(const string& handle) {
 
 double LinkCreator::get_strength(const string& handle) {
     STACK_TRACE();
+    double answer = 1.0;
     auto atom = atomdb()->get_atom(handle);
-    return atom->custom_attributes.get_or<double>(STRENGTH_TAG, 1.0);
+    if (atom == nullptr) {
+        RAISE_ERROR("Atom does not exist: " + handle);
+    } else {
+        answer = atom->custom_attributes.get_or<double>(STRENGTH_TAG, 1.0);
+    }
+    return answer;
 }
 
 void LinkCreator::save_link_metta(shared_ptr<Link> link) {
