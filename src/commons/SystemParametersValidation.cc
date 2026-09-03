@@ -8,7 +8,7 @@ using namespace commons;
 using nlohmann::json;
 using namespace std;
 
-string SystemParametersValidation::SCHEMA_VERSION = "1.1.0";
+string SystemParametersValidation::SCHEMA_VERSION = "1.2.0";
 
 namespace {
 
