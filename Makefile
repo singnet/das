@@ -152,8 +152,3 @@ test-coverage-check: build-image
 		--workdir "/opt/das/src" \
 		das-builder \
 		./scripts/bazel_coverage_check.sh
-
-# Catch-all pattern to prevent make from complaining about unknown targets
-%:
-	@:
-
