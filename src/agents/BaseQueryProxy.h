@@ -93,7 +93,10 @@ class BaseQueryProxy : public BaseProxy {
 
     static string PUBLIC_KEY_TOKENS;  // A string with a list of tokens which can be used to build a
                                       // AtomDBAPITypes::PublicKey object. This is required to use
-                                      // public keys(s) when querying a ProtectedAtomDB.
+                                      // public keys(s) when querying a ProtectedAtomDB. The list is
+                                      // supposed to be a space separated string with all the pairs
+                                      // (uid, key). E.g. "uid1 key1 uid2 key2 ... uidn keyn".
+
     /**
      * Destructor.
      */
