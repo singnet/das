@@ -67,6 +67,7 @@ class DummyPersistence : public AuthorizationPersistence {
         auto& entries = documents[public_key];
         entries.insert(entries.end(), schemas.begin(), schemas.end());
     }
+    void authorize(const string& public_key) override { documents[public_key] = {}; }
 
     void revoke(const string& public_key) override { documents.erase(public_key); }
 };
