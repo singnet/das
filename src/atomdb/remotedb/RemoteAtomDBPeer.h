@@ -120,7 +120,7 @@ class RemoteAtomDBPeer : public AtomDB, public processor::ThreadMethod {
      * Returns an empty vector if there is no remote AtomDB or it has no matching permissions.
      */
     vector<shared_ptr<atomdb_api_types::AccessPermissionDocument>> get_access_permissions(
-        const atomdb_api_types::PublicKey& public_key) const override;
+        const PublicKey& public_key) const override;
 
    private:
     shared_ptr<InMemoryDB> write_buffer() const;

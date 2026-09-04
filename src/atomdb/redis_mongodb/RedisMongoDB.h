@@ -38,7 +38,7 @@ class RedisMongoDB : public AtomDB {
      * Returns an empty vector if no matching documents exist.
      */
     vector<shared_ptr<atomdb_api_types::AccessPermissionDocument>> get_access_permissions(
-        const atomdb_api_types::PublicKey& public_key) const override;
+        const PublicKey& public_key) const override;
     atomdb_api_types::ProtectionMode get_protection_mode() const override;
 
     static string REDIS_PATTERNS_PREFIX;

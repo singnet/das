@@ -65,7 +65,7 @@ bool AdapterDB::composite_type_enabled() const {
     return this->atomdb_backend->composite_type_enabled();
 }
 vector<shared_ptr<atomdb_api_types::AccessPermissionDocument>> AdapterDB::get_access_permissions(
-    const atomdb_api_types::PublicKey& public_key) const {
+    const PublicKey& public_key) const {
     this->ensure_backend_ready();
     return this->atomdb_backend->get_access_permissions(public_key);
 }
