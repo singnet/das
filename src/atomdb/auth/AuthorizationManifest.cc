@@ -21,16 +21,18 @@ bool AuthorizationManifest::is_authorized(shared_ptr<Atom> atom,
                                           const string& public_key,
                                           AuthorizationOperation operation) {
     if (this->full_access(public_key)) return true;
-    auto profile = this->profiles[public_key];
-    return profile->is_authorized(atom, operation);
+    auto it = this->profiles.find(public_key);
+    if (it == this->profiles.end() || it->second == nullptr) return false;
+    return it->second->is_authorized(atom, operation);
 }
 
 bool AuthorizationManifest::is_authorized(const string& handle,
                                           const string& public_key,
                                           AuthorizationOperation operation) {
     if (this->full_access(public_key)) return true;
-    auto profile = this->profiles[public_key];
-    return profile->is_authorized(handle, operation);
+    auto it = this->profiles.find(public_key);
+    if (it == this->profiles.end() || it->second == nullptr) return false;
+    return it->second->is_authorized(handle, operation);
 }
 
 // -------------------------------------------------------------------------------------------------

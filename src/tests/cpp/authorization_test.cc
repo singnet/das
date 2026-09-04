@@ -146,6 +146,12 @@ TEST(AuthorizationManifestTest, IsAuthorized) {
 
     EXPECT_FALSE(manifest.is_registered("unknown"));
 
+    EXPECT_FALSE(manifest.is_authorized(link, "unknown", AuthorizationOperation::READ));
+    EXPECT_FALSE(manifest.is_authorized(link, "unknown", AuthorizationOperation::WRITE));
+    EXPECT_FALSE(manifest.is_authorized(link_handle, "unknown", AuthorizationOperation::READ));
+    EXPECT_FALSE(manifest.is_authorized(link_handle, "unknown", AuthorizationOperation::WRITE));
+    EXPECT_FALSE(manifest.is_registered("unknown"));
+
     EXPECT_TRUE(manifest.is_authorized(link, "pk", AuthorizationOperation::READ));
     EXPECT_TRUE(manifest.is_authorized(link_handle, "pk", AuthorizationOperation::READ));
 

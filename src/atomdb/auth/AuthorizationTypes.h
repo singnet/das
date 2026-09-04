@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "AtomDB.h"
+#include "AtomDBAPITypes.h"
 #include "LinkSchema.h"
 
 using namespace commons;
@@ -13,10 +14,6 @@ using namespace std;
 using namespace atomdb;
 
 namespace atomdb {
-
-namespace atomdb_api_types {
-class AccessPermissionDocument;
-}
 
 enum class AuthorizationOperation { READ, WRITE };
 
