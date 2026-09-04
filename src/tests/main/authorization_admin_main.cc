@@ -5,15 +5,12 @@
 #include <sstream>
 #include <string>
 
-#include "AuthorizationManager.h"
 #include "AuthorizationTypes.h"
 #include "JsonConfig.h"
+#include "LinkSchema.h"
 #include "MongodbAuthorizationPersistence.h"
 #include "Utils.h"
 #include "nlohmann/json.hpp"
-
-#define LOG_LEVEL INFO_LEVEL
-#include "Logger.h"
 
 using namespace std;
 using namespace commons;
@@ -28,14 +25,22 @@ void ctrl_c_handler(int) {
 void usage(const char* prog_name) {
     cerr << "Usage: " << prog_name << " <authorize|revoke> \\\n"
          << "  --public-key <key_string> \\\n"
-         << "  --permission <read|write> \\\n"
-         << "  --tokens <tokens_string> \\\n"
+         << "  --link-template <tokens_string> \\\n"
+         << "  --permission <read|write|read-write> \\\n"
          << "  --config <path_to_config.json>\n\n"
          << "Example:\n"
          << "  " << prog_name << " authorize \\\n"
          << "    --public-key \"ssh-ed25519 AAAA... name@example.com\" \\\n"
+         << "    --link-template \"LINK_TEMPLATE Expression 3 NODE Symbol Similarity NODE Symbol "
+            "\\\"human\\\" VARIABLE V2\" \\\n"
          << "    --permission read \\\n"
-         << "    --tokens \"LINK_TEMPLATE Expression 3 NODE Symbol Similarity\" \\\n"
+         << "    --link-template \"LINK_TEMPLATE Expression 3 NODE Symbol Similarity NODE Symbol "
+            "\\\"monkey\\\" VARIABLE V2\" \\\n"
+         << "    --permission read \\\n"
+         << "    --link-template \"LINK_TEMPLATE Expression 3 NODE Symbol Inheritance VARIABLE V1 NODE "
+            "Symbol \\\"mammal\\\"\" \\\n"
+         << "    --permission read-write \\\n"
+         << "    --full-access\\\n"
          << "    --config config.json\n";
     exit(1);
 }
@@ -50,15 +55,40 @@ vector<string> parse_tokens(const string& tokens_str) {
     return tokens;
 }
 
+vector<pair<LinkSchema, unsigned int>> build_schemas(const vector<string>& link_templates,
+                                                     const vector<string>& permissions) {
+    vector<pair<LinkSchema, unsigned int>> schemas;
+
+    for (size_t i = 0; i < link_templates.size(); ++i) {
+        vector<string> tokens = parse_tokens(link_templates[i]);
+        LinkSchema schema(tokens);
+
+        auto permission = permissions[i];
+
+        if (permission == "read") {
+            schemas.emplace_back(schema, 1);
+        } else if (permission == "write") {
+            schemas.emplace_back(schema, 2);
+        } else if (permission == "read-write") {
+            schemas.emplace_back(schema, 3);
+        } else {
+            cerr << "Error: --permission must be 'read', 'write' or 'read-write'.\n\n";
+            exit(1);
+        }
+    }
+    return schemas;
+}
+
 int main(int argc, char* argv[]) {
     signal(SIGINT, &ctrl_c_handler);
     signal(SIGTERM, &ctrl_c_handler);
 
     string action;
     string public_key;
-    string permission;
-    string tokens_str;
+    vector<string> permissions;
+    vector<string> link_templates;
     string config_path;
+    bool full_access = false;
 
     for (int i = 1; i < argc; ++i) {
         string arg = argv[i];
@@ -70,28 +100,39 @@ int main(int argc, char* argv[]) {
         } else if (arg == "--public-key" && i + 1 < argc) {
             public_key = argv[++i];
         } else if (arg == "--permission" && i + 1 < argc) {
-            permission = argv[++i];
-        } else if (arg == "--tokens" && i + 1 < argc) {
-            tokens_str = argv[++i];
+            permissions.push_back(argv[++i]);
+        } else if (arg == "--link-template" && i + 1 < argc) {
+            link_templates.push_back(argv[++i]);
+        } else if (arg == "--full-access") {
+            full_access = true;
         } else if (arg == "--config" && i + 1 < argc) {
             config_path = argv[++i];
         }
     }
 
-    if (action.empty() || public_key.empty() || permission.empty() || tokens_str.empty() ||
-        config_path.empty()) {
-        cerr << "Error: Missing required arguments.\n\n";
-        usage(argv[0]);
-    }
+    if (full_access) {
+        if (action.empty() || config_path.empty()) {
+            cerr << "Error: Missing required arguments for full access.\n\n";
+            exit(1);
+        }
+    } else {
+        if (action.empty() || public_key.empty() || permissions.empty() || link_templates.empty() ||
+            config_path.empty()) {
+            cerr << "Error: Missing required arguments.\n\n";
+            usage(argv[0]);
+        }
 
-    if (action != "authorize" && action != "revoke") {
-        cerr << "Error: action must be 'authorize' or 'revoke'.\n\n";
-        usage(argv[0]);
-    }
+        if (action != "authorize" && action != "revoke") {
+            cerr << "Error: action must be 'authorize' or 'revoke'.\n\n";
+            usage(argv[0]);
+        }
 
-    if (permission != "read" && permission != "write" && permission != "read-write") {
-        cerr << "Error: --permission must be 'read', 'write' or 'read-write'.\n\n";
-        exit(1);
+        if (link_templates.size() != permissions.size()) {
+            cerr << "Error: The number of --link-template arguments must match the number of "
+                    "--permission "
+                    "arguments.\n";
+            exit(1);
+        }
     }
 
     LOG_INFO("Starting Admin...");
@@ -115,32 +156,16 @@ int main(int argc, char* argv[]) {
 
     auto persistence =
         make_shared<MongodbAuthorizationPersistence>(endpoint, username, password, database, collection);
-    auto manager = make_shared<AuthorizationManager>(persistence);
-
-    vector<string> tokens = parse_tokens(tokens_str);
-
-    bool read;
-    bool write;
-    if (permission == "read") {
-        read = true;
-        write = false;
-    } else if (permission == "write") {
-        read = false;
-        write = true;
-    } else if (permission == "read-write") {
-        read = true;
-        write = true;
-    } else {
-        LOG_ERROR("Invalid --permission value: must be 'read', 'write', or 'read-write'");
-        exit(1);
-    }
-
-    auto schema = AuthorizationSchema(tokens, read, write);
 
     if (action == "authorize") {
-        manager->authorize(public_key, schema);
+        if (full_access) {
+            persistence->authorize(public_key);
+        } else {
+            vector<pair<LinkSchema, unsigned int>> schemas = build_schemas(link_templates, permissions);
+            persistence->authorize(public_key, schemas);
+        }
     } else if (action == "revoke") {
-        manager->revoke(public_key, schema);
+        persistence->revoke(public_key);
     }
 
     LOG_INFO("Admin finished successfully.");
