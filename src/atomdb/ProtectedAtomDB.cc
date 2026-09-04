@@ -15,7 +15,7 @@ ProtectedAtomDB::ProtectedAtomDB(shared_ptr<AtomDB> backend) : backend(backend) 
     if (this->backend == nullptr) {
         RAISE_ERROR("ProtectedAtomDB requires a non-null backend AtomDB");
     }
-    this->manifest = make_shared<AuthorizationManifest>();
+    this->manifest = make_shared<AuthorizationManifest>(backend);
     LOG_INFO("ProtectedAtomDB initialized");
 }
 

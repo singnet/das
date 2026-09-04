@@ -18,24 +18,17 @@ class AuthorizationPersistence {
     virtual ~AuthorizationPersistence() = default;
 
     /**
-     * @brief Lists all authorization entries for public_key.
+     * @brief Persists authorization schemas for public_key.
+     *
+     * Each pair is a LinkSchema and a permission bitmask: 1 = read, 2 = write, 3 = read+write.
      */
-    virtual vector<AuthorizationSchema> list(const string& public_key) = 0;
+    virtual void authorize(const string& public_key,
+                           vector<pair<LinkSchema, unsigned int>>& schemas) = 0;
 
     /**
-     * @brief Persists an authorization schema for public_key.
+     * @brief Removes all authorization schemas from public_key.
      */
-    virtual void save(const string& public_key, const AuthorizationSchema& schema) = 0;
-
-    /**
-     * @brief Removes an authorization schema from public_key.
-     */
-    virtual void remove(const string& public_key, const AuthorizationSchema& schema) = 0;
-
-    /**
-     * @brief Removes all authorization schemas for public_key.
-     */
-    virtual void remove_all(const string& public_key) = 0;
+    virtual void revoke(const string& public_key) = 0;
 };
 
 }  // namespace atomdb

@@ -4,6 +4,7 @@
 #include <mongocxx/collection.hpp>
 #include <mongocxx/pool.hpp>
 #include <string>
+#include <vector>
 
 #include "AuthorizationPersistence.h"
 #include "RedisMongoDBAPITypes.h"
@@ -31,20 +32,24 @@ class MongodbAuthorizationPersistence : public AuthorizationPersistence {
                                     const string& collection_name);
     ~MongodbAuthorizationPersistence();
 
-    vector<AuthorizationSchema> list(const string& public_key) override;
-    void save(const string& public_key, const AuthorizationSchema& schema) override;
-    void remove(const string& public_key, const AuthorizationSchema& schema) override;
-    void remove_all(const string& public_key) override;
+    void authorize(const string& public_key, vector<pair<LinkSchema, unsigned int>>& schemas) override;
+    void revoke(const string& public_key) override;
 
    private:
     mongocxx::pool* mongodb_pool;
     string database_name;
     string collection_name;
 
-    static bsoncxx::document::value to_bson(const AuthorizationProfile& profile);
+    static bsoncxx::document::value to_bson(const string& public_key,
+                                            vector<pair<LinkSchema, unsigned int>>& schemas);
+    static bsoncxx::document::value to_bson(
+        const atomdb_api_types::MongodbAccessPermissionDocument& document,
+        vector<pair<LinkSchema, unsigned int>>& schemas);
+
+    static void append_schema_entries(bsoncxx::builder::basic::array& allowed_schemas,
+                                      vector<pair<LinkSchema, unsigned int>>& schemas);
     shared_ptr<atomdb_api_types::MongodbAccessPermissionDocument> get_document(
         mongocxx::collection& collection, const string& public_key);
-    void delete_document(mongocxx::collection& collection, const string& public_key);
 };
 
 }  // namespace atomdb
