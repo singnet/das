@@ -13,6 +13,7 @@ cc_library(
         ":atomdbutils",
         ":protected_atomdb",
         "//atomdb/adapterdb:adapterdb_lib",
+        "//atomdb/auth:auth_lib",
         "//atomdb/inmemorydb:inmemorydb_lib",
         "//atomdb/morkdb:morkdb_lib",
         "//atomdb/redis_mongodb:redis_mongodb_lib",
@@ -89,6 +90,7 @@ cc_library(
     deps = [
         ":atomdb",
         ":atomdb_api_types",
+        "//atomdb/auth:auth_lib",
         "//commons:commons_lib",
         "//commons/atoms:atoms_lib",
     ],
