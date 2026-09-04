@@ -75,6 +75,31 @@ void MongodbAuthorizationPersistence::authorize(const string& public_key,
     }
 }
 
+void atomdb::MongodbAuthorizationPersistence::authorize(const string& public_key) {
+    auto conn = this->mongodb_pool->acquire();
+    auto collection = (*conn)[this->database_name][this->collection_name];
+
+    bsoncxx::builder::basic::array allowed_schemas;
+
+    auto bson = bsoncxx::builder::basic::make_document(
+        bsoncxx::builder::basic::kvp("_id", Hasher::plain_string_hash(public_key)),
+        bsoncxx::builder::basic::kvp("public_key", public_key),
+        bsoncxx::builder::basic::kvp("full_access", true),
+        bsoncxx::builder::basic::kvp("allowed_schemas", allowed_schemas));
+
+    auto filter = bsoncxx::builder::basic::make_document(
+        bsoncxx::builder::basic::kvp("_id", Hasher::plain_string_hash(public_key)));
+
+    mongocxx::options::replace opts;
+    opts.upsert(true);
+
+    auto reply = collection.replace_one(filter.view(), bson.view(), opts);
+
+    if (!reply) {
+        RAISE_ERROR("Failed to update authorization entry in MongoDB");
+    }
+}
+
 void MongodbAuthorizationPersistence::revoke(const string& public_key) {
     auto conn = this->mongodb_pool->acquire();
     auto collection = (*conn)[this->database_name][this->collection_name];
@@ -122,7 +147,7 @@ bsoncxx::document::value MongodbAuthorizationPersistence::to_bson(
     return bsoncxx::builder::basic::make_document(
         bsoncxx::builder::basic::kvp("_id", Hasher::plain_string_hash(document.get_access_key())),
         bsoncxx::builder::basic::kvp("public_key", document.get_access_key()),
-        bsoncxx::builder::basic::kvp("full_access", document.get_full_access()),
+        bsoncxx::builder::basic::kvp("full_access", false),
         bsoncxx::builder::basic::kvp("allowed_schemas", allowed_schemas));
 }
 
@@ -139,7 +164,42 @@ MongodbAuthorizationPersistence::get_document(mongocxx::collection& collection,
 
 void MongodbAuthorizationPersistence::append_schema_entries(
     bsoncxx::builder::basic::array& allowed_schemas, vector<pair<LinkSchema, unsigned int>>& schemas) {
-    for (auto& [schema, permission] : schemas) {
+    bsoncxx::builder::basic::array rebuilt;
+
+    for (const auto& existing_schema : allowed_schemas.view()) {
+        auto existing_tokens = existing_schema.get_document().value["tokens"].get_array().value;
+        vector<string> tokens_from_bson;
+        for (const auto& token : existing_tokens) {
+            tokens_from_bson.emplace_back(token.get_string().value);
+        }
+
+        bool replaced = false;
+        for (auto& [schema, permission] : schemas) {
+            if (tokens_from_bson == schema.tokens()) {
+                replaced = true;
+                break;
+            }
+        }
+        if (!replaced) {
+            rebuilt.append(existing_schema.get_document().value);
+        }
+    }
+
+    for (size_t i = 0; i < schemas.size(); ++i) {
+        auto& schema = schemas[i].first;
+        auto permission = schemas[i].second;
+
+        bool superseded = false;
+        for (size_t j = i + 1; j < schemas.size(); ++j) {
+            if (schema.tokens() == schemas[j].first.tokens()) {
+                superseded = true;
+                break;
+            }
+        }
+        if (superseded) {
+            continue;
+        }
+
         auto tokens_array = bsoncxx::builder::basic::array{};
         for (const auto& token : schema.tokens()) {
             tokens_array.append(token);
@@ -160,9 +220,11 @@ void MongodbAuthorizationPersistence::append_schema_entries(
             RAISE_ERROR("Invalid permission value: " + to_string(permission));
         }
 
-        allowed_schemas.append(
+        rebuilt.append(
             bsoncxx::builder::basic::make_document(bsoncxx::builder::basic::kvp("tokens", tokens_array),
                                                    bsoncxx::builder::basic::kvp("read", read),
                                                    bsoncxx::builder::basic::kvp("write", write)));
     }
+
+    allowed_schemas = std::move(rebuilt);
 }

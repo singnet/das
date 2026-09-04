@@ -26,6 +26,12 @@ class AuthorizationPersistence {
                            vector<pair<LinkSchema, unsigned int>>& schemas) = 0;
 
     /**
+     * @brief Persists full acess authorization for public_key.
+     *
+     */
+    virtual void authorize(const string& public_key) = 0;
+
+    /**
      * @brief Removes all authorization schemas from public_key.
      */
     virtual void revoke(const string& public_key) = 0;
