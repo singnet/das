@@ -77,7 +77,6 @@ class LinkTemplate : public QueryElement {
     bool positive_importance_flag;
     bool disregard_importance_flag;
     bool unique_value_flag;
-    bool use_cache;
     // TODO __AUTH__ change declaration below to
     // Keychain keychain;
     map<string, string> keychain;
@@ -86,7 +85,6 @@ class LinkTemplate : public QueryElement {
     shared_ptr<SourceElement> source_element;
     shared_ptr<StoppableThread> processor;
     AttentionFocusStrategy attention_focus_strategy;
-    static ThreadSafeHashmap<string, shared_ptr<atomdb_api_types::HandleSet>> cache;
 
     unsigned int report_attention_focus_by_percentage(
         vector<AttentionFocusRecord>& attention_focus_candidates);
@@ -112,7 +110,7 @@ class LinkTemplate : public QueryElement {
      * even obtained).
      * @param unique_value_flag If true, prevent the same value from being assigned to 2 different
      * variables in the LinkTemplate.
-     * @param use_cache If true, a cache for fetched elements will be used and maintained.
+     * @param public_key_tokens A space-separated string like "uid1 key1 uid2 key2 ... uidn keyn"
      */
     LinkTemplate(const string& type,
                  const vector<shared_ptr<QueryElement>>& targets,
@@ -121,7 +119,6 @@ class LinkTemplate : public QueryElement {
                  bool positive_importance_flag,
                  bool disregard_importance_flag,
                  bool unique_value_flag,
-                 bool use_cache,
                  const string& public_key_tokens = "");
 
     /**
@@ -165,20 +162,6 @@ class LinkTemplate : public QueryElement {
     static unsigned int next_instance_count() {
         static unsigned int instance_count = 0;
         return instance_count++;
-    }
-
-    /**
-     * Clear the global LinkTemplate cache.
-     */
-    static void clear_cache() { cache.clear(); }
-
-    /**
-     * Return the global LinkTemplate cache.
-     *
-     * @return the global LinkTemplate cache.
-     */
-    static ThreadSafeHashmap<string, shared_ptr<atomdb_api_types::HandleSet>>& fetched_links_cache() {
-        return cache;
     }
 
     /**

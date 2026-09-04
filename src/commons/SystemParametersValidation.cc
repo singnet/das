@@ -25,7 +25,6 @@ const AgentParamsSchema& params_schema() {
           {"attention_focus_strictness", "double"},
           {"max_bundle_size", "unsigned_int"},
           {"max_answers", "unsigned_int"},
-          {"use_link_template_cache", "bool"},
           {"populate_metta_mapping", "bool"},
           {"use_metta_as_query_tokens", "bool"},
           {"allow_incomplete_chain_path", "bool"},

@@ -70,7 +70,6 @@ class Helper {
     static string POSITIVE_IMPORTANCE_FLAG;
     static string USE_METTA_AS_QUERY_TOKENS;
     static string UNIQUE_ASSIGNMENT_FLAG;
-    static string USE_LINK_TEMPLATE_CACHE;
     static string POPULATE_METTA_MAPPING;
     static string QUERY;
     /** command-router client: router COMMAND token (e.g. query, get, set). */

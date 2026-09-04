@@ -16,8 +16,6 @@ using namespace query_element;
 using namespace atomdb;
 using namespace attention_broker;
 
-ThreadSafeHashmap<string, shared_ptr<atomdb_api_types::HandleSet>> LinkTemplate::cache;
-
 LinkTemplate::LinkTemplate(const string& type,
                            const vector<shared_ptr<QueryElement>>& targets,
                            const string& context,
@@ -25,7 +23,6 @@ LinkTemplate::LinkTemplate(const string& type,
                            bool positive_importance_flag,
                            bool disregard_importance_flag,
                            bool unique_value_flag,
-                           bool use_cache,
                            const string& public_key_tokens)
     : link_schema(type, targets.size()) {
     this->targets = targets;
@@ -45,7 +42,6 @@ LinkTemplate::LinkTemplate(const string& type,
     this->positive_importance_flag = positive_importance_flag;
     this->disregard_importance_flag = disregard_importance_flag;
     this->unique_value_flag = unique_value_flag;
-    this->use_cache = use_cache;
     this->inner_flag = true;
     this->arity = targets.size();
     this->processor = nullptr;
@@ -206,21 +202,13 @@ void LinkTemplate::processor_method(shared_ptr<StoppableThread> monitor) {
     shared_ptr<ProtectedAtomDB> protected_atomdb = dynamic_pointer_cast<ProtectedAtomDB>(atomdb);
     string link_schema_handle = this->link_schema.handle();
     shared_ptr<atomdb_api_types::HandleSet> handles;
-    if (this->use_cache && LinkTemplate::fetched_links_cache().contains(link_schema_handle)) {
-        LOG_INFO("Fetching " + link_schema_handle + " from cache");
-        handles = LinkTemplate::fetched_links_cache().get(link_schema_handle);
+    LOG_INFO("Fetching " + link_schema_handle + " from AtomDB");
+    if (protected_atomdb != nullptr) {
+        handles = atomdb->query_for_pattern(this->link_schema);
+        // TODO __AUTH__ delete the line above and uncomment line below
+        // handles = protected_atomdb->query_for_pattern(this->link_schema, this->keychain);
     } else {
-        LOG_INFO("Fetching " + link_schema_handle + " from AtomDB");
-        if (protected_atomdb != nullptr) {
-            handles = atomdb->query_for_pattern(this->link_schema);
-            // TODO __AUTH__ delete the line above and uncomment line below
-            // handles = protected_atomdb->query_for_pattern(this->link_schema, this->keychain);
-        } else {
-            handles = atomdb->query_for_pattern(this->link_schema);
-        }
-        if (this->use_cache) {
-            LinkTemplate::fetched_links_cache().set(link_schema_handle, handles);
-        }
+        handles = atomdb->query_for_pattern(this->link_schema);
     }
     LOG_DEBUG("Attention Focus Strictness: " + std::to_string(this->attention_focus_strictness));
     LOG_DEBUG("Positive importance flag: " + string(this->positive_importance_flag ? "true" : "false"));

@@ -31,7 +31,7 @@ TEST(LinkTemplate, basics) {
     auto human = make_shared<Terminal>(symbol, "\"human\"");
 
     LinkTemplate link_template1(
-        "Expression", {similarity, human, v1}, "", 0.0, false, false, false, false);
+        "Expression", {similarity, human, v1}, "", 0.0, false, false, false);
     link_template1.build();
     link_template1.get_source_element()->subsequent_id = server_node_id;
     link_template1.get_source_element()->setup_buffers();
@@ -75,28 +75,28 @@ TEST(LinkTemplate, basics) {
 
 TEST(LinkTemplate, key_tokens) {
     EXPECT_THROW(
-        { LinkTemplate link_template_1("Expression", {}, "", 0.0, false, false, false, false, "uid1"); },
+        { LinkTemplate link_template_1("Expression", {}, "", 0.0, false, false, false, "uid1"); },
         runtime_error);
     EXPECT_THROW(
         {
-            LinkTemplate link_template_2("Expression", {}, "", 0.0, false, false, false, false, " uid1");
+            LinkTemplate link_template_2("Expression", {}, "", 0.0, false, false, false, " uid1");
         },
         runtime_error);
     EXPECT_THROW(
         {
             LinkTemplate link_template_3(
-                "Expression", {}, "", 0.0, false, false, false, false, "uid1  key1");
+                "Expression", {}, "", 0.0, false, false, false, "uid1  key1");
         },
         runtime_error);
     EXPECT_THROW(
         {
-            LinkTemplate link_template_4("Expression", {}, "", 0.0, false, false, false, false, "uid1 ");
+            LinkTemplate link_template_4("Expression", {}, "", 0.0, false, false, false, "uid1 ");
         },
         runtime_error);
-    LinkTemplate link_template1("Expression", {}, "", 0.0, false, false, false, false, "");
-    LinkTemplate link_template2("Expression", {}, "", 0.0, false, false, false, false, "uid1 key1");
+    LinkTemplate link_template1("Expression", {}, "", 0.0, false, false, false, "");
+    LinkTemplate link_template2("Expression", {}, "", 0.0, false, false, false, "uid1 key1");
     LinkTemplate link_template3(
-        "Expression", {}, "", 0.0, false, false, false, false, "uid1 key1 uid2 key2");
+        "Expression", {}, "", 0.0, false, false, false, "uid1 key1 uid2 key2");
 }
 
 int main(int argc, char** argv) {
