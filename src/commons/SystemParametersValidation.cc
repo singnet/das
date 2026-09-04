@@ -8,7 +8,7 @@ using namespace commons;
 using nlohmann::json;
 using namespace std;
 
-string SystemParametersValidation::SCHEMA_VERSION = "1.1.0";
+string SystemParametersValidation::SCHEMA_VERSION = "1.2.0";
 
 namespace {
 
@@ -25,10 +25,10 @@ const AgentParamsSchema& params_schema() {
           {"attention_focus_strictness", "double"},
           {"max_bundle_size", "unsigned_int"},
           {"max_answers", "unsigned_int"},
-          {"use_link_template_cache", "bool"},
           {"populate_metta_mapping", "bool"},
           {"use_metta_as_query_tokens", "bool"},
-          {"allow_incomplete_chain_path", "bool"}}},
+          {"allow_incomplete_chain_path", "bool"},
+          {"public_key_tokens", "string"}}},
         {"query",
          {{"positive_importance_flag", "bool"},
           {"disregard_importance_flag", "bool"},
