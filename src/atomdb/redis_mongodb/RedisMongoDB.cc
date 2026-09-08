@@ -27,18 +27,27 @@ using namespace atomdb;
 using namespace commons;
 using namespace atoms;
 
-string RedisMongoDB::REDIS_PATTERNS_PREFIX;
-string RedisMongoDB::REDIS_OUTGOING_PREFIX;
-string RedisMongoDB::REDIS_INCOMING_PREFIX;
 uint RedisMongoDB::REDIS_CHUNK_SIZE;
-string RedisMongoDB::MONGODB_DB_NAME;
-string RedisMongoDB::MONGODB_NODES_COLLECTION_NAME;
-string RedisMongoDB::MONGODB_LINKS_COLLECTION_NAME;
-string RedisMongoDB::MONGODB_CONFIG_COLLECTION_NAME;
-string RedisMongoDB::MONGODB_PATTERN_INDEX_SCHEMA_COLLECTION_NAME;
-string RedisMongoDB::MONGODB_ACCESS_PERMISSIONS_COLLECTION_NAME;
 string RedisMongoDB::MONGODB_FIELD_NAME[MONGODB_FIELD::size];
 uint RedisMongoDB::MONGODB_CHUNK_SIZE;
+
+void RedisMongoDB::initialize_namespace(const string& prefix) {
+    REDIS_PATTERNS_PREFIX = prefix + "patterns";
+    REDIS_OUTGOING_PREFIX = prefix + "outgoing_set";
+    REDIS_INCOMING_PREFIX = prefix + "incoming_set";
+    REDIS_CHUNK_SIZE = 10000;
+    MONGODB_DB_NAME = prefix + "das";
+    MONGODB_NODES_COLLECTION_NAME = prefix + "nodes";
+    MONGODB_LINKS_COLLECTION_NAME = prefix + "links";
+    MONGODB_CONFIG_COLLECTION_NAME = prefix + "config";
+    MONGODB_PATTERN_INDEX_SCHEMA_COLLECTION_NAME = prefix + "pattern_index_schema";
+    MONGODB_ACCESS_PERMISSIONS_COLLECTION_NAME = prefix + "access_permissions";
+    MONGODB_FIELD_NAME[MONGODB_FIELD::ID] = "_id";
+    MONGODB_FIELD_NAME[MONGODB_FIELD::TARGETS] = "targets";
+    MONGODB_FIELD_NAME[MONGODB_FIELD::NAME] = "name";
+    MONGODB_FIELD_NAME[MONGODB_FIELD::NAMED_TYPE] = "named_type";
+    MONGODB_CHUNK_SIZE = 1000;
+}
 
 RedisMongoDB::RedisMongoDB(const JsonConfig& config)
     : skip_redis_(config.at_path("type").get_or<string>("") != "redismongodb"),
@@ -46,7 +55,7 @@ RedisMongoDB::RedisMongoDB(const JsonConfig& config)
       cluster_flag(false),
       protection_mode(atomdb_api_types::ProtectionMode::PROTECTED) {
     string prefix = config.at_path("prefix").get_or<string>("");
-    initialize_statics(prefix);
+    initialize_namespace(prefix);
     mongodb_setup(config);
     load_protection_mode();
     load_pattern_index_schema();
@@ -1307,7 +1316,7 @@ void RedisMongoDB::load_protection_mode() {
                                 : atomdb_api_types::ProtectionMode::UNPROTECTED;
 }
 
-string RedisMongoDB::protection_config_document_id() {
+string RedisMongoDB::protection_config_document_id() const {
     return Hasher::plain_string_hash(MONGODB_CONFIG_COLLECTION_NAME);
 }
 

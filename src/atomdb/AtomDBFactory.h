@@ -26,7 +26,16 @@ namespace atomdb {
 class AtomDBFactory {
    public:
     /**
-     * @brief Creates a AtomDB and wraps it with ProtectedAtomDB when is applyable.
+     * @brief Creates an AtomDB from config and wraps it with ProtectedAtomDB when applicable.
+     *
+     * @param config AtomDB configuration. Required key: `"type"` (`redismongodb`, `morkdb`,
+     *        `inmemorydb`, `remotedb`, or `adapterdb`).
+     *
+     * Breaking change: `create()` no longer takes a `context` argument. Redis/Mongo namespace
+     * isolation is now per backend via optional `JsonConfig["prefix"]` on that backend's
+     * config (`redismongodb` / `morkdb`, including each remotedb peer and
+     * `adapterdb.atomdb_backend`). The prefix is prepended to Redis keys and MongoDB database
+     * and collection names (e.g. `"test_"` yields DB `test_das`). Omit it for the default names.
      */
     static shared_ptr<AtomDB> create(const JsonConfig& config);
 

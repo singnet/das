@@ -449,7 +449,7 @@ TEST_F(MorkDBTest, ReIndexPatterns) {
     // Direct insertion into MongoDB
     auto inserted_count =
         db->upsert_documents({link_1_doc->value(), link_2_doc->value(), link_3_doc->value()},
-                             RedisMongoDB::MONGODB_LINKS_COLLECTION_NAME);
+                             db->MONGODB_LINKS_COLLECTION_NAME);
     EXPECT_EQ(inserted_count, 3);
 
     db->re_index_patterns();

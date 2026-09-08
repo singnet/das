@@ -21,8 +21,10 @@
 #include "LinkSchema.h"
 #include "Node.h"
 #include "ProtectedAtomDB.h"
+#include "RedisMongoDB.h"
 #include "RemoteAtomDB.h"
 #include "RemoteAtomDBPeer.h"
+#include "TestAtomDBJsonConfig.h"
 
 using namespace atomdb;
 using namespace atomdb::atomdb_api_types;
@@ -700,6 +702,45 @@ TEST_F(RemoteAtomDBConfigTest, SingleConfigWorks) {
     auto human = new Node("Symbol", "\"human\"");
     string human_handle = db_->add_node(human);
     EXPECT_TRUE(db_->node_exists(human_handle));
+}
+
+TEST(RemoteAtomDBPrefixIsolation, PeersWithDifferentPrefixesStayIsolated) {
+    nlohmann::json json;
+    json["type"] = "remotedb";
+    auto peer_a = test_atomdb_json_config("redismongodb", "remote_peer_a_").get_json();
+    peer_a["uid"] = "peer_a";
+    auto peer_b = test_atomdb_json_config("redismongodb", "remote_peer_b_").get_json();
+    peer_b["uid"] = "peer_b";
+    json["remote_peers"] = nlohmann::json::array({peer_a, peer_b});
+
+    auto db = AtomDBFactory::create(JsonConfig(json));
+    auto remote = dynamic_pointer_cast<RemoteAtomDB>(db);
+    ASSERT_NE(remote, nullptr);
+
+    auto* peer_a_wrapper = remote->get_peer("peer_a");
+    auto* peer_b_wrapper = remote->get_peer("peer_b");
+    ASSERT_NE(peer_a_wrapper, nullptr);
+    ASSERT_NE(peer_b_wrapper, nullptr);
+
+    auto redis_a = dynamic_pointer_cast<RedisMongoDB>(peer_a_wrapper->get_remote_atomdb());
+    auto redis_b = dynamic_pointer_cast<RedisMongoDB>(peer_b_wrapper->get_remote_atomdb());
+    ASSERT_NE(redis_a, nullptr);
+    ASSERT_NE(redis_b, nullptr);
+    EXPECT_EQ(redis_a->MONGODB_DB_NAME, "remote_peer_a_das");
+    EXPECT_EQ(redis_b->MONGODB_DB_NAME, "remote_peer_b_das");
+
+    Node node_a("Symbol", "RemotePeerAOnly");
+    Node node_b("Symbol", "RemotePeerBOnly");
+    redis_a->add_node(&node_a);
+    redis_b->add_node(&node_b);
+
+    EXPECT_TRUE(redis_a->node_exists(node_a.handle()));
+    EXPECT_FALSE(redis_a->node_exists(node_b.handle()));
+    EXPECT_TRUE(redis_b->node_exists(node_b.handle()));
+    EXPECT_FALSE(redis_b->node_exists(node_a.handle()));
+
+    redis_a->drop_all();
+    redis_b->drop_all();
 }
 
 // =============================================================================

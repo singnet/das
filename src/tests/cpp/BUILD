@@ -956,6 +956,7 @@ cc_test(
         "//atomdb/redis_mongodb:redis_mongodb_lib",
         "//atomdb/remotedb:remotedb_lib",
         "//commons/atoms:atoms_lib",
+        "//tests/cpp/test_commons:test_atomdb_json_config",
         "@com_github_google_googletest//:gtest",
     ],
 )

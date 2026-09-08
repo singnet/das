@@ -232,7 +232,10 @@ size_t AdapterDB::atom_count() const {
 // ==============================
 
 string AdapterDB::mongodb_db_name() const {
-    return RedisMongoDB::MONGODB_DB_NAME.empty() ? MONGODB_DB_NAME : RedisMongoDB::MONGODB_DB_NAME;
+    if (auto redis_mongo = dynamic_pointer_cast<RedisMongoDB>(this->atomdb_backend)) {
+        return redis_mongo->MONGODB_DB_NAME;
+    }
+    return MONGODB_DB_NAME;
 }
 
 void AdapterDB::initialize(bool skip_atomdb_backend_empty) {
