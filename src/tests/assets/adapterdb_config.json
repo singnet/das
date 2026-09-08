@@ -44,6 +44,7 @@
             {
                 "uid": "peer1",
                 "type": "redismongodb",
+                "prefix": "remotedb_test_peer1_",
                 "composite_type_enabled": true,
                 "mongodb": {
                     "endpoint": "localhost:40021",
@@ -56,6 +57,7 @@
                 },
                 "local_persistence": {
                     "type": "morkdb",
+                    "prefix": "remotedb_test_peer1_local_",
                     "composite_type_enabled": true,
                     "mongodb": {
                         "endpoint": "localhost:40021",
