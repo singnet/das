@@ -490,6 +490,4 @@ void LinkSchema::untokenize(const vector<string>& tokens) {
     }
 }
 
-void LinkSchema::freeze() {
-    this->_frozen = true;
-}
+void LinkSchema::freeze() { this->_frozen = true; }

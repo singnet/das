@@ -217,7 +217,8 @@ void LinkTemplate::processor_method(shared_ptr<StoppableThread> monitor) {
             pending = 0;
         } else {
             if (tagged_handle.second > 0 || !this->positive_importance_flag) {
-                if (!this->unique_value_flag || check_value_uniqueness(handles->get_assignments_by_handle(tagged_handle.first))) {
+                if (!this->unique_value_flag ||
+                    check_value_uniqueness(handles->get_assignments_by_handle(tagged_handle.first))) {
                     assignment = handles->get_assignments_by_handle(tagged_handle.first);
                     assignment.unique_assignment_flag = this->unique_value_flag;
                     if ((this->attention_focus_strictness == 0.0) ||

@@ -112,7 +112,8 @@ char* HandleSetRedisIterator::next() {
     }
     while ((candidate = _next()) != NULL) {
         handle = string(candidate);
-        if ((this->handle_set->link_schema == nullptr) || this->handle_set->link_schema->match(handle, assignment, *decoder)) {
+        if ((this->handle_set->link_schema == nullptr) ||
+            this->handle_set->link_schema->match(handle, assignment, *decoder)) {
             this->handle_set->assignments_by_handle[handle] = assignment;
             return candidate;
         }

@@ -188,7 +188,8 @@ void RemoteAtomDBPeer::merge_handle_set(shared_ptr<HandleSet> source,
     while ((h = it->next()) != nullptr) {
         string s(h);
         if (seen.insert(s).second) {
-            dest->add_handle(s, source->get_metta_expressions_by_handle(s), source->get_assignments_by_handle(s));
+            dest->add_handle(
+                s, source->get_metta_expressions_by_handle(s), source->get_assignments_by_handle(s));
         }
     }
 }
@@ -203,9 +204,7 @@ shared_ptr<HandleSet> RemoteAtomDBPeer::query_for_pattern(const LinkSchema& link
 
     auto merge_local_persistence = [&]() {
         if (!local_persistence_) return;
-        merge_handle_set(local_persistence_->query_for_pattern(link_schema),
-                         result,
-                         seen);
+        merge_handle_set(local_persistence_->query_for_pattern(link_schema), result, seen);
     };
 
     bool cache_hit;

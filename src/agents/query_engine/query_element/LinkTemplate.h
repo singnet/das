@@ -201,8 +201,8 @@ class LinkTemplate : public QueryElement {
      * @return true iff the given Assignment is compliant with the value uniqueness rule.
      */
     inline bool check_value_uniqueness(const Assignment& assignment) {
-        for (auto& pair1: assignment.table) {
-            for (auto& pair2: assignment.table) {
+        for (auto& pair1 : assignment.table) {
+            for (auto& pair2 : assignment.table) {
                 if ((pair1.second == pair2.second) && (pair1.first != pair2.first)) {
                     return false;
                 }
@@ -210,6 +210,5 @@ class LinkTemplate : public QueryElement {
         }
         return true;
     }
-
 };
 }  // namespace query_element
