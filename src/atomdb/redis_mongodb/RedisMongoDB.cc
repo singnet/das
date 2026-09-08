@@ -109,7 +109,7 @@ atomdb_api_types::ProtectionMode RedisMongoDB::get_protection_mode() const {
 void RedisMongoDB::redis_setup(const JsonConfig& config) {
     if (skip_redis_) return;
 
-    string address = config.at_path("redis.endpoint").get<string>();
+    string address = config.at_path("redis.endpoint").get_or<string>("");
     auto tokens = Utils::split(address, ':');
     if (tokens.size() != 2) {
         RAISE_ERROR("Invalid Redis configuration: endpoint must be in the format <hostname>:<port>");
@@ -130,9 +130,9 @@ void RedisMongoDB::redis_setup(const JsonConfig& config) {
 }
 
 void RedisMongoDB::mongodb_setup(const JsonConfig& config) {
-    string address = config.at_path("mongodb.endpoint").get<string>();
-    string user = config.at_path("mongodb.username").get<string>();
-    string password = config.at_path("mongodb.password").get<string>();
+    string address = config.at_path("mongodb.endpoint").get_or<string>("");
+    string user = config.at_path("mongodb.username").get_or<string>("");
+    string password = config.at_path("mongodb.password").get_or<string>("");
     uint chunk_size = config.at_path("mongodb.chunk_size").get_or<uint>(0);
     if (chunk_size > 0) {
         MONGODB_CHUNK_SIZE = chunk_size;

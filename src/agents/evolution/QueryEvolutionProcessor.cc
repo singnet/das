@@ -114,7 +114,6 @@ shared_ptr<PatternMatchingQueryProxy> QueryEvolutionProcessor::issue_correlation
     pm_proxy->parameters[BaseQueryProxy::UNIQUE_ASSIGNMENT_FLAG] = true;
     pm_proxy->parameters[BaseQueryProxy::ATTENTION_CORRELATION] = (unsigned int) BaseQueryProxy::NONE;
     pm_proxy->parameters[BaseQueryProxy::ATTENTION_UPDATE] = (unsigned int) BaseQueryProxy::NONE;
-    pm_proxy->parameters[BaseQueryProxy::USE_LINK_TEMPLATE_CACHE] = false;
     pm_proxy->parameters[PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG] =
         true;  //(this->generation_count > 1);
     pm_proxy->parameters[PatternMatchingQueryProxy::DISREGARD_IMPORTANCE_FLAG] = false;
@@ -577,7 +576,7 @@ void QueryEvolutionProcessor::evolve_query(shared_ptr<StoppableThread> monitor,
     RAM_FOOTPRINT_START(evolution);
     STOP_WATCH_START(evolution);
     while (!monitor->stopped() && !proxy->stop_criteria_met()) {
-        while (!monitor->stopped() && !proxy->cycle_start_allowed()) {
+        while (!monitor->stopped() && !proxy->is_cycle_start_allowed()) {
             Utils::sleep();
         }
         if (monitor->stopped()) {
@@ -618,8 +617,8 @@ void QueryEvolutionProcessor::evolve_query(shared_ptr<StoppableThread> monitor,
         RAM_FOOTPRINT_CHECK(evolution, "Generation " + std::to_string(this->generation_count));
         STOP_WATCH_FINISH(generation, "OneGeneration");
         this->generation_count++;
+        proxy->cycle_ended();
     }
-    proxy->flush_answer_bundle();
     if (this->generation_count > 0) {
         LOG_INFO("--------------------");
         LOG_INFO("Last generation with answer improvement: " +

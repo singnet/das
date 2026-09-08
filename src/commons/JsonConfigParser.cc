@@ -8,6 +8,7 @@
 #include <vector>
 
 #include "Utils.h"
+#include "VaultJsonResolver.h"
 
 using namespace std;
 using nlohmann::json;
@@ -17,7 +18,8 @@ namespace commons {
 namespace {
 
 const vector<string> required_fields_by_version() {
-    static const vector<string> required = {"atomdb", "atomdb.type", "loaders", "agents"};
+    static const vector<string> required = {
+        "atomdb", "atomdb.type", "loaders", "agents", "vault", "vault.type", "vault.endpoint"};
     return required;
 }
 
@@ -28,11 +30,15 @@ JsonConfig parse_and_validate(const string& json_str) {
     } catch (const exception& e) {
         RAISE_ERROR("Invalid JSON in config: " + string(e.what()));
     }
+
+    vault::VaultJsonResolver::resolve_from_config(config);
+
     for (const string& key : required_fields_by_version()) {
         if (config.at_path(key).is_null()) {
             RAISE_ERROR("Missing required field: " + key);
         }
     }
+
     return config;
 }
 

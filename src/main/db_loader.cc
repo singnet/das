@@ -196,6 +196,7 @@ int main(int argc, char* argv[]) {
         STOP_WATCH_FINISH(db_loader_from_file, "DBLoaderFromFile");
 
     } else {
+        LOG_INFO("No file to load. Creating random knowledge base.");
         auto db = dynamic_pointer_cast<RedisMongoDB>(atomdb);
         if (db != nullptr) {
             try {

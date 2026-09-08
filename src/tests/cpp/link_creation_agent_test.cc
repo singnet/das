@@ -1,5 +1,6 @@
 #include <cmath>
 
+#include "InMemoryDB.h"
 #include "LinkCreationProcessor.h"
 #include "LinkCreationProxy.h"
 #include "LinkCreatorRegistry.h"
@@ -23,22 +24,7 @@ class TestLinkCreator : public LinkCreator {
 };
 
 TEST(LinkCreation, link_creator_function) {
-    AtomDBSingleton::init(test_atomdb_json_config());
-    init_test_system_parameters_singleton();
-
-    string peer1_id = "localhost:40043";
-    string peer2_id = "localhost:40044";
-    ServiceBusSingleton::init(peer1_id, "", 40700, 40799);
-    LinkCreatorRegistry::initialize_statics();
-    shared_ptr<ServiceBus> query_bus = ServiceBusSingleton::get_instance();
-    Utils::sleep(1000);
-
-    auto processor = make_shared<LinkCreationProcessor>();
-    shared_ptr<ServiceBus> bus = make_shared<ServiceBus>(peer2_id, peer1_id);
-    Utils::sleep(1000);
-    bus->register_processor(processor);
-
-    LinkCreationProxy proxy1({""}, "link_creation_test", "unit_test");
+    LinkCreationProxy proxy1({""}, "link_creation_test", "unit_test", BaseProxy::NONE);
     EXPECT_EQ(proxy1.link_creation(make_shared<QueryAnswer>("blah", 0.0)).created, 4);
     EXPECT_EQ(proxy1.link_creation(make_shared<QueryAnswer>("blahhh", 0.5)).created, 6);
     EXPECT_EQ(proxy1.link_creation(make_shared<QueryAnswer>("blahh", 1.0)).created, 5);
@@ -52,12 +38,15 @@ TEST(LinkCreation, link_creator_function) {
     EXPECT_THROW(LinkCreationProxy proxy2({""},
                                           "link_creation_test",
                                           LinkCreatorRegistry::REMOTE_FUNCTION,
+                                          BaseProxy::NONE,
                                           make_shared<TestLinkCreator>()),
                  runtime_error);
 }
 
 TEST(LinkCreation, proxy_object) {
-    LinkCreationProxy proxy({"t0", "t1"}, "context", "unit_test");
+    LinkCreationProxy proxy({"t0", "t1"}, "context", "unit_test", BaseProxy::SYNC_ON_CYCLE_START);
+    proxy.parameters[LinkCreationProxy::MAX_SUCCESSFUL_CREATION_PER_ROUND] = (unsigned int) 2;
+
     vector<string> tokens1, tokens2, tokens3;
     proxy.tokenize(tokens1);
     tokens2 = tokens1;
@@ -67,4 +56,26 @@ TEST(LinkCreation, proxy_object) {
     cout << "tokens1: " << Utils::join(tokens1) << endl;
     cout << "tokens3: " << Utils::join(tokens3) << endl;
     EXPECT_EQ(tokens1, tokens3);
+}
+
+int main(int argc, char** argv) {
+    ::testing::InitGoogleTest(&argc, argv);
+    AtomDBSingleton::provide(make_shared<InMemoryDB>());
+    init_test_system_parameters_singleton();
+    LinkCreatorRegistry::initialize_statics();
+
+    // string peer1_id = "localhost:40048";
+    // string peer2_id = "localhost:40049";
+    // ServiceBusSingleton::init(peer1_id, "", 41800, 41899);
+    // FitnessFunctionRegistry::initialize_statics();
+    // shared_ptr<ServiceBus> query_bus = ServiceBusSingleton::get_instance();
+    // query_bus->register_processor(make_shared<PatternMatchingQueryProcessor>());
+    // Utils::sleep(1000);
+
+    // auto processor = make_shared<TestProcessor>();
+    // shared_ptr<ServiceBus> bus = make_shared<ServiceBus>(peer2_id, peer1_id);
+    // Utils::sleep(1000);
+    // bus->register_processor(processor);
+
+    return RUN_ALL_TESTS();
 }

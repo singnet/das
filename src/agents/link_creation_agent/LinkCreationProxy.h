@@ -28,12 +28,19 @@ class LinkCreationProxy : public BaseQueryProxy {
     static string MAX_UNPRODUCTIVE_VISITS_PER_ROUND;
     static string MAX_VISIT_ATTEMPTS_PER_ROUND;
     static string MAX_ROUNDS;
+    static string LINK_CREATION_STRENGTH_THRESHOLD;
+    static string LINK_CREATION_LOG_FILE_NAME;
+
+    // LOG_NEW_LINKS is an optional parameter but it is not part of the configuration file as it
+    // is meant to be used only in tests.
+    static string LOG_NEW_LINKS;
 
     LinkCreationProxy();
 
     LinkCreationProxy(const vector<string>& tokens,
                       const string& context,
                       const string& link_creator_tag,
+                      BaseProxy::ORCHESTRATION_SCHEMA_TYPE orchestration,
                       const shared_ptr<LinkCreator> link_creator = shared_ptr<LinkCreator>(nullptr));
 
     ~LinkCreationProxy();
@@ -82,6 +89,12 @@ class LinkCreationProxy : public BaseQueryProxy {
      * @return true iff the link creation function is supposed to be evaluated remotely.
      */
     bool is_link_creation_function_remote();
+
+    /**
+     * Call Attention Broker to set determiners according to a state buffer with accumulated
+     * requests from one entire link creation round. This buffer is emptied as a side effect.
+     */
+    void flush_determiners();
 
     // ---------------------------------------------------------------------------------------------
     // Virtual superclass API and the piggyback methods called by it
