@@ -221,6 +221,7 @@ cc_test(
     linkstatic = 1,
     deps = [
         "//agents/query_engine:query_engine_lib",
+        "//atomdb/inmemorydb:inmemorydb_lib",
         "//tests/cpp/test_commons:test_atomdb_json_config",
         "@com_github_google_googletest//:gtest_main",
         "@mbedtls",
@@ -831,6 +832,30 @@ cc_test(
         "//atomdb:atomdb_singleton",
         "//tests/cpp/test_commons:mock_animals_data_lib",
         "//tests/cpp/test_commons:test_atomdb_json_config",
+        "@com_github_google_googletest//:gtest",
+        "@mbedtls",
+    ],
+)
+
+cc_test(
+    name = "redis_mongodb_api_types_test",
+    size = "small",
+    srcs = ["redis_mongodb_api_types_test.cc"],
+    copts = [
+        "-Iexternal/gtest/googletest/include",
+        "-Iexternal/gtest/googletest",
+    ],
+    linkopts = [
+        "-L/usr/local/lib",
+        "-lhiredis_cluster",
+        "-lhiredis",
+        "-lmongocxx",
+        "-lbsoncxx",
+    ],
+    linkstatic = 1,
+    deps = [
+        "//atomdb/redis_mongodb:redis_mongodb_api_types",
+        "//commons/atoms:atoms_lib",
         "@com_github_google_googletest//:gtest",
         "@mbedtls",
     ],
