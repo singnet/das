@@ -195,7 +195,7 @@ void LinkTemplate::processor_method(shared_ptr<StoppableThread> monitor) {
     if (handles->size() > 0) {
         auto iterator = handles->get_iterator();
         char* handle;
-        while ((handle = iterator->next()) != nullptr) {
+        while ((handle = iterator->next()) != NULL) {
             tagged_handles.push_back(make_pair<char*, float>((char*) handle, 0));
         }
         if (!this->disregard_importance_flag) {
@@ -210,6 +210,7 @@ void LinkTemplate::processor_method(shared_ptr<StoppableThread> monitor) {
     unsigned int processed = 0;
     unsigned int cursor = 0;
     unsigned int count_matched = 0;
+    Assignment assignment;
     while ((pending > 0) && !monitor->stopped()) {
         pair<char*, float> tagged_handle = tagged_handles[cursor++];
         if (this->positive_importance_flag && tagged_handle.second <= 0) {
@@ -217,18 +218,20 @@ void LinkTemplate::processor_method(shared_ptr<StoppableThread> monitor) {
         } else {
             if (tagged_handle.second > 0 || !this->positive_importance_flag) {
                 if (!this->unique_value_flag || check_value_uniqueness(handles->get_assignments_by_handle(tagged_handle.first))) {
+                    assignment = handles->get_assignments_by_handle(tagged_handle.first);
+                    assignment.unique_assignment_flag = this->unique_value_flag;
                     if ((this->attention_focus_strictness == 0.0) ||
                         (this->attention_focus_strictness == 1.0)) {
                         this->source_element->add_handle(
                             tagged_handle.first,
                             tagged_handle.second,
-                            handles->get_assignments_by_handle(tagged_handle.first),
+                            assignment,
                             handles->get_metta_expressions_by_handle(tagged_handle.first));
                     } else {
                         attention_focus_candidates.push_back(AttentionFocusRecord(
                             tagged_handle.first,
                             tagged_handle.second,
-                            handles->get_assignments_by_handle(tagged_handle.first),
+                            assignment,
                             handles->get_metta_expressions_by_handle(tagged_handle.first)));
                     }
                     count_matched++;

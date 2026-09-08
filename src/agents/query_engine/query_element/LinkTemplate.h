@@ -203,7 +203,7 @@ class LinkTemplate : public QueryElement {
     inline bool check_value_uniqueness(const Assignment& assignment) {
         for (auto& pair1: assignment.table) {
             for (auto& pair2: assignment.table) {
-                if ((pair1.second == pair2.second) && (pair1.first != pair1.first)) {
+                if ((pair1.second == pair2.second) && (pair1.first != pair2.first)) {
                     return false;
                 }
             }
