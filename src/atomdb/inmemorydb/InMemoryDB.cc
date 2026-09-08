@@ -180,9 +180,9 @@ shared_ptr<HandleSet> InMemoryDB::query_for_pattern(const LinkSchema& link_schem
     Assignment assignment;
     if (handles != nullptr) {
         for (const auto& handle : *handles) {
+            assignment.clear();
             if (((LinkSchema&) link_schema).match(handle, assignment, *this)) {
                 handle_set->add_handle(handle, {}, assignment);
-                assignment.clear();
             }
         }
     }

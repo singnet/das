@@ -136,9 +136,7 @@ shared_ptr<atomdb_api_types::HandleSet> RemoteAtomDB::query_for_pattern(const Li
         auto it = handle_set->get_iterator();
         if (!it) continue;
 
-        while (true) {
-            char* h = it->next();
-            if (!h) break;
+        while (char* h = it->next()) {
             string handle(h);
             if (seen.insert(handle).second) {
                 result->add_handle(handle,
