@@ -104,8 +104,6 @@ shared_ptr<PatternMatchingQueryProxy> LinkCreationProcessor::issue_link_creation
         (unsigned int) proxy->parameters.get<unsigned int>(BaseQueryProxy::ATTENTION_UPDATE);
     pm_proxy->parameters[BaseQueryProxy::UNIQUE_ASSIGNMENT_FLAG] =
         (bool) proxy->parameters.get<bool>(BaseQueryProxy::UNIQUE_ASSIGNMENT_FLAG);
-    pm_proxy->parameters[BaseQueryProxy::USE_LINK_TEMPLATE_CACHE] =
-        (bool) proxy->parameters.get<bool>(BaseQueryProxy::USE_LINK_TEMPLATE_CACHE);
     pm_proxy->parameters[BaseQueryProxy::ALLOW_INCOMPLETE_CHAIN_PATH] =
         (bool) proxy->parameters.get<bool>(BaseQueryProxy::ALLOW_INCOMPLETE_CHAIN_PATH);
     pm_proxy->parameters[BaseQueryProxy::ATTENTION_FOCUS_STRICTNESS] =

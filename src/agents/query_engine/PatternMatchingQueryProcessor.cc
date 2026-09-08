@@ -414,7 +414,7 @@ shared_ptr<QueryElement> PatternMatchingQueryProcessor::build_link_template(
         proxy->parameters.get<bool>(PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG),
         proxy->parameters.get<bool>(PatternMatchingQueryProxy::DISREGARD_IMPORTANCE_FLAG),
         proxy->parameters.get<bool>(PatternMatchingQueryProxy::UNIQUE_VALUE_FLAG),
-        proxy->parameters.get<bool>(BaseQueryProxy::USE_LINK_TEMPLATE_CACHE));
+        proxy->parameters.get<string>(BaseQueryProxy::PUBLIC_KEY_TOKENS));
     LOG_DEBUG("New LinkTemplate: " + link_template->to_string());
     LOG_DEBUG("Building LinkTemplate... Done.");
     return link_template;
