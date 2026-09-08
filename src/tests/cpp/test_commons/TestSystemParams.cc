@@ -9,7 +9,7 @@ namespace das_test {
 
 const char kAgentsJson[] = R"({
   "agents": {
-    "schema_version": "1.1.0",
+    "schema_version": "1.2.0",
     "base_proxy": {
       "params": {
         "orchestration_schema": 0
@@ -23,10 +23,10 @@ const char kAgentsJson[] = R"({
         "attention_focus_strictness": 0.0,
         "max_bundle_size": 1000,
         "max_answers": 0,
-        "use_link_template_cache": false,
         "populate_metta_mapping": false,
         "use_metta_as_query_tokens": false,
-        "allow_incomplete_chain_path": false
+        "allow_incomplete_chain_path": false,
+        "public_key_tokens": ""
       }
     },
     "query": {
