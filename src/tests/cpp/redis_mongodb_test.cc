@@ -1706,21 +1706,52 @@ TEST(RedisMongoDBPrefixIsolation, InstancesKeepIndependentNamespaces) {
         AtomDBFactory::create(test_atomdb_json_config("redismongodb", "peer_b_")));
     ASSERT_NE(db_a, nullptr);
     ASSERT_NE(db_b, nullptr);
+
     EXPECT_EQ(db_a->MONGODB_DB_NAME, "peer_a_das");
     EXPECT_EQ(db_b->MONGODB_DB_NAME, "peer_b_das");
+    EXPECT_EQ(db_a->REDIS_PATTERNS_PREFIX, "peer_a_patterns");
+    EXPECT_EQ(db_b->REDIS_PATTERNS_PREFIX, "peer_b_patterns");
+    EXPECT_EQ(db_a->REDIS_OUTGOING_PREFIX, "peer_a_outgoing_set");
+    EXPECT_EQ(db_b->REDIS_OUTGOING_PREFIX, "peer_b_outgoing_set");
 
-    Node node_a("Symbol", "PeerAOnly");
-    Node node_b("Symbol", "PeerBOnly");
-    db_a->add_node(&node_a);
-    db_b->add_node(&node_b);
+    Node pred_a("Symbol", "SimilarityA");
+    Node human_a("Symbol", "PeerAHuman");
+    Node monkey_a("Symbol", "PeerAMonkey");
+    Node pred_b("Symbol", "SimilarityB");
+    Node human_b("Symbol", "PeerBHuman");
+    Node monkey_b("Symbol", "PeerBMonkey");
+    db_a->add_nodes({&pred_a, &human_a, &monkey_a});
+    db_b->add_nodes({&pred_b, &human_b, &monkey_b});
 
-    EXPECT_TRUE(db_a->node_exists(node_a.handle()));
-    EXPECT_FALSE(db_a->node_exists(node_b.handle()));
-    EXPECT_TRUE(db_b->node_exists(node_b.handle()));
-    EXPECT_FALSE(db_b->node_exists(node_a.handle()));
+    Link link_a("Expression", {pred_a.handle(), human_a.handle(), monkey_a.handle()});
+    Link link_b("Expression", {pred_b.handle(), human_b.handle(), monkey_b.handle()});
+    db_a->add_link(&link_a);
+    db_b->add_link(&link_b);
+
+    EXPECT_TRUE(db_a->node_exists(human_a.handle()));
+    EXPECT_TRUE(db_a->link_exists(link_a.handle()));
+    EXPECT_FALSE(db_a->node_exists(human_b.handle()));
+    EXPECT_FALSE(db_a->link_exists(link_b.handle()));
+
+    EXPECT_TRUE(db_b->node_exists(human_b.handle()));
+    EXPECT_TRUE(db_b->link_exists(link_b.handle()));
+    EXPECT_FALSE(db_b->node_exists(human_a.handle()));
+    EXPECT_FALSE(db_b->link_exists(link_a.handle()));
+
+    ASSERT_NE(db_a->query_for_targets(link_a.handle()), nullptr);
+    EXPECT_EQ(db_b->query_for_targets(link_a.handle()), nullptr);
 
     db_a->drop_all();
+
+    EXPECT_FALSE(db_a->node_exists(human_a.handle()));
+    EXPECT_FALSE(db_a->link_exists(link_a.handle()));
+    EXPECT_TRUE(db_b->node_exists(human_b.handle()));
+    EXPECT_TRUE(db_b->link_exists(link_b.handle()));
+    ASSERT_NE(db_b->query_for_targets(link_b.handle()), nullptr);
+
     db_b->drop_all();
+    EXPECT_FALSE(db_b->node_exists(human_b.handle()));
+    EXPECT_FALSE(db_b->link_exists(link_b.handle()));
 }
 
 int main(int argc, char** argv) {
