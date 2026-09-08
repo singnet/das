@@ -1,7 +1,6 @@
 #pragma once
 
 #include <memory>
-#include <string>
 
 #include "AtomDB.h"
 #include "JsonConfig.h"
@@ -29,15 +28,14 @@ class AtomDBFactory {
     /**
      * @brief Creates a AtomDB and wraps it with ProtectedAtomDB when is applyable.
      */
-    static shared_ptr<AtomDB> create(const JsonConfig& config, const string& context = "");
+    static shared_ptr<AtomDB> create(const JsonConfig& config);
 
    private:
     // Supported types: redismongodb, morkdb, inmemorydb.
-    static shared_ptr<AtomDB> create_basic_atomdb(const JsonConfig& config, const string& context = "");
+    static shared_ptr<AtomDB> create_basic_atomdb(const JsonConfig& config);
 
     // Supported types: remotedb, adapterdb.
-    static shared_ptr<AtomDB> create_composite_atomdb(const JsonConfig& config,
-                                                      const string& context = "");
+    static shared_ptr<AtomDB> create_composite_atomdb(const JsonConfig& config);
 
     /**
      * @brief Applies protection wrapping when enabled.

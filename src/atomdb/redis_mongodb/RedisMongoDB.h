@@ -54,17 +54,17 @@ class RedisMongoDB : public AtomDB {
     static string MONGODB_FIELD_NAME[MONGODB_FIELD::size];
     static uint MONGODB_CHUNK_SIZE;
 
-    static void initialize_statics(const string& context = "") {
-        REDIS_PATTERNS_PREFIX = context + "patterns";
-        REDIS_OUTGOING_PREFIX = context + "outgoing_set";
-        REDIS_INCOMING_PREFIX = context + "incoming_set";
+    static void initialize_statics(const string& prefix = "") {
+        REDIS_PATTERNS_PREFIX = prefix + "patterns";
+        REDIS_OUTGOING_PREFIX = prefix + "outgoing_set";
+        REDIS_INCOMING_PREFIX = prefix + "incoming_set";
         REDIS_CHUNK_SIZE = 10000;
-        MONGODB_DB_NAME = context + "das";
-        MONGODB_NODES_COLLECTION_NAME = context + "nodes";
-        MONGODB_LINKS_COLLECTION_NAME = context + "links";
-        MONGODB_CONFIG_COLLECTION_NAME = context + "config";
-        MONGODB_PATTERN_INDEX_SCHEMA_COLLECTION_NAME = context + "pattern_index_schema";
-        MONGODB_ACCESS_PERMISSIONS_COLLECTION_NAME = context + "access_permissions";
+        MONGODB_DB_NAME = prefix + "das";
+        MONGODB_NODES_COLLECTION_NAME = prefix + "nodes";
+        MONGODB_LINKS_COLLECTION_NAME = prefix + "links";
+        MONGODB_CONFIG_COLLECTION_NAME = prefix + "config";
+        MONGODB_PATTERN_INDEX_SCHEMA_COLLECTION_NAME = prefix + "pattern_index_schema";
+        MONGODB_ACCESS_PERMISSIONS_COLLECTION_NAME = prefix + "access_permissions";
         MONGODB_FIELD_NAME[MONGODB_FIELD::ID] = "_id";
         MONGODB_FIELD_NAME[MONGODB_FIELD::TARGETS] = "targets";
         MONGODB_FIELD_NAME[MONGODB_FIELD::NAME] = "name";
@@ -158,10 +158,9 @@ class RedisMongoDB : public AtomDB {
 
    protected:
     friend class AtomDBFactory;
-    RedisMongoDB(const string& context, bool skip_redis, const JsonConfig& config);
+    RedisMongoDB(const JsonConfig& config);
 
    private:
-    string context;
     bool skip_redis_;
     bool composite_type_enabled_;
     bool cluster_flag;

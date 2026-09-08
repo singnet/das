@@ -121,7 +121,6 @@ feature as f WHERE f.feature_id<=500;
             {
                 "uid": "peer1",
                 "type": "redismongodb",
-                "context": "remotedb_test_peer1_",
                 "mongodb": {
                     "endpoint": "localhost:40021",
                     "username": "admin",
@@ -133,7 +132,6 @@ feature as f WHERE f.feature_id<=500;
                 },
                 "local_persistence": {
                     "type": "morkdb",
-                    "context": "remotedb_test_peer1_local_",
                     "mongodb": {
                         "endpoint": "localhost:40021",
                         "username": "admin",
@@ -147,10 +145,8 @@ feature as f WHERE f.feature_id<=500;
             {
                 "uid": "peer2",
                 "type": "inmemorydb",
-                "context": "remotedb_test_peer2_",
                 "local_persistence": {
-                    "type": "inmemorydb",
-                    "context": "remotedb_test_peer2_local_"
+                    "type": "inmemorydb"
                 }
             }
         ]

@@ -80,7 +80,6 @@
             {
                 "uid": "peer1",
                 "type": "redismongodb",
-                "context": "",
                 "mongodb": {
                     "endpoint": "localhost:40021",
                     "username": "admin",
@@ -97,7 +96,6 @@
             {
                 "uid": "peer2",
                 "type": "redismongodb",
-                "context": "",
                 "mongodb": {
                     "endpoint": "localhost:40031",
                     "username": "admin",
@@ -114,10 +112,8 @@
             {
                 "uid": "peer3",
                 "type": "inmemorydb",
-                "context": "",
                 "local_persistence": {
                     "type": "redismongodb",
-                    "context": "",
                     "composite_type_enabled": false,
                     "mongodb": {
                         "endpoint": "localhost:40041",

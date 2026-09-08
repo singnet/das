@@ -45,7 +45,6 @@
                 "uid": "peer1",
                 "type": "redismongodb",
                 "composite_type_enabled": true,
-                "context": "remotedb_test_peer1_",
                 "mongodb": {
                     "endpoint": "localhost:40021",
                     "username": "admin",
@@ -58,7 +57,6 @@
                 "local_persistence": {
                     "type": "morkdb",
                     "composite_type_enabled": true,
-                    "context": "remotedb_test_peer1_local_",
                     "mongodb": {
                         "endpoint": "localhost:40021",
                         "username": "admin",
@@ -72,10 +70,8 @@
             {
                 "uid": "peer2",
                 "type": "inmemorydb",
-                "context": "remotedb_test_peer2_",
                 "local_persistence": {
-                    "type": "inmemorydb",
-                    "context": "remotedb_test_peer2_local_"
+                    "type": "inmemorydb"
                 }
             }
         ]

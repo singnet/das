@@ -13,6 +13,7 @@
 #include "PostgresMappingStrategy.h"
 #include "PostgresWrapper.h"
 #include "Processor.h"
+#include "RedisMongoDB.h"
 #include "Utils.h"
 #include "processor/ThreadPool.h"
 
@@ -31,8 +32,8 @@ string AdapterDB::MONGODB_ADAPTER_COLLECTION_NAME = "adapterdb";
 //  Construction / destruction
 // ==============================
 
-AdapterDB::AdapterDB(const JsonConfig& config, std::shared_ptr<AtomDB> backend, const string& context)
-    : context(context), config(config), atomdb_backend(backend) {
+AdapterDB::AdapterDB(const JsonConfig& config, std::shared_ptr<AtomDB> backend)
+    : config(config), atomdb_backend(backend) {
     this->initialize(true);
 }
 
@@ -230,7 +231,9 @@ size_t AdapterDB::atom_count() const {
 //  Private
 // ==============================
 
-string AdapterDB::mongodb_db_name() const { return this->context + MONGODB_DB_NAME; }
+string AdapterDB::mongodb_db_name() const {
+    return RedisMongoDB::MONGODB_DB_NAME.empty() ? MONGODB_DB_NAME : RedisMongoDB::MONGODB_DB_NAME;
+}
 
 void AdapterDB::initialize(bool skip_atomdb_backend_empty) {
     this->validate_adapterdb_type();

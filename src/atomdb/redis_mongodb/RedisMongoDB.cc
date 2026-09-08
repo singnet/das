@@ -40,13 +40,13 @@ string RedisMongoDB::MONGODB_ACCESS_PERMISSIONS_COLLECTION_NAME;
 string RedisMongoDB::MONGODB_FIELD_NAME[MONGODB_FIELD::size];
 uint RedisMongoDB::MONGODB_CHUNK_SIZE;
 
-RedisMongoDB::RedisMongoDB(const string& context, bool skip_redis, const JsonConfig& config)
-    : context(context),
-      skip_redis_(skip_redis),
+RedisMongoDB::RedisMongoDB(const JsonConfig& config)
+    : skip_redis_(config.at_path("type").get_or<string>("") != "redismongodb"),
       composite_type_enabled_(config.at_path("composite_type_enabled").get_or<bool>(true)),
       cluster_flag(false),
       protection_mode(atomdb_api_types::ProtectionMode::PROTECTED) {
-    initialize_statics(context);
+    string prefix = config.at_path("prefix").get_or<string>("");
+    initialize_statics(prefix);
     mongodb_setup(config);
     load_protection_mode();
     load_pattern_index_schema();

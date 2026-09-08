@@ -21,7 +21,7 @@ using namespace std;
 class MorkDBTestEnvironment : public ::testing::Environment {
    public:
     void SetUp() override {
-        auto atomdb = new MorkDB("morkdb_test_", test_atomdb_json_config("morkdb"));
+        auto atomdb = new MorkDB(test_atomdb_json_config("morkdb", "morkdb_test_"));
         atomdb->drop_all();
         AtomDBSingleton::provide(shared_ptr<AtomDB>(atomdb));
         load_animals_data();
@@ -478,15 +478,15 @@ TEST_F(MorkDBTest, ReIndexPatterns) {
 }
 
 TEST(MorkDBSetupTest, RejectsMissingEndpoint) {
-    auto config = test_atomdb_json_config("morkdb");
+    auto config = test_atomdb_json_config("morkdb", "morkdb_test_");
     config["morkdb"].erase("endpoint");
-    EXPECT_THROW({ MorkDB db("setup_test_", config); }, runtime_error);
+    EXPECT_THROW({ MorkDB db(config); }, runtime_error);
 }
 
 TEST(MorkDBSetupTest, RejectsBlankEndpoint) {
-    auto config = test_atomdb_json_config("morkdb");
+    auto config = test_atomdb_json_config("morkdb", "morkdb_test_");
     config["morkdb"]["endpoint"] = "   ";
-    EXPECT_THROW({ MorkDB db("setup_test_", config); }, runtime_error);
+    EXPECT_THROW({ MorkDB db(config); }, runtime_error);
 }
 
 int main(int argc, char** argv) {
