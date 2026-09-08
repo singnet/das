@@ -191,5 +191,7 @@ class LinkSchema : public Wildcard {
     void tokenize(vector<string>& output);
 
     void untokenize(const vector<string>& tokens);
+
+    void freeze();
 };
 }  // namespace atoms

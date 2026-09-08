@@ -60,8 +60,6 @@ RedisMongoDB::~RedisMongoDB() {
     if (!skip_redis_) delete this->redis_pool;
 }
 
-bool RedisMongoDB::allow_nested_indexing() { return false; }
-
 vector<shared_ptr<atomdb_api_types::AccessPermissionDocument>> RedisMongoDB::get_access_permissions(
     const atomdb_api_types::PublicKey& public_key) const {
     vector<shared_ptr<atomdb_api_types::AccessPermissionDocument>> documents;
@@ -215,6 +213,8 @@ shared_ptr<atomdb_api_types::HandleSet> RedisMongoDB::query_for_pattern(const Li
     auto ctx = this->redis_pool->acquire();
 
     auto handle_set = make_shared<atomdb_api_types::HandleSetRedis>();
+    handle_set->link_schema = make_shared<LinkSchema>(link_schema);
+    handle_set->decoder = this;
 
     while (redis_has_more) {
         command = ("ZRANGE " + REDIS_PATTERNS_PREFIX + ":" + pattern_handle + " " +

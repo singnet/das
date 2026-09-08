@@ -194,5 +194,22 @@ class LinkTemplate : public QueryElement {
      * Empty implementation. There are no QueryNode element or local thread to shut down.
      */
     virtual void graceful_shutdown() {}
+
+    /**
+     * Checks if a given Assignment is compliant with the value uniqueness rule.
+     *
+     * @return true iff the given Assignment is compliant with the value uniqueness rule.
+     */
+    inline bool check_value_uniqueness(const Assignment& assignment) {
+        for (auto& pair1: assignment.table) {
+            for (auto& pair2: assignment.table) {
+                if ((pair1.second == pair2.second) && (pair1.first != pair1.first)) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
 };
 }  // namespace query_element

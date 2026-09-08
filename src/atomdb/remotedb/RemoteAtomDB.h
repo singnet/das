@@ -26,7 +26,6 @@ class RemoteAtomDB : public AtomDB {
     explicit RemoteAtomDB(map<string, shared_ptr<RemoteAtomDBPeer>> peers);
     ~RemoteAtomDB();
 
-    bool allow_nested_indexing() override;
     bool composite_type_enabled() const override;
     atomdb_api_types::ProtectionMode get_protection_mode() const override;
 
@@ -90,9 +89,6 @@ class RemoteAtomDB : public AtomDB {
     // Immutable after construction (peer map never changes).
     vector<pair<string, shared_ptr<RemoteAtomDBPeer>>> writable_peers_;
     vector<pair<string, shared_ptr<RemoteAtomDBPeer>>> readonly_peers_;
-    // Aggregated nested-indexing capability, derived from peers at construction. True only when
-    // every peer supports nested indexing; mixed configurations are normalized to false.
-    bool nested_indexing_ = false;
 };
 
 }  // namespace atomdb

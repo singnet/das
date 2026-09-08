@@ -55,11 +55,6 @@ bool AdapterDB::needs_sync() const {
     return false;
 }
 
-bool AdapterDB::allow_nested_indexing() {
-    this->ensure_backend_ready();
-    return this->atomdb_backend->allow_nested_indexing();
-}
-
 bool AdapterDB::composite_type_enabled() const {
     this->ensure_backend_ready();
     return this->atomdb_backend->composite_type_enabled();

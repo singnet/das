@@ -44,7 +44,6 @@ TEST(ProtectedAtomDBTest, ReportsProtectionModeThroughWrapper) {
 TEST(ProtectedAtomDBTest, DelegatesToBackend) {
     auto backend = make_shared<ProtectedInMemoryDB>("protected_flags_");
     ProtectedAtomDB db(backend);
-    EXPECT_EQ(db.allow_nested_indexing(), backend->allow_nested_indexing());
     EXPECT_EQ(db.composite_type_enabled(), backend->composite_type_enabled());
 
     PublicKey key("any_key");

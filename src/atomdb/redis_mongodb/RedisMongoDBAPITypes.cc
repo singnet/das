@@ -13,12 +13,16 @@ using namespace std;
 HandleSetRedis::HandleSetRedis(bool delete_replies_on_destruction) : HandleSet() {
     this->handles_size = 0;
     this->delete_replies_on_destruction = delete_replies_on_destruction;
+    this->link_schema = nullptr;
+    this->decoder = NULL;
 }
 
 HandleSetRedis::HandleSetRedis(redisReply* reply, bool delete_replies_on_destruction) : HandleSet() {
     this->replies.push_back(reply);
     this->handles_size = reply->elements;
     this->delete_replies_on_destruction = delete_replies_on_destruction;
+    this->link_schema = nullptr;
+    this->decoder = NULL;
 }
 
 HandleSetRedis::~HandleSetRedis() {
@@ -45,13 +49,19 @@ shared_ptr<HandleSetIterator> HandleSetRedis::get_iterator() {
 }
 
 map<string, string> HandleSetRedis::get_metta_expressions_by_handle(const string& handle) {
-    RAISE_ERROR("HandleSetRedis does not support get_metta_expressions_by_handle");
+    auto it = metta_expressions_by_handle.find(handle);
+    if (it != metta_expressions_by_handle.end()) {
+        return it->second;
+    }
     return {};
 }
 
 Assignment HandleSetRedis::get_assignments_by_handle(const string& handle) {
-    RAISE_ERROR("HandleSetRedis does not support get_assignments_by_handle");
-    return {};
+    auto it = assignments_by_handle.find(handle);
+    if (it != assignments_by_handle.end()) {
+        return it->second;
+    }
+    return Assignment();
 }
 
 HandleSetRedisIterator::HandleSetRedisIterator(HandleSetRedis* handle_set) {
@@ -62,10 +72,10 @@ HandleSetRedisIterator::HandleSetRedisIterator(HandleSetRedis* handle_set) {
 
 HandleSetRedisIterator::~HandleSetRedisIterator(){};
 
-char* HandleSetRedisIterator::next() {
+char* HandleSetRedisIterator::_next() {
     if (this->outer_idx >= this->handle_set->replies.size()) {
-        // No more elements, reset indexes and return nullptr.
-        return nullptr;
+        // No more elements, return NULL.
+        return NULL;
     }
 
     redisReply* reply = this->handle_set->replies[this->outer_idx];
@@ -87,8 +97,27 @@ char* HandleSetRedisIterator::next() {
         }
     }
 
-    // No more elements, reset indexes and return nullptr
-    return nullptr;
+    // No more elements, return NULL
+    return NULL;
+}
+
+char* HandleSetRedisIterator::next() {
+    Assignment assignment;
+    char* candidate;
+    HandleDecoder* decoder = this->handle_set->decoder;
+    if ((this->handle_set->link_schema != nullptr) && (decoder == NULL)) {
+        RAISE_ERROR("Non-null link_schema requires a decoder to be matched against handles");
+        return NULL;
+    }
+    while ((candidate = _next()) != NULL) {
+        string handle(candidate);
+        if ((this->handle_set->link_schema == nullptr) || this->handle_set->link_schema->match(handle, assignment, *decoder)) {
+            this->handle_set->assignments_by_handle[handle] = assignment;
+            return candidate;
+        }
+        assignment.clear();
+    }
+    return NULL;
 }
 
 RedisStringBundle::RedisStringBundle(redisReply* reply) : HandleList() {

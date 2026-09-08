@@ -37,6 +37,8 @@ class HandleSetRedis : public HandleSet {
 
     map<string, string> get_metta_expressions_by_handle(const string& handle);
     Assignment get_assignments_by_handle(const string& handle);
+    shared_ptr<LinkSchema> link_schema;
+    HandleDecoder *decoder;
 
    private:
     unsigned int handles_size;
@@ -54,6 +56,7 @@ class HandleSetRedisIterator : public HandleSetIterator {
     char* next();
 
    private:
+    char* _next();
     HandleSetRedis* handle_set;
     unsigned int outer_idx;
     unsigned int inner_idx;

@@ -55,8 +55,6 @@ class AdapterDB : public AtomDB {
     // AtomDB API
     // ------------------------------------------------------------------
 
-    bool allow_nested_indexing() override;
-
     /**
      * @brief Whether the backend computes and stores composite type fields when adding atoms.
      */

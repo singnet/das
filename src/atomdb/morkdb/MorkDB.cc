@@ -137,8 +137,6 @@ MorkDB::MorkDB(const string& context, const JsonConfig& config) : RedisMongoDB(c
 
 MorkDB::~MorkDB() {}
 
-bool MorkDB::allow_nested_indexing() { return true; }
-
 void MorkDB::mork_setup(const JsonConfig& config) {
     string address = Utils::trim(config.at_path("morkdb.endpoint").get_or<string>(""));
     if (address.empty()) {

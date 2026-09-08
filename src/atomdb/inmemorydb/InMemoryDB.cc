@@ -151,8 +151,6 @@ InMemoryDB::InMemoryDB(const string& context) : context_(context), tries_(make_t
 
 InMemoryDB::~InMemoryDB() = default;
 
-bool InMemoryDB::allow_nested_indexing() { return false; }
-
 // ---------------------------------------------------------------------------
 // Reads — no write_mutex_; trie snapshots + HandleTrie's per-node locking
 // ---------------------------------------------------------------------------
@@ -179,9 +177,13 @@ shared_ptr<Link> InMemoryDB::get_link(const string& handle) {
 shared_ptr<HandleSet> InMemoryDB::query_for_pattern(const LinkSchema& link_schema) {
     auto handle_set = make_shared<HandleSetInMemory>();
     auto handles = lookup_handle_set(*load_tries()->patterns, link_schema.handle());
+    Assignment assignment;
     if (handles != nullptr) {
         for (const auto& handle : *handles) {
-            handle_set->add_handle(handle);
+            if (((LinkSchema&) link_schema).match(handle, assignment, *this)) {
+                handle_set->add_handle(handle, {}, assignment);
+                assignment.clear();
+            }
         }
     }
     return handle_set;

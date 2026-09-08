@@ -209,7 +209,6 @@ void LinkTemplate::processor_method(shared_ptr<StoppableThread> monitor) {
     unsigned int pending = tagged_handles.size();
     unsigned int processed = 0;
     unsigned int cursor = 0;
-    Assignment assignment(this->unique_value_flag);
     unsigned int count_matched = 0;
     while ((pending > 0) && !monitor->stopped()) {
         pair<char*, float> tagged_handle = tagged_handles[cursor++];
@@ -217,7 +216,7 @@ void LinkTemplate::processor_method(shared_ptr<StoppableThread> monitor) {
             pending = 0;
         } else {
             if (tagged_handle.second > 0 || !this->positive_importance_flag) {
-                if (db->allow_nested_indexing()) {
+                if (!this->unique_value_flag || check_value_uniqueness(handles->get_assignments_by_handle(tagged_handle.first))) {
                     if ((this->attention_focus_strictness == 0.0) ||
                         (this->attention_focus_strictness == 1.0)) {
                         this->source_element->add_handle(
@@ -233,19 +232,6 @@ void LinkTemplate::processor_method(shared_ptr<StoppableThread> monitor) {
                             handles->get_metta_expressions_by_handle(tagged_handle.first)));
                     }
                     count_matched++;
-                } else {
-                    assignment.clear();
-                    if (this->link_schema.match(string(tagged_handle.first), assignment, *db.get())) {
-                        if ((this->attention_focus_strictness == 0.0) ||
-                            (this->attention_focus_strictness == 1.0)) {
-                            this->source_element->add_handle(
-                                tagged_handle.first, tagged_handle.second, assignment);
-                        } else {
-                            attention_focus_candidates.push_back(AttentionFocusRecord(
-                                tagged_handle.first, tagged_handle.second, assignment, {}));
-                        }
-                        count_matched++;
-                    }
                 }
             }
             if ((this->attention_focus_strictness == 1.0) && (count_matched > 0)) {

@@ -175,8 +175,6 @@ size_t ProtectedAtomDB::atom_count(const atomdb_api_types::PublicKey& public_key
     RAISE_ERROR("ProtectedAtomDB::atom_count(public_key) is not implemented yet");
 }
 
-bool ProtectedAtomDB::allow_nested_indexing() { return this->backend->allow_nested_indexing(); }
-
 bool ProtectedAtomDB::composite_type_enabled() const { return this->backend->composite_type_enabled(); }
 
 atomdb_api_types::ProtectionMode ProtectedAtomDB::get_protection_mode() const {
