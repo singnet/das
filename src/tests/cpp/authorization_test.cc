@@ -69,7 +69,7 @@ class DummyPersistence : public AuthorizationPersistence {
         auto& entries = documents[public_key];
         entries.insert(entries.end(), schemas.begin(), schemas.end());
     }
-    void grant(const string& public_key) override { documents[public_key] = {}; }
+    void grant_unrestricted(const string& public_key) override { documents[public_key] = {}; }
 
     void revoke(const string& public_key) override { documents.erase(public_key); }
 };
@@ -287,7 +287,7 @@ TEST(MongodbAuthorizationPersistenceTest, GrantSchemasRaisesWhenKeyHasFullAccess
 
     auto persistence = make_mongo_persistence(database_name, collection_name);
     persistence->revoke(public_key);
-    persistence->grant(public_key);
+    persistence->grant_unrestricted(public_key);
 
     vector<pair<LinkSchema, unsigned int>> schemas{read_only_inheritance_schema()};
     EXPECT_THROW(

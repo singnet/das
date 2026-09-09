@@ -81,7 +81,7 @@ void MongodbAuthorizationPersistence::grant(const string& public_key,
     }
 }
 
-void atomdb::MongodbAuthorizationPersistence::grant(const string& public_key) {
+void MongodbAuthorizationPersistence::grant_unrestricted(const string& public_key) {
     auto conn = this->mongodb_pool->acquire();
     auto collection = (*conn)[this->database_name][this->collection_name];
 

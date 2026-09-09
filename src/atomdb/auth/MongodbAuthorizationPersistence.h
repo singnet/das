@@ -33,7 +33,7 @@ class MongodbAuthorizationPersistence : public AuthorizationPersistence {
     ~MongodbAuthorizationPersistence();
 
     void grant(const string& public_key, vector<pair<LinkSchema, unsigned int>>& schemas) override;
-    void grant(const string& public_key) override;
+    void grant_unrestricted(const string& public_key) override;
     void revoke(const string& public_key) override;
 
    private:

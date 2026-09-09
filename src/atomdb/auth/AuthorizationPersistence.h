@@ -28,7 +28,7 @@ class AuthorizationPersistence {
      * @brief Persists full acess authorization for public_key.
      *
      */
-    virtual void grant(const string& public_key) = 0;
+    virtual void grant_unrestricted(const string& public_key) = 0;
 
     /**
      * @brief Removes all authorization schemas from public_key.
