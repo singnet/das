@@ -17,26 +17,30 @@ using namespace atomdb;
 
 AuthorizationManifest::AuthorizationManifest(shared_ptr<AtomDB> atomdb) : atomdb(atomdb) {}
 
-bool AuthorizationManifest::is_authorized(shared_ptr<Atom> atom,
-                                          const string& public_key,
-                                          AuthorizationOperation operation) {
-    if (this->full_access(public_key)) return true;
+bool AuthorizationManifest::is_granted(const string& public_key,
+                                       shared_ptr<Atom> atom,
+                                       AuthorizationOperation operation) {
+    if (!this->is_registered(public_key)) return false;
+
     auto it = this->profiles.find(public_key);
     if (it == this->profiles.end() || it->second == nullptr) return false;
-    return it->second->is_authorized(atom, operation);
+
+    return it->second->is_granted(atom, operation);
 }
 
-bool AuthorizationManifest::is_authorized(const string& handle,
-                                          const string& public_key,
-                                          AuthorizationOperation operation) {
-    if (this->full_access(public_key)) return true;
+bool AuthorizationManifest::is_granted(const string& public_key,
+                                       const string& handle,
+                                       AuthorizationOperation operation) {
+    if (!this->is_registered(public_key)) return false;
+
     auto it = this->profiles.find(public_key);
     if (it == this->profiles.end() || it->second == nullptr) return false;
-    return it->second->is_authorized(handle, operation);
-}
 
-// -------------------------------------------------------------------------------------------------
-// Protected method
+    auto atom = this->atomdb->get_atom(handle);
+    if (atom == nullptr) return false;
+
+    return it->second->is_granted(atom, operation);
+}
 
 void AuthorizationManifest::add_document(
     const shared_ptr<atomdb_api_types::AccessPermissionDocument>& document) {
@@ -50,14 +54,4 @@ void AuthorizationManifest::add_document(
         RAISE_ERROR(string("Duplicate access_key in authorization manifest: ") +
                     document->get_access_key());
     }
-}
-
-// -------------------------------------------------------------------------------------------------
-// Private method
-
-bool AuthorizationManifest::full_access(const string& public_key) {
-    if (!this->is_registered(public_key)) return false;
-    auto profile = this->profiles[public_key];
-    if (profile == nullptr) return false;
-    return profile->is_full_access();
 }

@@ -23,22 +23,18 @@ class AuthorizationSchema {
     AuthorizationSchema(shared_ptr<AtomDB> atomdb, const vector<string>& tokens, bool read, bool write);
     ~AuthorizationSchema() = default;
 
-    bool is_authorized(shared_ptr<Atom> atom, AuthorizationOperation operation);
-    bool is_authorized(const string& handle, AuthorizationOperation operation);
+    bool is_granted(shared_ptr<Atom> atom, AuthorizationOperation operation);
+    bool allows(AuthorizationOperation operation) const;
 
-    // These methods are used only for testing purposes.
+    // These method are used only for testing purposes.
    protected:
     inline const LinkSchema& schema() const { return this->schema_; }
-    inline bool read() const { return this->read_; }
-    inline bool write() const { return this->write_; }
 
    private:
     shared_ptr<AtomDB> atomdb_;
     LinkSchema schema_;
     bool read_;
     bool write_;
-
-    bool allows(AuthorizationOperation operation) const;
 };
 
 class AuthorizationProfile {
@@ -56,12 +52,11 @@ class AuthorizationProfile {
     /**
      * @brief Returns whether this profile grants unrestricted access.
      */
-    inline bool is_full_access() const { return this->full_access_; }
+    inline bool is_unrestricted() const { return this->full_access_; }
 
-    bool is_authorized(shared_ptr<Atom> atom, AuthorizationOperation operation);
-    bool is_authorized(const string& handle, AuthorizationOperation operation);
+    bool is_granted(shared_ptr<Atom> atom, AuthorizationOperation operation);
 
-    // These methods are used only for testing purposes.
+    // These method are used only for testing purposes.
    protected:
     const vector<shared_ptr<AuthorizationSchema>> schemas() const { return this->schemas_; }
 

@@ -28,14 +28,12 @@ class AuthorizationManifest {
     /**
      * @brief Checks whether public_key is authorized to perform an operation on an atom.
      */
-    bool is_authorized(shared_ptr<Atom> atom,
-                       const string& public_key,
-                       AuthorizationOperation operation);
+    bool is_granted(const string& public_key, shared_ptr<Atom> atom, AuthorizationOperation operation);
 
     /**
      * @brief Checks whether public_key is authorized to perform an operation on a handle.
      */
-    bool is_authorized(const string& handle, const string& public_key, AuthorizationOperation operation);
+    bool is_granted(const string& public_key, const string& handle, AuthorizationOperation operation);
 
     /**
      * @brief Returns whether public_key has an authorization document.
@@ -44,7 +42,6 @@ class AuthorizationManifest {
         return this->profiles.find(public_key) != this->profiles.end();
     }
 
-   protected:
     /**
      * @brief Adds an authorization document to the manifest.
      *
@@ -53,12 +50,6 @@ class AuthorizationManifest {
      * is already registered.
      */
     void add_document(const shared_ptr<atomdb_api_types::AccessPermissionDocument>& document);
-
-   private:
-    /**
-     * @brief Returns whether public_key has full access.
-     */
-    bool full_access(const string& public_key);
 
    private:
     shared_ptr<AtomDB> atomdb;

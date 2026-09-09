@@ -22,14 +22,13 @@ class AuthorizationPersistence {
      *
      * Each pair is a LinkSchema and a permission bitmask: 1 = read, 2 = write, 3 = read+write.
      */
-    virtual void authorize(const string& public_key,
-                           vector<pair<LinkSchema, unsigned int>>& schemas) = 0;
+    virtual void grant(const string& public_key, vector<pair<LinkSchema, unsigned int>>& schemas) = 0;
 
     /**
      * @brief Persists full acess authorization for public_key.
      *
      */
-    virtual void authorize(const string& public_key) = 0;
+    virtual void grant(const string& public_key) = 0;
 
     /**
      * @brief Removes all authorization schemas from public_key.

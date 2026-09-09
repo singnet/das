@@ -38,7 +38,7 @@ AuthorizationSchema::AuthorizationSchema(shared_ptr<AtomDB> atomdb,
 // -------------------------------------------------------------------------------------------------
 // Public methods
 
-bool AuthorizationSchema::is_authorized(shared_ptr<Atom> atom, AuthorizationOperation operation) {
+bool AuthorizationSchema::is_granted(shared_ptr<Atom> atom, AuthorizationOperation operation) {
     if (!this->allows(operation) || atom == nullptr) return false;
 
     Assignment assignment;
@@ -55,22 +55,14 @@ bool AuthorizationSchema::is_authorized(shared_ptr<Atom> atom, AuthorizationOper
     }
 }
 
-bool AuthorizationSchema::is_authorized(const string& handle, AuthorizationOperation operation) {
-    if (!this->allows(operation)) return false;
-
-    Assignment assignment;
-    return this->schema_.match(handle, assignment, *this->atomdb_);
-}
-
-// -------------------------------------------------------------------------------------------------
-// Private method
-
 bool AuthorizationSchema::allows(AuthorizationOperation operation) const {
     switch (operation) {
         case AuthorizationOperation::READ:
             return this->read_;
         case AuthorizationOperation::WRITE:
             return this->write_;
+        default:
+            RAISE_ERROR("Invalid authorization operation");
     }
     return false;
 }
@@ -110,16 +102,10 @@ shared_ptr<AuthorizationProfile> AuthorizationProfile::from_document(
     return make_shared<AuthorizationProfile>(document->get_full_access(), move(schemas));
 }
 
-bool AuthorizationProfile::is_authorized(shared_ptr<Atom> atom, AuthorizationOperation operation) {
+bool AuthorizationProfile::is_granted(shared_ptr<Atom> atom, AuthorizationOperation operation) {
+    if (this->is_unrestricted()) return true;
     for (const auto& schema : this->schemas_) {
-        if (schema->is_authorized(atom, operation)) return true;
-    }
-    return false;
-}
-
-bool AuthorizationProfile::is_authorized(const string& handle, AuthorizationOperation operation) {
-    for (const auto& schema : this->schemas_) {
-        if (schema->is_authorized(handle, operation)) return true;
+        if (schema->is_granted(atom, operation)) return true;
     }
     return false;
 }

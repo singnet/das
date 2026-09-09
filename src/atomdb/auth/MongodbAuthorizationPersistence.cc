@@ -42,8 +42,8 @@ MongodbAuthorizationPersistence::MongodbAuthorizationPersistence(const string& e
         const auto ping_cmd =
             bsoncxx::builder::basic::make_document(bsoncxx::builder::basic::kvp("ping", 1));
         mongodb.run_command(ping_cmd.view());
-        LOG_DEBUG("MongodbAuthorizationPersistence connected to MongoDB at "
-                  << endpoint << " (db=" << database_name << ")");
+        LOG_INFO("MongodbAuthorizationPersistence connected to MongoDB at "
+                 << endpoint << " (db=" << database_name << ")");
     } catch (const exception& e) {
         RAISE_ERROR(e.what());
     }
@@ -54,13 +54,19 @@ MongodbAuthorizationPersistence::~MongodbAuthorizationPersistence() { delete thi
 // --------------------------------------------------------------------------------
 // Public methods
 
-void MongodbAuthorizationPersistence::authorize(const string& public_key,
-                                                vector<pair<LinkSchema, unsigned int>>& schemas) {
+void MongodbAuthorizationPersistence::grant(const string& public_key,
+                                            vector<pair<LinkSchema, unsigned int>>& schemas) {
     auto conn = this->mongodb_pool->acquire();
     auto collection = (*conn)[this->database_name][this->collection_name];
 
     auto document = this->get_document(collection, public_key);
-    auto bson = document ? this->to_bson(*document, schemas) : this->to_bson(public_key, schemas);
+
+    if (document && document->get_full_access()) {
+        RAISE_ERROR("The public key <" + public_key +
+                    "> already has full access. To revoke full access, use the revoke() method.");
+    }
+
+    auto bson = document ? to_bson(*document, schemas) : to_bson(public_key, schemas);
 
     auto filter = bsoncxx::builder::basic::make_document(
         bsoncxx::builder::basic::kvp("_id", Hasher::plain_string_hash(public_key)));
@@ -75,7 +81,7 @@ void MongodbAuthorizationPersistence::authorize(const string& public_key,
     }
 }
 
-void atomdb::MongodbAuthorizationPersistence::authorize(const string& public_key) {
+void atomdb::MongodbAuthorizationPersistence::grant(const string& public_key) {
     auto conn = this->mongodb_pool->acquire();
     auto collection = (*conn)[this->database_name][this->collection_name];
 
