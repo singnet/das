@@ -129,11 +129,11 @@ lint-all:
 		"//... --fix --report --diff" \
 		| grep -vE "(Lint results|All checks passed|^[[:blank:]]*$$)"
 
-format-all:
-	@$(MAKE) bazel run format
+format-all: build-image
+	@bash ./src/scripts/bazel.sh run format
 
-format-check:
-	@$(MAKE) bazel run //:format.check
+format-check: build-image
+	@bash ./src/scripts/bazel.sh run //:format.check
 
 performance-tests:
 	@python3 src/tests/integration/performance/query_agent_metrics.py
