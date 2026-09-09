@@ -23,6 +23,7 @@ cc_library(
         "//agents:agents_lib",
         "//agents/link_creation_agent/link_creators:link_creators_lib",
         "//agents/query_engine:query_answer",
+        "//attention_broker:attention_broker_client",
         "//commons:commons_lib",
         "//service_bus:service_bus_lib",
     ],

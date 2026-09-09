@@ -3,10 +3,14 @@
 #include <set>
 #include <string>
 
+#include "AtomDBSingleton.h"
 #include "QueryAnswer.h"
+#include "tags.h"
 
 using namespace std;
 using namespace query_engine;
+using namespace atomdb;
+using namespace commons;
 
 namespace link_creators {
 
@@ -50,16 +54,85 @@ class LinkCreationStats {
  */
 class LinkCreator {
    public:
-    /**
-     * Empty constructor.
-     */
-    LinkCreator() : _context("") {}
-
-    /**
-     * Empty destructor.
-     */
+    LinkCreator();
     virtual ~LinkCreator() {}
 
+    // ----------------------------------------------------------------------------------
+    // LCA API
+
+    /**
+     * Reset the structure that keeps track of already visited groups of handles.
+     *
+     * Visited keys are kept to avoid the attempt to create links for parameters (obtained from
+     * QueryAnswer objects) that have already been seen. This is because the mere fact of trying
+     * to create these links can be an expensive operation so we don't want to waste time
+     * creating links just to discover later on that they have already been inserted into the
+     * AtomDB.
+     */
+    inline void reset_visited() { this->_visited.clear(); }
+
+    /**
+     * Setter for the context to be used in AttentionBroker.
+     *
+     * @param context The AttentionBroker context.
+     */
+    inline void set_context(const string& context) { this->_context = context; }
+
+    /**
+     * Set the strength threshold value for link creation. Links with strength below this value will
+     * not be actually added to the atomdb.
+     *
+     * @param value New value for sytrength threshold
+     */
+    inline void strength_threshold(double value) { this->_strength_threshold = value; }
+
+    /**
+     * Getter for the buffer for Attention Broker's importance determiners.
+     *
+     * @return The buffer for Attention Broker's importance determiners.
+     */
+    inline const vector<vector<string>>& buffer_determiners() { return this->_buffer_determiners; }
+
+    /**
+     * Clear the buffer for Attention Broker's importance determiners
+     */
+    inline void clear_determiners() { this->_buffer_determiners.clear(); }
+
+    /**
+     * Sets the name of the link creation log file. Un empty name means that no logging of
+     * new link creation is supposed to be made.
+     *
+     * @param file_name The name of the logging file.
+     */
+    inline void set_log_file(const string& file_name) { this->_link_creation_log_file_name = file_name; }
+
+    /**
+     * Gets the name of the newly created links log file.
+     *
+     * @return the name of the newly created links log file.
+     */
+    inline string& get_log_file() { return this->_link_creation_log_file_name; }
+
+    /**
+     * Gets the flag which indicates is newly created links are supposed to be logged in the
+     *
+     * @return the flag which indicates is newly created links are supposed to be logged in the default
+     * logger.
+     */
+    inline bool log_new_links() { return this->_log_new_links; }
+
+    /**
+     * Sets the flag which indicates is newly created links are supposed to be logged in the
+     *
+     * @param flag which indicates is newly created links are supposed to be logged in the default
+     * logger.
+     */
+    inline void set_log_new_links(bool value) { this->_log_new_links = value; }
+
+    // ----------------------------------------------------------------------------------
+    // Concrete sub-classes API
+
+   public:
     /**
      * Create or update one or more links using the passed QueryAnswer. A LinkCreationStats object is
      * returned with relevant statistics about how many links have actually been created or updated.
@@ -76,32 +149,31 @@ class LinkCreator {
      */
     inline const string& context() { return this->_context; }
 
-    /**
-     * Setter for the context to be used in AttentionBroker.
-     *
-     * @param context The AttentionBroker context.
-     */
-    inline void set_context(const string& context) { this->_context = context; }
-
-    /**
-     * Reset the structure that keeps track of already visited groups of handles.
-     *
-     * Visited keys are kept to avoid the attempt to create links for parameters (obtained from
-     * QueryAnswer objects) that have already been seen. This is because the mere fact of trying
-     * to create these links can be an expensive operation so we don't want to waste time
-     * creating links just to discover later on that they have already been inserted into the
-     * AtomDB.
-     */
-    void reset_visited() { this->_visited.clear(); }
+    vector<string> newly_created_links;
 
    protected:
     inline void visit(const string& key) { this->_visited.insert(key); }
-
     inline bool visited(const string& key) { return (this->_visited.find(key) != this->_visited.end()); }
+    inline double strength_threshold() { return this->_strength_threshold; }
+    inline shared_ptr<AtomDB> atomdb() { return AtomDBSingleton::get_instance(); }
+    inline HandleDecoder* decoder() { return static_pointer_cast<HandleDecoder>(atomdb()).get(); }
+    inline void add_determiners(vector<string>& entry) { this->_buffer_determiners.push_back(entry); }
+
+    bool add_or_update_link(const vector<string>& targets, double strength);
+    double get_strength(const string& handle);
+    string get_node_name(const string& handle);
+    void save_link_metta(shared_ptr<Link> link);
+
+    // ----------------------------------------------------------------------------------
+    // Private stuff
 
    private:
     set<string> _visited;
     string _context;
+    double _strength_threshold;
+    vector<vector<string>> _buffer_determiners;
+    string _link_creation_log_file_name;
+    bool _log_new_links;
 };
 
 }  // namespace link_creators

@@ -6,6 +6,7 @@
 
 #include "AtomDBSingleton.h"
 #include "AttentionBrokerClient.h"
+#include "ProtectedAtomDB.h"
 #include "Terminal.h"
 
 #define LOG_LEVEL INFO_LEVEL
@@ -15,8 +16,6 @@ using namespace query_element;
 using namespace atomdb;
 using namespace attention_broker;
 
-ThreadSafeHashmap<string, shared_ptr<atomdb_api_types::HandleSet>> LinkTemplate::cache;
-
 LinkTemplate::LinkTemplate(const string& type,
                            const vector<shared_ptr<QueryElement>>& targets,
                            const string& context,
@@ -24,7 +23,7 @@ LinkTemplate::LinkTemplate(const string& type,
                            bool positive_importance_flag,
                            bool disregard_importance_flag,
                            bool unique_value_flag,
-                           bool use_cache)
+                           const string& public_key_tokens)
     : link_schema(type, targets.size()) {
     this->targets = targets;
     this->context = context;
@@ -43,7 +42,6 @@ LinkTemplate::LinkTemplate(const string& type,
     this->positive_importance_flag = positive_importance_flag;
     this->disregard_importance_flag = disregard_importance_flag;
     this->unique_value_flag = unique_value_flag;
-    this->use_cache = use_cache;
     this->inner_flag = true;
     this->arity = targets.size();
     this->processor = nullptr;
@@ -55,6 +53,35 @@ LinkTemplate::LinkTemplate(const string& type,
         }
     }
     this->reverse_nesting_level = max_reverse_nesting + 1;
+    if (public_key_tokens != "") {
+        bool parse_error = false;
+        vector<string> tokens = Utils::split(public_key_tokens);
+        map<string, string> keymap;
+        if ((tokens.size() > 0) && ((tokens.size() % 2) == 0)) {
+            for (unsigned int i = 0; i < tokens.size(); i += 2) {
+                if ((tokens[i] != "") && (tokens[i + 1] != "")) {
+                    keymap[tokens[i]] = tokens[i + 1];
+                } else {
+                    parse_error = true;
+                    break;
+                }
+            }
+            if (!parse_error && (keymap.size() == (tokens.size() / 2))) {
+                // TODO __AUTH__ uncomment line below
+                // this->keychain = new Keychain(keymap);
+            } else {
+                parse_error = true;
+            }
+        } else {
+            parse_error = true;
+        }
+        if (parse_error) {
+            RAISE_ERROR(
+                "Invalid tokens for public key. Expected a list of (uid, key) pairs (each uid being "
+                "unique) in a string like 'uid1 key1 uid2 key2 ... uidn keyn' but got: <" +
+                public_key_tokens + ">");
+        }
+    }
 }
 
 LinkTemplate::~LinkTemplate() {
@@ -171,18 +198,17 @@ void LinkTemplate::processor_method(shared_ptr<StoppableThread> monitor) {
     if (monitor->stopped()) {
         return;
     }
-    auto db = AtomDBSingleton::get_instance();
+    shared_ptr<AtomDB> atomdb = AtomDBSingleton::get_instance();
+    shared_ptr<ProtectedAtomDB> protected_atomdb = dynamic_pointer_cast<ProtectedAtomDB>(atomdb);
     string link_schema_handle = this->link_schema.handle();
     shared_ptr<atomdb_api_types::HandleSet> handles;
-    if (this->use_cache && LinkTemplate::fetched_links_cache().contains(link_schema_handle)) {
-        LOG_INFO("Fetching " + link_schema_handle + " from cache");
-        handles = LinkTemplate::fetched_links_cache().get(link_schema_handle);
+    LOG_INFO("Fetching " + link_schema_handle + " from AtomDB");
+    if (protected_atomdb != nullptr) {
+        handles = atomdb->query_for_pattern(this->link_schema);
+        // TODO __AUTH__ delete the line above and uncomment line below
+        // handles = protected_atomdb->query_for_pattern(this->link_schema, this->keychain);
     } else {
-        LOG_INFO("Fetching " + link_schema_handle + " from AtomDB");
-        handles = db->query_for_pattern(this->link_schema);
-        if (this->use_cache) {
-            LinkTemplate::fetched_links_cache().set(link_schema_handle, handles);
-        }
+        handles = atomdb->query_for_pattern(this->link_schema);
     }
     LOG_DEBUG("Attention Focus Strictness: " + std::to_string(this->attention_focus_strictness));
     LOG_DEBUG("Positive importance flag: " + string(this->positive_importance_flag ? "true" : "false"));
@@ -217,7 +243,7 @@ void LinkTemplate::processor_method(shared_ptr<StoppableThread> monitor) {
             pending = 0;
         } else {
             if (tagged_handle.second > 0 || !this->positive_importance_flag) {
-                if (db->allow_nested_indexing()) {
+                if (atomdb->allow_nested_indexing()) {
                     if ((this->attention_focus_strictness == 0.0) ||
                         (this->attention_focus_strictness == 1.0)) {
                         this->source_element->add_handle(
@@ -235,7 +261,8 @@ void LinkTemplate::processor_method(shared_ptr<StoppableThread> monitor) {
                     count_matched++;
                 } else {
                     assignment.clear();
-                    if (this->link_schema.match(string(tagged_handle.first), assignment, *db.get())) {
+                    if (this->link_schema.match(
+                            string(tagged_handle.first), assignment, *atomdb.get())) {
                         if ((this->attention_focus_strictness == 0.0) ||
                             (this->attention_focus_strictness == 1.0)) {
                             this->source_element->add_handle(

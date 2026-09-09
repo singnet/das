@@ -14,7 +14,7 @@ deploy:
 	@bash $(CURDIR)/scripts/deployment/fn_deploy.sh
 
 integration-tests:
-	@bash $(CURDIR)/scripts/deployment/tests.sh
+	@bash -x $(CURDIR)/src/tests/scripts/all_integration_tests.sh $(OPTIONS)
 
 build-deployment:
 	@docker build -f .docker/deployment/Dockerfile -t das-deployment:latest .
@@ -100,9 +100,13 @@ test-clear:
 test-all-no-cache: setup-test-all
 	@$(MAKE) bazel 'test --show_progress --cache_test_results=no //tests/...'
 
-test-all: 
+unit-tests:
 	@$(MAKE) setup-test-all
 	@$(MAKE) bazel 'test --show_progress //tests/...'
+
+test-all:
+	@$(MAKE) unit-tests
+	@$(MAKE) integration-tests
 
 test-agents-integration:
 	@bash  ./src/scripts/integration_test_setup.sh &
@@ -125,11 +129,11 @@ lint-all:
 		"//... --fix --report --diff" \
 		| grep -vE "(Lint results|All checks passed|^[[:blank:]]*$$)"
 
-format-all:
-	@$(MAKE) bazel run format
+format-all: build-image
+	@bash ./src/scripts/bazel.sh run format
 
-format-check:
-	@$(MAKE) bazel run //:format.check
+format-check: build-image
+	@bash ./src/scripts/bazel.sh run //:format.check
 
 performance-tests:
 	@python3 src/tests/integration/performance/query_agent_metrics.py
@@ -148,8 +152,3 @@ test-coverage-check: build-image
 		--workdir "/opt/das/src" \
 		das-builder \
 		./scripts/bazel_coverage_check.sh
-
-# Catch-all pattern to prevent make from complaining about unknown targets
-%:
-	@:
-

@@ -8,7 +8,7 @@ using namespace commons;
 using nlohmann::json;
 using namespace std;
 
-string SystemParametersValidation::SCHEMA_VERSION = "1.1.0";
+string SystemParametersValidation::SCHEMA_VERSION = "1.2.0";
 
 namespace {
 
@@ -25,29 +25,25 @@ const AgentParamsSchema& params_schema() {
           {"attention_focus_strictness", "double"},
           {"max_bundle_size", "unsigned_int"},
           {"max_answers", "unsigned_int"},
-          {"use_link_template_cache", "bool"},
           {"populate_metta_mapping", "bool"},
           {"use_metta_as_query_tokens", "bool"},
-          {"allow_incomplete_chain_path", "bool"}}},
+          {"allow_incomplete_chain_path", "bool"},
+          {"public_key_tokens", "string"}}},
         {"query",
          {{"positive_importance_flag", "bool"},
           {"disregard_importance_flag", "bool"},
           {"unique_value_flag", "bool"},
           {"count_flag", "bool"}}},
         {"link_creation",
-         {{"max_answers", "unsigned_int"},
-          {"repeat_count", "unsigned_int"},
-          {"context", "string"},
-          {"attention_update", "long"},
-          {"attention_correlation", "long"},
+         {{"unique_assignment_flag", "bool"},
           {"positive_importance_flag", "bool"},
-          {"query_interval", "long"},
-          {"query_timeout", "long"},
-          {"use_metta_as_query_tokens", "bool"}}},
-        {"inference",
-         {{"inference_request_timeout", "long"},
-          {"repeat_count", "unsigned_int"},
-          {"max_answers", "unsigned_int"}}},
+          {"disregard_importance_flag", "bool"},
+          {"unique_value_flag", "bool"},
+          {"max_successful_creation_per_round", "unsigned_int"},
+          {"max_unproductive_visits_per_round", "unsigned_int"},
+          {"max_visit_attempts_per_round", "unsigned_int"},
+          {"max_rounds", "unsigned_int"},
+          {"link_creation_strength_threshold", "double"}}},
         {"evolution",
          {{"population_size", "unsigned_int"},
           {"max_generations", "unsigned_int"},

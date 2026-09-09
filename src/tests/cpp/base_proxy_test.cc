@@ -26,14 +26,20 @@ class TestProxy : public BaseProxy {
 
 TEST(BaseProxyTest, basics) {
     TestProxy proxy;
-    EXPECT_TRUE(proxy.cycle_start_allowed());
-    EXPECT_TRUE(proxy.cycle_start_allowed());
+    EXPECT_FALSE(proxy.get_waiting_flag());
+    EXPECT_TRUE(proxy.is_cycle_start_allowed());
+    EXPECT_TRUE(proxy.is_cycle_start_allowed());
     proxy.set_orchestration(1);
-    EXPECT_FALSE(proxy.cycle_start_allowed());
-    EXPECT_FALSE(proxy.cycle_start_allowed());
+    EXPECT_TRUE(proxy.get_waiting_flag());
+    EXPECT_FALSE(proxy.is_cycle_start_allowed());
+    EXPECT_TRUE(proxy.get_waiting_flag());
+    EXPECT_FALSE(proxy.is_cycle_start_allowed());
+    EXPECT_TRUE(proxy.get_waiting_flag());
     proxy.allow_cycle_start({});
-    EXPECT_TRUE(proxy.cycle_start_allowed());
-    EXPECT_FALSE(proxy.cycle_start_allowed());
+    EXPECT_FALSE(proxy.get_waiting_flag());
+    EXPECT_TRUE(proxy.is_cycle_start_allowed());
+    EXPECT_FALSE(proxy.get_waiting_flag());
+    EXPECT_FALSE(proxy.is_cycle_start_allowed());
 }
 
 int main(int argc, char** argv) {
