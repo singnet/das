@@ -128,4 +128,12 @@ bool AuthorizationProfile::is_authorized(const string& handle, AuthorizationOper
  * Keychain
  */
 
-Keychain::Keychain(unordered_map<AtomDB_UID, PublicKey> keys) : keys(keys) {}
+Keychain::Keychain(map<AtomDB_UID, PublicKey> keys) : keys_(keys) {}
+
+Keychain::PublicKey Keychain::get(const Keychain::AtomDB_UID& uid) const {
+    auto it = this->keys_.find(uid);
+    if (it != this->keys_.end()) {
+        return it->second;
+    }
+    return "";
+}

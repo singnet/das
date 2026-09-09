@@ -18,8 +18,12 @@ using namespace atomdb;
 AuthorizationManifest::AuthorizationManifest(shared_ptr<AtomDB> atomdb) : atomdb(atomdb) {}
 
 bool AuthorizationManifest::is_authorized(shared_ptr<Atom> atom,
-                                          const string& public_key,
+                                          const Keychain& keychain,
                                           AuthorizationOperation operation) {
+    // TODO: Uncomment the code below once AtomdB::get_uid() is implemented
+    // auto public_key = keychain.get(this->atomdb->get_uid());
+    // if (public_key.empty()) return false;
+    string public_key = "public_key";
     if (this->full_access(public_key)) return true;
     auto it = this->profiles.find(public_key);
     if (it == this->profiles.end() || it->second == nullptr) return false;
@@ -27,8 +31,12 @@ bool AuthorizationManifest::is_authorized(shared_ptr<Atom> atom,
 }
 
 bool AuthorizationManifest::is_authorized(const string& handle,
-                                          const string& public_key,
+                                          const Keychain& keychain,
                                           AuthorizationOperation operation) {
+    // TODO: Uncomment the code below once AtomdB::get_uid() is implemented
+    // auto public_key = keychain.get(this->atomdb->get_uid());
+    // if (public_key.empty()) return false;
+    string public_key = "public_key";
     if (this->full_access(public_key)) return true;
     auto it = this->profiles.find(public_key);
     if (it == this->profiles.end() || it->second == nullptr) return false;

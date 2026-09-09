@@ -116,7 +116,7 @@ class AtomDB : public HandleDecoder {
     bool empty() const { return atom_count() == 0; }
 
     virtual vector<shared_ptr<atomdb_api_types::AccessPermissionDocument>> get_access_permissions(
-        const atomdb_api_types::PublicKey& public_key) const {
+        const string& public_key) const {
         return {};
     }
 };

@@ -1425,7 +1425,7 @@ TEST_F(RedisMongoDBTest, GetAccessPermissionsEmptyCollection) {
         (*conn)[RedisMongoDB::MONGODB_DB_NAME][RedisMongoDB::MONGODB_ACCESS_PERMISSIONS_COLLECTION_NAME];
     collection.delete_many({});
 
-    auto permissions = db->get_access_permissions(PublicKey("any_key"));
+    auto permissions = db->get_access_permissions("any_key");
     EXPECT_TRUE(permissions.empty());
 }
 
@@ -1456,13 +1456,13 @@ TEST_F(RedisMongoDBTest, GetAccessPermissionsReturnsStoredDocuments) {
             make_array(make_document(
                 kvp("tokens", similarity_tokens), kvp("read", true), kvp("write", false))))));
 
-    auto admin_permissions = db->get_access_permissions(PublicKey("key_admin"));
+    auto admin_permissions = db->get_access_permissions("key_admin");
     ASSERT_EQ(admin_permissions.size(), 1u);
     EXPECT_STREQ(admin_permissions[0]->get_access_key(), "key_admin");
     EXPECT_TRUE(admin_permissions[0]->get_full_access());
     EXPECT_EQ(admin_permissions[0]->get_entries_size(), 0u);
 
-    auto reader_permissions = db->get_access_permissions(PublicKey("key_reader"));
+    auto reader_permissions = db->get_access_permissions("key_reader");
     ASSERT_EQ(reader_permissions.size(), 1u);
     EXPECT_STREQ(reader_permissions[0]->get_access_key(), "key_reader");
     EXPECT_FALSE(reader_permissions[0]->get_full_access());
@@ -1480,14 +1480,10 @@ TEST_F(RedisMongoDBTest, GetAccessPermissionsReturnsStoredDocuments) {
     }
     EXPECT_EQ(LinkSchema(actual_tokens).handle(), expected_schema.handle());
 
-    auto map_permissions = db->get_access_permissions(
-        PublicKey(map<string, string>{{"peer_a", "key_admin"}, {"peer_b", "key_reader"}}));
-    ASSERT_EQ(map_permissions.size(), 2u);
-
-    EXPECT_TRUE(db->get_access_permissions(PublicKey("missing_key")).empty());
+    EXPECT_TRUE(db->get_access_permissions("missing_key").empty());
 
     collection.delete_many({});
-    EXPECT_TRUE(db->get_access_permissions(PublicKey("key_admin")).empty());
+    EXPECT_TRUE(db->get_access_permissions("key_admin").empty());
 }
 
 TEST_F(RedisMongoDBTest, GetAccessPermissionsRejectsInvalidDocument) {
@@ -1503,7 +1499,7 @@ TEST_F(RedisMongoDBTest, GetAccessPermissionsRejectsInvalidDocument) {
     collection.insert_one(make_document(kvp("_id", string(compute_hash((char*) "key_broken"))),
                                         kvp("full_access", false)));
 
-    EXPECT_THROW(db->get_access_permissions(PublicKey("key_broken")), runtime_error);
+    EXPECT_THROW(db->get_access_permissions("key_broken"), runtime_error);
 
     collection.delete_many({});
 }

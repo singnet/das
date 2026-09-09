@@ -292,5 +292,5 @@ size_t ProtectedAtomDB::atom_count() const { raise_keychain_required("atom_count
 void ProtectedAtomDB::raise_keychain_required(const string& method_name) {
     RAISE_ERROR("ProtectedAtomDB::" + method_name +
                 "() is unavailable in protected AtomDBs. Use the public API in ProtectedAtomDB passing "
-                "a PublicKey.");
+                "a Keychain.");
 }

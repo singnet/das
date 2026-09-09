@@ -45,7 +45,6 @@ LinkTemplate::LinkTemplate(const string& type,
     this->inner_flag = true;
     this->arity = targets.size();
     this->processor = nullptr;
-    this->public_key_tokens = public_key_tokens;
     unsigned int max_reverse_nesting = 0;
     this->attention_focus_strategy = PERCENTAGE;
     for (auto element : targets) {
@@ -204,7 +203,7 @@ void LinkTemplate::processor_method(shared_ptr<StoppableThread> monitor) {
     shared_ptr<atomdb_api_types::HandleSet> handles;
     LOG_INFO("Fetching " + link_schema_handle + " from AtomDB");
     if (protected_atomdb != nullptr) {
-        if (this->public_key_tokens == "") {
+        if (!this->keychain) {
             RAISE_ERROR("LinkTemplate with a protected AtomDB must have a non-empty public_key_tokens");
         }
         handles = protected_atomdb->query_for_pattern(this->link_schema, *this->keychain);

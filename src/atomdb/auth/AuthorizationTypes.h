@@ -1,5 +1,6 @@
 #pragma once
 
+#include <map>
 #include <optional>
 #include <string>
 #include <vector>
@@ -75,10 +76,16 @@ class Keychain {
     using AtomDB_UID = string;
     using PublicKey = string;
 
-    explicit Keychain(unordered_map<AtomDB_UID, PublicKey> keys);
+    explicit Keychain(map<AtomDB_UID, PublicKey> keys);
+    ~Keychain() = default;
+
+    inline bool empty() const { return this->keys_.empty(); }
+    inline const map<AtomDB_UID, PublicKey>& keys() const { return this->keys_; }
+
+    PublicKey get(const AtomDB_UID& uid) const;
 
    private:
-    unordered_map<AtomDB_UID, PublicKey> keys;
+    map<AtomDB_UID, PublicKey> keys_;
 };
 
 }  // namespace atomdb

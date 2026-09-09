@@ -29,13 +29,13 @@ class AuthorizationManifest {
      * @brief Checks whether public_key is authorized to perform an operation on an atom.
      */
     bool is_authorized(shared_ptr<Atom> atom,
-                       const string& public_key,
+                       const Keychain& keychain,
                        AuthorizationOperation operation);
 
     /**
      * @brief Checks whether public_key is authorized to perform an operation on a handle.
      */
-    bool is_authorized(const string& handle, const string& public_key, AuthorizationOperation operation);
+    bool is_authorized(const string& handle, const Keychain& keychain, AuthorizationOperation operation);
 
     /**
      * @brief Returns whether public_key has an authorization document.
@@ -60,7 +60,6 @@ class AuthorizationManifest {
      */
     bool full_access(const string& public_key);
 
-   private:
     shared_ptr<AtomDB> atomdb;
     map<string, shared_ptr<AuthorizationProfile>> profiles;
 };

@@ -18,8 +18,8 @@ namespace atomdb {
  * @brief Authorization wrapper around any AtomDB backend for protected databases.
  *
  * Data-access methods expose two forms:
- * - overloads without PublicKey: reject the call (protected access requires a key)
- * - overloads with PublicKey: authorize and delegate to the backend
+ * - overloads without Keychain: reject the call (protected access requires a key)
+ * - overloads with Keychain: authorize and delegate to the backend
  *
  * When the backend reports ProtectionMode::FORWARD, this wrapper forwards the
  * access key without applying local authorization post-processing.

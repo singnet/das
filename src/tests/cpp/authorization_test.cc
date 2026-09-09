@@ -59,6 +59,10 @@ shared_ptr<AccessPermissionDocument> make_document(const string& access_key,
     return document;
 }
 
+Keychain stub_keychain() {
+    return Keychain(map<string, string>{{"uid", "public_key"}});
+}
+
 class DummyPersistence : public AuthorizationPersistence {
    public:
     map<string, vector<pair<LinkSchema, unsigned int>>> documents;
@@ -139,24 +143,19 @@ TEST(AuthorizationManifestTest, IsAuthorized) {
     auto db = db_with_inheritance_link(&link_handle);
 
     TestManifest manifest(db);
-    manifest.add_document(make_document("pk", false, {read_only_inheritance_schema()}));
+    manifest.add_document(make_document("public_key", false, {read_only_inheritance_schema()}));
 
     auto link = db->get_link(link_handle);
     ASSERT_NE(link, nullptr);
+    auto keychain = stub_keychain();
 
     EXPECT_FALSE(manifest.is_registered("unknown"));
 
-    EXPECT_FALSE(manifest.is_authorized(link, "unknown", AuthorizationOperation::READ));
-    EXPECT_FALSE(manifest.is_authorized(link, "unknown", AuthorizationOperation::WRITE));
-    EXPECT_FALSE(manifest.is_authorized(link_handle, "unknown", AuthorizationOperation::READ));
-    EXPECT_FALSE(manifest.is_authorized(link_handle, "unknown", AuthorizationOperation::WRITE));
-    EXPECT_FALSE(manifest.is_registered("unknown"));
+    EXPECT_TRUE(manifest.is_authorized(link, keychain, AuthorizationOperation::READ));
+    EXPECT_TRUE(manifest.is_authorized(link_handle, keychain, AuthorizationOperation::READ));
 
-    EXPECT_TRUE(manifest.is_authorized(link, "pk", AuthorizationOperation::READ));
-    EXPECT_TRUE(manifest.is_authorized(link_handle, "pk", AuthorizationOperation::READ));
-
-    EXPECT_FALSE(manifest.is_authorized(link, "pk", AuthorizationOperation::WRITE));
-    EXPECT_FALSE(manifest.is_authorized(link_handle, "pk", AuthorizationOperation::WRITE));
+    EXPECT_FALSE(manifest.is_authorized(link, keychain, AuthorizationOperation::WRITE));
+    EXPECT_FALSE(manifest.is_authorized(link_handle, keychain, AuthorizationOperation::WRITE));
 }
 
 TEST(AuthorizationManifestTest, FullAccessGrantsAllOperations) {
@@ -164,14 +163,15 @@ TEST(AuthorizationManifestTest, FullAccessGrantsAllOperations) {
     auto db = db_with_inheritance_link(&link_handle);
 
     TestManifest manifest(db);
-    manifest.add_document(make_document("pk", true, {}));
+    manifest.add_document(make_document("public_key", true, {}));
 
     auto link = db->get_link(link_handle);
     ASSERT_NE(link, nullptr);
+    auto keychain = stub_keychain();
 
-    EXPECT_TRUE(manifest.is_authorized(link, "pk", AuthorizationOperation::READ));
-    EXPECT_TRUE(manifest.is_authorized(link, "pk", AuthorizationOperation::WRITE));
-    EXPECT_TRUE(manifest.is_authorized(link_handle, "pk", AuthorizationOperation::WRITE));
+    EXPECT_TRUE(manifest.is_authorized(link, keychain, AuthorizationOperation::READ));
+    EXPECT_TRUE(manifest.is_authorized(link, keychain, AuthorizationOperation::WRITE));
+    EXPECT_TRUE(manifest.is_authorized(link_handle, keychain, AuthorizationOperation::WRITE));
 }
 
 TEST(AuthorizationProfileTest, FromDocumentWithAndWithoutSchema) {
@@ -201,14 +201,15 @@ TEST(AuthorizationPersistenceTest, ManifestReflectsPersistedPermissions) {
     auto schema = read_only_inheritance_schema();
     vector<pair<LinkSchema, unsigned int>> schemas{schema};
 
-    persistence->authorize("pk", schemas);
+    persistence->authorize("public_key", schemas);
 
     TestManifest manifest = manifest_from_persistence(db, *persistence);
     auto link = db->get_link(link_handle);
     ASSERT_NE(link, nullptr);
+    auto keychain = stub_keychain();
 
-    EXPECT_TRUE(manifest.is_authorized(link, "pk", AuthorizationOperation::READ));
-    EXPECT_FALSE(manifest.is_authorized(link, "pk", AuthorizationOperation::WRITE));
+    EXPECT_TRUE(manifest.is_authorized(link, keychain, AuthorizationOperation::READ));
+    EXPECT_FALSE(manifest.is_authorized(link, keychain, AuthorizationOperation::WRITE));
 }
 
 TEST(AuthorizationPersistenceTest, AuthorizeThenReadAndWriteFlags) {

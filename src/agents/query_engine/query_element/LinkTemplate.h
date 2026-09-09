@@ -7,12 +7,12 @@
 
 #include "Assignment.h"
 #include "AtomDB.h"
+#include "AuthorizationTypes.h"
 #include "LinkSchema.h"
 #include "QueryElement.h"
 #include "Source.h"
 #include "StoppableThread.h"
 #include "ThreadSafeHashmap.h"
-#include "AuthorizationTypes.h"
 
 using namespace std;
 using namespace query_engine;
@@ -79,7 +79,6 @@ class LinkTemplate : public QueryElement {
     bool disregard_importance_flag;
     bool unique_value_flag;
     shared_ptr<Keychain> keychain;
-    string public_key_tokens;
     bool inner_flag;
     LinkSchema link_schema;
     shared_ptr<SourceElement> source_element;
