@@ -7,6 +7,7 @@ cc_library(
     includes = ["."],
     deps = [
         ":authorization_manifest",
+        ":authorization_types",
         ":mongodb_authorization_persistence",
     ],
 )

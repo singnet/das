@@ -70,4 +70,15 @@ class AuthorizationProfile {
     vector<shared_ptr<AuthorizationSchema>> schemas_;
 };
 
+class Keychain {
+   public:
+    using AtomDB_UID = string;
+    using PublicKey = string;
+
+    explicit Keychain(unordered_map<AtomDB_UID, PublicKey> keys);
+
+   private:
+    unordered_map<AtomDB_UID, PublicKey> keys;
+};
+
 }  // namespace atomdb

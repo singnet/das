@@ -45,6 +45,7 @@ LinkTemplate::LinkTemplate(const string& type,
     this->inner_flag = true;
     this->arity = targets.size();
     this->processor = nullptr;
+    this->public_key_tokens = public_key_tokens;
     unsigned int max_reverse_nesting = 0;
     this->attention_focus_strategy = PERCENTAGE;
     for (auto element : targets) {
@@ -67,8 +68,7 @@ LinkTemplate::LinkTemplate(const string& type,
                 }
             }
             if (!parse_error && (keymap.size() == (tokens.size() / 2))) {
-                // TODO __AUTH__ uncomment line below
-                // this->keychain = new Keychain(keymap);
+                this->keychain = make_shared<Keychain>(keymap);
             } else {
                 parse_error = true;
             }
@@ -204,9 +204,10 @@ void LinkTemplate::processor_method(shared_ptr<StoppableThread> monitor) {
     shared_ptr<atomdb_api_types::HandleSet> handles;
     LOG_INFO("Fetching " + link_schema_handle + " from AtomDB");
     if (protected_atomdb != nullptr) {
-        handles = atomdb->query_for_pattern(this->link_schema);
-        // TODO __AUTH__ delete the line above and uncomment line below
-        // handles = protected_atomdb->query_for_pattern(this->link_schema, this->keychain);
+        if (this->public_key_tokens == "") {
+            RAISE_ERROR("LinkTemplate with a protected AtomDB must have a non-empty public_key_tokens");
+        }
+        handles = protected_atomdb->query_for_pattern(this->link_schema, *this->keychain);
     } else {
         handles = atomdb->query_for_pattern(this->link_schema);
     }

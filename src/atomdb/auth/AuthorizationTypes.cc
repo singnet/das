@@ -123,3 +123,9 @@ bool AuthorizationProfile::is_authorized(const string& handle, AuthorizationOper
     }
     return false;
 }
+
+/**
+ * Keychain
+ */
+
+Keychain::Keychain(unordered_map<AtomDB_UID, PublicKey> keys) : keys(keys) {}
