@@ -12,16 +12,14 @@ using namespace atomdb;
 // -------------------------------------------------------------------------------------------------
 // Constructor
 
+AuthorizationManifest::AuthorizationManifest(shared_ptr<AtomDB> atomdb) : atomdb(atomdb) {}
+
 // --------------------------------------------------------------------------------
 // Public methods
-
-AuthorizationManifest::AuthorizationManifest(shared_ptr<AtomDB> atomdb) : atomdb(atomdb) {}
 
 bool AuthorizationManifest::is_granted(const string& public_key,
                                        shared_ptr<Atom> atom,
                                        AuthorizationOperation operation) {
-    if (!this->is_registered(public_key)) return false;
-
     auto it = this->profiles.find(public_key);
     if (it == this->profiles.end() || it->second == nullptr) return false;
 
@@ -31,8 +29,6 @@ bool AuthorizationManifest::is_granted(const string& public_key,
 bool AuthorizationManifest::is_granted(const string& public_key,
                                        const string& handle,
                                        AuthorizationOperation operation) {
-    if (!this->is_registered(public_key)) return false;
-
     auto it = this->profiles.find(public_key);
     if (it == this->profiles.end() || it->second == nullptr) return false;
 
@@ -45,13 +41,16 @@ bool AuthorizationManifest::is_granted(const string& public_key,
 void AuthorizationManifest::add_document(
     const shared_ptr<atomdb_api_types::AccessPermissionDocument>& document) {
     if (document == nullptr) {
-        RAISE_ERROR("Authorization manifest document cannot be null");
+        RAISE_ERROR("AuthorizationManifest document cannot be null");
     }
 
-    auto [it, inserted] = this->profiles.emplace(
-        document->get_access_key(), AuthorizationProfile::from_document(this->atomdb, document));
-    if (!inserted) {
-        RAISE_ERROR(string("Duplicate access_key in authorization manifest: ") +
-                    document->get_access_key());
+    string access_key = document->get_access_key();
+
+    if (this->is_registered(access_key)) {
+        RAISE_ERROR("Duplicate access_key in AuthorizationManifest: " + access_key);
     }
+
+    auto profile = AuthorizationProfile::from_document(this->atomdb, document);
+
+    this->profiles.emplace(access_key, profile);
 }

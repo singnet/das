@@ -74,11 +74,11 @@ bool AuthorizationSchema::allows(AuthorizationOperation operation) const {
 // -------------------------------------------------------------------------------------------------
 // Constructor
 
-AuthorizationProfile::AuthorizationProfile(bool full_access,
+AuthorizationProfile::AuthorizationProfile(bool unrestricted,
                                            vector<shared_ptr<AuthorizationSchema>> schemas)
-    : full_access_(full_access), schemas_(schemas) {
-    if (full_access && !schemas.empty()) {
-        RAISE_ERROR("schemas must be empty when full_access is true");
+    : unrestricted_(unrestricted), schemas_(schemas) {
+    if (unrestricted && !schemas.empty()) {
+        RAISE_ERROR("schemas must be empty when unrestricted is true");
     }
 }
 
