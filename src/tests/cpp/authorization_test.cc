@@ -59,9 +59,7 @@ shared_ptr<AccessPermissionDocument> make_document(const string& access_key,
     return document;
 }
 
-Keychain stub_keychain() {
-    return Keychain(map<string, string>{{"uid", "public_key"}});
-}
+Keychain stub_keychain() { return Keychain(map<string, string>{{"uid", "public_key"}}); }
 
 class DummyPersistence : public AuthorizationPersistence {
    public:
