@@ -125,7 +125,7 @@ run-tests-native:
 ci-unit-tests: run-tests-native build-ci-binaries
 
 lint-all: build-image
-	@bash ./src/scripts/bazel.sh lint "//... --fix --report --diff" \
+	@bash ./src/scripts/bazel.sh lint //... --fix --report --diff \
 		| grep -vE "(Lint results|All checks passed|^[[:blank:]]*$$)"
 
 format-all: build-image
