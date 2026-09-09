@@ -9,6 +9,7 @@
 #include "FitnessFunctionRegistry.h"
 #include "Helper.h"
 #include "JsonConfigParser.h"
+#include "LinkCreatorRegistry.h"
 #include "Logger.h"
 #include "ProcessorFactory.h"
 #include "Properties.h"
@@ -121,14 +122,11 @@ int main(int argc, char* argv[]) {
         ///////// Initializing AtomDB
         auto atomdb_config = json_config.at_path("atomdb").get_or<JsonConfig>(JsonConfig());
         AtomDBSingleton::init(atomdb_config);
+        LOG_INFO("Atom count: " + std::to_string(AtomDBSingleton::get_instance()->atom_count()));
 
-        if (Helper::processor_type_from_string(cmd_args[Helper::SERVICE]) ==
-                mains::ProcessorType::EVOLUTION_AGENT ||
-            Helper::processor_type_from_string(cmd_args[Helper::SERVICE]) ==
-                mains::ProcessorType::COMMAND_ROUTER) {
-            // Router builds QueryEvolutionProxy locally before forwarding evolution commands.
-            fitness_functions::FitnessFunctionRegistry::initialize_statics();
-        }
+        ///////// Initializing misc statics
+        link_creators::LinkCreatorRegistry::initialize_statics();
+        fitness_functions::FitnessFunctionRegistry::initialize_statics();
 
         auto ports_range = Utils::parse_ports_range(props.get<string>(Helper::PORTS_RANGE));
         ServiceBusSingleton::init(props.get<string>(Helper::ENDPOINT),

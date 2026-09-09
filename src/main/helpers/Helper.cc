@@ -50,7 +50,6 @@ string Helper::STIMULUS_SCHEMA = "stimulus-schema";
 string Helper::POSITIVE_IMPORTANCE_FLAG = "positive-importance-flag";
 string Helper::USE_METTA_AS_QUERY_TOKENS = "use-metta-as-query-tokens";
 string Helper::UNIQUE_ASSIGNMENT_FLAG = "unique-assignment-flag";
-string Helper::USE_LINK_TEMPLATE_CACHE = "use-link-template-cache";
 string Helper::POPULATE_METTA_MAPPING = "populate-metta-mapping";
 string Helper::QUERY = "query";
 string Helper::CMD = "cmd";

@@ -638,6 +638,22 @@ cc_test(
 )
 
 cc_test(
+    name = "config_parser_test",
+    size = "small",
+    srcs = ["config_parser_test.cc"],
+    copts = [
+        "-Iexternal/gtest/googletest/include",
+        "-Iexternal/gtest/googletest",
+    ],
+    linkstatic = 1,
+    deps = [
+        "//commons:commons_lib",
+        "//commons:vault_json_resolver",
+        "@com_github_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
     name = "properties_test",
     size = "small",
     srcs = ["properties_test.cc"],
@@ -686,21 +702,6 @@ cc_test(
         "//commons/atoms:atoms_lib",
         "//hasher:hasher_lib",
         "//metta:metta_mapping",
-        "@com_github_google_googletest//:gtest_main",
-    ],
-)
-
-cc_test(
-    name = "config_parser_test",
-    size = "small",
-    srcs = ["config_parser_test.cc"],
-    copts = [
-        "-Iexternal/gtest/googletest/include",
-        "-Iexternal/gtest/googletest",
-    ],
-    linkstatic = 1,
-    deps = [
-        "//commons:commons_lib",
         "@com_github_google_googletest//:gtest_main",
     ],
 )

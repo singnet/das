@@ -45,6 +45,7 @@ if [ "$BUILD_BINARIES" = true ]; then
     BUILD_TARGETS+=" //:database_adapter"
     BUILD_TARGETS+=" //:authorization_admin"
     BUILD_TARGETS+=" //:inference_toy_kb_generator"
+    BUILD_TARGETS+=" //:lca_integration_test"
 
     # Move targets
     MOVE_LIB_TARGETS+=" bazel-bin/hyperon_das.so"
@@ -61,6 +62,7 @@ if [ "$BUILD_BINARIES" = true ]; then
     MOVE_BIN_TARGETS+=" bazel-bin/database_adapter"
     MOVE_BIN_TARGETS+=" bazel-bin/authorization_admin"
     MOVE_BIN_TARGETS+=" bazel-bin/inference_toy_kb_generator"
+    MOVE_BIN_TARGETS+=" bazel-bin/lca_integration_test"
 
 fi
 

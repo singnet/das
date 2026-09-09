@@ -12,7 +12,7 @@ namespace commons {
 
 /**
  * Validates and parses agent params from das.json against a versioned field schema.
- * Schema version is read from agents.schema_version in das.json (e.g. "1.0").
+ * Schema version is read from agents.schema_version in das.json (e.g. "1.0.0").
  */
 class SystemParametersValidation {
    public:

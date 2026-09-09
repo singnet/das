@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <bsoncxx/builder/basic/document.hpp>
 #include <bsoncxx/builder/basic/kvp.hpp>
+#include <map>
 #include <memory>
 #include <mongocxx/client.hpp>
 #include <mongocxx/uri.hpp>
@@ -13,6 +14,7 @@
 
 #include "AuthorizationManifest.h"
 #include "AuthorizationPersistence.h"
+#include "AuthorizationTypes.h"
 #include "InMemoryAccessPermissionTypes.h"
 #include "InMemoryDB.h"
 #include "Link.h"
@@ -63,19 +65,13 @@ class DummyPersistence : public AuthorizationPersistence {
    public:
     map<string, vector<pair<LinkSchema, unsigned int>>> documents;
 
-    void authorize(const string& public_key, vector<pair<LinkSchema, unsigned int>>& schemas) override {
+    void grant(const string& public_key, vector<pair<LinkSchema, unsigned int>>& schemas) override {
         auto& entries = documents[public_key];
         entries.insert(entries.end(), schemas.begin(), schemas.end());
     }
-    void authorize(const string& public_key) override { documents[public_key] = {}; }
+    void grant_unrestricted(const string& public_key) override { documents[public_key] = {}; }
 
     void revoke(const string& public_key) override { documents.erase(public_key); }
-};
-
-class TestManifest : public AuthorizationManifest {
-   public:
-    using AuthorizationManifest::add_document;
-    using AuthorizationManifest::AuthorizationManifest;
 };
 
 shared_ptr<InMemoryDB> db_with_inheritance_link(string* link_handle) {
@@ -95,8 +91,9 @@ shared_ptr<InMemoryDB> db_with_inheritance_link(string* link_handle) {
     return db;
 }
 
-TestManifest manifest_from_persistence(shared_ptr<AtomDB> atomdb, const DummyPersistence& persistence) {
-    TestManifest manifest(atomdb);
+AuthorizationManifest manifest_from_persistence(shared_ptr<AtomDB> atomdb,
+                                                const DummyPersistence& persistence) {
+    AuthorizationManifest manifest(atomdb);
     for (const auto& [public_key, entries] : persistence.documents) {
         manifest.add_document(make_document(public_key, false, entries));
     }
@@ -120,7 +117,7 @@ unique_ptr<MongodbAuthorizationPersistence> make_mongo_persistence(const string&
 }  // namespace
 
 TEST(AuthorizationManifestTest, BuildsProfilesFromDocuments) {
-    TestManifest manifest(nullptr);
+    AuthorizationManifest manifest(nullptr);
     manifest.add_document(make_document("pk1", false, {read_only_inheritance_schema()}));
     manifest.add_document(make_document("pk2", true, {}));
 
@@ -134,11 +131,11 @@ TEST(AuthorizationManifestTest, EmptyDocuments) {
     EXPECT_FALSE(manifest.is_registered("pk"));
 }
 
-TEST(AuthorizationManifestTest, IsAuthorized) {
+TEST(AuthorizationManifestTest, IsGranted) {
     string link_handle;
     auto db = db_with_inheritance_link(&link_handle);
 
-    TestManifest manifest(db);
+    AuthorizationManifest manifest(db);
     manifest.add_document(make_document("pk", false, {read_only_inheritance_schema()}));
 
     auto link = db->get_link(link_handle);
@@ -146,26 +143,44 @@ TEST(AuthorizationManifestTest, IsAuthorized) {
 
     EXPECT_FALSE(manifest.is_registered("unknown"));
 
-    EXPECT_TRUE(manifest.is_authorized(link, "pk", AuthorizationOperation::READ));
-    EXPECT_TRUE(manifest.is_authorized(link_handle, "pk", AuthorizationOperation::READ));
+    EXPECT_FALSE(manifest.is_granted("unknown", link, AuthorizationOperation::READ));
+    EXPECT_FALSE(manifest.is_granted("unknown", link, AuthorizationOperation::WRITE));
+    EXPECT_FALSE(manifest.is_granted("unknown", link_handle, AuthorizationOperation::READ));
+    EXPECT_FALSE(manifest.is_granted("unknown", link_handle, AuthorizationOperation::WRITE));
+    EXPECT_FALSE(manifest.is_registered("unknown"));
 
-    EXPECT_FALSE(manifest.is_authorized(link, "pk", AuthorizationOperation::WRITE));
-    EXPECT_FALSE(manifest.is_authorized(link_handle, "pk", AuthorizationOperation::WRITE));
+    EXPECT_TRUE(manifest.is_granted("pk", link, AuthorizationOperation::READ));
+    EXPECT_TRUE(manifest.is_granted("pk", link_handle, AuthorizationOperation::READ));
+
+    EXPECT_FALSE(manifest.is_granted("pk", link, AuthorizationOperation::WRITE));
+    EXPECT_FALSE(manifest.is_granted("pk", link_handle, AuthorizationOperation::WRITE));
+
+    EXPECT_FALSE(manifest.is_granted("pk", string(32, '0'), AuthorizationOperation::READ));
+    EXPECT_FALSE(manifest.is_granted("pk", string(32, '0'), AuthorizationOperation::WRITE));
 }
 
 TEST(AuthorizationManifestTest, FullAccessGrantsAllOperations) {
     string link_handle;
     auto db = db_with_inheritance_link(&link_handle);
 
-    TestManifest manifest(db);
+    AuthorizationManifest manifest(db);
     manifest.add_document(make_document("pk", true, {}));
 
     auto link = db->get_link(link_handle);
     ASSERT_NE(link, nullptr);
 
-    EXPECT_TRUE(manifest.is_authorized(link, "pk", AuthorizationOperation::READ));
-    EXPECT_TRUE(manifest.is_authorized(link, "pk", AuthorizationOperation::WRITE));
-    EXPECT_TRUE(manifest.is_authorized(link_handle, "pk", AuthorizationOperation::WRITE));
+    EXPECT_TRUE(manifest.is_granted("pk", link, AuthorizationOperation::READ));
+    EXPECT_TRUE(manifest.is_granted("pk", link, AuthorizationOperation::WRITE));
+    EXPECT_TRUE(manifest.is_granted("pk", link_handle, AuthorizationOperation::WRITE));
+    EXPECT_FALSE(manifest.is_granted("pk", string(32, '0'), AuthorizationOperation::READ));
+}
+
+TEST(AuthorizationSchemaTest, AllowsReadAndWriteFlags) {
+    auto db = make_shared<InMemoryDB>("auth_test_");
+    AuthorizationSchema schema(db, inheritance_mammal_tokens(), true, false);
+
+    EXPECT_TRUE(schema.allows(AuthorizationOperation::READ));
+    EXPECT_FALSE(schema.allows(AuthorizationOperation::WRITE));
 }
 
 TEST(AuthorizationProfileTest, FromDocumentWithAndWithoutSchema) {
@@ -173,14 +188,14 @@ TEST(AuthorizationProfileTest, FromDocumentWithAndWithoutSchema) {
     auto document = make_document("pk", false, {read_only_inheritance_schema()});
     auto profile = AuthorizationProfile::from_document(db, document);
 
-    EXPECT_FALSE(profile->is_full_access());
+    EXPECT_FALSE(profile->is_unrestricted());
 }
 
 TEST(AuthorizationProfileTest, FullAccessRejectsSchemas) {
     auto db = make_shared<InMemoryDB>("auth_test_");
     auto document = make_document("pk", true, {});
     auto profile = AuthorizationProfile::from_document(db, document);
-    EXPECT_TRUE(profile->is_full_access());
+    EXPECT_TRUE(profile->is_unrestricted());
 
     vector<shared_ptr<AuthorizationSchema>> schemas{
         make_shared<AuthorizationSchema>(db, inheritance_mammal_tokens(), true, false)};
@@ -195,23 +210,23 @@ TEST(AuthorizationPersistenceTest, ManifestReflectsPersistedPermissions) {
     auto schema = read_only_inheritance_schema();
     vector<pair<LinkSchema, unsigned int>> schemas{schema};
 
-    persistence->authorize("pk", schemas);
+    persistence->grant("pk", schemas);
 
-    TestManifest manifest = manifest_from_persistence(db, *persistence);
+    AuthorizationManifest manifest = manifest_from_persistence(db, *persistence);
     auto link = db->get_link(link_handle);
     ASSERT_NE(link, nullptr);
 
-    EXPECT_TRUE(manifest.is_authorized(link, "pk", AuthorizationOperation::READ));
-    EXPECT_FALSE(manifest.is_authorized(link, "pk", AuthorizationOperation::WRITE));
+    EXPECT_TRUE(manifest.is_granted("pk", link, AuthorizationOperation::READ));
+    EXPECT_FALSE(manifest.is_granted("pk", link, AuthorizationOperation::WRITE));
 }
 
-TEST(AuthorizationPersistenceTest, AuthorizeThenReadAndWriteFlags) {
+TEST(AuthorizationPersistenceTest, GrantThenReadAndWriteFlags) {
     auto persistence = make_shared<DummyPersistence>();
     auto schema = read_only_inheritance_schema();
     vector<pair<LinkSchema, unsigned int>> schemas{schema};
 
-    persistence->authorize("pk", schemas);
-    persistence->authorize("pk2", schemas);
+    persistence->grant("pk", schemas);
+    persistence->grant("pk2", schemas);
 
     EXPECT_EQ(persistence->documents.size(), 2u);
     ASSERT_EQ(persistence->documents["pk"].size(), 1u);
@@ -238,7 +253,7 @@ TEST(MongodbAuthorizationPersistenceTest, RemoveLastSchemaDeletesDocument) {
     persistence->revoke(public_key);
 
     vector<pair<LinkSchema, unsigned int>> schemas{read_only_inheritance_schema()};
-    persistence->authorize(public_key, schemas);
+    persistence->grant(public_key, schemas);
     persistence->revoke(public_key);
 
     mongocxx::client client{mongocxx::uri{"mongodb://" + username + ":" + password + "@" + endpoint}};
@@ -260,8 +275,36 @@ TEST(MongodbAuthorizationPersistenceTest, RemoveDoesNotDeadlockWithMaxPoolSize1)
     persistence->revoke(public_key);
 
     vector<pair<LinkSchema, unsigned int>> schemas{read_only_inheritance_schema()};
-    persistence->authorize(public_key, schemas);
+    persistence->grant(public_key, schemas);
     persistence->revoke(public_key);
+    persistence->revoke(public_key);
+}
+
+TEST(MongodbAuthorizationPersistenceTest, GrantSchemasRaisesWhenKeyHasFullAccess) {
+    const string database_name = "auth_grant_full_access_regression_das";
+    const string collection_name = "access_permissions";
+    const string public_key = "pk_full_access_then_schema";
+
+    auto persistence = make_mongo_persistence(database_name, collection_name);
+    persistence->revoke(public_key);
+    persistence->grant_unrestricted(public_key);
+
+    vector<pair<LinkSchema, unsigned int>> schemas{read_only_inheritance_schema()};
+    EXPECT_THROW(
+        {
+            try {
+                persistence->grant(public_key, schemas);
+            } catch (const runtime_error& error) {
+                EXPECT_STREQ(error.what(),
+                             ("The public key <" + public_key +
+                              "> already has full access. To revoke full access, use the revoke() "
+                              "method.")
+                                 .c_str());
+                throw;
+            }
+        },
+        runtime_error);
+
     persistence->revoke(public_key);
 }
 
@@ -273,7 +316,7 @@ TEST(MongodbAuthorizationPersistenceTest, RemoveAllRaisesOnUnacknowledgedDelete)
     auto setup = make_mongo_persistence(database_name, collection_name);
     setup->revoke(public_key);
     vector<pair<LinkSchema, unsigned int>> schemas{read_only_inheritance_schema()};
-    setup->authorize(public_key, schemas);
+    setup->grant(public_key, schemas);
 
     auto unacked = make_mongo_persistence(database_name, collection_name, "w=0");
     EXPECT_THROW(
