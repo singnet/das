@@ -19,7 +19,6 @@
 #include "LinkSchema.h"
 #include "MongodbAuthorizationPersistence.h"
 #include "Node.h"
-#include "RedisMongoDBAPITypes.h"
 #include "TestAtomDBJsonConfig.h"
 
 using namespace atomdb;

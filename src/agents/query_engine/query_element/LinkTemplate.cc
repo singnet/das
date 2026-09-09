@@ -203,9 +203,6 @@ void LinkTemplate::processor_method(shared_ptr<StoppableThread> monitor) {
     shared_ptr<atomdb_api_types::HandleSet> handles;
     LOG_INFO("Fetching " + link_schema_handle + " from AtomDB");
     if (protected_atomdb != nullptr) {
-        if (!this->keychain) {
-            RAISE_ERROR("LinkTemplate with a protected AtomDB must have a non-empty public_key_tokens");
-        }
         handles = protected_atomdb->query_for_pattern(this->link_schema, *this->keychain);
     } else {
         handles = atomdb->query_for_pattern(this->link_schema);
