@@ -114,8 +114,13 @@ int main(int argc, char* argv[]) {
         }
     }
 
+    if (action != "grant" && action != "revoke") {
+        cerr << "\nError: action must be 'grant' or 'revoke'.\n\n";
+        usage(argv[0]);
+    }
+
     if (full_access) {
-        if (action.empty() || config_path.empty()) {
+        if (public_key.empty() || config_path.empty()) {
             cerr << "\nError: Missing required arguments for full access.\n\n";
             usage(argv[0]);
         }
@@ -125,12 +130,6 @@ int main(int argc, char* argv[]) {
             cerr << "\nError: Missing required arguments.\n\n";
             usage(argv[0]);
         }
-
-        if (action != "grant" && action != "revoke") {
-            cerr << "\nError: action must be 'grant' or 'revoke'.\n\n";
-            usage(argv[0]);
-        }
-
         if (link_templates.size() != permissions.size()) {
             cerr << "\nError: The number of --link-template arguments must match the number of "
                     "--permission arguments.\n\n";
@@ -138,7 +137,7 @@ int main(int argc, char* argv[]) {
         }
     }
 
-    LOG_INFO("Starting Admin...");
+    cout << "Starting Admin..." << endl;
 
     ifstream config_file(config_path);
     if (!config_file.good()) {
@@ -171,7 +170,7 @@ int main(int argc, char* argv[]) {
         persistence->revoke(public_key);
     }
 
-    LOG_INFO("Admin finished successfully.");
+    cout << "Admin finished successfully." << endl;
 
     return 0;
 }
