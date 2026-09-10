@@ -774,7 +774,9 @@ cc_test(
     ],
     linkstatic = 1,
     deps = [
+        "//atomdb:atomdb_factory",
         "//atomdb:atomdb_singleton",
+        "//atomdb/redis_mongodb:redis_mongodb_lib",
         "//tests/cpp/test_commons:mock_animals_data_lib",
         "//tests/cpp/test_commons:test_atomdb_json_config",
         "@com_github_google_googletest//:gtest_main",
@@ -803,7 +805,9 @@ cc_test(
     ],
     linkstatic = 1,
     deps = [
+        "//atomdb:atomdb_factory",
         "//atomdb:atomdb_singleton",
+        "//atomdb/redis_mongodb:redis_mongodb_lib",
         "//tests/cpp/test_commons:mock_animals_data_lib",
         "//tests/cpp/test_commons:test_atomdb_json_config",
         "@com_github_google_googletest//:gtest_main",
@@ -829,6 +833,7 @@ cc_test(
     linkstatic = 1,
     deps = [
         "//atomdb:atomdb_singleton",
+        "//atomdb/redis_mongodb:redis_mongodb_lib",
         "//tests/cpp/test_commons:mock_animals_data_lib",
         "//tests/cpp/test_commons:test_atomdb_json_config",
         "@com_github_google_googletest//:gtest",
@@ -933,6 +938,7 @@ cc_test(
         "//atomdb/adapterdb:adapterdb_lib",
         "//atomdb/inmemorydb:inmemorydb_lib",
         "//atomdb/morkdb:morkdb_lib",
+        "//atomdb/redis_mongodb:redis_mongodb_lib",
         "//atomdb/remotedb:remotedb_lib",
         "//tests/cpp/test_commons:test_atomdb_json_config",
         "@com_github_google_googletest//:gtest_main",
@@ -958,6 +964,7 @@ cc_test(
     linkstatic = 1,
     deps = [
         "//atomdb:atomdb_lib",
+        "//atomdb/redis_mongodb:redis_mongodb_lib",
         "//commons/atoms:atoms_lib",
         "//tests/cpp/test_commons:test_atomdb_json_config",
         "@com_github_google_googletest//:gtest_main",
@@ -988,8 +995,10 @@ cc_test(
         "//atomdb:atomdb_factory",
         "//atomdb:protected_atomdb",
         "//atomdb/inmemorydb:inmemorydb_lib",
+        "//atomdb/redis_mongodb:redis_mongodb_lib",
         "//atomdb/remotedb:remotedb_lib",
         "//commons/atoms:atoms_lib",
+        "//tests/cpp/test_commons:test_atomdb_json_config",
         "@com_github_google_googletest//:gtest",
     ],
 )
@@ -1056,6 +1065,7 @@ cc_test(
     linkstatic = 1,
     deps = [
         "//atomdb:atomdb_singleton",
+        "//atomdb/redis_mongodb:redis_mongodb_lib",
         "//db_adapter:db_adapter_lib",
         "//tests/cpp/test_commons:test_atomdb_json_config",
         "@com_github_google_googletest//:gtest_main",
@@ -1114,7 +1124,9 @@ cc_test(
     ],
     linkstatic = 1,
     deps = [
+        "//atomdb:atomdb_factory",
         "//atomdb:atomdb_singleton",
+        "//atomdb/redis_mongodb:redis_mongodb_lib",
         "//db_adapter:db_adapter_lib",
         "//tests/cpp/test_commons:test_atomdb_json_config",
         "@com_github_google_googletest//:gtest_main",

@@ -32,7 +32,7 @@ class InMemoryAccessPermissionDocument : public atomdb_api_types::AccessPermissi
     ~InMemoryAccessPermissionDocument() override = default;
 
     void set_access_key(const string& access_key);
-    void set_full_access(bool unrestricted);
+    void set_full_access(bool full_access);
     void append_entry(const vector<string>& tokens, bool read, bool write);
 
     const char* get_access_key() const override;
@@ -42,7 +42,7 @@ class InMemoryAccessPermissionDocument : public atomdb_api_types::AccessPermissi
 
    private:
     string access_key_;
-    bool unrestricted_;
+    bool full_access_;
     vector<InMemoryAccessPermissionEntry> entries_;
 };
 

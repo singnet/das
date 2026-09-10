@@ -64,6 +64,9 @@ run-db-loader:
 run-adapter:
 	@bash -x src/scripts/run.sh database_adapter $(OPTIONS)
 
+authorization-admin:
+	@bash src/scripts/run.sh authorization_admin $(OPTIONS)
+
 setup-nunet-dms:
 	@bash -x src/scripts/setup-nunet-dms.sh
 
@@ -98,23 +101,23 @@ test-clear:
 	@docker rm -f db-redis-test-container db-mongo-test-container das-attention-broker-service pg-test mork-test-server || true
 
 test-all-no-cache: setup-test-all
-	@$(MAKE) bazel 'test --show_progress --cache_test_results=no //tests/...'
+	@bash ./src/scripts/bazel.sh test --show_progress --cache_test_results=no //tests/...
 
 unit-tests:
 	@$(MAKE) setup-test-all
-	@$(MAKE) bazel 'test --show_progress //tests/...'
+	@bash ./src/scripts/bazel.sh test --show_progress //tests/...
 
 test-all:
 	@$(MAKE) unit-tests
 	@$(MAKE) integration-tests
 
-test-agents-integration:
+test-agents-integration: build-image
 	@bash  ./src/scripts/integration_test_setup.sh &
-	@$(MAKE) bazel 'test --show_progress --cache_test_results=no //tests/integration/...' || true; \
+	@bash ./src/scripts/bazel.sh test --show_progress --cache_test_results=no //tests/integration/... || true; \
 	touch ./bin/kill
 
-run-tests-only:
-	@$(MAKE) bazel 'test --show_progress --cache_test_results=no //tests/...'
+run-tests-only: build-image
+	@bash ./src/scripts/bazel.sh test --show_progress --cache_test_results=no //tests/...
 
 build-ci-binaries:
 	@cd src && ./scripts/bazel_exec.sh build --noshow_progress //:ci_binaries
@@ -124,9 +127,8 @@ run-tests-native:
 
 ci-unit-tests: run-tests-native build-ci-binaries
 
-lint-all:
-	@$(MAKE) bazel lint \
-		"//... --fix --report --diff" \
+lint-all: build-image
+	@bash ./src/scripts/bazel.sh lint //... --fix --report --diff \
 		| grep -vE "(Lint results|All checks passed|^[[:blank:]]*$$)"
 
 format-all: build-image

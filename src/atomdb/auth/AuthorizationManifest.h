@@ -16,67 +16,38 @@ using namespace atoms;
 namespace atomdb {
 
 /**
- * @brief In-memory authorization state keyed by public key.
+ * @brief In-memory representation of the authorization state.
  *
- * AuthorizationManifest stores one AuthorizationProfile per registered public key
- * and answers grant checks against atoms or handles. It is the runtime view used
- * by ProtectedAtomDB when enforcing access control.
+ * Stores the authorization profiles used by the authorization checks.
  */
 class AuthorizationManifest {
    public:
-    /**
-     * @brief Creates an empty manifest with the given AtomDB.
-     *
-     * @param atomdb AtomDB used to resolve atoms when authorizing by handle.
-     */
     explicit AuthorizationManifest(shared_ptr<AtomDB> atomdb);
-
     ~AuthorizationManifest() = default;
 
     /**
-     * @brief Checks whether a public key is granted an operation on an atom.
-     *
-     * Returns false when the public key is not registered.
-     *
-     * @param public_key Public key to authorize.
-     * @param atom Target atom.
-     * @param operation Operation being requested.
-     * @return true if the public key is granted the operation on the atom.
+     * @brief Checks whether public_key is authorized to perform an operation on an atom.
      */
     bool is_granted(const string& public_key, shared_ptr<Atom> atom, AuthorizationOperation operation);
 
     /**
-     * @brief Checks whether a public key is granted an operation on a handle.
-     *
-     * Resolves the handle through the manifest AtomDB before evaluating the
-     * profile. Returns false when the public key is not registered, the handle
-     * cannot be resolved, or the atom does not exist.
-     *
-     * @param public_key Public key to authorize.
-     * @param handle Target atom handle.
-     * @param operation Operation being requested.
-     * @return true if the public key is granted the operation on the handle.
+     * @brief Checks whether public_key is authorized to perform an operation on a handle.
      */
     bool is_granted(const string& public_key, const string& handle, AuthorizationOperation operation);
 
     /**
-     * @brief Returns whether a public key has a registered authorization profile.
-     *
-     * @param public_key Public key to look up.
-     * @return true if a profile exists for the public key.
+     * @brief Returns whether public_key has an authorization document.
      */
     inline bool is_registered(const string& public_key) const {
         return this->profiles.find(public_key) != this->profiles.end();
     }
 
     /**
-     * @brief Registers an authorization document in the manifest.
+     * @brief Adds an authorization document to the manifest.
      *
-     * Builds an AuthorizationProfile from the document and stores it under
-     * document->get_access_key().
-     *
-     * @param document Authorization document to register.
-     * @throws std::runtime_error if document is null or access_key is already registered.
+     * Builds an AuthorizationProfile from the document and stores it in the
+     * in-memory cache keyed by access_key. Raises an error if the access_key
+     * is already registered.
      */
     void add_document(const shared_ptr<atomdb_api_types::AccessPermissionDocument>& document);
 

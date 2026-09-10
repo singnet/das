@@ -130,10 +130,7 @@ string MorkClient::url_encode(const string& value) {
 }
 // <--
 
-// --> MorkDB : RedisMongoDB(context, skip_redis = true)
-MorkDB::MorkDB(const string& context, const JsonConfig& config) : RedisMongoDB(context, true, config) {
-    mork_setup(config);
-}
+MorkDB::MorkDB(const JsonConfig& config) : RedisMongoDB(config) { mork_setup(config); }
 
 MorkDB::~MorkDB() {}
 
