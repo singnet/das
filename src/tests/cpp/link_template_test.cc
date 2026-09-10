@@ -97,7 +97,7 @@ TEST(LinkTemplate, key_tokens) {
 }
 
 TEST(LinkTemplate, UniqueValueFilteringSetsAssignmentCompatibilityFlag) {
-    auto db = make_shared<InMemoryDB>("link_template_uniqueness_");
+    auto db = make_shared<InMemoryDB>();
     AtomDBSingleton::provide(db);
 
     auto relation = make_shared<Node>("Symbol", "Relation");

@@ -827,7 +827,7 @@ TEST(RemoteAtomDBFederationTest, MetadataAggregationFromNestedPeer) {
 }
 
 TEST(RemoteAtomDBFederationTest, PatternAssignmentsSurvivePeerAndFacadeAggregation) {
-    auto backend = make_shared<InMemoryDB>("fed_assignments_backend_");
+    auto backend = make_shared<InMemoryDB>();
     auto handles = populate_inheritance_mammal_links(backend);
 
     map<string, shared_ptr<RemoteAtomDBPeer>> peers;
