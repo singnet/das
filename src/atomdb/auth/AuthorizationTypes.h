@@ -1,6 +1,5 @@
 #pragma once
 
-#include <map>
 #include <optional>
 #include <string>
 #include <vector>
@@ -143,23 +142,6 @@ class AuthorizationProfile {
    private:
     bool unrestricted_;
     vector<shared_ptr<AuthorizationSchema>> schemas_;
-};
-
-class Keychain {
-   public:
-    using AtomDB_UID = string;
-    using PublicKey = string;
-
-    explicit Keychain(map<AtomDB_UID, PublicKey> keys);
-    ~Keychain() = default;
-
-    inline bool empty() const { return this->keys_.empty(); }
-    inline const map<AtomDB_UID, PublicKey>& keys() const { return this->keys_; }
-
-    PublicKey get(const AtomDB_UID& uid) const;
-
-   private:
-    map<AtomDB_UID, PublicKey> keys_;
 };
 
 }  // namespace atomdb

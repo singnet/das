@@ -91,6 +91,7 @@ cc_library(
         ":atomdb",
         ":atomdb_api_types",
         "//atomdb/auth:auth_lib",
+        "//atomdb/auth:keychain",
         "//commons:commons_lib",
         "//commons/atoms:atoms_lib",
     ],

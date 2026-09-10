@@ -89,7 +89,7 @@ class BaseQueryProxy : public BaseProxy {
                                                 // as well as complete ones.
 
     static string PUBLIC_KEY_TOKENS;  // A string with a list of tokens which can be used to build a
-                                      // AuthorizationTypes::Keychain object. This is required to use
+                                      // Keychain object. This is required to use
                                       // public keys(s) when querying a ProtectedAtomDB. The list is
                                       // supposed to be a space separated string with all the pairs
                                       // (uid, key). E.g. "uid1 key1 uid2 key2 ... uidn keyn".

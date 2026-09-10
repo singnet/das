@@ -17,18 +17,26 @@ AuthorizationManifest::AuthorizationManifest(shared_ptr<AtomDB> atomdb) : atomdb
 // --------------------------------------------------------------------------------
 // Public methods
 
-bool AuthorizationManifest::is_granted(const string& public_key,
+bool AuthorizationManifest::is_granted(const Keychain& keychain,
                                        shared_ptr<Atom> atom,
                                        AuthorizationOperation operation) {
+    // TODO: Uncomment the code below once AtomdB::get_uid() is implemented
+    // auto public_key = keychain.get_public_key(this->atomdb->get_uid());
+    // if (public_key.empty()) return false;
+    string public_key = "public_key";
     auto it = this->profiles.find(public_key);
     if (it == this->profiles.end() || it->second == nullptr) return false;
 
     return it->second->is_granted(atom, operation);
 }
 
-bool AuthorizationManifest::is_granted(const string& public_key,
+bool AuthorizationManifest::is_granted(const Keychain& keychain,
                                        const string& handle,
                                        AuthorizationOperation operation) {
+    // TODO: Uncomment the code below once AtomdB::get_uid() is implemented
+    // auto public_key = keychain.get_public_key(this->atomdb->get_uid());
+    // if (public_key.empty()) return false;
+    string public_key = "public_key";
     auto it = this->profiles.find(public_key);
     if (it == this->profiles.end() || it->second == nullptr) return false;
 

@@ -115,6 +115,7 @@ cc_library(
         ":terminal",
         "//agents/query_engine:query_node",
         "//atomdb:atomdb_lib",
+        "//atomdb/auth:keychain",
         "//attention_broker:attention_broker_lib",
         "//commons:commons_lib",
         "//commons/atoms:atoms_lib",

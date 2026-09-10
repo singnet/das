@@ -7,7 +7,7 @@
 
 #include "AtomDB.h"
 #include "AuthorizationManifest.h"
-#include "AuthorizationTypes.h"
+#include "Keychain.h"
 
 using namespace std;
 using namespace atoms;

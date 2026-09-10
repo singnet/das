@@ -17,6 +17,7 @@
 #include "AuthorizationTypes.h"
 #include "InMemoryAccessPermissionTypes.h"
 #include "InMemoryDB.h"
+#include "Keychain.h"
 #include "Link.h"
 #include "LinkSchema.h"
 #include "MongodbAuthorizationPersistence.h"

@@ -9,6 +9,7 @@
 #include "AtomDBAPITypes.h"
 #include "AuthorizationTypes.h"
 #include "HandleDecoder.h"
+#include "Keychain.h"
 
 using namespace std;
 using namespace atoms;
@@ -38,12 +39,12 @@ class AuthorizationManifest {
      *
      * Returns false when the public key is not registered.
      *
-     * @param public_key Public key to authorize.
+     * @param keychain Keychain containing the public key to authorize.
      * @param atom Target atom.
      * @param operation Operation being requested.
      * @return true if the public key is granted the operation on the atom.
      */
-    bool is_granted(const string& public_key, shared_ptr<Atom> atom, AuthorizationOperation operation);
+    bool is_granted(const Keychain& keychain, shared_ptr<Atom> atom, AuthorizationOperation operation);
 
     /**
      * @brief Checks whether a public key is granted an operation on a handle.
@@ -52,12 +53,12 @@ class AuthorizationManifest {
      * profile. Returns false when the public key is not registered, the handle
      * cannot be resolved, or the atom does not exist.
      *
-     * @param public_key Public key to authorize.
+     * @param keychain Keychain containing the public key to authorize.
      * @param handle Target atom handle.
      * @param operation Operation being requested.
      * @return true if the public key is granted the operation on the handle.
      */
-    bool is_granted(const string& public_key, const string& handle, AuthorizationOperation operation);
+    bool is_granted(const Keychain& keychain, const string& handle, AuthorizationOperation operation);
 
     /**
      * @brief Returns whether a public key has a registered authorization profile.

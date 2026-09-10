@@ -7,7 +7,7 @@
 
 #include "Assignment.h"
 #include "AtomDB.h"
-#include "AuthorizationTypes.h"
+#include "Keychain.h"
 #include "LinkSchema.h"
 #include "QueryElement.h"
 #include "Source.h"
