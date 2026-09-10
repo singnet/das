@@ -41,6 +41,10 @@ shared_ptr<AtomDB> AtomDBFactory::create(const JsonConfig& config) {
 // Private methods
 
 shared_ptr<AtomDB> AtomDBFactory::create_basic_atomdb(const JsonConfig& config) {
+    if (config.at_path("uid").is_null()) {
+        RAISE_ERROR("AtomDBFactory: missing uid");
+    }
+
     auto atomdb_type = config.at_path("type").get_or<string>("");
 
     AtomDBType type = AtomDB::string_to_type(atomdb_type);
@@ -87,9 +91,6 @@ shared_ptr<AtomDB> AtomDBFactory::create_composite_atomdb(const JsonConfig& conf
             auto local_persistence_config =
                 peer_config.at_path("local_persistence").get_or<JsonConfig>(JsonConfig());
             if (!local_persistence_config.empty()) {
-                if (local_persistence_config.at_path("uid").is_null()) {
-                    local_persistence_config["uid"] = uid;
-                }
                 local_persistence = create_basic_atomdb(local_persistence_config);
             }
             remote_peers[uid] =
@@ -101,6 +102,10 @@ shared_ptr<AtomDB> AtomDBFactory::create_composite_atomdb(const JsonConfig& conf
         // The backend AtomDB in AdapterDB could be RemoteAtomDB ?
         auto atomdb_backend_config =
             config.at_path("adapterdb.atomdb_backend").get_or<JsonConfig>(JsonConfig());
+        string backend_uid = atomdb_backend_config.at_path("uid").get_or<string>("");
+        if (atomdb_backend_config.at_path("uid").is_null() || backend_uid.empty()) {
+            RAISE_ERROR("AtomDBFactory: adapterdb backend requires a nonempty uid");
+        }
         auto basic_atomdb = create_basic_atomdb(atomdb_backend_config);
         atomdb = make_shared<AdapterDB>(config, basic_atomdb);
     } else {
