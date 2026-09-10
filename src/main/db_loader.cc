@@ -46,10 +46,10 @@ void ctrl_c_handler(int) {
 int main(int argc, char* argv[]) {
     // make run-db-loader OPTIONS="--config=config/das.json"
     //
-    // make run-db-loader OPTIONS="--config=config/das.json --context=test_1m_ --threads=8
+    // make run-db-loader OPTIONS="--config=config/das.json --threads=8
     // --links=1000000 --arity=3 --chunk=5000"
     //
-    // make run-db-loader OPTIONS="--config=config/das.json --context=test_1m_ --file=/path/to/file.metta
+    // make run-db-loader OPTIONS="--config=config/das.json --file=/path/to/file.metta
     // --threads=8 --chunk=5000"
 
     string config_path = flag_from_argv_or(argc, argv, "--config=", "");
@@ -58,7 +58,6 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    string context = flag_from_argv_or(argc, argv, "--context=", "");
     string file_path = flag_from_argv_or(argc, argv, "--file=", "");
 
     int num_threads = Utils::string_to_int(flag_from_argv_or(argc, argv, "--threads=", "8"));
@@ -69,7 +68,7 @@ int main(int argc, char* argv[]) {
     JsonConfig json_config = JsonConfigParser::load(config_path);
     auto atomdb_config = json_config.at_path("atomdb").get_or<JsonConfig>(JsonConfig());
 
-    auto atomdb = AtomDBFactory::create(atomdb_config, context);
+    auto atomdb = AtomDBFactory::create(atomdb_config);
 
     signal(SIGINT, &ctrl_c_handler);
     signal(SIGTERM, &ctrl_c_handler);

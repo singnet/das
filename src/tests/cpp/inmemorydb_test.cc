@@ -27,7 +27,7 @@ using namespace std;
 
 class InMemoryDBTest : public ::testing::Test {
    protected:
-    void SetUp() override { db = make_shared<InMemoryDB>("inmemorydb_test_"); }
+    void SetUp() override { db = make_shared<InMemoryDB>(); }
 
     void TearDown() override {}
 
