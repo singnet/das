@@ -2,23 +2,18 @@
 
 #include <gtest/gtest.h>
 
-#include <bsoncxx/builder/basic/document.hpp>
 #include <cstdio>
 #include <fstream>
 #include <iostream>
 #include <memory>
-#include <mongocxx/client.hpp>
-#include <mongocxx/uri.hpp>
 #include <nlohmann/json.hpp>
 #include <string>
 #include <vector>
 
 #include "AtomDBFactory.h"
-#include "AtomDBSingleton.h"
 #include "Hasher.h"
 #include "Link.h"
 #include "Merger.h"
-#include "MongoInitializer.h"
 #include "MorkDB.h"
 #include "Node.h"
 #include "RedisMongoDB.h"
@@ -58,11 +53,10 @@ void seed_mork_adapter_test_data() {
 
 class AdapterDBTestBase : public ::testing::Test {
    protected:
-    static constexpr const char* back_context = "adapter_test";
     shared_ptr<RedisMongoDB> backend;
 
     void SetUpBackend() {
-        auto atomdb = AtomDBFactory::create(test_atomdb_json_config(), back_context);
+        auto atomdb = AtomDBFactory::create(test_atomdb_json_config("redismongodb", "adapterdb_test_"));
         backend = dynamic_pointer_cast<RedisMongoDB>(atomdb);
         ASSERT_NE(backend, nullptr);
     }
@@ -83,6 +77,7 @@ class AdapterDBTestBase : public ::testing::Test {
             {"atomdb_backend",
              {
                  {"type", backend_type},
+                 {"prefix", "adapterdb_test_"},
                  {"redis", {{"endpoint", "localhost:40020"}, {"cluster", false}}},
                  {"mongodb",
                   {{"endpoint", "localhost:40021"}, {"username", "admin"}, {"password", "admin"}}},
@@ -96,82 +91,17 @@ class AdapterDBTestBase : public ::testing::Test {
                                          const string& adapter_type,
                                          const nlohmann::json& db_credentials,
                                          const string& backend_type = "morkdb",
-                                         bool reuse_mongodb = true,
-                                         const string& context = back_context) {
+                                         bool reuse_mongodb = true) {
         auto config = build_adapter_config(
             mapping_path, adapter_type, db_credentials, backend_type, reuse_mongodb);
         shared_ptr<AtomDB> atomdb_backend = backend;
-        if (!atomdb_backend || context != back_context) {
-            atomdb_backend = AtomDBFactory::create(test_atomdb_json_config(), context);
+        if (!atomdb_backend) {
+            atomdb_backend =
+                AtomDBFactory::create(test_atomdb_json_config("redismongodb", "adapterdb_test_"));
         }
-        return make_shared<AdapterDB>(config, atomdb_backend, context);
-    }
-
-    static bool mapping_metadata_exists(const string& context, const string& context_id) {
-        MongoInitializer::initialize();
-        mongocxx::client client{mongocxx::uri{"mongodb://admin:admin@localhost:40021"}};
-        auto collection =
-            client[context + AdapterDB::MONGODB_DB_NAME][AdapterDB::MONGODB_ADAPTER_COLLECTION_NAME];
-        auto reply = collection.find_one(
-            bsoncxx::builder::basic::make_document(bsoncxx::builder::basic::kvp("_id", context_id)));
-        return reply != bsoncxx::v_noabi::stdx::nullopt;
-    }
-
-    static void drop_context_database(const string& context) {
-        MongoInitializer::initialize();
-        mongocxx::client client{mongocxx::uri{"mongodb://admin:admin@localhost:40021"}};
-        client[context + AdapterDB::MONGODB_DB_NAME].drop();
+        return make_shared<AdapterDB>(config, atomdb_backend);
     }
 };
-
-class AdapterDBContextIsolationTest : public AdapterDBTestBase {
-   protected:
-    string mapping_path;
-    string context_a;
-    string context_b;
-
-    void TearDown() override {
-        remove(mapping_path.c_str());
-        drop_context_database(context_a);
-        drop_context_database(context_b);
-    }
-};
-
-TEST_F(AdapterDBContextIsolationTest, DistinctContextsIsolateMappingMetadata) {
-    string suffix = to_string(Utils::get_current_time_millis());
-    mapping_path = "/tmp/adapterdb_context_isolation_" + suffix + ".sql";
-    string mapping_content = "-- context isolation " + suffix +
-                             "\n"
-                             "SELECT o.organism_id as public_organism__organism_id,\n"
-                             "       o.genus as public_organism__genus\n"
-                             "FROM public.organism as o WHERE o.organism_id=1;\n";
-    {
-        ofstream file(mapping_path);
-        file << mapping_content;
-    }
-    string context_id = Hasher::plain_string_hash(mapping_content);
-    context_a = "iso_a_" + suffix + "_";
-    context_b = "iso_b_" + suffix + "_";
-
-    nlohmann::json creds = {{"host", "localhost"},
-                            {"port", 5433},
-                            {"username", "postgres"},
-                            {"password", "test"},
-                            {"database", "postgres_wrapper_test"}};
-
-    ASSERT_FALSE(mapping_metadata_exists(context_a, context_id));
-    ASSERT_FALSE(mapping_metadata_exists(context_b, context_id));
-
-    auto adapter_a = create_adapter(mapping_path, "postgres", creds, "morkdb", true, context_a);
-    ASSERT_NE(adapter_a, nullptr);
-    EXPECT_TRUE(mapping_metadata_exists(context_a, context_id));
-    EXPECT_FALSE(mapping_metadata_exists(context_b, context_id));
-
-    auto adapter_b = create_adapter(mapping_path, "postgres", creds, "morkdb", true, context_b);
-    ASSERT_NE(adapter_b, nullptr);
-    EXPECT_TRUE(mapping_metadata_exists(context_a, context_id));
-    EXPECT_TRUE(mapping_metadata_exists(context_b, context_id));
-}
 
 class AdapterDBTest : public AdapterDBTestBase, public ::testing::WithParamInterface<AdapterTestParams> {
    protected:

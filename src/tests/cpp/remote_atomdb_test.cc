@@ -21,8 +21,10 @@
 #include "LinkSchema.h"
 #include "Node.h"
 #include "ProtectedAtomDB.h"
+#include "RedisMongoDB.h"
 #include "RemoteAtomDB.h"
 #include "RemoteAtomDBPeer.h"
+#include "TestAtomDBJsonConfig.h"
 
 using namespace atomdb;
 using namespace atomdb::atomdb_api_types;
@@ -37,8 +39,8 @@ using namespace std;
 class RemoteAtomDBPeerTest : public ::testing::Test {
    protected:
     void SetUp() override {
-        remote_ = make_shared<InMemoryDB>("peer_remote_");
-        local_ = make_shared<InMemoryDB>("peer_local_");
+        remote_ = make_shared<InMemoryDB>();
+        local_ = make_shared<InMemoryDB>();
         peer_ = make_shared<RemoteAtomDBPeer>(remote_, local_, "test_peer");
     }
 
@@ -368,7 +370,7 @@ TEST_F(RemoteAtomDBPeerTest, DeleteAfterFetchReleasesRemoteCache) {
 
 TEST_F(RemoteAtomDBPeerTest, ReleaseWithoutLocalPersistence) {
     // Create a peer without local persistence (nullptr)
-    auto remote = make_shared<InMemoryDB>("no_local_remote_");
+    auto remote = make_shared<InMemoryDB>();
     auto peer_no_local = make_shared<RemoteAtomDBPeer>(remote, nullptr, "no_local_peer");
 
     auto human = new Node("Symbol", "\"human\"");
@@ -442,7 +444,7 @@ TEST_F(RemoteAtomDBPeerTest, AtomsCount) {
 // =============================================================================
 
 TEST(RemoteAtomDBPeerReadonlyTest, RepeatQuerySeesRemoteAfterRelease) {
-    auto remote = make_shared<InMemoryDB>("readonly_remote_");
+    auto remote = make_shared<InMemoryDB>();
     auto peer = make_shared<RemoteAtomDBPeer>(remote, nullptr, "readonly_peer");
 
     auto handles = populate_inheritance_mammal_links(remote);
@@ -482,8 +484,8 @@ TEST(RemoteAtomDBPeerReadonlyTest, RepeatQuerySeesRemoteAfterRelease) {
 }
 
 TEST(RemoteAtomDBPeerReadonlyTest, AddStagesThenPersistsOnRelease) {
-    auto remote = make_shared<InMemoryDB>("stage_remote_");
-    auto local = make_shared<InMemoryDB>("stage_local_");
+    auto remote = make_shared<InMemoryDB>();
+    auto local = make_shared<InMemoryDB>();
     auto peer = make_shared<RemoteAtomDBPeer>(remote, local, "stage_peer");
 
     auto human = new Node("Symbol", "\"human\"");
@@ -499,7 +501,7 @@ TEST(RemoteAtomDBPeerReadonlyTest, AddStagesThenPersistsOnRelease) {
 }
 
 TEST(RemoteAtomDBPeerReadonlyTest, AddFailsWithoutLocalPersistence) {
-    auto remote = make_shared<InMemoryDB>("read_only_remote_");
+    auto remote = make_shared<InMemoryDB>();
     auto peer = make_shared<RemoteAtomDBPeer>(remote, nullptr, "read_only_peer");
 
     auto human = new Node("Symbol", "\"human\"");
@@ -508,8 +510,8 @@ TEST(RemoteAtomDBPeerReadonlyTest, AddFailsWithoutLocalPersistence) {
 }
 
 TEST(RemoteAtomDBPeerReadonlyTest, DeleteAtomFromLocalPersistence) {
-    auto remote = make_shared<InMemoryDB>("delete_remote_");
-    auto local = make_shared<InMemoryDB>("delete_local_");
+    auto remote = make_shared<InMemoryDB>();
+    auto local = make_shared<InMemoryDB>();
     auto peer = make_shared<RemoteAtomDBPeer>(remote, local, "delete_peer");
 
     auto human = new Node("Symbol", "\"human\"");
@@ -521,7 +523,7 @@ TEST(RemoteAtomDBPeerReadonlyTest, DeleteAtomFromLocalPersistence) {
 }
 
 TEST(RemoteAtomDBPeerReadonlyTest, FetchWarmsCache) {
-    auto remote = make_shared<InMemoryDB>("fetch_remote_");
+    auto remote = make_shared<InMemoryDB>();
     auto peer = make_shared<RemoteAtomDBPeer>(remote, nullptr, "fetch_peer");
     auto handles = populate_inheritance_mammal_links(remote);
     LinkSchema link_schema = inheritance_mammal_schema();
@@ -581,7 +583,7 @@ class RemoteAtomDBTest : public ::testing::Test {
             << (std::getenv("TEST_SRCDIR") ? std::getenv("TEST_SRCDIR") : "unset") << ")";
         auto json_config = load_config(config_path_);
         json_config["type"] = "remotedb";
-        auto db = AtomDBFactory::create(json_config, "");
+        auto db = AtomDBFactory::create(json_config);
         db_ = dynamic_pointer_cast<RemoteAtomDB>(db);
         ASSERT_NE(db_, nullptr);
     }
@@ -679,7 +681,7 @@ class RemoteAtomDBConfigTest : public ::testing::Test {
         ASSERT_FALSE(config_path_.empty()) << "Could not find tests/assets/remotedb_config_single.json";
         auto json_config = load_config(config_path_);
         json_config["type"] = "remotedb";
-        auto db = AtomDBFactory::create(json_config, "");
+        auto db = AtomDBFactory::create(json_config);
         db_ = dynamic_pointer_cast<RemoteAtomDB>(db);
         ASSERT_NE(db_, nullptr);
     }
@@ -700,6 +702,45 @@ TEST_F(RemoteAtomDBConfigTest, SingleConfigWorks) {
     EXPECT_TRUE(db_->node_exists(human_handle));
 }
 
+TEST(RemoteAtomDBPrefixIsolation, PeersWithDifferentPrefixesStayIsolated) {
+    nlohmann::json json;
+    json["type"] = "remotedb";
+    auto peer_a = test_atomdb_json_config("redismongodb", "remote_peer_a_").get_json();
+    peer_a["uid"] = "peer_a";
+    auto peer_b = test_atomdb_json_config("redismongodb", "remote_peer_b_").get_json();
+    peer_b["uid"] = "peer_b";
+    json["remote_peers"] = nlohmann::json::array({peer_a, peer_b});
+
+    auto db = AtomDBFactory::create(JsonConfig(json));
+    auto remote = dynamic_pointer_cast<RemoteAtomDB>(db);
+    ASSERT_NE(remote, nullptr);
+
+    auto* peer_a_wrapper = remote->get_peer("peer_a");
+    auto* peer_b_wrapper = remote->get_peer("peer_b");
+    ASSERT_NE(peer_a_wrapper, nullptr);
+    ASSERT_NE(peer_b_wrapper, nullptr);
+
+    auto redis_a = dynamic_pointer_cast<RedisMongoDB>(peer_a_wrapper->get_remote_atomdb());
+    auto redis_b = dynamic_pointer_cast<RedisMongoDB>(peer_b_wrapper->get_remote_atomdb());
+    ASSERT_NE(redis_a, nullptr);
+    ASSERT_NE(redis_b, nullptr);
+    EXPECT_EQ(redis_a->MONGODB_DB_NAME, "remote_peer_a_das");
+    EXPECT_EQ(redis_b->MONGODB_DB_NAME, "remote_peer_b_das");
+
+    Node node_a("Symbol", "RemotePeerAOnly");
+    Node node_b("Symbol", "RemotePeerBOnly");
+    redis_a->add_node(&node_a);
+    redis_b->add_node(&node_b);
+
+    EXPECT_TRUE(redis_a->node_exists(node_a.handle()));
+    EXPECT_FALSE(redis_a->node_exists(node_b.handle()));
+    EXPECT_TRUE(redis_b->node_exists(node_b.handle()));
+    EXPECT_FALSE(redis_b->node_exists(node_a.handle()));
+
+    redis_a->drop_all();
+    redis_b->drop_all();
+}
+
 // =============================================================================
 // RemoteAtomDB federation tests (cache-first probing + metadata aggregation)
 //
@@ -712,7 +753,7 @@ TEST_F(RemoteAtomDBConfigTest, SingleConfigWorks) {
 // metta expressions / assignments to its pattern query results.
 class NestedInMemoryDB : public InMemoryDB {
    public:
-    explicit NestedInMemoryDB(const string& context) : InMemoryDB(context) {}
+    NestedInMemoryDB() = default;
 
     shared_ptr<HandleSet> query_for_pattern(const LinkSchema& link_schema) override {
         auto base = InMemoryDB::query_for_pattern(link_schema);
@@ -735,7 +776,7 @@ class NestedInMemoryDB : public InMemoryDB {
 // Local persistence backend that advertises composite_type_enabled.
 class CompositeTypeEnabledInMemoryDB : public InMemoryDB {
    public:
-    explicit CompositeTypeEnabledInMemoryDB(const string& context) : InMemoryDB(context) {}
+    CompositeTypeEnabledInMemoryDB() = default;
 
     bool composite_type_enabled() const override { return true; }
 };
@@ -743,20 +784,20 @@ class CompositeTypeEnabledInMemoryDB : public InMemoryDB {
 // Backend pointing at a protected database, like a RedisMongoDB whose Mongo config flags it.
 class ProtectedInMemoryDB : public InMemoryDB {
    public:
-    explicit ProtectedInMemoryDB(const string& context) : InMemoryDB(context) {}
+    ProtectedInMemoryDB() = default;
 
     ProtectionMode get_protection_mode() const override { return ProtectionMode::PROTECTED; }
 };
 
 class ForwardInMemoryDB : public InMemoryDB {
    public:
-    explicit ForwardInMemoryDB(const string& context) : InMemoryDB(context) {}
+    ForwardInMemoryDB() = default;
 
     ProtectionMode get_protection_mode() const override { return ProtectionMode::FORWARD; }
 };
 
 TEST(RemoteAtomDBFederationTest, MetadataAggregationFromNestedPeer) {
-    auto backend = make_shared<NestedInMemoryDB>("fed_nested_backend_");
+    auto backend = make_shared<NestedInMemoryDB>();
     auto handles = populate_inheritance_mammal_links(backend);
 
     map<string, shared_ptr<RemoteAtomDBPeer>> peers;
@@ -787,8 +828,8 @@ TEST(RemoteAtomDBFederationTest, MetadataAggregationFromNestedPeer) {
 TEST(RemoteAtomDBFederationTest, MixedPeersDowngradeAndDeduplicate) {
     // peer1: nested-indexing backend; peer2: plain in-memory backend.
     // Both contain the SAME two links so the facade must dedup by handle.
-    auto nested_backend = make_shared<NestedInMemoryDB>("fed_mixed_nested_");
-    auto plain_backend = make_shared<InMemoryDB>("fed_mixed_plain_");
+    auto nested_backend = make_shared<NestedInMemoryDB>();
+    auto plain_backend = make_shared<InMemoryDB>();
     auto nested_handles = populate_inheritance_mammal_links(nested_backend);
     auto plain_handles = populate_inheritance_mammal_links(plain_backend);
     ASSERT_EQ(nested_handles, plain_handles);  // identical content -> identical handles
@@ -814,9 +855,9 @@ TEST(RemoteAtomDBFederationTest, CompositeTypeEnabledAggregation) {
 
     // All disabled (no local persistence, or local persistence with flag off) -> false.
     {
-        auto remote1 = make_shared<InMemoryDB>("cte_all_off_remote1_");
-        auto remote2 = make_shared<InMemoryDB>("cte_all_off_remote2_");
-        auto local_off = make_shared<InMemoryDB>("cte_all_off_local_");
+        auto remote1 = make_shared<InMemoryDB>();
+        auto remote2 = make_shared<InMemoryDB>();
+        auto local_off = make_shared<InMemoryDB>();
         map<string, shared_ptr<RemoteAtomDBPeer>> peers;
         peers["peer1"] = make_shared<RemoteAtomDBPeer>(remote1, nullptr, "peer1");
         peers["peer2"] = make_shared<RemoteAtomDBPeer>(remote2, local_off, "peer2");
@@ -826,10 +867,10 @@ TEST(RemoteAtomDBFederationTest, CompositeTypeEnabledAggregation) {
 
     // Mixed: one enabled + one disabled -> true.
     {
-        auto remote1 = make_shared<InMemoryDB>("cte_mixed_remote1_");
-        auto remote2 = make_shared<InMemoryDB>("cte_mixed_remote2_");
-        auto local_on = make_shared<CompositeTypeEnabledInMemoryDB>("cte_mixed_local_on_");
-        auto local_off = make_shared<InMemoryDB>("cte_mixed_local_off_");
+        auto remote1 = make_shared<InMemoryDB>();
+        auto remote2 = make_shared<InMemoryDB>();
+        auto local_on = make_shared<CompositeTypeEnabledInMemoryDB>();
+        auto local_off = make_shared<InMemoryDB>();
         map<string, shared_ptr<RemoteAtomDBPeer>> peers;
         peers["enabled"] = make_shared<RemoteAtomDBPeer>(remote1, local_on, "enabled");
         peers["disabled"] = make_shared<RemoteAtomDBPeer>(remote2, local_off, "disabled");
@@ -839,10 +880,10 @@ TEST(RemoteAtomDBFederationTest, CompositeTypeEnabledAggregation) {
 
     // All enabled -> true.
     {
-        auto remote1 = make_shared<InMemoryDB>("cte_all_on_remote1_");
-        auto remote2 = make_shared<InMemoryDB>("cte_all_on_remote2_");
-        auto local1 = make_shared<CompositeTypeEnabledInMemoryDB>("cte_all_on_local1_");
-        auto local2 = make_shared<CompositeTypeEnabledInMemoryDB>("cte_all_on_local2_");
+        auto remote1 = make_shared<InMemoryDB>();
+        auto remote2 = make_shared<InMemoryDB>();
+        auto local1 = make_shared<CompositeTypeEnabledInMemoryDB>();
+        auto local2 = make_shared<CompositeTypeEnabledInMemoryDB>();
         map<string, shared_ptr<RemoteAtomDBPeer>> peers;
         peers["peer1"] = make_shared<RemoteAtomDBPeer>(remote1, local1, "peer1");
         peers["peer2"] = make_shared<RemoteAtomDBPeer>(remote2, local2, "peer2");
@@ -854,54 +895,52 @@ TEST(RemoteAtomDBFederationTest, CompositeTypeEnabledAggregation) {
 TEST(RemoteAtomDBFederationTest, PeerIsProtectedFollowsRemoteBackend) {
     // Neither the remote backend nor the local persistence is protected.
     {
-        auto remote = make_shared<InMemoryDB>("prot_none_remote_");
-        auto local = make_shared<InMemoryDB>("prot_none_local_");
+        auto remote = make_shared<InMemoryDB>();
+        auto local = make_shared<InMemoryDB>();
         auto peer = make_shared<RemoteAtomDBPeer>(remote, local, "peer");
         EXPECT_EQ(peer->get_protection_mode(), ProtectionMode::UNPROTECTED);
     }
 
     // Read-only peer (no local persistence) over an unprotected remote.
     {
-        auto remote = make_shared<InMemoryDB>("prot_readonly_remote_");
+        auto remote = make_shared<InMemoryDB>();
         auto peer = make_shared<RemoteAtomDBPeer>(remote, nullptr, "peer");
         EXPECT_EQ(peer->get_protection_mode(), ProtectionMode::UNPROTECTED);
     }
 
     // Protected remote backend.
     {
-        auto remote = make_shared<ProtectedInMemoryDB>("prot_remote_remote_");
-        auto local = make_shared<InMemoryDB>("prot_remote_local_");
+        auto remote = make_shared<ProtectedInMemoryDB>();
+        auto local = make_shared<InMemoryDB>();
         auto peer = make_shared<RemoteAtomDBPeer>(remote, local, "peer");
         EXPECT_EQ(peer->get_protection_mode(), ProtectionMode::PROTECTED);
     }
 
     // ProtectedAtomDB wrapper as remote backend propagates protection mode.
     {
-        auto remote =
-            make_shared<ProtectedAtomDB>(make_shared<ProtectedInMemoryDB>("prot_wrapped_remote_"));
+        auto remote = make_shared<ProtectedAtomDB>(make_shared<ProtectedInMemoryDB>());
         auto peer = make_shared<RemoteAtomDBPeer>(remote, nullptr, "peer");
         EXPECT_EQ(peer->get_protection_mode(), ProtectionMode::PROTECTED);
     }
 
     // Protected local persistence is not supported.
     {
-        auto remote = make_shared<InMemoryDB>("prot_local_remote_");
-        auto local = make_shared<ProtectedInMemoryDB>("prot_local_local_");
+        auto remote = make_shared<InMemoryDB>();
+        auto local = make_shared<ProtectedInMemoryDB>();
         EXPECT_THROW(make_shared<RemoteAtomDBPeer>(remote, local, "peer"), runtime_error);
     }
 
     // FORWARD local persistence is not supported either.
     {
-        auto remote = make_shared<InMemoryDB>("forward_local_remote_");
-        auto local = make_shared<ForwardInMemoryDB>("forward_local_local_");
+        auto remote = make_shared<InMemoryDB>();
+        auto local = make_shared<ForwardInMemoryDB>();
         EXPECT_THROW(make_shared<RemoteAtomDBPeer>(remote, local, "peer"), runtime_error);
     }
 
     // Factory-style ProtectedAtomDB wrapper over a protected backend is rejected for local persistence.
     {
-        auto remote = make_shared<InMemoryDB>("wrapped_local_remote_");
-        auto local =
-            make_shared<ProtectedAtomDB>(make_shared<ProtectedInMemoryDB>("wrapped_local_local_"));
+        auto remote = make_shared<InMemoryDB>();
+        auto local = make_shared<ProtectedAtomDB>(make_shared<ProtectedInMemoryDB>());
         EXPECT_THROW(make_shared<RemoteAtomDBPeer>(remote, local, "peer"), runtime_error);
     }
 }
@@ -916,8 +955,8 @@ TEST(RemoteAtomDBFederationTest, IsProtectedWhenAnyPeerIsProtected) {
 
     // All peers unprotected.
     {
-        auto remote1 = make_shared<InMemoryDB>("fed_prot_off_remote1_");
-        auto remote2 = make_shared<InMemoryDB>("fed_prot_off_remote2_");
+        auto remote1 = make_shared<InMemoryDB>();
+        auto remote2 = make_shared<InMemoryDB>();
         map<string, shared_ptr<RemoteAtomDBPeer>> peers;
         peers["peer1"] = make_shared<RemoteAtomDBPeer>(remote1, nullptr, "peer1");
         peers["peer2"] = make_shared<RemoteAtomDBPeer>(remote2, nullptr, "peer2");
@@ -927,8 +966,8 @@ TEST(RemoteAtomDBFederationTest, IsProtectedWhenAnyPeerIsProtected) {
 
     // A single protected peer makes the facade FORWARD (no local post-processing).
     {
-        auto unprotected_remote = make_shared<InMemoryDB>("fed_prot_mixed_remote_");
-        auto protected_remote = make_shared<ProtectedInMemoryDB>("fed_prot_mixed_protected_");
+        auto unprotected_remote = make_shared<InMemoryDB>();
+        auto protected_remote = make_shared<ProtectedInMemoryDB>();
         map<string, shared_ptr<RemoteAtomDBPeer>> peers;
         peers["unprotected"] = make_shared<RemoteAtomDBPeer>(unprotected_remote, nullptr, "unprotected");
         peers["protected"] = make_shared<RemoteAtomDBPeer>(protected_remote, nullptr, "protected");
@@ -938,9 +977,8 @@ TEST(RemoteAtomDBFederationTest, IsProtectedWhenAnyPeerIsProtected) {
 
     // ProtectedAtomDB-wrapped remote peer propagates to the federation facade.
     {
-        auto unprotected_remote = make_shared<InMemoryDB>("fed_wrapped_remote_");
-        auto protected_remote =
-            make_shared<ProtectedAtomDB>(make_shared<ProtectedInMemoryDB>("fed_wrapped_protected_"));
+        auto unprotected_remote = make_shared<InMemoryDB>();
+        auto protected_remote = make_shared<ProtectedAtomDB>(make_shared<ProtectedInMemoryDB>());
         map<string, shared_ptr<RemoteAtomDBPeer>> peers;
         peers["unprotected"] = make_shared<RemoteAtomDBPeer>(unprotected_remote, nullptr, "unprotected");
         peers["protected"] = make_shared<RemoteAtomDBPeer>(protected_remote, nullptr, "protected");
@@ -952,8 +990,8 @@ TEST(RemoteAtomDBFederationTest, IsProtectedWhenAnyPeerIsProtected) {
 TEST(RemoteAtomDBFederationTest, CacheFirstProbingAcrossPeers) {
     // An atom that exists only in peer2's backend must still resolve via the facade,
     // and the resolving peer must cache it so subsequent probes are served from cache.
-    auto backend1 = make_shared<InMemoryDB>("fed_cache_peer1_");
-    auto backend2 = make_shared<InMemoryDB>("fed_cache_peer2_");
+    auto backend1 = make_shared<InMemoryDB>();
+    auto backend2 = make_shared<InMemoryDB>();
 
     auto only_in_peer2 = new Node("Symbol", "\"only_in_peer2\"");
     string handle = backend2->add_node(only_in_peer2);
@@ -988,9 +1026,9 @@ TEST(RemoteAtomDBFederationTest, PersistLinkWithoutCrossPeerTargetCopy) {
     // peer3 writable backend + local_persistence start empty; targets live only on peer1.
     // InMemoryDB (and RedisMongoDB with composite_type_enabled=false) can still persist the
     // staged link itself.
-    auto peer1_remote = make_shared<InMemoryDB>("persist_peer1_remote_");
-    auto peer3_remote = make_shared<InMemoryDB>("persist_peer3_remote_");
-    auto peer3_local = make_shared<InMemoryDB>("persist_peer3_local_");
+    auto peer1_remote = make_shared<InMemoryDB>();
+    auto peer3_remote = make_shared<InMemoryDB>();
+    auto peer3_local = make_shared<InMemoryDB>();
 
     auto a = new Node("Symbol", "\"persistA\"");
     auto b = new Node("Symbol", "\"persistB\"");
@@ -1038,10 +1076,10 @@ TEST(RemoteAtomDBFederationTest, PersistLinkWithoutCrossPeerTargetCopy) {
 TEST(RemoteAtomDBFederationTest, StrengthUpdateVisibleAcrossPeers) {
     // Writable peer3 local_persistence gets a strength update for a content-addressed handle.
     // Readonly peers may still serve a stale cached/remote copy; facade must prefer peer3.
-    auto peer1_remote = make_shared<InMemoryDB>("strength_peer1_remote_");
-    auto peer2_remote = make_shared<InMemoryDB>("strength_peer2_remote_");
-    auto peer3_remote = make_shared<InMemoryDB>("strength_peer3_remote_");
-    auto peer3_local = make_shared<InMemoryDB>("strength_peer3_local_");
+    auto peer1_remote = make_shared<InMemoryDB>();
+    auto peer2_remote = make_shared<InMemoryDB>();
+    auto peer3_remote = make_shared<InMemoryDB>();
+    auto peer3_local = make_shared<InMemoryDB>();
 
     auto a = new Node("Symbol", "\"A\"");
     auto b = new Node("Symbol", "\"B\"");
@@ -1088,8 +1126,8 @@ TEST(RemoteAtomDBFederationTest, StrengthUpdateVisibleAcrossPeers) {
 TEST(RemoteAtomDBFederationTest, StagedStrengthUpdateVisibleBeforeFlush) {
     // local_persistence already has a weak copy. A same-process upsert stages a stronger copy
     // in peer3's cache. get_atom must prefer the staged handle over local before release.
-    auto peer3_remote = make_shared<InMemoryDB>("staged_strength_peer3_remote_");
-    auto peer3_local = make_shared<InMemoryDB>("staged_strength_peer3_local_");
+    auto peer3_remote = make_shared<InMemoryDB>();
+    auto peer3_local = make_shared<InMemoryDB>();
 
     auto a = new Node("Symbol", "\"stagedA\"");
     auto b = new Node("Symbol", "\"stagedB\"");
@@ -1135,8 +1173,8 @@ TEST(RemoteAtomDBFederationTest, StagedStrengthUpdateVisibleBeforeFlush) {
 TEST(RemoteAtomDBFederationTest, NonStagedPrefersLocalOverStaleCache) {
     // Reader warmed a weak copy into cache. Another writer updates local_persistence.
     // get_atom must not keep serving the stale cache entry when the handle is not staged.
-    auto peer3_remote = make_shared<InMemoryDB>("stale_cache_peer3_remote_");
-    auto peer3_local = make_shared<InMemoryDB>("stale_cache_peer3_local_");
+    auto peer3_remote = make_shared<InMemoryDB>();
+    auto peer3_local = make_shared<InMemoryDB>();
 
     auto a = new Node("Symbol", "\"staleA\"");
     auto b = new Node("Symbol", "\"staleB\"");
@@ -1173,7 +1211,7 @@ namespace {
 // failed flush re-stages dirty atoms instead of losing them.
 class FlakyInMemoryDB : public InMemoryDB {
    public:
-    explicit FlakyInMemoryDB(const string& context) : InMemoryDB(context) {}
+    FlakyInMemoryDB() = default;
 
     atomic<bool> failing{false};
 
@@ -1206,8 +1244,8 @@ class FlakyInMemoryDB : public InMemoryDB {
 }  // namespace
 
 TEST(RemoteAtomDBFederationTest, FailedFlushRestagesDirtyAtoms) {
-    auto remote = make_shared<InMemoryDB>("flaky_remote_");
-    auto local = make_shared<FlakyInMemoryDB>("flaky_local_");
+    auto remote = make_shared<InMemoryDB>();
+    auto local = make_shared<FlakyInMemoryDB>();
     auto peer = make_shared<RemoteAtomDBPeer>(remote, local, "flaky_peer");
 
     auto human = new Node("Symbol", "\"human\"");
@@ -1231,8 +1269,8 @@ TEST(RemoteAtomDBFederationTest, FailedFlushRestagesDirtyAtoms) {
 TEST(RemoteAtomDBFederationTest, ConcurrentAddAndReleaseLosesNoWrites) {
     // Adds racing release_cache() must never drop dirty writes. Every handle lands in
     // local_persistence after a final release once writers finish.
-    auto peer3_remote = make_shared<InMemoryDB>("race_peer3_remote_");
-    auto peer3_local = make_shared<InMemoryDB>("race_peer3_local_");
+    auto peer3_remote = make_shared<InMemoryDB>();
+    auto peer3_local = make_shared<InMemoryDB>();
     auto peer = make_shared<RemoteAtomDBPeer>(peer3_remote, peer3_local, "peer3");
 
     constexpr int kWriters = 4;

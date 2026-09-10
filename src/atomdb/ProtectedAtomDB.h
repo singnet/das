@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "AtomDB.h"
+#include "AuthorizationManifest.h"
 
 using namespace std;
 using namespace atoms;
@@ -165,6 +166,7 @@ class ProtectedAtomDB : public AtomDB {
 
    private:
     shared_ptr<AtomDB> backend;
+    shared_ptr<AuthorizationManifest> manifest;
 
     [[noreturn]] static void raise_public_key_required(const string& method_name);
 };

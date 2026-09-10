@@ -12,8 +12,8 @@
 #include <vector>
 
 #include "AtomDB.h"
+#include "AtomDBFactory.h"
 #include "JsonConfig.h"
-#include "RedisMongoDB.h"
 #include "Utils.h"
 #include "atomdb_operations.h"
 #include "atomdb_runner.h"
@@ -48,8 +48,6 @@ JsonConfig benchmark_atomdb_config() {
 mutex global_mutex;
 map<string, Metrics> global_metrics;
 
-void setup() { RedisMongoDB::initialize_statics(); }
-
 shared_ptr<AtomDB> factory_create_atomdb(string type, const JsonConfig& atomdb_config) {
     JsonConfig config = atomdb_config;
     config["type"] = type;
@@ -70,7 +68,6 @@ int main(int argc, char** argv) {
     int iterations = stoi(argv[6]);
     string timestamp = argv[7];
 
-    setup();
     auto atomdb = factory_create_atomdb(atomdb_type, benchmark_atomdb_config());
 
     auto worker = [&](int tid, shared_ptr<AtomDB> atomdb) {

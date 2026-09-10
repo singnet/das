@@ -85,7 +85,7 @@ int main(int argc, char* argv[]) {
 
     AtomDBSingleton::init(atomdb_config);
 
-    auto morkdb = make_shared<MorkDB>("", morkdb_json_config());
+    auto morkdb = make_shared<MorkDB>(morkdb_json_config());
 
     size_t nodes = morkdb->node_count();
     size_t links = morkdb->link_count();

@@ -25,8 +25,8 @@ RemoteAtomDBPeer::RemoteAtomDBPeer(shared_ptr<AtomDB> remote_atomdb,
                                    shared_ptr<AtomDB> local_persistence,
                                    const string& uid)
     : uid_(uid),
-      write_buffer_(make_shared<InMemoryDB>(uid + "_wb")),
-      read_cache_(make_shared<InMemoryDB>(uid + "_rc")),
+      write_buffer_(make_shared<InMemoryDB>()),
+      read_cache_(make_shared<InMemoryDB>()),
       atomdb_(remote_atomdb),
       local_persistence_(local_persistence) {
     if (local_persistence_ &&
@@ -697,8 +697,8 @@ void RemoteAtomDBPeer::release_cache(bool /*persist_to_local*/, bool /*persist_e
         // to it) finish — see quiescence wait below.
         old_write_buffer = write_buffer_;
         old_read_cache = read_cache_;
-        write_buffer_ = make_shared<InMemoryDB>(uid_ + "_wb");
-        read_cache_ = make_shared<InMemoryDB>(uid_ + "_rc");
+        write_buffer_ = make_shared<InMemoryDB>();
+        read_cache_ = make_shared<InMemoryDB>();
         fetched_link_templates_.clear();
     }
 

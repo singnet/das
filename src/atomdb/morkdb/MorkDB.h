@@ -40,7 +40,7 @@ class MorkClient {
 
 class MorkDB : public RedisMongoDB {
    public:
-    MorkDB(const string& context, const JsonConfig& config);
+    MorkDB(const JsonConfig& config);
     ~MorkDB();
 
     shared_ptr<atomdb_api_types::HandleSet> query_for_pattern(const LinkSchema& link_schema) override;

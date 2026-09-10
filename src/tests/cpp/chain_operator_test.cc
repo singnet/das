@@ -82,7 +82,7 @@ class ChainOperatorTestEnvironment : public ::testing::Environment {
     }
 
     void SetUp() override {
-        auto atomdb = new InMemoryDB("chain_operator_test_");
+        auto atomdb = new InMemoryDB();
         AtomDBSingleton::provide(shared_ptr<AtomDB>(atomdb));
         this->load_data();
     }
