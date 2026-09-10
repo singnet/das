@@ -23,13 +23,13 @@ void ctrl_c_handler(int) {
 }
 
 void usage(const char* prog_name) {
-    cerr << "Usage: " << prog_name << " <authorize|revoke> \\\n"
+    cerr << "Usage: " << prog_name << " <grant|revoke> \\\n"
          << "  --public-key <key_string> \\\n"
          << "  --link-template <tokens_string> \\\n"
          << "  --permission <read|write|read-write> \\\n"
          << "  --config <path_to_config.json>\n\n"
-         << "Example:\n"
-         << "  " << prog_name << " authorize \\\n"
+         << "Example with link templates:\n"
+         << "  " << prog_name << " grant \\\n"
          << "    --public-key \"ssh-ed25519 AAAA... name@example.com\" \\\n"
          << "    --link-template \"LINK_TEMPLATE Expression 3 NODE Symbol Similarity NODE Symbol "
             "\\\"human\\\" VARIABLE V2\" \\\n"
@@ -40,8 +40,12 @@ void usage(const char* prog_name) {
          << "    --link-template \"LINK_TEMPLATE Expression 3 NODE Symbol Inheritance VARIABLE V1 NODE "
             "Symbol \\\"mammal\\\"\" \\\n"
          << "    --permission read-write \\\n"
-         << "    --full-access\\\n"
-         << "    --config config.json\n";
+         << "    --config config.json\n\n"
+         << "Example with full access:\n"
+         << "  " << prog_name << " grant \\\n"
+         << "    --public-key \"ssh-ed25519 AAAA... name@example.com\" \\\n"
+         << "    --full-access \\\n"
+         << "    --config config.json\n\n";
     exit(1);
 }
 
@@ -93,7 +97,7 @@ int main(int argc, char* argv[]) {
     for (int i = 1; i < argc; ++i) {
         string arg = argv[i];
 
-        if (arg == "authorize" || arg == "revoke") {
+        if (arg == "grant" || arg == "revoke") {
             action = arg;
         } else if (arg == "--action" && i + 1 < argc) {
             action = argv[++i];
@@ -112,26 +116,25 @@ int main(int argc, char* argv[]) {
 
     if (full_access) {
         if (action.empty() || config_path.empty()) {
-            cerr << "Error: Missing required arguments for full access.\n\n";
-            exit(1);
+            cerr << "\nError: Missing required arguments for full access.\n\n";
+            usage(argv[0]);
         }
     } else {
         if (action.empty() || public_key.empty() || permissions.empty() || link_templates.empty() ||
             config_path.empty()) {
-            cerr << "Error: Missing required arguments.\n\n";
+            cerr << "\nError: Missing required arguments.\n\n";
             usage(argv[0]);
         }
 
-        if (action != "authorize" && action != "revoke") {
-            cerr << "Error: action must be 'authorize' or 'revoke'.\n\n";
+        if (action != "grant" && action != "revoke") {
+            cerr << "\nError: action must be 'grant' or 'revoke'.\n\n";
             usage(argv[0]);
         }
 
         if (link_templates.size() != permissions.size()) {
-            cerr << "Error: The number of --link-template arguments must match the number of "
-                    "--permission "
-                    "arguments.\n";
-            exit(1);
+            cerr << "\nError: The number of --link-template arguments must match the number of "
+                    "--permission arguments.\n\n";
+            usage(argv[0]);
         }
     }
 
@@ -139,7 +142,7 @@ int main(int argc, char* argv[]) {
 
     ifstream config_file(config_path);
     if (!config_file.good()) {
-        cerr << "Error: Cannot open config file: " << config_path << endl;
+        cerr << "\nError: Cannot open config file: " << config_path << "\n\n";
         exit(1);
     }
     stringstream config_buffer;
@@ -157,12 +160,12 @@ int main(int argc, char* argv[]) {
     auto persistence =
         make_shared<MongodbAuthorizationPersistence>(endpoint, username, password, database, collection);
 
-    if (action == "authorize") {
+    if (action == "grant") {
         if (full_access) {
-            persistence->authorize(public_key);
+            persistence->grant_unrestricted(public_key);
         } else {
             vector<pair<LinkSchema, unsigned int>> schemas = build_schemas(link_templates, permissions);
-            persistence->authorize(public_key, schemas);
+            persistence->grant(public_key, schemas);
         }
     } else if (action == "revoke") {
         persistence->revoke(public_key);
