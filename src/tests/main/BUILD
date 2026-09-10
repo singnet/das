@@ -74,3 +74,12 @@ cc_library(
         "//commons:commons_lib",
     ],
 )
+
+cc_library(
+    name = "authorization_admin_main_lib",
+    srcs = ["authorization_admin_main.cc"],
+    deps = [
+        "//atomdb/auth:auth_lib",
+        "//commons:commons_lib",
+    ],
+)
