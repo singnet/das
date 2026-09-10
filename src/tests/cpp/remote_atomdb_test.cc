@@ -7,6 +7,7 @@
 #include <fstream>
 #include <map>
 #include <memory>
+#include <set>
 #include <stdexcept>
 #include <string>
 #include <thread>
@@ -823,6 +824,34 @@ TEST(RemoteAtomDBFederationTest, MetadataAggregationFromNestedPeer) {
         checked++;
     }
     EXPECT_EQ(checked, 2);
+}
+
+TEST(RemoteAtomDBFederationTest, PatternAssignmentsSurvivePeerAndFacadeAggregation) {
+    auto backend = make_shared<InMemoryDB>("fed_assignments_backend_");
+    auto handles = populate_inheritance_mammal_links(backend);
+
+    map<string, shared_ptr<RemoteAtomDBPeer>> peers;
+    peers["inmemory"] = make_shared<RemoteAtomDBPeer>(backend, nullptr, "inmemory");
+    auto db = make_shared<RemoteAtomDB>(peers);
+
+    auto result = db->query_for_pattern(inheritance_mammal_schema());
+    ASSERT_NE(result, nullptr);
+    ASSERT_EQ(result->size(), 2u);
+
+    set<string> assigned_values;
+    auto it = result->get_iterator();
+    char* h;
+    while ((h = it->next()) != nullptr) {
+        auto assignment = result->get_assignments_by_handle(h);
+        EXPECT_EQ(assignment.variable_count(), 1u);
+        EXPECT_FALSE(assignment.get("x").empty());
+        assigned_values.insert(assignment.get("x"));
+    }
+
+    auto human = make_shared<Node>("Symbol", "\"human\"");
+    auto monkey = make_shared<Node>("Symbol", "\"monkey\"");
+    EXPECT_EQ(assigned_values, (set<string>{human->handle(), monkey->handle()}));
+    EXPECT_EQ(handles.size(), 2u);
 }
 
 TEST(RemoteAtomDBFederationTest, MixedPeersDowngradeAndDeduplicate) {
