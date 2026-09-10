@@ -89,6 +89,21 @@ class PublicKey {
 
     bool is_single_key() const { return this->peer_to_key.empty(); }
 
+    /**
+     * Key this AtomDB should use for access-permission lookup.
+     * - Single-key: the one key, regardless of uid.
+     * - Per-peer map: the key registered for `uid`, if present.
+     */
+    optional<string> key_for_uid(const string& uid) const {
+        if (is_single_key()) {
+            if (keys.empty()) return nullopt;
+            return keys.front();
+        }
+        auto it = peer_to_key.find(uid);
+        if (it == peer_to_key.end()) return nullopt;
+        return keys[it->second];
+    }
+
     explicit PublicKey(const string& key) : keys{key} {}
     explicit PublicKey(const map<string, string>& peer_keys) {
         this->keys.reserve(peer_keys.size());

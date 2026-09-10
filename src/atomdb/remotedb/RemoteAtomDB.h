@@ -23,7 +23,7 @@ class RemoteAtomDB : public AtomDB {
      * Dependency-injection constructor for pre-built peers.
      * Primarily used by tests to federate controllable backends without live config/connection.
      */
-    explicit RemoteAtomDB(map<string, shared_ptr<RemoteAtomDBPeer>> peers);
+    explicit RemoteAtomDB(map<string, shared_ptr<RemoteAtomDBPeer>> peers, const string& uid = "");
     ~RemoteAtomDB();
 
     bool allow_nested_indexing() override;

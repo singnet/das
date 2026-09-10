@@ -1,4 +1,5 @@
 {
+    "uid": "remote_single",
     "remote_peers": [
         {
             "uid": "single_peer",

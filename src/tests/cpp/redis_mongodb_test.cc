@@ -1465,9 +1465,17 @@ TEST_F(RedisMongoDBTest, GetAccessPermissionsReturnsStoredDocuments) {
     }
     EXPECT_EQ(LinkSchema(actual_tokens).handle(), expected_schema.handle());
 
-    auto map_permissions = db->get_access_permissions(
+    EXPECT_TRUE(db->get_access_permissions(
+                      PublicKey(map<string, string>{{"peer_a", "key_admin"}, {"peer_b", "key_reader"}}))
+                    .empty());
+
+    auto config_peer_a = test_atomdb_json_config("redismongodb", "redis_mongodb_test_", "peer_a");
+    TestRedisMongoDB db_peer_a(config_peer_a);
+    EXPECT_EQ(db_peer_a.get_uid(), "peer_a");
+    auto map_permissions = db_peer_a.get_access_permissions(
         PublicKey(map<string, string>{{"peer_a", "key_admin"}, {"peer_b", "key_reader"}}));
-    ASSERT_EQ(map_permissions.size(), 2u);
+    ASSERT_EQ(map_permissions.size(), 1u);
+    EXPECT_STREQ(map_permissions[0]->get_access_key(), "key_admin");
 
     EXPECT_TRUE(db->get_access_permissions(PublicKey("missing_key")).empty());
 
@@ -1490,6 +1498,23 @@ TEST_F(RedisMongoDBTest, GetAccessPermissionsRejectsInvalidDocument) {
     EXPECT_THROW(db->get_access_permissions(PublicKey("key_broken")), runtime_error);
 
     collection.delete_many({});
+}
+
+TEST(PublicKeyTest, KeyForUid) {
+    PublicKey single("only_key");
+    EXPECT_TRUE(single.is_single_key());
+    ASSERT_TRUE(single.key_for_uid("").has_value());
+    EXPECT_EQ(*single.key_for_uid(""), "only_key");
+    EXPECT_EQ(*single.key_for_uid("ignored"), "only_key");
+
+    PublicKey mapped({{"peer_a", "key_a"}, {"peer_b", "key_b"}});
+    EXPECT_FALSE(mapped.is_single_key());
+    ASSERT_TRUE(mapped.key_for_uid("peer_a").has_value());
+    EXPECT_EQ(*mapped.key_for_uid("peer_a"), "key_a");
+    ASSERT_TRUE(mapped.key_for_uid("peer_b").has_value());
+    EXPECT_EQ(*mapped.key_for_uid("peer_b"), "key_b");
+    EXPECT_FALSE(mapped.key_for_uid("peer_c").has_value());
+    EXPECT_FALSE(mapped.key_for_uid("").has_value());
 }
 
 TEST(MongodbAccessPermissionEntryTest, GetTokensSizeReturnsArrayLength) {

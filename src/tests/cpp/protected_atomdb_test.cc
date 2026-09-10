@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "InMemoryDB.h"
+#include "JsonConfig.h"
 #include "Link.h"
 #include "Node.h"
 #include "ProtectedAtomDB.h"
@@ -12,6 +13,7 @@
 using namespace atomdb;
 using namespace atomdb_api_types;
 using namespace atoms;
+using namespace commons;
 using namespace std;
 
 namespace {
@@ -41,11 +43,20 @@ TEST(ProtectedAtomDBTest, ReportsProtectionModeThroughWrapper) {
     EXPECT_EQ(db.get_protection_mode(), ProtectionMode::PROTECTED);
 }
 
+TEST(ProtectedAtomDBTest, CopiesBackendUid) {
+    JsonConfig config;
+    config["uid"] = "wrapped";
+    auto backend = make_shared<InMemoryDB>(config);
+    ProtectedAtomDB db(backend);
+    EXPECT_EQ(db.get_uid(), "wrapped");
+}
+
 TEST(ProtectedAtomDBTest, DelegatesToBackend) {
     auto backend = make_shared<ProtectedInMemoryDB>();
     ProtectedAtomDB db(backend);
     EXPECT_EQ(db.allow_nested_indexing(), backend->allow_nested_indexing());
     EXPECT_EQ(db.composite_type_enabled(), backend->composite_type_enabled());
+    EXPECT_EQ(db.get_uid(), backend->get_uid());
 
     PublicKey key("any_key");
 

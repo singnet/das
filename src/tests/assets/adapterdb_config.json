@@ -1,6 +1,7 @@
 {
     "schema_version": "1.0",
     "atomdb": {
+        "uid": "adapter",
         "type": "adapterdb",
         "adapterdb": {
             "endpoint": "localhost:40023",
@@ -19,6 +20,7 @@
                 "reuse_mongodb": true
             },
             "atomdb_backend": {
+                "uid": "adapter",
                 "type": "morkdb",
                 "composite_type_enabled": true,
                 "mongodb": {

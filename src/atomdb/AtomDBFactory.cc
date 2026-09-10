@@ -49,7 +49,7 @@ shared_ptr<AtomDB> AtomDBFactory::create_basic_atomdb(const JsonConfig& config) 
     } else if (type == AtomDBType::MorkDB) {
         atomdb = make_shared<MorkDB>(config);
     } else if (type == AtomDBType::InMemoryDB) {
-        atomdb = make_shared<InMemoryDB>();
+        atomdb = make_shared<InMemoryDB>(config);
     } else {
         RAISE_ERROR("AtomDBFactory: '" + atomdb_type + "' is not a basic AtomDB type");
     }
@@ -86,7 +86,7 @@ shared_ptr<AtomDB> AtomDBFactory::create_composite_atomdb(const JsonConfig& conf
                 make_shared<RemoteAtomDBPeer>(create_basic_atomdb(peer_config), local_persistence, uid);
         }
 
-        atomdb = make_shared<RemoteAtomDB>(remote_peers);
+        atomdb = make_shared<RemoteAtomDB>(remote_peers, config.at_path("uid").get_or<string>(""));
     } else if (type == AtomDBType::AdapterDB) {
         // The backend AtomDB in AdapterDB could be RemoteAtomDB ?
         auto atomdb_backend_config =

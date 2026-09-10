@@ -13,6 +13,7 @@
 
 #include "Assignment.h"
 #include "InMemoryDBAPITypes.h"
+#include "JsonConfig.h"
 #include "Link.h"
 #include "LinkSchema.h"
 #include "Merger.h"
@@ -1369,6 +1370,15 @@ TEST_F(InMemoryDBTest, ConcurrentPatternQueriesSurviveReIndex) {
     EXPECT_EQ(reader_failures.load(), 0);
     EXPECT_GT(overlapping_queries.load(), 0);  // queries really raced the swaps
     EXPECT_EQ(db->atom_count(), static_cast<size_t>(2 * kNodes));
+}
+
+TEST_F(InMemoryDBTest, GetUidDefaultEmpty) { EXPECT_EQ(db->get_uid(), ""); }
+
+TEST(InMemoryDBConfigTest, GetUidFromConfig) {
+    JsonConfig config;
+    config["uid"] = "mem";
+    auto db = make_shared<InMemoryDB>(config);
+    EXPECT_EQ(db->get_uid(), "mem");
 }
 
 TEST_F(InMemoryDBTest, GetAccessPermissionsReturnsEmpty) {

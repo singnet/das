@@ -24,7 +24,7 @@ using namespace commons;
 RemoteAtomDBPeer::RemoteAtomDBPeer(shared_ptr<AtomDB> remote_atomdb,
                                    shared_ptr<AtomDB> local_persistence,
                                    const string& uid)
-    : uid_(uid),
+    : AtomDB(uid),
       write_buffer_(make_shared<InMemoryDB>()),
       read_cache_(make_shared<InMemoryDB>()),
       atomdb_(remote_atomdb),

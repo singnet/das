@@ -601,6 +601,7 @@ TEST_F(RemoteAtomDBTest, Initialization) {
     EXPECT_EQ(peers.size(), 2u);
     EXPECT_NE(peers.find("peer1"), peers.end());
     EXPECT_NE(peers.find("peer2"), peers.end());
+    EXPECT_EQ(db_->get_uid(), "remote");
 }
 
 TEST_F(RemoteAtomDBTest, GetPeer) {
@@ -698,6 +699,7 @@ TEST_F(RemoteAtomDBConfigTest, SingleConfigWorks) {
     const auto& peers = db_->get_remote_dbs();
     EXPECT_EQ(peers.size(), 1u);
     EXPECT_NE(peers.find("single_peer"), peers.end());
+    EXPECT_EQ(db_->get_uid(), "remote_single");
 
     auto human = new Node("Symbol", "\"human\"");
     string human_handle = db_->add_node(human);

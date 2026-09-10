@@ -16,6 +16,7 @@ namespace {
 
 const char* kValidConfigV1 = R"({
   "atomdb": {
+    "uid": "local",
     "type": "redismongodb",
     "composite_type_enabled": true,
     "redis": {
@@ -57,6 +58,8 @@ TEST(ConfigParserTest, GetNestedStructure) {
     auto atomdb = config.at_path("atomdb").get_or<JsonConfig>(JsonConfig());
     string type = atomdb.at_path("type").get_or<string>("");
     EXPECT_EQ(type, "redismongodb");
+    string uid = atomdb.at_path("uid").get_or<string>("");
+    EXPECT_EQ(uid, "local");
     bool composite_type_enabled = atomdb.at_path("composite_type_enabled").get_or<bool>(false);
     EXPECT_TRUE(composite_type_enabled);
 

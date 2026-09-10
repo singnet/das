@@ -112,7 +112,6 @@ class RemoteAtomDBPeer : public AtomDB, public processor::ThreadMethod {
     // ThreadMethod interface
     bool thread_one_step() override;
 
-    const string& get_uid() const { return uid_; }
     bool is_readonly() const { return local_persistence_ == nullptr; }
     shared_ptr<AtomDB> get_remote_atomdb() const { return atomdb_; }
 
@@ -138,7 +137,6 @@ class RemoteAtomDBPeer : public AtomDB, public processor::ThreadMethod {
     // release retries them instead of losing dirty writes.
     void restage_atoms(const vector<shared_ptr<atoms::Atom>>& atoms);
 
-    string uid_;
     shared_ptr<InMemoryDB> write_buffer_;
     shared_ptr<InMemoryDB> read_cache_;
     shared_ptr<AtomDB> atomdb_;

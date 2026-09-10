@@ -29,7 +29,8 @@ class AtomDBFactory {
      * @brief Creates an AtomDB from config and wraps it with ProtectedAtomDB when applicable.
      *
      * @param config AtomDB configuration. Required key: `"type"` (`redismongodb`, `morkdb`,
-     *        `inmemorydb`, `remotedb`, or `adapterdb`).
+     *        `inmemorydb`, `remotedb`, or `adapterdb`). Optional `"uid"` identifies this
+     *        instance (required and non-empty on each remotedb peer).
      *
      * Breaking change: `create()` no longer takes a `context` argument. Redis/Mongo namespace
      * isolation is now per backend via optional `JsonConfig["prefix"]` on that backend's
