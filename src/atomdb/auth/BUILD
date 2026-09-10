@@ -7,6 +7,8 @@ cc_library(
     includes = ["."],
     deps = [
         ":authorization_manifest",
+        ":authorization_types",
+        ":keychain",
         ":mongodb_authorization_persistence",
     ],
 )
@@ -59,4 +61,11 @@ cc_library(
         "//commons:commons_lib",
         "//commons/atoms:atoms_lib",
     ],
+)
+
+cc_library(
+    name = "keychain",
+    srcs = ["Keychain.cc"],
+    hdrs = ["Keychain.h"],
+    includes = ["."],
 )
