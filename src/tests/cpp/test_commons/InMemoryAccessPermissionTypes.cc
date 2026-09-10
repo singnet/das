@@ -25,14 +25,14 @@ const char* InMemoryAccessPermissionEntry::get_token(unsigned int index) const {
     return this->tokens_[index].c_str();
 }
 
-InMemoryAccessPermissionDocument::InMemoryAccessPermissionDocument() : full_access_(false) {}
+InMemoryAccessPermissionDocument::InMemoryAccessPermissionDocument() : unrestricted_(false) {}
 
 void InMemoryAccessPermissionDocument::set_access_key(const string& access_key) {
     this->access_key_ = access_key;
 }
 
-void InMemoryAccessPermissionDocument::set_full_access(bool full_access) {
-    this->full_access_ = full_access;
+void InMemoryAccessPermissionDocument::set_full_access(bool unrestricted) {
+    this->unrestricted_ = unrestricted;
 }
 
 void InMemoryAccessPermissionDocument::append_entry(const vector<string>& tokens,
@@ -45,7 +45,7 @@ const char* InMemoryAccessPermissionDocument::get_access_key() const {
     return this->access_key_.c_str();
 }
 
-bool InMemoryAccessPermissionDocument::get_full_access() const { return this->full_access_; }
+bool InMemoryAccessPermissionDocument::get_full_access() const { return this->unrestricted_; }
 
 unsigned int InMemoryAccessPermissionDocument::get_entries_size() const {
     return static_cast<unsigned int>(this->entries_.size());

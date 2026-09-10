@@ -38,7 +38,7 @@ AuthorizationSchema::AuthorizationSchema(shared_ptr<AtomDB> atomdb,
 // -------------------------------------------------------------------------------------------------
 // Public methods
 
-bool AuthorizationSchema::is_authorized(shared_ptr<Atom> atom, AuthorizationOperation operation) {
+bool AuthorizationSchema::is_granted(shared_ptr<Atom> atom, AuthorizationOperation operation) {
     if (!this->allows(operation) || atom == nullptr) return false;
 
     Assignment assignment;
@@ -55,22 +55,14 @@ bool AuthorizationSchema::is_authorized(shared_ptr<Atom> atom, AuthorizationOper
     }
 }
 
-bool AuthorizationSchema::is_authorized(const string& handle, AuthorizationOperation operation) {
-    if (!this->allows(operation)) return false;
-
-    Assignment assignment;
-    return this->schema_.match(handle, assignment, *this->atomdb_);
-}
-
-// -------------------------------------------------------------------------------------------------
-// Private method
-
 bool AuthorizationSchema::allows(AuthorizationOperation operation) const {
     switch (operation) {
         case AuthorizationOperation::READ:
             return this->read_;
         case AuthorizationOperation::WRITE:
             return this->write_;
+        default:
+            RAISE_ERROR("Invalid authorization operation");
     }
     return false;
 }
@@ -82,11 +74,11 @@ bool AuthorizationSchema::allows(AuthorizationOperation operation) const {
 // -------------------------------------------------------------------------------------------------
 // Constructor
 
-AuthorizationProfile::AuthorizationProfile(bool full_access,
+AuthorizationProfile::AuthorizationProfile(bool unrestricted,
                                            vector<shared_ptr<AuthorizationSchema>> schemas)
-    : full_access_(full_access), schemas_(schemas) {
-    if (full_access && !schemas.empty()) {
-        RAISE_ERROR("schemas must be empty when full_access is true");
+    : unrestricted_(unrestricted), schemas_(schemas) {
+    if (unrestricted && !schemas.empty()) {
+        RAISE_ERROR("schemas must be empty when unrestricted is true");
     }
 }
 
@@ -110,30 +102,10 @@ shared_ptr<AuthorizationProfile> AuthorizationProfile::from_document(
     return make_shared<AuthorizationProfile>(document->get_full_access(), move(schemas));
 }
 
-bool AuthorizationProfile::is_authorized(shared_ptr<Atom> atom, AuthorizationOperation operation) {
+bool AuthorizationProfile::is_granted(shared_ptr<Atom> atom, AuthorizationOperation operation) {
+    if (this->is_unrestricted()) return true;
     for (const auto& schema : this->schemas_) {
-        if (schema->is_authorized(atom, operation)) return true;
+        if (schema->is_granted(atom, operation)) return true;
     }
     return false;
-}
-
-bool AuthorizationProfile::is_authorized(const string& handle, AuthorizationOperation operation) {
-    for (const auto& schema : this->schemas_) {
-        if (schema->is_authorized(handle, operation)) return true;
-    }
-    return false;
-}
-
-/**
- * Keychain
- */
-
-Keychain::Keychain(map<AtomDB_UID, PublicKey> keys) : keys_(keys) {}
-
-Keychain::PublicKey Keychain::get(const Keychain::AtomDB_UID& uid) const {
-    auto it = this->keys_.find(uid);
-    if (it != this->keys_.end()) {
-        return it->second;
-    }
-    return "";
 }
