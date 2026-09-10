@@ -43,7 +43,7 @@ shared_ptr<LinkCreator> LinkCreatorRegistry::function(const string& tag) {
             // ADD an "else if" for your function here
         } else if (tag == UNIT_TEST) {
             answer = make_shared<UnitTestLinkCreator>();
-        } else if (tag == UNIT_TEST) {
+        } else if (tag == CUSTOMIZABLE) {
             answer = make_shared<Customizable>();
         } else if (tag == AND_TWO_PREDICATES) {
             answer = make_shared<AndTwoPredicates>();
