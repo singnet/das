@@ -40,7 +40,7 @@ class MorkClient {
 
 class MorkDB : public RedisMongoDB {
    public:
-    MorkDB(const string& context, const JsonConfig& config);
+    MorkDB(const JsonConfig& config);
     ~MorkDB();
 
     bool allow_nested_indexing() override;

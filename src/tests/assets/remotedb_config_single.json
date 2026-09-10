@@ -3,8 +3,8 @@
         {
             "uid": "single_peer",
             "type": "redismongodb",
+            "prefix": "remote_atomdb_test_",
             "composite_type_enabled": true,
-            "context": "remotedb_test_single_peer_",
             "redis": {
                 "endpoint": "localhost:40020",
                 "cluster": "false"
@@ -15,8 +15,7 @@
                 "password": "admin"
             },
             "local_persistence": {
-                "type": "inmemorydb",
-                "context": "remotedb_test_single_peer_local_"
+                "type": "inmemorydb"
             }
         }
     ]

@@ -114,6 +114,7 @@ class RemoteAtomDBPeer : public AtomDB, public processor::ThreadMethod {
 
     const string& get_uid() const { return uid_; }
     bool is_readonly() const { return local_persistence_ == nullptr; }
+    shared_ptr<AtomDB> get_remote_atomdb() const { return atomdb_; }
 
     /**
      * Delegates the lookup to the remote AtomDB; local persistence is not consulted.

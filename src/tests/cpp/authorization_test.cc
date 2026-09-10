@@ -75,7 +75,7 @@ class DummyPersistence : public AuthorizationPersistence {
 };
 
 shared_ptr<InMemoryDB> db_with_inheritance_link(string* link_handle) {
-    auto db = make_shared<InMemoryDB>("auth_test_");
+    auto db = make_shared<InMemoryDB>();
     auto human = new Node("Symbol", "\"human\"");
     auto mammal = new Node("Symbol", "\"mammal\"");
     auto inheritance = new Node("Symbol", "Inheritance");
@@ -176,7 +176,7 @@ TEST(AuthorizationManifestTest, FullAccessGrantsAllOperations) {
 }
 
 TEST(AuthorizationSchemaTest, AllowsReadAndWriteFlags) {
-    auto db = make_shared<InMemoryDB>("auth_test_");
+    auto db = make_shared<InMemoryDB>();
     AuthorizationSchema schema(db, inheritance_mammal_tokens(), true, false);
 
     EXPECT_TRUE(schema.allows(AuthorizationOperation::READ));
@@ -184,7 +184,7 @@ TEST(AuthorizationSchemaTest, AllowsReadAndWriteFlags) {
 }
 
 TEST(AuthorizationProfileTest, FromDocumentWithAndWithoutSchema) {
-    auto db = make_shared<InMemoryDB>("auth_test_");
+    auto db = make_shared<InMemoryDB>();
     auto document = make_document("pk", false, {read_only_inheritance_schema()});
     auto profile = AuthorizationProfile::from_document(db, document);
 
@@ -192,7 +192,7 @@ TEST(AuthorizationProfileTest, FromDocumentWithAndWithoutSchema) {
 }
 
 TEST(AuthorizationProfileTest, FullAccessRejectsSchemas) {
-    auto db = make_shared<InMemoryDB>("auth_test_");
+    auto db = make_shared<InMemoryDB>();
     auto document = make_document("pk", true, {});
     auto profile = AuthorizationProfile::from_document(db, document);
     EXPECT_TRUE(profile->is_unrestricted());
