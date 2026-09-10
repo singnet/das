@@ -80,7 +80,6 @@
             {
                 "uid": "peer1",
                 "type": "redismongodb",
-                "context": "",
                 "mongodb": {
                     "endpoint": "localhost:40021",
                     "username": "admin",
@@ -97,7 +96,6 @@
             {
                 "uid": "peer2",
                 "type": "redismongodb",
-                "context": "",
                 "mongodb": {
                     "endpoint": "localhost:40031",
                     "username": "admin",
@@ -114,10 +112,8 @@
             {
                 "uid": "peer3",
                 "type": "inmemorydb",
-                "context": "",
                 "local_persistence": {
                     "type": "redismongodb",
-                    "context": "",
                     "composite_type_enabled": false,
                     "mongodb": {
                         "endpoint": "localhost:40041",
@@ -143,8 +139,12 @@
             "image": "trueagi/das:mork-loader-1.1.0"
         }
     },
+    "vault": {
+        "type": "openbao",
+        "endpoint": "http://localhost:40010"
+    },
     "agents": {
-        "schema_version": "1.1.0",
+        "schema_version": "1.2.0",
         "attention": {
             "endpoint": "localhost:40001"
         },
@@ -161,10 +161,10 @@
                 "attention_focus_strictness": 0.0,
                 "max_bundle_size": 1000,
                 "max_answers": 0,
-                "use_link_template_cache": false,
                 "populate_metta_mapping": false,
                 "use_metta_as_query_tokens": false,
-                "allow_incomplete_chain_path": false
+                "allow_incomplete_chain_path": false,
+                "public_key_tokens": ""
             }
         },
         "query": {
@@ -189,8 +189,7 @@
                 "max_unproductive_visits_per_round": 500,
                 "max_visit_attempts_per_round": 20,
                 "max_rounds": 5,
-                "link_creation_strength_threshold": 0.1,
-                "link_creation_log_file_name": ""
+                "link_creation_strength_threshold": 0.1
             }
         },
         "evolution": {

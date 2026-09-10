@@ -78,9 +78,6 @@ class BaseQueryProxy : public BaseProxy {
 
     static string MAX_ANSWERS;      // Limits the number of returned answers
 
-    static string
-        USE_LINK_TEMPLATE_CACHE;  // When true, a cache for fetched handles is used in LinkTemplate.
-
     static string POPULATE_METTA_MAPPING;     // When true, a mapping from handle -> MeTTa expression is
                                               // added in QueryAnswers leaving Sink elements.
 
@@ -90,6 +87,12 @@ class BaseQueryProxy : public BaseProxy {
 
     static string ALLOW_INCOMPLETE_CHAIN_PATH;  // When true, CHAIN operator returns incomplete paths
                                                 // as well as complete ones.
+
+    static string PUBLIC_KEY_TOKENS;  // A string with a list of tokens which can be used to build a
+                                      // AtomDBAPITypes::PublicKey object. This is required to use
+                                      // public keys(s) when querying a ProtectedAtomDB. The list is
+                                      // supposed to be a space separated string with all the pairs
+                                      // (uid, key). E.g. "uid1 key1 uid2 key2 ... uidn keyn".
 
     /**
      * Destructor.

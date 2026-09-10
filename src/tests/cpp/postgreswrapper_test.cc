@@ -37,7 +37,9 @@ class SQLWrapperTestHelper : public SQLWrapper {
 
 class PostgresWrapperTestEnvironment : public ::testing::Environment {
    public:
-    void SetUp() override { AtomDBSingleton::init(test_atomdb_json_config()); }
+    void SetUp() override {
+        AtomDBSingleton::init(test_atomdb_json_config("redismongodb", "postgreswrapper_test_"));
+    }
 
     void TearDown() override {}
 };

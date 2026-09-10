@@ -1,4 +1,5 @@
 #pragma once
+#include <string>
 
 // Query tokens
 static string AND_OPERATOR = string("AND");

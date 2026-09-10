@@ -20,10 +20,10 @@ string BaseQueryProxy::ATTENTION_CORRELATION = "attention_correlation";
 string BaseQueryProxy::ATTENTION_FOCUS_STRICTNESS = "attention_focus_strictness";
 string BaseQueryProxy::MAX_BUNDLE_SIZE = "max_bundle_size";
 string BaseQueryProxy::MAX_ANSWERS = "max_answers";
-string BaseQueryProxy::USE_LINK_TEMPLATE_CACHE = "use_link_template_cache";
 string BaseQueryProxy::POPULATE_METTA_MAPPING = "populate_metta_mapping";
 string BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS = "use_metta_as_query_tokens";
 string BaseQueryProxy::ALLOW_INCOMPLETE_CHAIN_PATH = "allow_incomplete_chain_path";
+string BaseQueryProxy::PUBLIC_KEY_TOKENS = "public_key_tokens";
 
 BaseQueryProxy::BaseQueryProxy() {
     // constructor typically used in processor
@@ -98,7 +98,8 @@ vector<string> BaseQueryProxy::get_built_atoms() {
 void BaseQueryProxy::push(shared_ptr<QueryAnswer> answer) {
     lock_guard<recursive_mutex> semaphore(this->api_mutex);
     this->answer_bundle_vector.push_back(answer->tokenize());
-    LOG_DEBUG("Answer pushed to bundle: " + answer->to_string() + " tokens: [" + this->answer_bundle_vector.back() + "]");
+    LOG_DEBUG("Answer pushed to bundle: " + answer->to_string() + " tokens: [" +
+              this->answer_bundle_vector.back() + "]");
     if (this->answer_bundle_vector.size() >= this->parameters.get<unsigned int>(MAX_BUNDLE_SIZE)) {
         flush_answer_bundle();
     }

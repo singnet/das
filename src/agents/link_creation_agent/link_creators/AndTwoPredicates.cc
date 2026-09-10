@@ -1,4 +1,5 @@
 #include "AndTwoPredicates.h"
+
 #include "tags.h"
 
 using namespace link_creators;
@@ -9,11 +10,9 @@ string AndTwoPredicates::EVALUATION_HANDLE = Hasher::node_handle(SYMBOL, EVALUAT
 // -------------------------------------------------------------------------------------------------
 // Public methods
 
-AndTwoPredicates::AndTwoPredicates() {
-}
+AndTwoPredicates::AndTwoPredicates() {}
 
-AndTwoPredicates::~AndTwoPredicates() {
-}
+AndTwoPredicates::~AndTwoPredicates() {}
 
 LinkCreationStats AndTwoPredicates::create(shared_ptr<QueryAnswer> query_answer) {
     STACK_TRACE();
@@ -26,42 +25,49 @@ LinkCreationStats AndTwoPredicates::create(shared_ptr<QueryAnswer> query_answer)
         predicates[0] = predicates[1];
         predicates[1] = aux;
     }
-    string key = predicates[0] + " " + predicates[1];
+    string key = predicates[0] + " " + predicates[1] + concept_;
 
     LinkCreationStats stats = LinkCreationStats(false, 0, 0);
     if (predicates[0] != predicates[1]) {
-        if (! visited(key)) {
+        if (!visited(key)) {
             visit(key);
             stats.visited = true;
             set<string> mentioned_predicates0, mentioned_predicates1;
             extract_mentioned_predicates(mentioned_predicates0, predicates[0]);
             extract_mentioned_predicates(mentioned_predicates1, predicates[1]);
-            if (! Utils::intersects(mentioned_predicates0, mentioned_predicates1)) {
+            if (!Utils::intersects(mentioned_predicates0, mentioned_predicates1)) {
                 vector<string> targets = {LOGICAL_AND_HANDLE, predicates[0], predicates[1]};
-                if (add_or_update_link(targets, 1.0)) {
+                add_or_update_link(targets, 1.0);
+                stats.created++;
+                double strength = 1;
+                for (string& h : query_answer->get_handles_vector()) {
+                    strength *= get_strength(h);
+                }
+                if (strength >= strength_threshold()) {
                     stats.created++;
-                    double strength = 1;
-                    for (string& h : query_answer->get_handles_vector()) {
-                        strength *= get_strength(h);
-                    }
-                    if (strength >= strength_threshold()) {
-                        stats.created++;
-                        string new_predicate_handle = Hasher::link_handle(EXPRESSION, targets);
-                        add_or_update_link({EVALUATION_HANDLE, new_predicate_handle, concept_}, strength);
-                    } else {
-                        stats.updated++;
-                    }
+                    string new_predicate_handle = Hasher::link_handle(EXPRESSION, targets);
+                    add_or_update_link({EVALUATION_HANDLE, new_predicate_handle, concept_}, strength);
                 } else {
-                    LOG_DEBUG("(" + Utils::join(vector<string>(mentioned_predicates0.begin(), mentioned_predicates0.end()), '-') + ", " + Utils::join(vector<string>(mentioned_predicates1.begin(), mentioned_predicates1.end()), '-') + ") " + "Skipping link building because composite predicate already exists.");
+                    stats.updated++;
                 }
             } else {
-                LOG_DEBUG("(" + Utils::join(vector<string>(mentioned_predicates0.begin(), mentioned_predicates0.end()), '-') + ", " + Utils::join(vector<string>(mentioned_predicates1.begin(), mentioned_predicates1.end()), '-') + ") " + "Skipping link building because predicates intersect.");
+                LOG_DEBUG("(" +
+                          Utils::join(
+                              vector<string>(mentioned_predicates0.begin(), mentioned_predicates0.end()),
+                              '-') +
+                          ", " +
+                          Utils::join(
+                              vector<string>(mentioned_predicates1.begin(), mentioned_predicates1.end()),
+                              '-') +
+                          ") " + "Skipping link building because predicates intersect.");
             }
         } else {
-            LOG_DEBUG("(" + predicates[0] + ", " + predicates[1] + ") " + "Skipping link building because targets have already been visited this cycle: " + key);
+            LOG_DEBUG("Skipping link building because targets have already been visited this cycle: " +
+                      key);
         }
     } else {
-        LOG_DEBUG("(" + predicates[0] + ", " + predicates[1] + ") " + "Skipping link building because predicates are the same.");
+        LOG_DEBUG("(" + predicates[0] + ", " + predicates[1] + ") " +
+                  "Skipping link building because predicates are the same.");
     }
     return stats;
 }

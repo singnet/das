@@ -147,7 +147,7 @@ shared_ptr<InMemoryDB::Tries> InMemoryDB::make_tries() {
     return tries;
 }
 
-InMemoryDB::InMemoryDB(const string& context) : context_(context), tries_(make_tries()) {}
+InMemoryDB::InMemoryDB() : tries_(make_tries()) {}
 
 InMemoryDB::~InMemoryDB() = default;
 

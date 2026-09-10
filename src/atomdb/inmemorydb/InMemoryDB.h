@@ -44,7 +44,7 @@ namespace atomdb {
  */
 class InMemoryDB : public AtomDB {
    public:
-    InMemoryDB(const string& context = "");
+    InMemoryDB();
     ~InMemoryDB();
 
     bool allow_nested_indexing() override;
@@ -144,7 +144,6 @@ class InMemoryDB : public AtomDB {
     vector<string> match_pattern_index_schema_unlocked(const Link* link);
     void add_pattern_index_schema(const string& tokens, const vector<vector<string>>& index_entries);
 
-    string context_;
     // Serializes mutations across the three tries. Reads never take it.
     mutable mutex write_mutex_;
     shared_ptr<Tries> tries_;

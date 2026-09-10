@@ -27,26 +27,35 @@ using namespace atomdb;
 using namespace commons;
 using namespace atoms;
 
-string RedisMongoDB::REDIS_PATTERNS_PREFIX;
-string RedisMongoDB::REDIS_OUTGOING_PREFIX;
-string RedisMongoDB::REDIS_INCOMING_PREFIX;
 uint RedisMongoDB::REDIS_CHUNK_SIZE;
-string RedisMongoDB::MONGODB_DB_NAME;
-string RedisMongoDB::MONGODB_NODES_COLLECTION_NAME;
-string RedisMongoDB::MONGODB_LINKS_COLLECTION_NAME;
-string RedisMongoDB::MONGODB_CONFIG_COLLECTION_NAME;
-string RedisMongoDB::MONGODB_PATTERN_INDEX_SCHEMA_COLLECTION_NAME;
-string RedisMongoDB::MONGODB_ACCESS_PERMISSIONS_COLLECTION_NAME;
 string RedisMongoDB::MONGODB_FIELD_NAME[MONGODB_FIELD::size];
 uint RedisMongoDB::MONGODB_CHUNK_SIZE;
 
-RedisMongoDB::RedisMongoDB(const string& context, bool skip_redis, const JsonConfig& config)
-    : context(context),
-      skip_redis_(skip_redis),
+void RedisMongoDB::initialize_namespace(const string& prefix) {
+    REDIS_PATTERNS_PREFIX = prefix + "patterns";
+    REDIS_OUTGOING_PREFIX = prefix + "outgoing_set";
+    REDIS_INCOMING_PREFIX = prefix + "incoming_set";
+    REDIS_CHUNK_SIZE = 10000;
+    MONGODB_DB_NAME = prefix + "das";
+    MONGODB_NODES_COLLECTION_NAME = prefix + "nodes";
+    MONGODB_LINKS_COLLECTION_NAME = prefix + "links";
+    MONGODB_CONFIG_COLLECTION_NAME = prefix + "config";
+    MONGODB_PATTERN_INDEX_SCHEMA_COLLECTION_NAME = prefix + "pattern_index_schema";
+    MONGODB_ACCESS_PERMISSIONS_COLLECTION_NAME = prefix + "access_permissions";
+    MONGODB_FIELD_NAME[MONGODB_FIELD::ID] = "_id";
+    MONGODB_FIELD_NAME[MONGODB_FIELD::TARGETS] = "targets";
+    MONGODB_FIELD_NAME[MONGODB_FIELD::NAME] = "name";
+    MONGODB_FIELD_NAME[MONGODB_FIELD::NAMED_TYPE] = "named_type";
+    MONGODB_CHUNK_SIZE = 1000;
+}
+
+RedisMongoDB::RedisMongoDB(const JsonConfig& config)
+    : skip_redis_(config.at_path("type").get_or<string>("") != "redismongodb"),
       composite_type_enabled_(config.at_path("composite_type_enabled").get_or<bool>(true)),
       cluster_flag(false),
       protection_mode(atomdb_api_types::ProtectionMode::PROTECTED) {
-    initialize_statics(context);
+    string prefix = config.at_path("prefix").get_or<string>("");
+    initialize_namespace(prefix);
     mongodb_setup(config);
     load_protection_mode();
     load_pattern_index_schema();
@@ -109,7 +118,7 @@ atomdb_api_types::ProtectionMode RedisMongoDB::get_protection_mode() const {
 void RedisMongoDB::redis_setup(const JsonConfig& config) {
     if (skip_redis_) return;
 
-    string address = config.at_path("redis.endpoint").get<string>();
+    string address = config.at_path("redis.endpoint").get_or<string>("");
     auto tokens = Utils::split(address, ':');
     if (tokens.size() != 2) {
         RAISE_ERROR("Invalid Redis configuration: endpoint must be in the format <hostname>:<port>");
@@ -130,9 +139,9 @@ void RedisMongoDB::redis_setup(const JsonConfig& config) {
 }
 
 void RedisMongoDB::mongodb_setup(const JsonConfig& config) {
-    string address = config.at_path("mongodb.endpoint").get<string>();
-    string user = config.at_path("mongodb.username").get<string>();
-    string password = config.at_path("mongodb.password").get<string>();
+    string address = config.at_path("mongodb.endpoint").get_or<string>("");
+    string user = config.at_path("mongodb.username").get_or<string>("");
+    string password = config.at_path("mongodb.password").get_or<string>("");
     uint chunk_size = config.at_path("mongodb.chunk_size").get_or<uint>(0);
     if (chunk_size > 0) {
         MONGODB_CHUNK_SIZE = chunk_size;
@@ -1307,7 +1316,7 @@ void RedisMongoDB::load_protection_mode() {
                                 : atomdb_api_types::ProtectionMode::UNPROTECTED;
 }
 
-string RedisMongoDB::protection_config_document_id() {
+string RedisMongoDB::protection_config_document_id() const {
     return Hasher::plain_string_hash(MONGODB_CONFIG_COLLECTION_NAME);
 }
 

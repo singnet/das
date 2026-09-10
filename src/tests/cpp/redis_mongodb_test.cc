@@ -34,8 +34,8 @@ using namespace std;
 
 namespace {
 
-string protection_config_document_id() {
-    return Hasher::plain_string_hash(RedisMongoDB::MONGODB_CONFIG_COLLECTION_NAME);
+string protection_config_document_id(const RedisMongoDB& mongodb) {
+    return Hasher::plain_string_hash(mongodb.MONGODB_CONFIG_COLLECTION_NAME);
 }
 
 template <typename Database>
@@ -63,7 +63,8 @@ class MockDecoder : public HandleDecoder {
 class RedisMongoDBTestEnvironment : public ::testing::Environment {
    public:
     void SetUp() override {
-        auto atomdb = AtomDBFactory::create(test_atomdb_json_config(), "test_");
+        auto atomdb =
+            AtomDBFactory::create(test_atomdb_json_config("redismongodb", "redis_mongodb_test_"));
         ASSERT_NE(dynamic_pointer_cast<RedisMongoDB>(atomdb), nullptr);
         AtomDBSingleton::provide(atomdb);
         load_animals_data();
@@ -111,8 +112,7 @@ class LinkSchemaHandle : public LinkSchema {
 
 class TestRedisMongoDB : public RedisMongoDB {
    public:
-    TestRedisMongoDB(const string& context, const JsonConfig& config)
-        : RedisMongoDB(context, true, config) {}
+    TestRedisMongoDB(const JsonConfig& config) : RedisMongoDB(config) {}
 };
 
 TEST_F(RedisMongoDBTest, ConcurrentQueryForPattern) {
@@ -826,18 +826,6 @@ TEST_F(RedisMongoDBTest, ReIndexPatterns) {
     handle_set = db->query_for_pattern(*odd_link_schema);
     EXPECT_EQ(handle_set->size(), 9);
 
-    // Flush Redis patterns indexes
-    db->flush_redis_by_prefix("test_patterns");
-
-    handle_set = db->query_for_pattern(*similarity_link_schema);
-    EXPECT_EQ(handle_set->size(), 0);
-
-    handle_set = db->query_for_pattern(*inheritance_link_schema);
-    EXPECT_EQ(handle_set->size(), 0);
-
-    handle_set = db->query_for_pattern(*odd_link_schema);
-    EXPECT_EQ(handle_set->size(), 0);
-
     // Clear Redis patterns indexes and re-index them
     db->re_index_patterns();
 
@@ -874,8 +862,8 @@ TEST_F(RedisMongoDBTest, GetMatchingAtoms) {
     auto link_document = db->get_atom_document(link->handle());
     EXPECT_EQ(link_document->get_bool("is_toplevel"), true);
 
-    auto all_nodes = db->get_filtered_documents(RedisMongoDB::MONGODB_NODES_COLLECTION_NAME, {}, {});
-    auto all_links = db->get_filtered_documents(RedisMongoDB::MONGODB_LINKS_COLLECTION_NAME, {}, {});
+    auto all_nodes = db->get_filtered_documents(db->MONGODB_NODES_COLLECTION_NAME, {}, {});
+    auto all_links = db->get_filtered_documents(db->MONGODB_LINKS_COLLECTION_NAME, {}, {});
 
     auto untyped_variable = new UntypedVariable("V1", true);
     matching_atoms = db->get_matching_atoms(false, *untyped_variable);
@@ -1200,9 +1188,9 @@ TEST_F(RedisMongoDBTest, CompositeHashDisabledSkipsTargetChecks) {
     EXPECT_THROW(db->add_links({link}), runtime_error);
 
     // Same Redis/Mongo namespace, composite_type_enabled=false: skip checks and persist the link.
-    auto config = test_atomdb_json_config();
+    auto config = test_atomdb_json_config("redismongodb", "redis_mongodb_test_");
     config["composite_type_enabled"] = false;
-    auto local_db = dynamic_pointer_cast<RedisMongoDB>(AtomDBFactory::create(config, "test_"));
+    auto local_db = dynamic_pointer_cast<RedisMongoDB>(AtomDBFactory::create(config));
     ASSERT_NE(local_db, nullptr);
 
     auto handles = local_db->add_links({link});
@@ -1256,9 +1244,9 @@ TEST_F(RedisMongoDBTest, AtomsCount) {
 TEST_F(RedisMongoDBTest, CompositeTypeEnabledFlag) {
     EXPECT_TRUE(db->composite_type_enabled());
 
-    auto config_default = test_atomdb_json_config();
+    auto config_default = test_atomdb_json_config("redismongodb", "redis_mongodb_test_");
     config_default.erase("composite_type_enabled");
-    auto db_default = dynamic_pointer_cast<RedisMongoDB>(AtomDBFactory::create(config_default, "test_"));
+    auto db_default = dynamic_pointer_cast<RedisMongoDB>(AtomDBFactory::create(config_default));
     ASSERT_NE(db_default, nullptr);
     EXPECT_TRUE(db_default->composite_type_enabled());
 
@@ -1279,10 +1267,9 @@ TEST_F(RedisMongoDBTest, CompositeTypeEnabledFlag) {
     EXPECT_EQ(string(enabled_doc->get("composite_type_hash")), enabled_link->composite_type_hash(*db));
     EXPECT_EQ(enabled_doc->get_size("composite_type"), 4);
 
-    auto config_disabled = test_atomdb_json_config();
+    auto config_disabled = test_atomdb_json_config("redismongodb", "redis_mongodb_test_");
     config_disabled["composite_type_enabled"] = false;
-    auto db_disabled =
-        dynamic_pointer_cast<RedisMongoDB>(AtomDBFactory::create(config_disabled, "test_"));
+    auto db_disabled = dynamic_pointer_cast<RedisMongoDB>(AtomDBFactory::create(config_disabled));
     ASSERT_NE(db_disabled, nullptr);
     EXPECT_FALSE(db_disabled->composite_type_enabled());
 
@@ -1421,8 +1408,7 @@ TEST_F(RedisMongoDBTest, TransactionalRejectedMergeStillBooksCompositeType) {
 TEST_F(RedisMongoDBTest, GetAccessPermissionsEmptyCollection) {
     auto pool = db->get_mongo_pool();
     auto conn = pool->acquire();
-    auto collection =
-        (*conn)[RedisMongoDB::MONGODB_DB_NAME][RedisMongoDB::MONGODB_ACCESS_PERMISSIONS_COLLECTION_NAME];
+    auto collection = (*conn)[db->MONGODB_DB_NAME][db->MONGODB_ACCESS_PERMISSIONS_COLLECTION_NAME];
     collection.delete_many({});
 
     auto permissions = db->get_access_permissions(PublicKey("any_key"));
@@ -1436,8 +1422,7 @@ TEST_F(RedisMongoDBTest, GetAccessPermissionsReturnsStoredDocuments) {
 
     auto pool = db->get_mongo_pool();
     auto conn = pool->acquire();
-    auto collection =
-        (*conn)[RedisMongoDB::MONGODB_DB_NAME][RedisMongoDB::MONGODB_ACCESS_PERMISSIONS_COLLECTION_NAME];
+    auto collection = (*conn)[db->MONGODB_DB_NAME][db->MONGODB_ACCESS_PERMISSIONS_COLLECTION_NAME];
     collection.delete_many({});
 
     auto similarity_tokens = make_array(
@@ -1496,8 +1481,7 @@ TEST_F(RedisMongoDBTest, GetAccessPermissionsRejectsInvalidDocument) {
 
     auto pool = db->get_mongo_pool();
     auto conn = pool->acquire();
-    auto collection =
-        (*conn)[RedisMongoDB::MONGODB_DB_NAME][RedisMongoDB::MONGODB_ACCESS_PERMISSIONS_COLLECTION_NAME];
+    auto collection = (*conn)[db->MONGODB_DB_NAME][db->MONGODB_ACCESS_PERMISSIONS_COLLECTION_NAME];
     collection.delete_many({});
 
     collection.insert_one(make_document(kvp("_id", string(compute_hash((char*) "key_broken"))),
@@ -1531,13 +1515,12 @@ TEST_F(RedisMongoDBTest, IsProtectedWhenPersistedConfigIsTrue) {
     using bsoncxx::builder::basic::make_document;
 
     auto conn = db->get_mongo_pool()->acquire();
-    auto collection =
-        (*conn)[RedisMongoDB::MONGODB_DB_NAME][RedisMongoDB::MONGODB_CONFIG_COLLECTION_NAME];
+    auto collection = (*conn)[db->MONGODB_DB_NAME][db->MONGODB_CONFIG_COLLECTION_NAME];
     collection.delete_many({});
     collection.insert_one(
-        make_document(kvp("_id", protection_config_document_id()), kvp("protected", true)));
+        make_document(kvp("_id", protection_config_document_id(*db)), kvp("protected", true)));
 
-    TestRedisMongoDB loaded("test_", test_atomdb_json_config());
+    TestRedisMongoDB loaded(test_atomdb_json_config("redismongodb", "redis_mongodb_test_"));
     EXPECT_EQ(loaded.get_protection_mode(), atomdb_api_types::ProtectionMode::PROTECTED);
 
     collection.delete_many({});
@@ -1548,13 +1531,12 @@ TEST_F(RedisMongoDBTest, IsUnprotectedWhenPersistedConfigIsFalse) {
     using bsoncxx::builder::basic::make_document;
 
     auto conn = db->get_mongo_pool()->acquire();
-    auto collection =
-        (*conn)[RedisMongoDB::MONGODB_DB_NAME][RedisMongoDB::MONGODB_CONFIG_COLLECTION_NAME];
+    auto collection = (*conn)[db->MONGODB_DB_NAME][db->MONGODB_CONFIG_COLLECTION_NAME];
     collection.delete_many({});
     collection.insert_one(
-        make_document(kvp("_id", protection_config_document_id()), kvp("protected", false)));
+        make_document(kvp("_id", protection_config_document_id(*db)), kvp("protected", false)));
 
-    TestRedisMongoDB loaded("test_", test_atomdb_json_config());
+    TestRedisMongoDB loaded(test_atomdb_json_config("redismongodb", "redis_mongodb_test_"));
     EXPECT_EQ(loaded.get_protection_mode(), atomdb_api_types::ProtectionMode::UNPROTECTED);
 
     collection.delete_many({});
@@ -1562,11 +1544,10 @@ TEST_F(RedisMongoDBTest, IsUnprotectedWhenPersistedConfigIsFalse) {
 
 TEST_F(RedisMongoDBTest, IsUnprotectedWhenPersistedConfigDocumentAbsent) {
     auto conn = db->get_mongo_pool()->acquire();
-    auto collection =
-        (*conn)[RedisMongoDB::MONGODB_DB_NAME][RedisMongoDB::MONGODB_CONFIG_COLLECTION_NAME];
+    auto collection = (*conn)[db->MONGODB_DB_NAME][db->MONGODB_CONFIG_COLLECTION_NAME];
     collection.delete_many({});
 
-    TestRedisMongoDB loaded("test_", test_atomdb_json_config());
+    TestRedisMongoDB loaded(test_atomdb_json_config("redismongodb", "redis_mongodb_test_"));
     EXPECT_EQ(loaded.get_protection_mode(), atomdb_api_types::ProtectionMode::UNPROTECTED);
 }
 
@@ -1575,13 +1556,14 @@ TEST_F(RedisMongoDBTest, RejectsPersistedConfigMissingProtectedField) {
     using bsoncxx::builder::basic::make_document;
 
     auto conn = db->get_mongo_pool()->acquire();
-    auto collection =
-        (*conn)[RedisMongoDB::MONGODB_DB_NAME][RedisMongoDB::MONGODB_CONFIG_COLLECTION_NAME];
+    auto collection = (*conn)[db->MONGODB_DB_NAME][db->MONGODB_CONFIG_COLLECTION_NAME];
     collection.delete_many({});
     collection.insert_one(
-        make_document(kvp("_id", protection_config_document_id()), kvp("other", "value")));
+        make_document(kvp("_id", protection_config_document_id(*db)), kvp("other", "value")));
 
-    EXPECT_THROW({ TestRedisMongoDB loaded("test_", test_atomdb_json_config()); }, runtime_error);
+    EXPECT_THROW(
+        { TestRedisMongoDB loaded(test_atomdb_json_config("redismongodb", "redis_mongodb_test_")); },
+        runtime_error);
 
     collection.delete_many({});
 }
@@ -1591,13 +1573,14 @@ TEST_F(RedisMongoDBTest, RejectsPersistedConfigInvalidProtectedFieldType) {
     using bsoncxx::builder::basic::make_document;
 
     auto conn = db->get_mongo_pool()->acquire();
-    auto collection =
-        (*conn)[RedisMongoDB::MONGODB_DB_NAME][RedisMongoDB::MONGODB_CONFIG_COLLECTION_NAME];
+    auto collection = (*conn)[db->MONGODB_DB_NAME][db->MONGODB_CONFIG_COLLECTION_NAME];
     collection.delete_many({});
     collection.insert_one(
-        make_document(kvp("_id", protection_config_document_id()), kvp("protected", "yes")));
+        make_document(kvp("_id", protection_config_document_id(*db)), kvp("protected", "yes")));
 
-    EXPECT_THROW({ TestRedisMongoDB loaded("test_", test_atomdb_json_config()); }, runtime_error);
+    EXPECT_THROW(
+        { TestRedisMongoDB loaded(test_atomdb_json_config("redismongodb", "redis_mongodb_test_")); },
+        runtime_error);
 
     collection.delete_many({});
 }
@@ -1607,33 +1590,31 @@ TEST_F(RedisMongoDBTest, DropAllDropsEveryCollectionExceptConfig) {
     using bsoncxx::builder::basic::make_document;
 
     auto conn = db->get_mongo_pool()->acquire();
-    auto database = (*conn)[RedisMongoDB::MONGODB_DB_NAME];
-    auto config_collection = database[RedisMongoDB::MONGODB_CONFIG_COLLECTION_NAME];
+    auto database = (*conn)[db->MONGODB_DB_NAME];
+    auto config_collection = database[db->MONGODB_CONFIG_COLLECTION_NAME];
 
-    ASSERT_GT(database[RedisMongoDB::MONGODB_NODES_COLLECTION_NAME].count_documents({}), 0u);
-    ASSERT_GT(database[RedisMongoDB::MONGODB_LINKS_COLLECTION_NAME].count_documents({}), 0u);
+    ASSERT_GT(database[db->MONGODB_NODES_COLLECTION_NAME].count_documents({}), 0u);
+    ASSERT_GT(database[db->MONGODB_LINKS_COLLECTION_NAME].count_documents({}), 0u);
 
     config_collection.delete_many({});
     config_collection.insert_one(
-        make_document(kvp("_id", protection_config_document_id()), kvp("protected", true)));
+        make_document(kvp("_id", protection_config_document_id(*db)), kvp("protected", true)));
 
     db->drop_all();
 
-    ASSERT_TRUE(mongodb_collection_exists(database, RedisMongoDB::MONGODB_CONFIG_COLLECTION_NAME));
+    ASSERT_TRUE(mongodb_collection_exists(database, db->MONGODB_CONFIG_COLLECTION_NAME));
     EXPECT_EQ(config_collection.count_documents({}), 1u);
     auto config_doc =
-        config_collection.find_one(make_document(kvp("_id", protection_config_document_id())));
+        config_collection.find_one(make_document(kvp("_id", protection_config_document_id(*db))));
     ASSERT_TRUE(config_doc.has_value());
     EXPECT_TRUE(config_doc->view()["protected"].get_bool().value);
 
-    EXPECT_FALSE(mongodb_collection_exists(database, RedisMongoDB::MONGODB_NODES_COLLECTION_NAME));
-    EXPECT_FALSE(mongodb_collection_exists(database, RedisMongoDB::MONGODB_LINKS_COLLECTION_NAME));
-    EXPECT_FALSE(
-        mongodb_collection_exists(database, RedisMongoDB::MONGODB_PATTERN_INDEX_SCHEMA_COLLECTION_NAME));
-    EXPECT_FALSE(
-        mongodb_collection_exists(database, RedisMongoDB::MONGODB_ACCESS_PERMISSIONS_COLLECTION_NAME));
+    EXPECT_FALSE(mongodb_collection_exists(database, db->MONGODB_NODES_COLLECTION_NAME));
+    EXPECT_FALSE(mongodb_collection_exists(database, db->MONGODB_LINKS_COLLECTION_NAME));
+    EXPECT_FALSE(mongodb_collection_exists(database, db->MONGODB_PATTERN_INDEX_SCHEMA_COLLECTION_NAME));
+    EXPECT_FALSE(mongodb_collection_exists(database, db->MONGODB_ACCESS_PERMISSIONS_COLLECTION_NAME));
 
-    TestRedisMongoDB reloaded("test_", test_atomdb_json_config());
+    TestRedisMongoDB reloaded(test_atomdb_json_config("redismongodb", "redis_mongodb_test_"));
     EXPECT_EQ(reloaded.get_protection_mode(), atomdb_api_types::ProtectionMode::PROTECTED);
 
     config_collection.delete_many({});
@@ -1644,20 +1625,19 @@ TEST_F(RedisMongoDBTest, DropAllPreservesProtectionConfiguration) {
     using bsoncxx::builder::basic::make_document;
 
     auto conn = db->get_mongo_pool()->acquire();
-    auto collection =
-        (*conn)[RedisMongoDB::MONGODB_DB_NAME][RedisMongoDB::MONGODB_CONFIG_COLLECTION_NAME];
+    auto collection = (*conn)[db->MONGODB_DB_NAME][db->MONGODB_CONFIG_COLLECTION_NAME];
     collection.delete_many({});
     collection.insert_one(
-        make_document(kvp("_id", protection_config_document_id()), kvp("protected", true)));
+        make_document(kvp("_id", protection_config_document_id(*db)), kvp("protected", true)));
 
-    TestRedisMongoDB protected_db("test_", test_atomdb_json_config());
+    TestRedisMongoDB protected_db(test_atomdb_json_config("redismongodb", "redis_mongodb_test_"));
     ASSERT_EQ(protected_db.get_protection_mode(), atomdb_api_types::ProtectionMode::PROTECTED);
 
     protected_db.drop_all();
 
     EXPECT_EQ(protected_db.get_protection_mode(), atomdb_api_types::ProtectionMode::PROTECTED);
 
-    TestRedisMongoDB reloaded("test_", test_atomdb_json_config());
+    TestRedisMongoDB reloaded(test_atomdb_json_config("redismongodb", "redis_mongodb_test_"));
     EXPECT_EQ(reloaded.get_protection_mode(), atomdb_api_types::ProtectionMode::PROTECTED);
 
     collection.delete_many({});
@@ -1668,18 +1648,110 @@ TEST_F(RedisMongoDBTest, IgnoresConflictingProtectionConfigurationDocuments) {
     using bsoncxx::builder::basic::make_document;
 
     auto conn = db->get_mongo_pool()->acquire();
-    auto collection =
-        (*conn)[RedisMongoDB::MONGODB_DB_NAME][RedisMongoDB::MONGODB_CONFIG_COLLECTION_NAME];
+    auto collection = (*conn)[db->MONGODB_DB_NAME][db->MONGODB_CONFIG_COLLECTION_NAME];
     collection.delete_many({});
 
     collection.insert_one(
-        make_document(kvp("_id", protection_config_document_id()), kvp("protected", true)));
+        make_document(kvp("_id", protection_config_document_id(*db)), kvp("protected", true)));
     collection.insert_one(make_document(kvp("protected", false)));
 
-    TestRedisMongoDB loaded("test_", test_atomdb_json_config());
+    TestRedisMongoDB loaded(test_atomdb_json_config("redismongodb", "redis_mongodb_test_"));
     EXPECT_EQ(loaded.get_protection_mode(), atomdb_api_types::ProtectionMode::PROTECTED);
 
     collection.delete_many({});
+}
+
+namespace {
+
+void expect_create_fails_with(nlohmann::json json, const string& substr) {
+    try {
+        AtomDBFactory::create(commons::JsonConfig(std::move(json)));
+        FAIL() << "expected AtomDBFactory::create to throw";
+    } catch (const runtime_error& e) {
+        string msg = e.what();
+        EXPECT_NE(msg.find(substr), string::npos) << msg;
+    }
+}
+
+}  // namespace
+
+TEST(RedisMongoDBConfigValidation, MissingRedisEndpointFailsBeforePool) {
+    auto json = test_atomdb_json_config("redismongodb", "redis_mongodb_test_").get_json();
+    json["redis"].erase("endpoint");
+    expect_create_fails_with(json, "Invalid Redis configuration");
+}
+
+TEST(RedisMongoDBConfigValidation, MissingMongodbEndpoint) {
+    auto json = test_atomdb_json_config("redismongodb", "redis_mongodb_test_").get_json();
+    json["mongodb"].erase("endpoint");
+    expect_create_fails_with(json, "Invalid MongoDB configuration");
+}
+
+TEST(RedisMongoDBConfigValidation, MissingMongodbUsername) {
+    auto json = test_atomdb_json_config("redismongodb", "redis_mongodb_test_").get_json();
+    json["mongodb"].erase("username");
+    expect_create_fails_with(json, "Invalid MongoDB configuration");
+}
+
+TEST(RedisMongoDBConfigValidation, MissingMongodbPassword) {
+    auto json = test_atomdb_json_config("redismongodb", "redis_mongodb_test_").get_json();
+    json["mongodb"].erase("password");
+    expect_create_fails_with(json, "Invalid MongoDB configuration");
+}
+
+TEST(RedisMongoDBPrefixIsolation, InstancesKeepIndependentNamespaces) {
+    auto db_a = dynamic_pointer_cast<RedisMongoDB>(
+        AtomDBFactory::create(test_atomdb_json_config("redismongodb", "peer_a_")));
+    auto db_b = dynamic_pointer_cast<RedisMongoDB>(
+        AtomDBFactory::create(test_atomdb_json_config("redismongodb", "peer_b_")));
+    ASSERT_NE(db_a, nullptr);
+    ASSERT_NE(db_b, nullptr);
+
+    EXPECT_EQ(db_a->MONGODB_DB_NAME, "peer_a_das");
+    EXPECT_EQ(db_b->MONGODB_DB_NAME, "peer_b_das");
+    EXPECT_EQ(db_a->REDIS_PATTERNS_PREFIX, "peer_a_patterns");
+    EXPECT_EQ(db_b->REDIS_PATTERNS_PREFIX, "peer_b_patterns");
+    EXPECT_EQ(db_a->REDIS_OUTGOING_PREFIX, "peer_a_outgoing_set");
+    EXPECT_EQ(db_b->REDIS_OUTGOING_PREFIX, "peer_b_outgoing_set");
+
+    Node pred_a("Symbol", "SimilarityA");
+    Node human_a("Symbol", "PeerAHuman");
+    Node monkey_a("Symbol", "PeerAMonkey");
+    Node pred_b("Symbol", "SimilarityB");
+    Node human_b("Symbol", "PeerBHuman");
+    Node monkey_b("Symbol", "PeerBMonkey");
+    db_a->add_nodes({&pred_a, &human_a, &monkey_a});
+    db_b->add_nodes({&pred_b, &human_b, &monkey_b});
+
+    Link link_a("Expression", {pred_a.handle(), human_a.handle(), monkey_a.handle()});
+    Link link_b("Expression", {pred_b.handle(), human_b.handle(), monkey_b.handle()});
+    db_a->add_link(&link_a);
+    db_b->add_link(&link_b);
+
+    EXPECT_TRUE(db_a->node_exists(human_a.handle()));
+    EXPECT_TRUE(db_a->link_exists(link_a.handle()));
+    EXPECT_FALSE(db_a->node_exists(human_b.handle()));
+    EXPECT_FALSE(db_a->link_exists(link_b.handle()));
+
+    EXPECT_TRUE(db_b->node_exists(human_b.handle()));
+    EXPECT_TRUE(db_b->link_exists(link_b.handle()));
+    EXPECT_FALSE(db_b->node_exists(human_a.handle()));
+    EXPECT_FALSE(db_b->link_exists(link_a.handle()));
+
+    ASSERT_NE(db_a->query_for_targets(link_a.handle()), nullptr);
+    EXPECT_EQ(db_b->query_for_targets(link_a.handle()), nullptr);
+
+    db_a->drop_all();
+
+    EXPECT_FALSE(db_a->node_exists(human_a.handle()));
+    EXPECT_FALSE(db_a->link_exists(link_a.handle()));
+    EXPECT_TRUE(db_b->node_exists(human_b.handle()));
+    EXPECT_TRUE(db_b->link_exists(link_b.handle()));
+    ASSERT_NE(db_b->query_for_targets(link_b.handle()), nullptr);
+
+    db_b->drop_all();
+    EXPECT_FALSE(db_b->node_exists(human_b.handle()));
+    EXPECT_FALSE(db_b->link_exists(link_b.handle()));
 }
 
 int main(int argc, char** argv) {

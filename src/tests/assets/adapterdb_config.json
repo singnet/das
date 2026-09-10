@@ -44,8 +44,8 @@
             {
                 "uid": "peer1",
                 "type": "redismongodb",
+                "prefix": "remotedb_test_peer1_",
                 "composite_type_enabled": true,
-                "context": "remotedb_test_peer1_",
                 "mongodb": {
                     "endpoint": "localhost:40021",
                     "username": "admin",
@@ -57,8 +57,8 @@
                 },
                 "local_persistence": {
                     "type": "morkdb",
+                    "prefix": "remotedb_test_peer1_local_",
                     "composite_type_enabled": true,
-                    "context": "remotedb_test_peer1_local_",
                     "mongodb": {
                         "endpoint": "localhost:40021",
                         "username": "admin",
@@ -72,10 +72,8 @@
             {
                 "uid": "peer2",
                 "type": "inmemorydb",
-                "context": "remotedb_test_peer2_",
                 "local_persistence": {
-                    "type": "inmemorydb",
-                    "context": "remotedb_test_peer2_local_"
+                    "type": "inmemorydb"
                 }
             }
         ]
@@ -118,6 +116,10 @@
             "endpoint": "localhost:40007",
             "ports_range": "47000:47999"
         }
+    },
+    "vault": {
+        "type": "openbao",
+        "endpoint": "http://localhost:40010"
     },
     "params": {
         "query": {
