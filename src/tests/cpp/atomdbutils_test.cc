@@ -11,7 +11,7 @@ using namespace atoms;
 using namespace std;
 
 TEST(AtomDBTest, reachable_terminal_set) {
-    AtomDBSingleton::init(test_atomdb_json_config());
+    AtomDBSingleton::init(test_atomdb_json_config("redismongodb", "atomdbutils_test_"));
     auto db = AtomDBSingleton::get_instance();
 
     auto A = new Node("Symbol", "A");
