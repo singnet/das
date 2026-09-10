@@ -26,8 +26,9 @@ class AtomDB : public HandleDecoder {
     virtual ~AtomDB() = default;
 
     /**
-     * Stable identifier for this AtomDB instance (from JsonConfig["uid"]).
-     * Empty when the config omitted uid. Remote peers require a non-empty uid.
+     * Identifier for this AtomDB instance (from JsonConfig["uid"]).
+     * The config key is required; the value may be empty. The default
+     * constructor also leaves it empty (internal InMemoryDB caches).
      */
     const string& get_uid() const { return uid_; }
 

@@ -117,9 +117,30 @@ TEST(ConfigParserTest, GetJsonReturnsRoot) {
     EXPECT_EQ(j["atomdb"]["redis"]["port"].get<long>(), 40020);
 }
 
+TEST(ConfigParserTest, MissingAtomdbUidThrows) {
+    string without_uid = R"({
+      "atomdb": { "type": "redismongodb" },
+      "loaders": {},
+      "agents": {},
+      "vault": { "type": "openbao", "endpoint": "http://localhost:40010" }
+    })";
+    EXPECT_THROW(JsonConfigParser::load_from_string(without_uid), runtime_error);
+}
+
+TEST(ConfigParserTest, EmptyAtomdbUidIsAllowed) {
+    string empty_uid = R"({
+      "atomdb": { "uid": "", "type": "redismongodb" },
+      "loaders": {},
+      "agents": {},
+      "vault": { "type": "openbao", "endpoint": "http://localhost:40010" }
+    })";
+    JsonConfig config = JsonConfigParser::load_from_string(empty_uid);
+    EXPECT_EQ(config.at_path("atomdb.uid").get_or<string>("missing"), "");
+}
+
 TEST(ConfigParserTest, MissingVaultFieldThrows) {
     string without_vault = R"({
-      "atomdb": { "type": "redismongodb" },
+      "atomdb": { "uid": "local", "type": "redismongodb" },
       "loaders": {},
       "agents": {}
     })";
@@ -128,7 +149,7 @@ TEST(ConfigParserTest, MissingVaultFieldThrows) {
 
 TEST(ConfigParserTest, VaultTypeValueNotCheckedWithoutRefs) {
     string other_type = R"({
-      "atomdb": { "type": "redismongodb" },
+      "atomdb": { "uid": "local", "type": "redismongodb" },
       "loaders": {},
       "agents": {},
       "vault": { "type": "hashicorp", "endpoint": "localhost:40010" }
@@ -329,7 +350,7 @@ TEST(VaultJsonResolverTest, HttpAndHttpsEndpointsReachTokenPrompt) {
 
 TEST(ConfigParserTest, MalformedVaultUriFailsBeforeTokenPrompt) {
     string json = R"({
-      "atomdb": { "type": "redismongodb", "password": "vault://test" },
+      "atomdb": { "uid": "local", "type": "redismongodb", "password": "vault://test" },
       "loaders": {},
       "agents": {},
       "vault": { "type": "openbao", "endpoint": "http://localhost:40010" }
@@ -347,6 +368,7 @@ TEST(ConfigParserTest, MalformedVaultUriFailsBeforeTokenPrompt) {
 TEST(ConfigParserTest, VaultRefsWithoutTerminalTokenFail) {
     string with_ref = R"({
       "atomdb": {
+        "uid": "local",
         "type": "redismongodb",
         "mongodb": { "password": "vault://test/dbs/pass" }
       },

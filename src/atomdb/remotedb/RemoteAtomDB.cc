@@ -23,7 +23,7 @@ using namespace commons;
 
 using json = nlohmann::json;
 
-RemoteAtomDB::RemoteAtomDB(map<string, shared_ptr<RemoteAtomDBPeer>> peers, const string& uid)
+RemoteAtomDB::RemoteAtomDB(const string& uid, map<string, shared_ptr<RemoteAtomDBPeer>> peers)
     : AtomDB(uid), remote_db_(std::move(peers)) {
     LOG_INFO("RemoteAtomDB initialized with " << remote_db_.size() << " pre-built peers");
     finalize_peer_lists();

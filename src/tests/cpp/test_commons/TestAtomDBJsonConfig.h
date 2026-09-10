@@ -10,7 +10,7 @@ namespace atomdb {
  */
 inline commons::JsonConfig test_atomdb_json_config(const string& atomdb_type = "redismongodb",
                                                    const string& prefix = "",
-                                                   const string& uid = "") {
+                                                   const string& uid = "test") {
     auto json = nlohmann::json();
     json["type"] = atomdb_type;
     json["prefix"] = prefix;

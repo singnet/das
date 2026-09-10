@@ -58,6 +58,7 @@
                     "cluster": false
                 },
                 "local_persistence": {
+                    "uid": "peer1",
                     "type": "morkdb",
                     "prefix": "remotedb_test_peer1_local_",
                     "composite_type_enabled": true,
@@ -75,6 +76,7 @@
                 "uid": "peer2",
                 "type": "inmemorydb",
                 "local_persistence": {
+                    "uid": "peer2",
                     "type": "inmemorydb"
                 }
             }

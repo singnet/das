@@ -15,6 +15,10 @@ using namespace commons;
 // Public methods
 
 shared_ptr<AtomDB> AtomDBFactory::create(const JsonConfig& config) {
+    if (config.at_path("uid").is_null()) {
+        RAISE_ERROR("AtomDBFactory: missing uid");
+    }
+
     auto atomdb_type = config.at_path("type").get_or<string>("");
 
     AtomDBType type = AtomDB::string_to_type(atomdb_type);
@@ -71,22 +75,28 @@ shared_ptr<AtomDB> AtomDBFactory::create_composite_atomdb(const JsonConfig& conf
 
         for (auto& entry : remote_peers_config) {
             auto peer_config = JsonConfig(entry);
+            if (peer_config.at_path("uid").is_null()) {
+                RAISE_ERROR("AtomDBFactory: remote peer is missing uid");
+            }
             string uid = peer_config.at_path("uid").get_or<string>("");
-            if (uid.empty()) {
-                RAISE_ERROR("AtomDBFactory: remote peer is missing a non-empty uid");
+            if (remote_peers.find(uid) != remote_peers.end()) {
+                RAISE_ERROR("AtomDBFactory: duplicate remote peer uid: " + uid);
             }
 
             shared_ptr<AtomDB> local_persistence = nullptr;
             auto local_persistence_config =
                 peer_config.at_path("local_persistence").get_or<JsonConfig>(JsonConfig());
             if (!local_persistence_config.empty()) {
+                if (local_persistence_config.at_path("uid").is_null()) {
+                    local_persistence_config["uid"] = uid;
+                }
                 local_persistence = create_basic_atomdb(local_persistence_config);
             }
             remote_peers[uid] =
-                make_shared<RemoteAtomDBPeer>(create_basic_atomdb(peer_config), local_persistence, uid);
+                make_shared<RemoteAtomDBPeer>(uid, create_basic_atomdb(peer_config), local_persistence);
         }
 
-        atomdb = make_shared<RemoteAtomDB>(remote_peers, config.at_path("uid").get_or<string>(""));
+        atomdb = make_shared<RemoteAtomDB>(config.at_path("uid").get_or<string>(""), remote_peers);
     } else if (type == AtomDBType::AdapterDB) {
         // The backend AtomDB in AdapterDB could be RemoteAtomDB ?
         auto atomdb_backend_config =

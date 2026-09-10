@@ -115,6 +115,7 @@
                 "uid": "peer3",
                 "type": "inmemorydb",
                 "local_persistence": {
+                    "uid": "peer3_local",
                     "type": "redismongodb",
                     "composite_type_enabled": false,
                     "mongodb": {

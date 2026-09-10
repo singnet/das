@@ -16,6 +16,7 @@
                 "password": "admin"
             },
             "local_persistence": {
+                "uid": "single_peer",
                 "type": "inmemorydb"
             }
         }

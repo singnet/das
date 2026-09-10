@@ -36,9 +36,9 @@ namespace atomdb {
  */
 class RemoteAtomDBPeer : public AtomDB, public processor::ThreadMethod {
    public:
-    RemoteAtomDBPeer(shared_ptr<AtomDB> remote_atomdb,
-                     shared_ptr<AtomDB> local_persistence = nullptr,
-                     const string& uid = "");
+    RemoteAtomDBPeer(const string& uid,
+                     shared_ptr<AtomDB> remote_atomdb,
+                     shared_ptr<AtomDB> local_persistence = nullptr);
     ~RemoteAtomDBPeer();
 
     bool allow_nested_indexing() override;

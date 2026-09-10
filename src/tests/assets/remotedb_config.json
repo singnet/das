@@ -5,6 +5,7 @@
             "uid": "peer1",
             "type": "inmemorydb",
             "local_persistence": {
+                "uid": "peer1",
                 "type": "morkdb",
                 "prefix": "remote_atomdb_test_",
                 "morkdb": {

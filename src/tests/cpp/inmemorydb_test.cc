@@ -1381,6 +1381,13 @@ TEST(InMemoryDBConfigTest, GetUidFromConfig) {
     EXPECT_EQ(db->get_uid(), "mem");
 }
 
+TEST(InMemoryDBConfigTest, AllowsEmptyUid) {
+    JsonConfig config;
+    config["uid"] = "";
+    auto db = make_shared<InMemoryDB>(config);
+    EXPECT_EQ(db->get_uid(), "");
+}
+
 TEST_F(InMemoryDBTest, GetAccessPermissionsReturnsEmpty) {
     auto permissions = db->get_access_permissions(PublicKey("any_key"));
     EXPECT_TRUE(permissions.empty());

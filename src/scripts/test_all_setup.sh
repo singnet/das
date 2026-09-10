@@ -15,7 +15,7 @@ DAS_MORK_HOSTNAME=0.0.0.0
 DAS_MORK_PORT=40022
 
 REDIS_IMAGE=redis:7.2.3-alpine
-MONGODB_IMAGE=mongodb/mongodb-community-server:8.2-ubuntu2204
+MONGODB_IMAGE=mongodb/mongodb-community-server:8.0.4-ubuntu2204
 METTA_LOADER_IMAGE=trueagi/das:1.0.0-metta-parser
 MORK_IMAGE=trueagi/das:mork-server-1.1.0
 MORK_LOADER_IMAGE=trueagi/das:mork-loader-1.1.0
