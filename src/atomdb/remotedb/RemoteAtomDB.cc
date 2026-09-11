@@ -46,29 +46,11 @@ void RemoteAtomDB::finalize_peer_lists() {
     writable_peers_.reserve(remote_db_.size());
     readonly_peers_.reserve(remote_db_.size());
 
-    unsigned int nested_peers = 0;
     for (auto& [uid, peer] : remote_db_) {
         if (peer->is_readonly()) {
             readonly_peers_.emplace_back(uid, peer);
         } else {
             writable_peers_.emplace_back(uid, peer);
-        }
-        if (peer->allow_nested_indexing()) nested_peers++;
-    }
-
-    // Derive aggregated nested-indexing. A single global boolean cannot describe a
-    // heterogeneous result set, so mixed configs are normalized to false.
-    if (!remote_db_.empty() && nested_peers == remote_db_.size()) {
-        nested_indexing_ = true;
-    } else {
-        nested_indexing_ = false;
-        if (nested_peers > 0) {
-            LOG_INFO(
-                "WARNING: RemoteAtomDB has a mix of nested-indexing and non-nested-indexing "
-                "peers ("
-                << nested_peers << "/" << remote_db_.size()
-                << " nested); downgrading allow_nested_indexing() to false. Nested peers will "
-                   "be re-matched locally by the query engine.");
         }
     }
 }
@@ -83,8 +65,6 @@ bool RemoteAtomDB::composite_type_enabled() const {
     }
     return false;
 }
-
-bool RemoteAtomDB::allow_nested_indexing() { return nested_indexing_; }
 
 shared_ptr<Atom> RemoteAtomDB::get_atom(const string& handle) {
     // Writable peers first: their write buffer / local_persistence are the source of truth
@@ -149,27 +129,19 @@ shared_ptr<atomdb_api_types::HandleSet> RemoteAtomDB::query_for_pattern(const Li
         auto handle_set = peer->query_for_pattern(link_schema);
         if (!handle_set) continue;
 
-        // Preserve per-handle assignments / metta expressions for nested-indexing peers so the
+        // Preserve per-handle assignments / metta expressions for peers so the
         // aggregated result stays faithful instead of silently dropping the backend's match data.
-        bool copy_metadata = peer->allow_nested_indexing();
-        LOG_DEBUG("  [" << uid << "] returned " << handle_set->size() << " handles"
-                        << (copy_metadata ? " (with metadata)" : ""));
+        LOG_DEBUG("  [" << uid << "] returned " << handle_set->size() << " handles");
 
         auto it = handle_set->get_iterator();
         if (!it) continue;
 
-        while (true) {
-            char* h = it->next();
-            if (!h) break;
+        while (char* h = it->next()) {
             string handle(h);
             if (seen.insert(handle).second) {
-                if (copy_metadata) {
-                    result->add_handle(handle,
-                                       handle_set->get_metta_expressions_by_handle(handle),
-                                       handle_set->get_assignments_by_handle(handle));
-                } else {
-                    result->add_handle(handle);
-                }
+                result->add_handle(handle,
+                                   handle_set->get_metta_expressions_by_handle(handle),
+                                   handle_set->get_assignments_by_handle(handle));
             }
         }
     }

@@ -172,6 +172,54 @@ TEST_F(InMemoryDBTest, QueryForPatternWithSpecificMatch) {
     EXPECT_EQ(string(handle), link1_handle);
 }
 
+TEST_F(InMemoryDBTest, QueryForPatternFiltersIndexedCandidatesAndStoresAssignments) {
+    auto human = new Node("Symbol", "\"human\"");
+    auto monkey = new Node("Symbol", "\"monkey\"");
+    auto mammal = new Node("Symbol", "\"mammal\"");
+    auto inheritance = new Node("Symbol", "Inheritance");
+
+    string human_handle = db->add_node(human);
+    string monkey_handle = db->add_node(monkey);
+    string mammal_handle = db->add_node(mammal);
+    string inheritance_handle = db->add_node(inheritance);
+
+    string matching_handle =
+        db->add_link(new Link("Expression", {inheritance_handle, human_handle, mammal_handle}));
+    string non_matching_handle =
+        db->add_link(new Link("Expression", {inheritance_handle, human_handle, monkey_handle}));
+
+    LinkSchema link_schema({"LINK_TEMPLATE",
+                            "Expression",
+                            "3",
+                            "NODE",
+                            "Symbol",
+                            "Inheritance",
+                            "VARIABLE",
+                            "x",
+                            "NODE",
+                            "Symbol",
+                            "\"mammal\""});
+
+    // Simulate a coarse backend index returning a false-positive candidate. query_for_pattern()
+    // must run LinkSchema::match() rather than trusting the index result.
+    db->add_pattern(link_schema.handle(), non_matching_handle);
+
+    auto result = db->query_for_pattern(link_schema);
+    ASSERT_NE(result, nullptr);
+    ASSERT_EQ(result->size(), 1u);
+
+    auto it = result->get_iterator();
+    char* handle = it->next();
+    ASSERT_NE(handle, nullptr);
+    EXPECT_EQ(string(handle), matching_handle);
+    EXPECT_EQ(it->next(), nullptr);
+
+    auto assignment = result->get_assignments_by_handle(matching_handle);
+    EXPECT_EQ(assignment.variable_count(), 1u);
+    EXPECT_EQ(assignment.get("x"), human_handle);
+    EXPECT_EQ(result->get_assignments_by_handle(non_matching_handle).variable_count(), 0u);
+}
+
 TEST_F(InMemoryDBTest, QueryForPatternNoMatches) {
     LinkSchema link_schema({"LINK_TEMPLATE",
                             "Expression",

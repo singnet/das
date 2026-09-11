@@ -41,7 +41,6 @@ class RemoteAtomDBPeer : public AtomDB, public processor::ThreadMethod {
                      shared_ptr<AtomDB> local_persistence = nullptr);
     ~RemoteAtomDBPeer();
 
-    bool allow_nested_indexing() override;
     bool composite_type_enabled() const override;
     atomdb_api_types::ProtectionMode get_protection_mode() const override;
 
@@ -130,8 +129,7 @@ class RemoteAtomDBPeer : public AtomDB, public processor::ThreadMethod {
     void feed_cache_from_handle_set(shared_ptr<atomdb_api_types::HandleSet> handle_set);
     void merge_handle_set(shared_ptr<atomdb_api_types::HandleSet> source,
                           shared_ptr<atomdb_api_types::HandleSetInMemory> dest,
-                          set<string>& seen,
-                          bool copy_metadata = false);
+                          set<string>& seen);
     void persist_atoms_to_local(const vector<shared_ptr<atoms::Atom>>& atoms);
     // Puts atoms back into the current write buffer after a failed flush so the next
     // release retries them instead of losing dirty writes.

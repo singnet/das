@@ -58,7 +58,6 @@ class AtomDB : public HandleDecoder {
         }
     }
 
-    virtual bool allow_nested_indexing() = 0;
     virtual bool composite_type_enabled() const = 0;
     virtual atomdb_api_types::ProtectionMode get_protection_mode() const = 0;
 

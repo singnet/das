@@ -54,7 +54,6 @@ TEST(ProtectedAtomDBTest, CopiesBackendUid) {
 TEST(ProtectedAtomDBTest, DelegatesToBackend) {
     auto backend = make_shared<ProtectedInMemoryDB>();
     ProtectedAtomDB db(backend);
-    EXPECT_EQ(db.allow_nested_indexing(), backend->allow_nested_indexing());
     EXPECT_EQ(db.composite_type_enabled(), backend->composite_type_enabled());
     EXPECT_EQ(db.get_uid(), backend->get_uid());
 

@@ -38,8 +38,6 @@ RemoteAtomDBPeer::RemoteAtomDBPeer(const string& uid,
 
 RemoteAtomDBPeer::~RemoteAtomDBPeer() { stop_cleanup_thread(); }
 
-bool RemoteAtomDBPeer::allow_nested_indexing() { return atomdb_->allow_nested_indexing(); }
-
 bool RemoteAtomDBPeer::composite_type_enabled() const {
     return local_persistence_ && local_persistence_->composite_type_enabled();
 }
@@ -183,22 +181,15 @@ void RemoteAtomDBPeer::feed_cache_from_handle_set(shared_ptr<HandleSet> handle_s
 
 void RemoteAtomDBPeer::merge_handle_set(shared_ptr<HandleSet> source,
                                         shared_ptr<HandleSetInMemory> dest,
-                                        set<string>& seen,
-                                        bool copy_metadata) {
+                                        set<string>& seen) {
     if (!source) return;
     auto it = source->get_iterator();
     char* h;
     while ((h = it->next()) != nullptr) {
         string s(h);
         if (seen.insert(s).second) {
-            // copy_metadata must only be set when the source backend supports nested indexing;
-            // otherwise get_*_by_handle may be unsupported (e.g. HandleSetRedis raises).
-            if (copy_metadata) {
-                dest->add_handle(
-                    s, source->get_metta_expressions_by_handle(s), source->get_assignments_by_handle(s));
-            } else {
-                dest->add_handle(s);
-            }
+            dest->add_handle(
+                s, source->get_metta_expressions_by_handle(s), source->get_assignments_by_handle(s));
         }
     }
 }
@@ -208,15 +199,12 @@ shared_ptr<HandleSet> RemoteAtomDBPeer::query_for_pattern(const LinkSchema& link
     set<string> seen;
 
     auto merge_memory = [&](const shared_ptr<InMemoryDB>& db) {
-        merge_handle_set(db->query_for_pattern(link_schema), result, seen, db->allow_nested_indexing());
+        merge_handle_set(db->query_for_pattern(link_schema), result, seen);
     };
 
     auto merge_local_persistence = [&]() {
         if (!local_persistence_) return;
-        merge_handle_set(local_persistence_->query_for_pattern(link_schema),
-                         result,
-                         seen,
-                         local_persistence_->allow_nested_indexing());
+        merge_handle_set(local_persistence_->query_for_pattern(link_schema), result, seen);
     };
 
     bool cache_hit;
@@ -244,7 +232,7 @@ shared_ptr<HandleSet> RemoteAtomDBPeer::query_for_pattern(const LinkSchema& link
         feed_cache_from_handle_set(remote_handle_set);
         // Merge remote first when it carries nested metadata. InMemoryDB has no
         // metta/assignments — if it fills `seen` first, the remote metadata is skipped.
-        merge_handle_set(remote_handle_set, result, seen, atomdb_->allow_nested_indexing());
+        merge_handle_set(remote_handle_set, result, seen);
     }
 
     merge_memory(write_buffer());

@@ -7,6 +7,7 @@
 #include <fstream>
 #include <map>
 #include <memory>
+#include <set>
 #include <stdexcept>
 #include <string>
 #include <thread>
@@ -260,8 +261,6 @@ TEST_F(RemoteAtomDBPeerTest, DeleteLink) {
 }
 
 TEST_F(RemoteAtomDBPeerTest, GetUid) { EXPECT_EQ(peer_->get_uid(), "test_peer"); }
-
-TEST_F(RemoteAtomDBPeerTest, AllowNestedIndexing) { EXPECT_FALSE(peer_->allow_nested_indexing()); }
 
 TEST_F(RemoteAtomDBPeerTest, FetchAndRelease) {
     auto handles = populate_inheritance_mammal_links(remote_);
@@ -760,8 +759,6 @@ class NestedInMemoryDB : public InMemoryDB {
    public:
     NestedInMemoryDB() = default;
 
-    bool allow_nested_indexing() override { return true; }
-
     shared_ptr<HandleSet> query_for_pattern(const LinkSchema& link_schema) override {
         auto base = InMemoryDB::query_for_pattern(link_schema);
         auto result = make_shared<HandleSetInMemory>();
@@ -811,9 +808,6 @@ TEST(RemoteAtomDBFederationTest, MetadataAggregationFromNestedPeer) {
     peers["nested"] = make_shared<RemoteAtomDBPeer>("nested", backend, nullptr);
     auto db = make_shared<RemoteAtomDB>("remote", peers);
 
-    // All peers are nested-indexing -> facade advertises nested indexing.
-    EXPECT_TRUE(db->allow_nested_indexing());
-
     auto result = db->query_for_pattern(inheritance_mammal_schema());
     ASSERT_NE(result, nullptr);
     EXPECT_EQ(result->size(), 2u);
@@ -835,6 +829,34 @@ TEST(RemoteAtomDBFederationTest, MetadataAggregationFromNestedPeer) {
     EXPECT_EQ(checked, 2);
 }
 
+TEST(RemoteAtomDBFederationTest, PatternAssignmentsSurvivePeerAndFacadeAggregation) {
+    auto backend = make_shared<InMemoryDB>();
+    auto handles = populate_inheritance_mammal_links(backend);
+
+    map<string, shared_ptr<RemoteAtomDBPeer>> peers;
+    peers["inmemory"] = make_shared<RemoteAtomDBPeer>(backend, nullptr, "inmemory");
+    auto db = make_shared<RemoteAtomDB>(peers);
+
+    auto result = db->query_for_pattern(inheritance_mammal_schema());
+    ASSERT_NE(result, nullptr);
+    ASSERT_EQ(result->size(), 2u);
+
+    set<string> assigned_values;
+    auto it = result->get_iterator();
+    char* h;
+    while ((h = it->next()) != nullptr) {
+        auto assignment = result->get_assignments_by_handle(h);
+        EXPECT_EQ(assignment.variable_count(), 1u);
+        EXPECT_FALSE(assignment.get("x").empty());
+        assigned_values.insert(assignment.get("x"));
+    }
+
+    auto human = make_shared<Node>("Symbol", "\"human\"");
+    auto monkey = make_shared<Node>("Symbol", "\"monkey\"");
+    EXPECT_EQ(assigned_values, (set<string>{human->handle(), monkey->handle()}));
+    EXPECT_EQ(handles.size(), 2u);
+}
+
 TEST(RemoteAtomDBFederationTest, MixedPeersDowngradeAndDeduplicate) {
     // peer1: nested-indexing backend; peer2: plain in-memory backend.
     // Both contain the SAME two links so the facade must dedup by handle.
@@ -848,9 +870,6 @@ TEST(RemoteAtomDBFederationTest, MixedPeersDowngradeAndDeduplicate) {
     peers["nested"] = make_shared<RemoteAtomDBPeer>("nested", nested_backend, nullptr);
     peers["plain"] = make_shared<RemoteAtomDBPeer>("plain", plain_backend, nullptr);
     auto db = make_shared<RemoteAtomDB>("remote", peers);
-
-    // Mixed nested/non-nested peers -> facade downgrades to false.
-    EXPECT_FALSE(db->allow_nested_indexing());
 
     auto result = db->query_for_pattern(inheritance_mammal_schema());
     ASSERT_NE(result, nullptr);

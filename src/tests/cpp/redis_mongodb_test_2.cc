@@ -51,7 +51,7 @@ class RedisMongoDBTest : public ::testing::Test {
 
 class LinkSchemaHandle : public LinkSchema {
    public:
-    LinkSchemaHandle(const char* handle) : LinkSchema("blah", 2), fixed_handle(handle) {}
+    LinkSchemaHandle(const char* handle) : LinkSchema("blah", 2), fixed_handle(handle) { freeze(); }
 
     string handle() const override { return this->fixed_handle; }
 

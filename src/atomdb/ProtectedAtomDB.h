@@ -33,7 +33,6 @@ class ProtectedAtomDB : public AtomDB {
      */
     explicit ProtectedAtomDB(shared_ptr<AtomDB> backend);
 
-    bool allow_nested_indexing() override;
     bool composite_type_enabled() const override;
     atomdb_api_types::ProtectionMode get_protection_mode() const override;
 

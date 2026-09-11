@@ -249,11 +249,6 @@ TEST_P(AdapterDBTest, ReloadDoesNotThrowAndKeepsBackendUsable) {
         auto count = db->atom_count();
         (void) count;
     });
-
-    EXPECT_NO_THROW({
-        bool nested = db->allow_nested_indexing();
-        (void) nested;
-    });
 }
 
 TEST_P(AdapterDBTest, NeedsSyncIsNotImplemented) {

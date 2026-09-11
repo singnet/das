@@ -43,8 +43,6 @@ class MorkDB : public RedisMongoDB {
     MorkDB(const JsonConfig& config);
     ~MorkDB();
 
-    bool allow_nested_indexing() override;
-
     shared_ptr<atomdb_api_types::HandleSet> query_for_pattern(const LinkSchema& link_schema) override;
     shared_ptr<atomdb_api_types::HandleList> query_for_targets(const string& handle) override;
 
