@@ -8,11 +8,11 @@ using namespace std;
 namespace atomdb {
 
 /**
- * @brief Caller credentials: public keys keyed by AtomDB UID.
+ * @brief Caller credentials: one public key per AtomDB UID.
  *
- * Keychain is the identity token passed into ProtectedAtomDB.
- * AuthorizationManifest looks up the public key for a given
- * database UID and checks the corresponding AuthorizationProfile.
+ * Holds the map `uid → public_key` that identifies the caller to each
+ * AtomDB. `get_public_key(uid)` returns the key for that database, or
+ * an empty string if the UID is absent or stored as empty.
  */
 class Keychain {
    public:
