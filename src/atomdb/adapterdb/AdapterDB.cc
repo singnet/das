@@ -33,7 +33,7 @@ string AdapterDB::MONGODB_ADAPTER_COLLECTION_NAME = "adapterdb";
 // ==============================
 
 AdapterDB::AdapterDB(const JsonConfig& config, std::shared_ptr<AtomDB> backend)
-    : config(config), atomdb_backend(backend) {
+    : AtomDB(config.at_path("uid").get_or<string>("")), config(config), atomdb_backend(backend) {
     this->initialize(true);
 }
 
