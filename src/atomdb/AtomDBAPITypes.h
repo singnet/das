@@ -2,7 +2,6 @@
 
 #include <algorithm>
 #include <map>
-#include <optional>
 #include <vector>
 
 #include "Link.h"
@@ -93,14 +92,15 @@ class PublicKey {
      * Key this AtomDB should use for access-permission lookup.
      * - Single-key: the one key, regardless of uid.
      * - Per-peer map: the key registered for `uid`, if present.
+     * Returns "" if no key exists for `uid`.
      */
-    optional<string> key_for_uid(const string& uid) const {
+    string key_for_uid(const string& uid) const {
         if (is_single_key()) {
-            if (keys.empty()) return nullopt;
+            if (keys.empty()) return "";
             return keys.front();
         }
         auto it = peer_to_key.find(uid);
-        if (it == peer_to_key.end()) return nullopt;
+        if (it == peer_to_key.end()) return "";
         return keys[it->second];
     }
 

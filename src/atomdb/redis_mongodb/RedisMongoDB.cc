@@ -77,11 +77,11 @@ vector<shared_ptr<atomdb_api_types::AccessPermissionDocument>> RedisMongoDB::get
     vector<shared_ptr<atomdb_api_types::AccessPermissionDocument>> documents;
 
     auto key = public_key.key_for_uid(this->get_uid());
-    if (!key.has_value()) {
+    if (key.empty()) {
         return documents;
     }
 
-    auto document = this->load_access_permission_document(*key);
+    auto document = this->load_access_permission_document(key);
     if (document.has_value()) {
         documents.push_back(*document);
     }

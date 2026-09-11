@@ -1503,18 +1503,15 @@ TEST_F(RedisMongoDBTest, GetAccessPermissionsRejectsInvalidDocument) {
 TEST(PublicKeyTest, KeyForUid) {
     PublicKey single("only_key");
     EXPECT_TRUE(single.is_single_key());
-    ASSERT_TRUE(single.key_for_uid("").has_value());
-    EXPECT_EQ(*single.key_for_uid(""), "only_key");
-    EXPECT_EQ(*single.key_for_uid("ignored"), "only_key");
+    EXPECT_EQ(single.key_for_uid(""), "only_key");
+    EXPECT_EQ(single.key_for_uid("ignored"), "only_key");
 
     PublicKey mapped({{"peer_a", "key_a"}, {"peer_b", "key_b"}});
     EXPECT_FALSE(mapped.is_single_key());
-    ASSERT_TRUE(mapped.key_for_uid("peer_a").has_value());
-    EXPECT_EQ(*mapped.key_for_uid("peer_a"), "key_a");
-    ASSERT_TRUE(mapped.key_for_uid("peer_b").has_value());
-    EXPECT_EQ(*mapped.key_for_uid("peer_b"), "key_b");
-    EXPECT_FALSE(mapped.key_for_uid("peer_c").has_value());
-    EXPECT_FALSE(mapped.key_for_uid("").has_value());
+    EXPECT_EQ(mapped.key_for_uid("peer_a"), "key_a");
+    EXPECT_EQ(mapped.key_for_uid("peer_b"), "key_b");
+    EXPECT_EQ(mapped.key_for_uid("peer_c"), "");
+    EXPECT_EQ(mapped.key_for_uid(""), "");
 }
 
 TEST(MongodbAccessPermissionEntryTest, GetTokensSizeReturnsArrayLength) {
