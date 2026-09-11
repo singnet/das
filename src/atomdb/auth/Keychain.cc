@@ -6,7 +6,7 @@ using namespace atomdb;
 // -------------------------------------------------------------------------------------------------
 // Constructor
 
-Keychain::Keychain(map<Keychain::AtomDB_UID, Keychain::PublicKey> keys) : keys_(keys) {}
+Keychain::Keychain(map<Keychain::AtomDB_UID, Keychain::PublicKey> keys) : keys_(std::move(keys)) {}
 
 // -------------------------------------------------------------------------------------------------
 // Public methods
