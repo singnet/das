@@ -110,6 +110,7 @@ TEST(LinkTemplate, UniqueValueFilteringSetsAssignmentCompatibilityFlag) {
         db->add_link(new Link("Expression", {relation->handle(), a->handle(), a->handle()}));
     string unique_handle =
         db->add_link(new Link("Expression", {relation->handle(), a->handle(), b->handle()}));
+    db->re_index_patterns(true);
 
     auto relation_terminal = make_shared<Terminal>();
     relation_terminal->handle = relation->handle();
