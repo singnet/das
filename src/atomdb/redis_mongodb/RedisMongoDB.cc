@@ -71,36 +71,18 @@ RedisMongoDB::~RedisMongoDB() {
 
 bool RedisMongoDB::allow_nested_indexing() { return false; }
 
-vector<shared_ptr<atomdb_api_types::AccessPermissionDocument>> RedisMongoDB::get_access_permissions(
-    const atomdb_api_types::PublicKey& public_key) const {
-    vector<shared_ptr<atomdb_api_types::AccessPermissionDocument>> documents;
-
-    if (public_key.is_single_key()) {
-        auto document = this->load_access_permission_document(public_key.keys[0]);
-        if (document.has_value()) {
-            documents.push_back(document.value());
-        }
-        return documents;
+shared_ptr<atomdb_api_types::AccessPermissionDocument> RedisMongoDB::get_access_permissions(
+    const string& public_key) const {
+    if (public_key.empty()) {
+        return nullptr;
     }
 
-    for (const auto& [peer_uid, idx] : (public_key.peer_to_key)) {
-        string key = public_key.keys[idx];
-        auto document = this->load_access_permission_document(key);
-        if (document.has_value()) {
-            documents.push_back(document.value());
-        }
-    }
-    return documents;
-}
-
-optional<shared_ptr<atomdb_api_types::AccessPermissionDocument>>
-RedisMongoDB::load_access_permission_document(const string& public_key) const {
     string handle = Hasher::plain_string_hash(public_key);
 
     auto access_permission_doc = this->get_document(handle, MONGODB_ACCESS_PERMISSIONS_COLLECTION_NAME);
 
     if (access_permission_doc == nullptr) {
-        return nullopt;
+        return nullptr;
     }
 
     auto mongodb_doc = dynamic_pointer_cast<atomdb_api_types::MongodbDocument>(access_permission_doc);

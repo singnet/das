@@ -47,12 +47,12 @@ TEST(ProtectedAtomDBTest, DelegatesToBackend) {
     EXPECT_EQ(db.allow_nested_indexing(), backend->allow_nested_indexing());
     EXPECT_EQ(db.composite_type_enabled(), backend->composite_type_enabled());
 
-    PublicKey key("any_key");
+    string key = "any_key";
 
-    EXPECT_EQ(db.get_access_permissions(key).size(), backend->get_access_permissions(key).size());
+    EXPECT_EQ(db.get_access_permissions(key), backend->get_access_permissions(key));
 }
 
-TEST(ProtectedAtomDBTest, RejectsOperationsWithoutPublicKey) {
+TEST(ProtectedAtomDBTest, RejectsOperationsWithoutKeychain) {
     auto db = make_protected_db();
 
     Node node("Symbol", "\"node\"");

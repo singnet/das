@@ -7,6 +7,7 @@
 
 #include "Assignment.h"
 #include "AtomDB.h"
+#include "Keychain.h"
 #include "LinkSchema.h"
 #include "QueryElement.h"
 #include "Source.h"
@@ -77,9 +78,7 @@ class LinkTemplate : public QueryElement {
     bool positive_importance_flag;
     bool disregard_importance_flag;
     bool unique_value_flag;
-    // TODO __AUTH__ change declaration below to
-    // Keychain keychain;
-    map<string, string> keychain;
+    shared_ptr<Keychain> keychain;
     bool inner_flag;
     LinkSchema link_schema;
     shared_ptr<SourceElement> source_element;

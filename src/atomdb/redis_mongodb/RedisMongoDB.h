@@ -10,7 +10,6 @@
 #include <mongocxx/options/find.hpp>
 #include <mongocxx/pool.hpp>
 #include <mutex>
-#include <optional>
 #include <set>
 #include <vector>
 
@@ -34,11 +33,11 @@ class RedisMongoDB : public AtomDB {
     bool allow_nested_indexing() override;
     bool composite_type_enabled() const override { return this->composite_type_enabled_; }
     /**
-     * Looks up access-permission documents in MongoDB for the given public key(s).
-     * Returns an empty vector if no matching documents exist.
+     * Looks up the access-permission document in MongoDB for the given public key.
+     * Returns nullptr if the key is empty or no matching document exists.
      */
-    vector<shared_ptr<atomdb_api_types::AccessPermissionDocument>> get_access_permissions(
-        const atomdb_api_types::PublicKey& public_key) const override;
+    shared_ptr<atomdb_api_types::AccessPermissionDocument> get_access_permissions(
+        const string& public_key) const override;
     atomdb_api_types::ProtectionMode get_protection_mode() const override;
 
     // Redis key prefixes and MongoDB database/collection names are per-instance so two
@@ -160,12 +159,6 @@ class RedisMongoDB : public AtomDB {
 
     shared_ptr<atomdb_api_types::AtomDocument> get_document(const string& handle,
                                                             const string& collection_name) const;
-    /**
-     * @brief Loads and parses one access_permissions Mongo document for the given public key.
-     * @return nullopt when no document exists for that key.
-     */
-    optional<shared_ptr<atomdb_api_types::AccessPermissionDocument>> load_access_permission_document(
-        const string& public_key) const;
 
     vector<shared_ptr<atomdb_api_types::AtomDocument>> get_documents(const vector<string>& handles,
                                                                      const vector<string>& fields,
