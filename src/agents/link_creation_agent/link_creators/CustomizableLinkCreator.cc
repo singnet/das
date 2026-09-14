@@ -1,4 +1,5 @@
 #include "CustomizableLinkCreator.h"
+
 #include "Hasher.h"
 #include "tags.h"
 
@@ -7,11 +8,9 @@ using namespace link_creators;
 // -------------------------------------------------------------------------------------------------
 // Public methods
 
-CustomizableLinkCreator::CustomizableLinkCreator() {
-}
+CustomizableLinkCreator::CustomizableLinkCreator() {}
 
-CustomizableLinkCreator::~CustomizableLinkCreator() {
-}
+CustomizableLinkCreator::~CustomizableLinkCreator() {}
 
 LinkCreationStats CustomizableLinkCreator::create(shared_ptr<QueryAnswer> query_answer) {
     STACK_TRACE();
@@ -34,7 +33,8 @@ LinkCreationStats CustomizableLinkCreator::create(shared_ptr<QueryAnswer> query_
             for (QueryAnswerElement& element : spec.strength_elements) {
                 strength_components.push_back(get_strength(query_answer->get(element)));
             }
-            if (add_or_update_link(handles, compute_strength(strength_components, spec.strength_composition))) {
+            if (add_or_update_link(handles,
+                                   compute_strength(strength_components, spec.strength_composition))) {
                 stats.created++;
             } else {
                 stats.updated++;
@@ -60,15 +60,13 @@ void CustomizableLinkCreator::add_link_specification(const vector<QueryAnswerEle
         RAISE_ERROR("Invalid empty link_type");
     }
 
-    link_specification.emplace_back(target_elements,
-                                    strength_elements,
-                                    strength_composition,
-                                    trimmed_type);
+    link_specification.emplace_back(
+        target_elements, strength_elements, strength_composition, trimmed_type);
 }
 
 void CustomizableLinkCreator::tokenize(vector<string>& tokens) {
     tokens.push_back(std::to_string(this->link_specification.size()));
-    for (LinkSpecification& spec: this->link_specification) {
+    for (LinkSpecification& spec : this->link_specification) {
         tokens.push_back(std::to_string(spec.target_elements.size()));
         for (QueryAnswerElement& element : spec.target_elements) {
             tokens.push_back(element.to_string());
@@ -99,13 +97,16 @@ void CustomizableLinkCreator::untokenize(vector<string>& tokens) {
         string _link_type;
         unsigned int num_elements = Utils::string_to_uint(safe_get_next_token(tokens, cursor));
         for (unsigned int j = 0; j < num_elements; j++) {
-            _target_elements.push_back(QueryAnswerElement::from_string(safe_get_next_token(tokens, cursor)));
+            _target_elements.push_back(
+                QueryAnswerElement::from_string(safe_get_next_token(tokens, cursor)));
         }
         num_elements = Utils::string_to_uint(safe_get_next_token(tokens, cursor));
         for (unsigned int j = 0; j < num_elements; j++) {
-            _strength_elements.push_back(QueryAnswerElement::from_string(safe_get_next_token(tokens, cursor)));
+            _strength_elements.push_back(
+                QueryAnswerElement::from_string(safe_get_next_token(tokens, cursor)));
         }
-        _strength_composition = (StrengthComposition) Utils::string_to_uint(safe_get_next_token(tokens, cursor));
+        _strength_composition =
+            (StrengthComposition) Utils::string_to_uint(safe_get_next_token(tokens, cursor));
         _link_type = safe_get_next_token(tokens, cursor);
         add_link_specification(_target_elements, _strength_elements, _strength_composition, _link_type);
     }
@@ -117,12 +118,13 @@ void CustomizableLinkCreator::untokenize(vector<string>& tokens) {
 // -------------------------------------------------------------------------------------------------
 // Private methods
 
-double CustomizableLinkCreator::compute_strength(const vector<double>& components, StrengthComposition composition) {
+double CustomizableLinkCreator::compute_strength(const vector<double>& components,
+                                                 StrengthComposition composition) {
     double answer = 0.0;
     switch (composition) {
         case PRODUCT:
             answer = 1.0;
-            for (double strength: components) {
+            for (double strength : components) {
                 answer *= strength;
             }
             break;

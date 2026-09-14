@@ -46,7 +46,8 @@ LinkCreationStats AndTwoPredicates::create(shared_ptr<QueryAnswer> query_answer)
                 }
                 if (strength >= strength_threshold()) {
                     string new_predicate_handle = Hasher::link_handle(EXPRESSION, targets);
-                    if (add_or_update_link({EVALUATION_HANDLE, new_predicate_handle, concept_}, strength)) {
+                    if (add_or_update_link({EVALUATION_HANDLE, new_predicate_handle, concept_},
+                                           strength)) {
                         stats.created++;
                     } else {
                         stats.updated++;

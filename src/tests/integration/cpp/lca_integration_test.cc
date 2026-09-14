@@ -1,12 +1,12 @@
 #include "AndTwoPredicates.h"
 #include "AtomDBSingleton.h"
+#include "CustomizableLinkCreator.h"
 #include "JsonConfigParser.h"
 #include "LinkCreationProxy.h"
 #include "LinkCreatorRegistry.h"
-#include "CustomizableLinkCreator.h"
-#include "QueryAnswer.h"
 #include "Logger.h"
 #include "PatternMatchingQueryProxy.h"
+#include "QueryAnswer.h"
 #include "ServiceBusSingleton.h"
 #include "SystemParametersSingleton.h"
 #include "Utils.h"
@@ -21,7 +21,12 @@ using namespace link_creation_agent;
 
 static void insert_type_symbols() {
     STACK_TRACE();
-    vector<string> to_insert = {EQUIVALENCE_TAG, IMPLICATION_TAG, LOGICAL_AND_TAG, "FunctionalTest1", "FunctionalTest2", "FunctionalTest3"};
+    vector<string> to_insert = {EQUIVALENCE_TAG,
+                                IMPLICATION_TAG,
+                                LOGICAL_AND_TAG,
+                                "FunctionalTest1",
+                                "FunctionalTest2",
+                                "FunctionalTest3"};
     Node* node;
     for (string node_name : to_insert) {
         node = new Node(SYMBOL, node_name);
@@ -69,7 +74,10 @@ static void timeout_after_minutes(unsigned int minutes) {
     t.detach();
 }
 
-shared_ptr<LinkCreationProxy> make_proxy(const vector<string>& query_tokens, const string& link_creator, BaseProxy::ORCHESTRATION_SCHEMA_TYPE orchestration = BaseProxy::NONE) {
+shared_ptr<LinkCreationProxy> make_proxy(
+    const vector<string>& query_tokens,
+    const string& link_creator,
+    BaseProxy::ORCHESTRATION_SCHEMA_TYPE orchestration = BaseProxy::NONE) {
     auto proxy = make_shared<LinkCreationProxy>(query_tokens, "", link_creator, orchestration);
     proxy->parameters[LinkCreationProxy::MAX_SUCCESSFUL_CREATION_PER_ROUND] = (unsigned int) 0;
     proxy->parameters[LinkCreationProxy::MAX_UNPRODUCTIVE_VISITS_PER_ROUND] = (unsigned int) 0;
@@ -145,8 +153,14 @@ static bool test_customizable() {
     };
     // clang-format on
     CustomizableLinkCreator link_creator1;
-    link_creator1.add_link_specification({QueryAnswerElement("v1"), QueryAnswerElement("v2")}, {}, CustomizableLinkCreator::PRODUCT, "FunctionalTest1");
-    link_creator1.add_link_specification({QueryAnswerElement("v2"), QueryAnswerElement("v1")}, {}, CustomizableLinkCreator::PRODUCT, "FunctionalTest2");
+    link_creator1.add_link_specification({QueryAnswerElement("v1"), QueryAnswerElement("v2")},
+                                         {},
+                                         CustomizableLinkCreator::PRODUCT,
+                                         "FunctionalTest1");
+    link_creator1.add_link_specification({QueryAnswerElement("v2"), QueryAnswerElement("v1")},
+                                         {},
+                                         CustomizableLinkCreator::PRODUCT,
+                                         "FunctionalTest2");
     tokens.clear();
     link_creator1.tokenize(tokens);
     auto proxy1 = make_proxy(query_tokens1, LinkCreatorRegistry::CUSTOMIZABLE);
@@ -180,7 +194,10 @@ static bool test_customizable() {
     };
     // clang-format on
     CustomizableLinkCreator link_creator2;
-    link_creator2.add_link_specification({QueryAnswerElement("v1"), QueryAnswerElement("v2")}, {}, CustomizableLinkCreator::PRODUCT, "FunctionalTest3");
+    link_creator2.add_link_specification({QueryAnswerElement("v1"), QueryAnswerElement("v2")},
+                                         {},
+                                         CustomizableLinkCreator::PRODUCT,
+                                         "FunctionalTest3");
     tokens.clear();
     link_creator2.tokenize(tokens);
     auto proxy2 = make_proxy(query_tokens2, LinkCreatorRegistry::CUSTOMIZABLE);
@@ -235,7 +252,8 @@ static bool test_cycles() {
     // clang-format on
 
     for (unsigned int i = 0; i < proxy.size(); i++) {
-        proxy[i] = make_proxy(query_tokens, LinkCreatorRegistry::AND_TWO_PREDICATES, BaseProxy::SYNC_ON_CYCLE_START);
+        proxy[i] = make_proxy(
+            query_tokens, LinkCreatorRegistry::AND_TWO_PREDICATES, BaseProxy::SYNC_ON_CYCLE_START);
         proxy[i]->parameters[LinkCreationProxy::MAX_SUCCESSFUL_CREATION_PER_ROUND] =
             (unsigned int) creations_per_cycle[i];
         proxy[i]->parameters[LinkCreationProxy::MAX_ROUNDS] = (unsigned int) num_cycles[i];

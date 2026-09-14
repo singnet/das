@@ -1,5 +1,6 @@
 #pragma once
 #include <vector>
+
 #include "LinkCreator.h"
 
 using namespace std;
@@ -10,9 +11,7 @@ namespace link_creators {
  *
  */
 class CustomizableLinkCreator : public LinkCreator {
-
-public:
-
+   public:
     enum StrengthComposition { UNDEFINED = 0, PRODUCT };
 
     CustomizableLinkCreator();
@@ -21,11 +20,9 @@ public:
     LinkCreationStats create(shared_ptr<QueryAnswer> query_answer);
     virtual void extra_parameters(const string& extra_parameters);
 
-
-private:
-
+   private:
     class LinkSpecification {
-        public:
+       public:
         LinkSpecification() = default;
         LinkSpecification(const vector<QueryAnswerElement>& target_elements,
                           const vector<QueryAnswerElement>& strength_elements,
@@ -46,8 +43,7 @@ private:
 
     double compute_strength(const vector<double>& components, StrengthComposition composition);
 
-public:
-
+   public:
     void tokenize(vector<string>& tokens);
     void untokenize(vector<string>& tokens);
     void add_link_specification(const vector<QueryAnswerElement>& target_elements,
@@ -56,4 +52,4 @@ public:
                                 const string& link_type);
 };
 
-} // namespace link_creators
+}  // namespace link_creators

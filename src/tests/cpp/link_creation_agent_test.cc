@@ -1,17 +1,17 @@
 #include <cmath>
 
+#include "AndTwoPredicates.h"
+#include "CustomizableLinkCreator.h"
 #include "InMemoryDB.h"
 #include "LinkCreationProcessor.h"
 #include "LinkCreationProxy.h"
 #include "LinkCreatorRegistry.h"
-#include "AndTwoPredicates.h"
-#include "CustomizableLinkCreator.h"
-#include "UnitTestLinkCreator.h"
 #include "Logger.h"
 #include "ServiceBus.h"
 #include "ServiceBusSingleton.h"
 #include "TestAtomDBJsonConfig.h"
 #include "TestSystemParams.h"
+#include "UnitTestLinkCreator.h"
 #include "Utils.h"
 #include "gtest/gtest.h"
 
@@ -62,9 +62,12 @@ TEST(LinkCreation, proxy_object) {
 }
 
 TEST(LinkCreation, link_creator_registry) {
-    ASSERT_TRUE(dynamic_pointer_cast<UnitTestLinkCreator>(LinkCreatorRegistry::function(LinkCreatorRegistry::UNIT_TEST)) != nullptr);
-    ASSERT_TRUE(dynamic_pointer_cast<CustomizableLinkCreator>(LinkCreatorRegistry::function(LinkCreatorRegistry::CUSTOMIZABLE)) != nullptr);
-    ASSERT_TRUE(dynamic_pointer_cast<AndTwoPredicates>(LinkCreatorRegistry::function(LinkCreatorRegistry::AND_TWO_PREDICATES)) != nullptr);
+    ASSERT_TRUE(dynamic_pointer_cast<UnitTestLinkCreator>(
+                    LinkCreatorRegistry::function(LinkCreatorRegistry::UNIT_TEST)) != nullptr);
+    ASSERT_TRUE(dynamic_pointer_cast<CustomizableLinkCreator>(
+                    LinkCreatorRegistry::function(LinkCreatorRegistry::CUSTOMIZABLE)) != nullptr);
+    ASSERT_TRUE(dynamic_pointer_cast<AndTwoPredicates>(
+                    LinkCreatorRegistry::function(LinkCreatorRegistry::AND_TWO_PREDICATES)) != nullptr);
 }
 
 TEST(LinkCreation, customizable_tokenization) {
@@ -74,32 +77,24 @@ TEST(LinkCreation, customizable_tokenization) {
     unsigned int count = 0;
 
     original.emplace_back();
-    original[count++].add_link_specification(
-        {QueryAnswerElement(1), QueryAnswerElement(2)},
-        {QueryAnswerElement("v1"), QueryAnswerElement("v2")},
-        CustomizableLinkCreator::PRODUCT,
-        " type0 ");
+    original[count++].add_link_specification({QueryAnswerElement(1), QueryAnswerElement(2)},
+                                             {QueryAnswerElement("v1"), QueryAnswerElement("v2")},
+                                             CustomizableLinkCreator::PRODUCT,
+                                             " type0 ");
+
+    original.emplace_back();
+    original[count++].add_link_specification({QueryAnswerElement(1)},
+                                             {QueryAnswerElement("v1"), QueryAnswerElement("v2")},
+                                             CustomizableLinkCreator::PRODUCT,
+                                             "type0");
 
     original.emplace_back();
     original[count++].add_link_specification(
-        {QueryAnswerElement(1)},
-        {QueryAnswerElement("v1"), QueryAnswerElement("v2")},
-        CustomizableLinkCreator::PRODUCT,
-        "type0");
+        {QueryAnswerElement(1), QueryAnswerElement(2)}, {}, CustomizableLinkCreator::PRODUCT, "type0");
 
     original.emplace_back();
     original[count++].add_link_specification(
-        {QueryAnswerElement(1), QueryAnswerElement(2)},
-        {},
-        CustomizableLinkCreator::PRODUCT,
-        "type0");
-
-    original.emplace_back();
-    original[count++].add_link_specification(
-        {},
-        {},
-        (CustomizableLinkCreator::StrengthComposition) 0,
-        "blah");
+        {}, {}, (CustomizableLinkCreator::StrengthComposition) 0, "blah");
 
     vector<string> tokens1, tokens2, tokens3;
     for (unsigned int i = 0; i < count; i++) {
@@ -122,9 +117,15 @@ TEST(LinkCreation, customizable_tokenization) {
     }
 
     original.emplace_back();
-    EXPECT_THROW(original[count++].add_link_specification({}, {}, (CustomizableLinkCreator::StrengthComposition) 0, ""), runtime_error);
-    EXPECT_THROW(original[count++].add_link_specification({}, {}, (CustomizableLinkCreator::StrengthComposition) 0, " "), runtime_error);
-    EXPECT_THROW(original[count++].add_link_specification({}, {}, (CustomizableLinkCreator::StrengthComposition) 0, "  "), runtime_error);
+    EXPECT_THROW(original[count++].add_link_specification(
+                     {}, {}, (CustomizableLinkCreator::StrengthComposition) 0, ""),
+                 runtime_error);
+    EXPECT_THROW(original[count++].add_link_specification(
+                     {}, {}, (CustomizableLinkCreator::StrengthComposition) 0, " "),
+                 runtime_error);
+    EXPECT_THROW(original[count++].add_link_specification(
+                     {}, {}, (CustomizableLinkCreator::StrengthComposition) 0, "  "),
+                 runtime_error);
 }
 
 int main(int argc, char** argv) {
