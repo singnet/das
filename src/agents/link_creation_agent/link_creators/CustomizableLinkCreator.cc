@@ -56,8 +56,8 @@ void CustomizableLinkCreator::add_link_specification(const vector<QueryAnswerEle
                                                      StrengthComposition strength_composition,
                                                      const string& link_type) {
     string trimmed_type = Utils::trim(link_type);
-    if (trimmed_type == "") {
-        RAISE_ERROR("Invalid empty link_type");
+    if ((trimmed_type == "") || (trimmed_type.find(' ') != std::string::npos)) {
+        RAISE_ERROR("Invalid link_type: " + link_type);
     }
 
     link_specification.emplace_back(
