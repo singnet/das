@@ -15,6 +15,7 @@ ProtectedAtomDB::ProtectedAtomDB(shared_ptr<AtomDB> backend) : backend(backend) 
     if (this->backend == nullptr) {
         RAISE_ERROR("ProtectedAtomDB requires a non-null backend AtomDB");
     }
+    this->uid_ = this->backend->get_uid();
     this->manifest = make_shared<AuthorizationManifest>(backend);
     LOG_INFO("ProtectedAtomDB initialized");
 }
@@ -175,8 +176,6 @@ size_t ProtectedAtomDB::link_count(const atomdb_api_types::PublicKey& public_key
 size_t ProtectedAtomDB::atom_count(const atomdb_api_types::PublicKey& public_key) const {
     RAISE_ERROR("ProtectedAtomDB::atom_count(public_key) is not implemented yet");
 }
-
-bool ProtectedAtomDB::allow_nested_indexing() { return this->backend->allow_nested_indexing(); }
 
 bool ProtectedAtomDB::composite_type_enabled() const { return this->backend->composite_type_enabled(); }
 

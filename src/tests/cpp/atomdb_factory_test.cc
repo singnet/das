@@ -29,15 +29,19 @@ namespace {
 JsonConfig config_with_type(const string& type) {
     JsonConfig config;
     config["type"] = type;
+    config["uid"] = "test";
     return config;
 }
 
 JsonConfig remotedb_config_with_inmemory_peers() {
     nlohmann::json json;
     json["type"] = "remotedb";
+    json["uid"] = "federation";
     json["remote_peers"] = nlohmann::json::array(
         {{{"uid", "peer1"}, {"type", "inmemorydb"}},
-         {{"uid", "peer2"}, {"type", "inmemorydb"}, {"local_persistence", {{"type", "inmemorydb"}}}}});
+         {{"uid", "peer2"},
+          {"type", "inmemorydb"},
+          {"local_persistence", {{"uid", "peer2_local"}, {"type", "inmemorydb"}}}}});
     return JsonConfig(json);
 }
 
@@ -47,18 +51,45 @@ TEST(AtomDBFactoryTest, CreateInMemoryDB) {
     auto db = AtomDBFactory::create(config_with_type("inmemorydb"));
     ASSERT_NE(db, nullptr);
     EXPECT_NE(dynamic_pointer_cast<InMemoryDB>(db), nullptr);
+    EXPECT_EQ(db->get_uid(), "test");
+}
+
+TEST(AtomDBFactoryTest, CreateInMemoryDBReadsUid) {
+    JsonConfig config;
+    config["type"] = "inmemorydb";
+    config["uid"] = "mem1";
+    auto db = AtomDBFactory::create(config);
+    ASSERT_NE(db, nullptr);
+    EXPECT_EQ(db->get_uid(), "mem1");
 }
 
 TEST(AtomDBFactoryTest, CreateMorkDB) {
-    auto db = AtomDBFactory::create(test_atomdb_json_config("morkdb", "atomdb_factory_test_"));
+    auto db =
+        AtomDBFactory::create(test_atomdb_json_config("morkdb", "atomdb_factory_test_", "mork_factory"));
     ASSERT_NE(db, nullptr);
     EXPECT_NE(dynamic_pointer_cast<MorkDB>(db), nullptr);
+    EXPECT_EQ(db->get_uid(), "mork_factory");
 }
 
 TEST(AtomDBFactoryTest, CreateRejectsMissingAndUnknownTypes) {
     EXPECT_THROW(AtomDBFactory::create(JsonConfig()), runtime_error);
     EXPECT_THROW(AtomDBFactory::create(config_with_type("")), runtime_error);
     EXPECT_THROW(AtomDBFactory::create(config_with_type("unknown")), runtime_error);
+}
+
+TEST(AtomDBFactoryTest, CreateRejectsMissingUid) {
+    JsonConfig config;
+    config["type"] = "inmemorydb";
+    EXPECT_THROW(AtomDBFactory::create(config), runtime_error);
+}
+
+TEST(AtomDBFactoryTest, CreateAllowsEmptyUid) {
+    JsonConfig config;
+    config["type"] = "inmemorydb";
+    config["uid"] = "";
+    auto db = AtomDBFactory::create(config);
+    ASSERT_NE(db, nullptr);
+    EXPECT_EQ(db->get_uid(), "");
 }
 
 TEST(AtomDBFactoryTest, CreateRemoteAtomDBAssemblesPeers) {
@@ -75,11 +106,16 @@ TEST(AtomDBFactoryTest, CreateRemoteAtomDBAssemblesPeers) {
     // peer1 has no local_persistence; peer2 does.
     EXPECT_TRUE(peers.at("peer1")->is_readonly());
     EXPECT_FALSE(peers.at("peer2")->is_readonly());
+    EXPECT_EQ(db->get_uid(), "federation");
+    EXPECT_EQ(peers.at("peer1")->get_uid(), "peer1");
+    EXPECT_EQ(peers.at("peer1")->get_remote_atomdb()->get_uid(), "peer1");
+    EXPECT_EQ(peers.at("peer2")->get_uid(), "peer2");
 }
 
 TEST(AtomDBFactoryTest, CreateRemoteAtomDBWithEmptyPeers) {
     JsonConfig config;
     config["type"] = "remotedb";
+    config["uid"] = "federation";
     config["remote_peers"] = nlohmann::json::array();
 
     auto db = AtomDBFactory::create(config);
@@ -93,18 +129,44 @@ TEST(AtomDBFactoryTest, CreateRemoteAtomDBWithEmptyPeers) {
 TEST(AtomDBFactoryTest, CreateRemoteAtomDBRejectsPeerWithoutUid) {
     nlohmann::json json;
     json["type"] = "remotedb";
+    json["uid"] = "federation";
     json["remote_peers"] =
         nlohmann::json::array({{{"type", "inmemorydb"}}, {{"uid", "peer_ok"}, {"type", "inmemorydb"}}});
 
     EXPECT_THROW(AtomDBFactory::create(JsonConfig(json)), runtime_error);
 }
 
+TEST(AtomDBFactoryTest, CreateRemoteAtomDBRejectsLocalPersistenceWithoutUid) {
+    nlohmann::json json;
+    json["type"] = "remotedb";
+    json["uid"] = "federation";
+    json["remote_peers"] = nlohmann::json::array(
+        {{{"uid", "peer2"}, {"type", "inmemorydb"}, {"local_persistence", {{"type", "inmemorydb"}}}}});
+
+    EXPECT_THROW(AtomDBFactory::create(JsonConfig(json)), runtime_error);
+}
+
+TEST(AtomDBFactoryTest, CreateRemoteAtomDBAllowsEmptyPeerUid) {
+    nlohmann::json json;
+    json["type"] = "remotedb";
+    json["uid"] = "";
+    json["remote_peers"] = nlohmann::json::array({{{"uid", ""}, {"type", "inmemorydb"}}});
+
+    auto db = AtomDBFactory::create(JsonConfig(json));
+    auto remote_db = dynamic_pointer_cast<RemoteAtomDB>(db);
+    ASSERT_NE(remote_db, nullptr);
+    EXPECT_EQ(db->get_uid(), "");
+    ASSERT_NE(remote_db->get_peer(""), nullptr);
+    EXPECT_EQ(remote_db->get_peer("")->get_uid(), "");
+}
+
 TEST(AtomDBFactoryTest, CreateAdapterDBRequiresBackendType) {
     JsonConfig missing_backend;
     missing_backend["type"] = "adapterdb";
+    missing_backend["uid"] = "adapter_factory";
     missing_backend["adapterdb"] = nlohmann::json::object();
 
-    // Missing adapterdb.atomdb_backend.type makes create_basic_atomdb fail via AtomDB::string_to_type.
+    // Missing adapterdb.atomdb_backend (and its nonempty uid) is rejected before construction.
     EXPECT_THROW(AtomDBFactory::create(missing_backend), runtime_error);
 
     // Valid adapterdb.atomdb_backend: factory constructs AdapterDB and delegates AtomDB ops.
@@ -130,13 +192,15 @@ TEST(AtomDBFactoryTest, CreateAdapterDBRequiresBackendType) {
 
     nlohmann::json json;
     json["type"] = "adapterdb";
+    json["uid"] = "adapter_factory";
     json["adapterdb"] = {
         {"type", "mork"},
         {"context_mapping_paths", nlohmann::json::array({mapping_path})},
         {"database_credentials", {{"host", "localhost"}, {"port", 40032}}},
         {"persistence", {{"reuse_mongodb", true}}},
         {"export_metta_on_mapping", {{"enabled", false}, {"output_dir", "/tmp"}}},
-        {"atomdb_backend", test_atomdb_json_config("morkdb", "atomdb_factory_test_").get_json()},
+        {"atomdb_backend",
+         test_atomdb_json_config("morkdb", "atomdb_factory_test_", "adapter_backend").get_json()},
     };
 
     auto db = AtomDBFactory::create(JsonConfig(json));
@@ -144,6 +208,7 @@ TEST(AtomDBFactoryTest, CreateAdapterDBRequiresBackendType) {
 
     auto adapter_db = dynamic_pointer_cast<AdapterDB>(db);
     ASSERT_NE(adapter_db, nullptr);
+    EXPECT_EQ(adapter_db->get_uid(), "adapter_factory");
 
     Node node("Symbol", "FactoryAdapterDBDelegationNode");
     string handle = adapter_db->add_node(&node);
@@ -152,6 +217,18 @@ TEST(AtomDBFactoryTest, CreateAdapterDBRequiresBackendType) {
     ASSERT_NE(adapter_db->get_node(handle), nullptr);
 
     remove(mapping_path.c_str());
+}
+
+TEST(AtomDBFactoryTest, CreateAdapterDBRejectsBackendWithoutUid) {
+    nlohmann::json json;
+    json["type"] = "adapterdb";
+    json["uid"] = "adapter_factory";
+    json["adapterdb"] = {{"atomdb_backend", {{"type", "inmemorydb"}}}};
+
+    EXPECT_THROW(AtomDBFactory::create(JsonConfig(json)), runtime_error);
+
+    json["adapterdb"]["atomdb_backend"]["uid"] = "";
+    EXPECT_THROW(AtomDBFactory::create(JsonConfig(json)), runtime_error);
 }
 
 TEST(AtomDBFactoryTest, CreateInMemoryDBIsNotProtected) {
