@@ -19,7 +19,7 @@ class Keychain {
     using AtomDB_UID = string;
     using PublicKey = string;
 
-    explicit Keychain(map<AtomDB_UID, PublicKey> keys);
+    explicit Keychain(const map<AtomDB_UID, PublicKey>& keys);
     ~Keychain() = default;
 
     /**
