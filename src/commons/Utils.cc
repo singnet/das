@@ -166,7 +166,7 @@ pair<size_t, size_t> Utils::parse_ports_range(const string& str, char delimiter)
     return make_pair(start_port, end_port);
 }
 
-string Utils::join(const vector<string>& tokens, char delimiter) {
+string Utils::join(const vector<string>& tokens, const string& delimiter) {
     string result;
     for (size_t i = 0; i < tokens.size(); i++) {
         if (i > 0) {
@@ -175,6 +175,10 @@ string Utils::join(const vector<string>& tokens, char delimiter) {
         result += tokens[i];
     }
     return result;
+}
+
+string Utils::join(const vector<string>& tokens, char delimiter) {
+    return join(tokens, string(1, delimiter));
 }
 
 bool Utils::is_number(const string& s) {

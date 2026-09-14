@@ -112,6 +112,28 @@ TEST(LocalFileTestSuite, flip_coin) {
     EXPECT_THROW(Utils::flip_coin(-0.5), runtime_error);
 }
 
+TEST(LocalFileTestSuite, join) {
+    vector<string> v1 = {};
+    vector<string> v2 = {"1"};
+    vector<string> v3 = {"1", "2"};
+    vector<string> v4 = {"1", "2", "3"};
+
+    ASSERT_EQ(Utils::join(v1), "");
+    ASSERT_EQ(Utils::join(v2), "1");
+    ASSERT_EQ(Utils::join(v3), "1 2");
+    ASSERT_EQ(Utils::join(v4), "1 2 3");
+
+    ASSERT_EQ(Utils::join(v1, '-'), "");
+    ASSERT_EQ(Utils::join(v2, '-'), "1");
+    ASSERT_EQ(Utils::join(v3, '-'), "1-2");
+    ASSERT_EQ(Utils::join(v4, '-'), "1-2-3");
+
+    ASSERT_EQ(Utils::join(v1, ", "), "");
+    ASSERT_EQ(Utils::join(v2, ", "), "1");
+    ASSERT_EQ(Utils::join(v3, ", "), "1, 2");
+    ASSERT_EQ(Utils::join(v4, ", "), "1, 2, 3");
+}
+
 TEST(LocalFileTestSuite, uint_rand) {
     for (pair<unsigned int, unsigned int> p : vector<pair<unsigned int, unsigned int>>(
              {{0, 1}, {0, 2}, {0, 3}, {2, 3}, {2, 4}, {2, 5}, {105, 1200}})) {
