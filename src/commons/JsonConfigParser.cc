@@ -18,8 +18,14 @@ namespace commons {
 namespace {
 
 const vector<string> required_fields_by_version() {
-    static const vector<string> required = {
-        "atomdb", "atomdb.type", "loaders", "agents", "vault", "vault.type", "vault.endpoint"};
+    static const vector<string> required = {"atomdb",
+                                            "atomdb.uid",
+                                            "atomdb.type",
+                                            "loaders",
+                                            "agents",
+                                            "vault",
+                                            "vault.type",
+                                            "vault.endpoint"};
     return required;
 }
 

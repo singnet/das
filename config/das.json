@@ -1,5 +1,6 @@
 {
     "atomdb": {
+        "uid": "local",
         "type": "redismongodb",
         "composite_type_enabled": true,
         "redis": {
@@ -51,6 +52,7 @@
                 "reuse_mongodb": true
             },
             "atomdb_backend": {
+                "uid": "local",
                 "type": "morkdb",
                 "composite_type_enabled": true,
                 "mongodb": {
@@ -113,6 +115,7 @@
                 "uid": "peer3",
                 "type": "inmemorydb",
                 "local_persistence": {
+                    "uid": "peer3_local",
                     "type": "redismongodb",
                     "composite_type_enabled": false,
                     "mongodb": {

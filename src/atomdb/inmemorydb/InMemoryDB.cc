@@ -149,9 +149,10 @@ shared_ptr<InMemoryDB::Tries> InMemoryDB::make_tries() {
 
 InMemoryDB::InMemoryDB() : tries_(make_tries()) {}
 
-InMemoryDB::~InMemoryDB() = default;
+InMemoryDB::InMemoryDB(const JsonConfig& config)
+    : AtomDB(config.at_path("uid").get_or<string>("")), tries_(make_tries()) {}
 
-bool InMemoryDB::allow_nested_indexing() { return false; }
+InMemoryDB::~InMemoryDB() = default;
 
 // ---------------------------------------------------------------------------
 // Reads — no write_mutex_; trie snapshots + HandleTrie's per-node locking
@@ -179,9 +180,13 @@ shared_ptr<Link> InMemoryDB::get_link(const string& handle) {
 shared_ptr<HandleSet> InMemoryDB::query_for_pattern(const LinkSchema& link_schema) {
     auto handle_set = make_shared<HandleSetInMemory>();
     auto handles = lookup_handle_set(*load_tries()->patterns, link_schema.handle());
+    Assignment assignment;
     if (handles != nullptr) {
         for (const auto& handle : *handles) {
-            handle_set->add_handle(handle);
+            assignment.clear();
+            if (((LinkSchema&) link_schema).match(handle, assignment, *this)) {
+                handle_set->add_handle(handle, {}, assignment);
+            }
         }
     }
     return handle_set;

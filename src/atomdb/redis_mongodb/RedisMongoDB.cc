@@ -50,7 +50,8 @@ void RedisMongoDB::initialize_namespace(const string& prefix) {
 }
 
 RedisMongoDB::RedisMongoDB(const JsonConfig& config)
-    : skip_redis_(config.at_path("type").get_or<string>("") != "redismongodb"),
+    : AtomDB(config.at_path("uid").get_or<string>("")),
+      skip_redis_(config.at_path("type").get_or<string>("") != "redismongodb"),
       composite_type_enabled_(config.at_path("composite_type_enabled").get_or<bool>(true)),
       cluster_flag(false),
       protection_mode(atomdb_api_types::ProtectionMode::PROTECTED) {
@@ -69,26 +70,18 @@ RedisMongoDB::~RedisMongoDB() {
     if (!skip_redis_) delete this->redis_pool;
 }
 
-bool RedisMongoDB::allow_nested_indexing() { return false; }
-
 vector<shared_ptr<atomdb_api_types::AccessPermissionDocument>> RedisMongoDB::get_access_permissions(
     const atomdb_api_types::PublicKey& public_key) const {
     vector<shared_ptr<atomdb_api_types::AccessPermissionDocument>> documents;
 
-    if (public_key.is_single_key()) {
-        auto document = this->load_access_permission_document(public_key.keys[0]);
-        if (document.has_value()) {
-            documents.push_back(document.value());
-        }
+    auto key = public_key.key_for_uid(this->get_uid());
+    if (key.empty()) {
         return documents;
     }
 
-    for (const auto& [peer_uid, idx] : (public_key.peer_to_key)) {
-        string key = public_key.keys[idx];
-        auto document = this->load_access_permission_document(key);
-        if (document.has_value()) {
-            documents.push_back(document.value());
-        }
+    auto document = this->load_access_permission_document(key);
+    if (document.has_value()) {
+        documents.push_back(*document);
     }
     return documents;
 }
@@ -224,6 +217,8 @@ shared_ptr<atomdb_api_types::HandleSet> RedisMongoDB::query_for_pattern(const Li
     auto ctx = this->redis_pool->acquire();
 
     auto handle_set = make_shared<atomdb_api_types::HandleSetRedis>();
+    handle_set->link_schema = make_shared<LinkSchema>(link_schema);
+    handle_set->decoder = this;
 
     while (redis_has_more) {
         command = ("ZRANGE " + REDIS_PATTERNS_PREFIX + ":" + pattern_handle + " " +

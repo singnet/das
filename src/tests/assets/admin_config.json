@@ -1,0 +1,9 @@
+{
+    "mongodb": {
+        "endpoint": "localhost:40021",
+        "username": "admin",
+        "password": "admin",
+        "database_name": "das",
+        "collection_name": "access_permissions"
+    }
+}

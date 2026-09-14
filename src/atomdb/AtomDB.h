@@ -22,7 +22,15 @@ enum class AtomDBType { RedisMongoDB, MorkDB, InMemoryDB, RemoteAtomDB, AdapterD
 class AtomDB : public HandleDecoder {
    public:
     AtomDB() = default;
+    explicit AtomDB(const string& uid) : uid_(uid) {}
     virtual ~AtomDB() = default;
+
+    /**
+     * Identifier for this AtomDB instance (from JsonConfig["uid"]).
+     * The config key is required; the value may be empty. The default
+     * constructor also leaves it empty (internal InMemoryDB caches).
+     */
+    const string& get_uid() const { return uid_; }
 
     static AtomDBType string_to_type(const string& type) {
         if (type == "redismongodb") return AtomDBType::RedisMongoDB;
@@ -50,7 +58,6 @@ class AtomDB : public HandleDecoder {
         }
     }
 
-    virtual bool allow_nested_indexing() = 0;
     virtual bool composite_type_enabled() const = 0;
     virtual atomdb_api_types::ProtectionMode get_protection_mode() const = 0;
 
@@ -119,6 +126,9 @@ class AtomDB : public HandleDecoder {
         const atomdb_api_types::PublicKey& public_key) const {
         return {};
     }
+
+   protected:
+    string uid_;
 };
 
 }  // namespace atomdb

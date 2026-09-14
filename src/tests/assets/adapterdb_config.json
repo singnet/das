@@ -1,6 +1,7 @@
 {
     "schema_version": "1.0",
     "atomdb": {
+        "uid": "adapter",
         "type": "adapterdb",
         "adapterdb": {
             "endpoint": "localhost:40023",
@@ -19,6 +20,7 @@
                 "reuse_mongodb": true
             },
             "atomdb_backend": {
+                "uid": "adapter",
                 "type": "morkdb",
                 "composite_type_enabled": true,
                 "mongodb": {
@@ -56,6 +58,7 @@
                     "cluster": false
                 },
                 "local_persistence": {
+                    "uid": "peer1",
                     "type": "morkdb",
                     "prefix": "remotedb_test_peer1_local_",
                     "composite_type_enabled": true,
@@ -73,6 +76,7 @@
                 "uid": "peer2",
                 "type": "inmemorydb",
                 "local_persistence": {
+                    "uid": "peer2",
                     "type": "inmemorydb"
                 }
             }
