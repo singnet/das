@@ -1415,6 +1415,27 @@ TEST_F(RedisMongoDBTest, GetAccessPermissionsEmptyCollection) {
     EXPECT_EQ(permissions, nullptr);
 }
 
+TEST_F(RedisMongoDBTest, GetAccessPermissionsEmptyPublicKeyReturnsNullptr) {
+    using bsoncxx::builder::basic::kvp;
+    using bsoncxx::builder::basic::make_array;
+    using bsoncxx::builder::basic::make_document;
+
+    auto pool = db->get_mongo_pool();
+    auto conn = pool->acquire();
+    auto collection = (*conn)[db->MONGODB_DB_NAME][db->MONGODB_ACCESS_PERMISSIONS_COLLECTION_NAME];
+    collection.delete_many({});
+
+    string empty_key_id = Hasher::plain_string_hash("");
+    collection.insert_one(make_document(kvp("_id", empty_key_id),
+                                        kvp("public_key", ""),
+                                        kvp("full_access", true),
+                                        kvp("allowed_schemas", make_array())));
+
+    EXPECT_EQ(db->get_access_permissions(""), nullptr);
+
+    collection.delete_many({});
+}
+
 TEST_F(RedisMongoDBTest, GetAccessPermissionsReturnsStoredDocument) {
     using bsoncxx::builder::basic::kvp;
     using bsoncxx::builder::basic::make_array;
