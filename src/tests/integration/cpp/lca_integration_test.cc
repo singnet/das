@@ -3,6 +3,8 @@
 #include "JsonConfigParser.h"
 #include "LinkCreationProxy.h"
 #include "LinkCreatorRegistry.h"
+#include "CustomizableLinkCreator.h"
+#include "QueryAnswer.h"
 #include "Logger.h"
 #include "PatternMatchingQueryProxy.h"
 #include "ServiceBusSingleton.h"
@@ -19,7 +21,7 @@ using namespace link_creation_agent;
 
 static void insert_type_symbols() {
     STACK_TRACE();
-    vector<string> to_insert = {EQUIVALENCE_TAG, IMPLICATION_TAG, LOGICAL_AND_TAG};
+    vector<string> to_insert = {EQUIVALENCE_TAG, IMPLICATION_TAG, LOGICAL_AND_TAG, "FunctionalTest1", "FunctionalTest2", "FunctionalTest3"};
     Node* node;
     for (string node_name : to_insert) {
         node = new Node(SYMBOL, node_name);
@@ -67,17 +69,8 @@ static void timeout_after_minutes(unsigned int minutes) {
     t.detach();
 }
 
-shared_ptr<LinkCreationProxy> make_proxy(
-    BaseProxy::ORCHESTRATION_SCHEMA_TYPE orchestration = BaseProxy::NONE) {
-    vector<string> query_tokens = {
-        AND_OPERATOR, "2",     LINK_TEMPLATE,  EXPRESSION, "3",
-        NODE,         SYMBOL,  EVALUATION_TAG, VARIABLE,   PREDICATE1,
-        VARIABLE,     CONCEPT, LINK_TEMPLATE,  EXPRESSION, "3",
-        NODE,         SYMBOL,  EVALUATION_TAG, VARIABLE,   PREDICATE2,
-        VARIABLE,     CONCEPT,
-    };
-    auto proxy = make_shared<LinkCreationProxy>(
-        query_tokens, "", LinkCreatorRegistry::AND_TWO_PREDICATES, orchestration);
+shared_ptr<LinkCreationProxy> make_proxy(const vector<string>& query_tokens, const string& link_creator, BaseProxy::ORCHESTRATION_SCHEMA_TYPE orchestration = BaseProxy::NONE) {
+    auto proxy = make_shared<LinkCreationProxy>(query_tokens, "", link_creator, orchestration);
     proxy->parameters[LinkCreationProxy::MAX_SUCCESSFUL_CREATION_PER_ROUND] = (unsigned int) 0;
     proxy->parameters[LinkCreationProxy::MAX_UNPRODUCTIVE_VISITS_PER_ROUND] = (unsigned int) 0;
     proxy->parameters[LinkCreationProxy::MAX_VISIT_ATTEMPTS_PER_ROUND] = (unsigned int) 0;
@@ -97,7 +90,20 @@ static bool test_and_two_predicates() {
 
     string test_case = start_test_case("test_and_two_predicates()");
     bool success = true;
-    auto proxy = make_proxy();
+    // clang-format off
+    vector<string> query_tokens = {
+        AND_OPERATOR, "2",
+            LINK_TEMPLATE, EXPRESSION, "3",
+                NODE, SYMBOL, EVALUATION_TAG,
+                VARIABLE, PREDICATE1,
+                VARIABLE, CONCEPT,
+            LINK_TEMPLATE, EXPRESSION, "3",
+                NODE, SYMBOL, EVALUATION_TAG,
+                VARIABLE, PREDICATE2,
+                VARIABLE, CONCEPT
+    };
+    // clang-format on
+    auto proxy = make_proxy(query_tokens, LinkCreatorRegistry::AND_TWO_PREDICATES);
     ServiceBusSingleton::get_instance()->issue_bus_command(proxy);
 
     while (true) {
@@ -111,6 +117,90 @@ static bool test_and_two_predicates() {
     }
     success &= assert_equal(proxy->get_count(), 10530, "link creation count");
     AtomDBSingleton::get_instance()->delete_atoms(proxy->get_built_atoms());
+
+    finish_test_case(test_case, success);
+    return success;
+}
+
+static bool test_customizable() {
+    string test_case = start_test_case("test_customizable()");
+    bool success = true;
+    vector<string> tokens;
+
+    // clang-format off
+    vector<string> query_tokens1 = {
+        AND_OPERATOR, "2",
+            LINK_TEMPLATE, EXPRESSION, "3",
+                NODE, SYMBOL, EVALUATION_TAG,
+                LINK, EXPRESSION, "2",
+                    NODE, SYMBOL, PREDICATE_TAG,
+                    NODE, SYMBOL, "\"contains_bbb\"",
+                VARIABLE, "v1",
+            LINK_TEMPLATE, EXPRESSION, "3",
+                NODE, SYMBOL, EVALUATION_TAG,
+                LINK, EXPRESSION, "2",
+                    NODE, SYMBOL, PREDICATE_TAG,
+                    NODE, SYMBOL, "\"contains_ccc\"",
+                VARIABLE, "v2",
+    };
+    // clang-format on
+    CustomizableLinkCreator link_creator1;
+    link_creator1.add_link_specification({QueryAnswerElement("v1"), QueryAnswerElement("v2")}, {}, CustomizableLinkCreator::PRODUCT, "FunctionalTest1");
+    link_creator1.add_link_specification({QueryAnswerElement("v2"), QueryAnswerElement("v1")}, {}, CustomizableLinkCreator::PRODUCT, "FunctionalTest2");
+    tokens.clear();
+    link_creator1.tokenize(tokens);
+    auto proxy1 = make_proxy(query_tokens1, LinkCreatorRegistry::CUSTOMIZABLE);
+    proxy1->parameters[LinkCreationProxy::LINK_CREATOR_EXTRA_PARAMETERS] = (string) Utils::join(tokens);
+    proxy1->parameters[LinkCreationProxy::MAX_SUCCESSFUL_CREATION_PER_ROUND] = (unsigned int) 200;
+
+    ServiceBusSingleton::get_instance()->issue_bus_command(proxy1);
+
+    while (true) {
+        if (proxy1->finished()) {
+            break;
+        }
+        shared_ptr<QueryAnswer> answer = proxy1->pop();
+        if (answer == nullptr) {
+            Utils::sleep();
+        }
+    }
+    success &= assert_equal(proxy1->get_count(), 200, "link creation count");
+
+    // clang-format off
+    vector<string> query_tokens2 = {
+        AND_OPERATOR, "2",
+            LINK_TEMPLATE, EXPRESSION, "3",
+                NODE, SYMBOL, "FunctionalTest1",
+                VARIABLE, "v1",
+                VARIABLE, "v2",
+            LINK_TEMPLATE, EXPRESSION, "3",
+                NODE, SYMBOL, "FunctionalTest2",
+                VARIABLE, "v2",
+                VARIABLE, "v1",
+    };
+    // clang-format on
+    CustomizableLinkCreator link_creator2;
+    link_creator2.add_link_specification({QueryAnswerElement("v1"), QueryAnswerElement("v2")}, {}, CustomizableLinkCreator::PRODUCT, "FunctionalTest3");
+    tokens.clear();
+    link_creator2.tokenize(tokens);
+    auto proxy2 = make_proxy(query_tokens2, LinkCreatorRegistry::CUSTOMIZABLE);
+    proxy2->parameters[LinkCreationProxy::LINK_CREATOR_EXTRA_PARAMETERS] = (string) Utils::join(tokens);
+
+    ServiceBusSingleton::get_instance()->issue_bus_command(proxy2);
+
+    while (true) {
+        if (proxy2->finished()) {
+            break;
+        }
+        shared_ptr<QueryAnswer> answer = proxy2->pop();
+        if (answer == nullptr) {
+            Utils::sleep();
+        }
+    }
+    success &= assert_equal(proxy2->get_count(), 200, "link creation count");
+
+    AtomDBSingleton::get_instance()->delete_atoms(proxy1->get_built_atoms());
+    AtomDBSingleton::get_instance()->delete_atoms(proxy2->get_built_atoms());
 
     finish_test_case(test_case, success);
     return success;
@@ -130,8 +220,22 @@ static bool test_cycles() {
     vector<unsigned int> creation = {0, 0, 0, 0, 0};
     vector<shared_ptr<LinkCreationProxy>> proxy = {nullptr, nullptr, nullptr, nullptr, nullptr};
 
+    // clang-format off
+    vector<string> query_tokens = {
+        AND_OPERATOR, "2",
+            LINK_TEMPLATE, EXPRESSION, "3",
+                NODE, SYMBOL, EVALUATION_TAG,
+                VARIABLE, PREDICATE1,
+                VARIABLE, CONCEPT,
+            LINK_TEMPLATE, EXPRESSION, "3",
+                NODE, SYMBOL, EVALUATION_TAG,
+                VARIABLE, PREDICATE2,
+                VARIABLE, CONCEPT
+    };
+    // clang-format on
+
     for (unsigned int i = 0; i < proxy.size(); i++) {
-        proxy[i] = make_proxy(BaseProxy::SYNC_ON_CYCLE_START);
+        proxy[i] = make_proxy(query_tokens, LinkCreatorRegistry::AND_TWO_PREDICATES, BaseProxy::SYNC_ON_CYCLE_START);
         proxy[i]->parameters[LinkCreationProxy::MAX_SUCCESSFUL_CREATION_PER_ROUND] =
             (unsigned int) creations_per_cycle[i];
         proxy[i]->parameters[LinkCreationProxy::MAX_ROUNDS] = (unsigned int) num_cycles[i];
@@ -204,6 +308,7 @@ int main(int argc, char* argv[]) {
     timeout_after_minutes(10);
     success &= test_cycles();
     success &= test_and_two_predicates();
+    success &= test_customizable();
     LOG_INFO("================================================================================");
     if (success) {
         LOG_INFO("OK - ALL TEST CASES PASSED");

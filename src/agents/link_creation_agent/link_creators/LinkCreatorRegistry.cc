@@ -6,7 +6,7 @@
 // -------------------------------------------------------------------------------------------------
 // ADD your header here
 #include "AndTwoPredicates.h"
-#include "Customizable.h"
+#include "CustomizableLinkCreator.h"
 #include "UnitTestLinkCreator.h"
 // -------------------------------------------------------------------------------------------------
 
@@ -39,15 +39,15 @@ shared_ptr<LinkCreator> LinkCreatorRegistry::function(const string& tag) {
     if (INITIALIZED) {
         if (tag == REMOTE_FUNCTION) {
             RAISE_ERROR("Invalid use of reserved link creation function tag: " + tag);
-            // -----------------------------------------------------------------------------------------
-            // ADD an "else if" for your function here
+// -----------------------------------------------------------------------------------------
+// ADD an "else if" for your function here
         } else if (tag == UNIT_TEST) {
             answer = make_shared<UnitTestLinkCreator>();
         } else if (tag == CUSTOMIZABLE) {
-            answer = make_shared<Customizable>();
+            answer = make_shared<CustomizableLinkCreator>();
         } else if (tag == AND_TWO_PREDICATES) {
             answer = make_shared<AndTwoPredicates>();
-            // -----------------------------------------------------------------------------------------
+// -----------------------------------------------------------------------------------------
         } else {
             RAISE_ERROR("Unkown link creation function: " + tag);
         }

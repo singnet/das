@@ -143,6 +143,15 @@ class LinkCreator {
     virtual LinkCreationStats create(shared_ptr<QueryAnswer> query_answer) = 0;
 
     /**
+     * Concrete subclasses may implement this in order to receive optional extra parameters passed
+     * to the LinkCreationProxy by caller under the tag LINK_CREATOR_EXTRA_PARAMETERS.
+     *
+     * @param extra_parameters A string which is supposed to be parsed in order to obtain the actual
+     * parameters.
+     */
+    virtual void extra_parameters(const string& extra_parameters) {}
+
+    /**
      * Return the AttentionBroker context to be used.
      *
      * @return the AttentionBroker context to be used.
