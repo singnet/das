@@ -19,6 +19,7 @@ string LinkCreationProxy::MAX_ROUNDS = "max_rounds";
 string LinkCreationProxy::LINK_CREATION_STRENGTH_THRESHOLD = "link_creation_strength_threshold";
 string LinkCreationProxy::LINK_CREATION_LOG_FILE_NAME = "link_creation_log_file_name";
 string LinkCreationProxy::LOG_NEW_LINKS = "log_new_links";
+string LinkCreationProxy::LINK_CREATOR_EXTRA_PARAMETERS = "link_creator_extra_parameters";
 
 LinkCreationProxy::LinkCreationProxy() {
     // constructor typically used in processor
@@ -144,6 +145,8 @@ void LinkCreationProxy::set_link_creator_function_tag(const string& tag) {
                 this->parameters.get_or<string>(LINK_CREATION_LOG_FILE_NAME, ""));
             this->link_creation_function_object->set_log_new_links(
                 this->parameters.get<bool>(LOG_NEW_LINKS));
+            this->link_creation_function_object->extra_parameters(
+                this->parameters.get_or<string>(LINK_CREATOR_EXTRA_PARAMETERS, ""));
         }
     }
 }
