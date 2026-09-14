@@ -6,9 +6,7 @@ using namespace atomdb;
 // -------------------------------------------------------------------------------------------------
 // Constructor
 
-Keychain::Keychain(const map<Keychain::AtomDB_UID, Keychain::PublicKey>& keys) {
-    this->keys_ = keys;
-}
+Keychain::Keychain(const map<Keychain::AtomDB_UID, Keychain::PublicKey>& keys) { this->keys_ = keys; }
 
 // -------------------------------------------------------------------------------------------------
 // Public methods
