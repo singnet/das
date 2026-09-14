@@ -33,7 +33,7 @@ string AdapterDB::MONGODB_ADAPTER_COLLECTION_NAME = "adapterdb";
 // ==============================
 
 AdapterDB::AdapterDB(const JsonConfig& config, std::shared_ptr<AtomDB> backend)
-    : config(config), atomdb_backend(backend) {
+    : AtomDB(config.at_path("uid").get_or<string>("")), config(config), atomdb_backend(backend) {
     this->initialize(true);
 }
 
@@ -54,11 +54,6 @@ void AdapterDB::reload() {
 bool AdapterDB::needs_sync() const {
     RAISE_ERROR("needs_sync() is not implemented yet.");
     return false;
-}
-
-bool AdapterDB::allow_nested_indexing() {
-    this->ensure_backend_ready();
-    return this->atomdb_backend->allow_nested_indexing();
 }
 
 bool AdapterDB::composite_type_enabled() const {

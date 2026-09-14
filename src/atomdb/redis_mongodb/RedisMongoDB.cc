@@ -50,7 +50,8 @@ void RedisMongoDB::initialize_namespace(const string& prefix) {
 }
 
 RedisMongoDB::RedisMongoDB(const JsonConfig& config)
-    : skip_redis_(config.at_path("type").get_or<string>("") != "redismongodb"),
+    : AtomDB(config.at_path("uid").get_or<string>("")),
+      skip_redis_(config.at_path("type").get_or<string>("") != "redismongodb"),
       composite_type_enabled_(config.at_path("composite_type_enabled").get_or<bool>(true)),
       cluster_flag(false),
       protection_mode(atomdb_api_types::ProtectionMode::PROTECTED) {
@@ -68,8 +69,6 @@ RedisMongoDB::~RedisMongoDB() {
     delete this->mongodb_pool;
     if (!skip_redis_) delete this->redis_pool;
 }
-
-bool RedisMongoDB::allow_nested_indexing() { return false; }
 
 shared_ptr<atomdb_api_types::AccessPermissionDocument> RedisMongoDB::get_access_permissions(
     const string& public_key) const {
@@ -206,6 +205,8 @@ shared_ptr<atomdb_api_types::HandleSet> RedisMongoDB::query_for_pattern(const Li
     auto ctx = this->redis_pool->acquire();
 
     auto handle_set = make_shared<atomdb_api_types::HandleSetRedis>();
+    handle_set->link_schema = make_shared<LinkSchema>(link_schema);
+    handle_set->decoder = this;
 
     while (redis_has_more) {
         command = ("ZRANGE " + REDIS_PATTERNS_PREFIX + ":" + pattern_handle + " " +

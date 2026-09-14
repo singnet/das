@@ -130,10 +130,10 @@ class Assignment {
     void clear();
 
     map<string, string> table;
+    bool unique_assignment_flag;
 
    private:
     static string EMPTY_VALUE;
-    bool unique_assignment_flag;
 };
 
 }  // namespace commons

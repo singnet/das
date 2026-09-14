@@ -33,6 +33,7 @@ namespace {
 /** Benchmark compose ports (see scripts/run_benchmark.sh). */
 JsonConfig benchmark_atomdb_config() {
     return JsonConfig(nlohmann::json::parse(R"({
+        "uid": "benchmark",
         "redis": { "endpoint": "localhost:29000", "cluster": false },
         "mongodb": {
             "endpoint": "localhost:28000",

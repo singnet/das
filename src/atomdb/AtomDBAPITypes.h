@@ -2,7 +2,6 @@
 
 #include <algorithm>
 #include <map>
-#include <optional>
 #include <vector>
 
 #include "Link.h"

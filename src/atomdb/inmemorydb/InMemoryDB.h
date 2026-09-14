@@ -12,6 +12,7 @@
 #include "AtomDB.h"
 #include "HandleTrie.h"
 #include "InMemoryDBAPITypes.h"
+#include "JsonConfig.h"
 #include "LinkSchema.h"
 
 using namespace std;
@@ -45,9 +46,9 @@ namespace atomdb {
 class InMemoryDB : public AtomDB {
    public:
     InMemoryDB();
+    explicit InMemoryDB(const JsonConfig& config);
     ~InMemoryDB();
 
-    bool allow_nested_indexing() override;
     bool composite_type_enabled() const override { return false; }
     atomdb_api_types::ProtectionMode get_protection_mode() const override {
         return atomdb_api_types::ProtectionMode::UNPROTECTED;
