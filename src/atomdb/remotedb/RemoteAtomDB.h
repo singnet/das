@@ -6,7 +6,7 @@
 #include <vector>
 
 #include "AtomDB.h"
-#include "AtomDBKeySensitiveAPI.h"
+#include "AtomDBKeySensitive.h"
 #include "JsonConfig.h"
 #include "RemoteAtomDBPeer.h"
 
@@ -19,9 +19,9 @@ namespace atomdb {
  * Each peer maintains its own cache, remote connection, and local persistence.
  *
  * When any peer is protected, get_protection_mode() is FORWARD and callers must
- * use AtomDBKeySensitiveAPI. Unkeyed AtomDB methods then reject the call.
+ * use AtomDBKeySensitive. Unkeyed AtomDB methods then reject the call.
  */
-class RemoteAtomDB : public AtomDB, public AtomDBKeySensitiveAPI {
+class RemoteAtomDB : public AtomDB, public AtomDBKeySensitive {
    public:
     /**
      * Dependency-injection constructor for pre-built peers.
@@ -81,86 +81,81 @@ class RemoteAtomDB : public AtomDB, public AtomDBKeySensitiveAPI {
     size_t atom_count() const override;
 
     vector<shared_ptr<atomdb_api_types::AccessPermissionDocument>> get_access_permissions(
-        const atomdb_api_types::PublicKey& public_key) const override;
+        const PublicKey& public_key) const override;
 
-    shared_ptr<Atom> get_atom(const string& handle,
-                              const atomdb_api_types::PublicKey& public_key) override;
-    shared_ptr<Node> get_node(const string& handle,
-                              const atomdb_api_types::PublicKey& public_key) override;
-    shared_ptr<Link> get_link(const string& handle,
-                              const atomdb_api_types::PublicKey& public_key) override;
+    shared_ptr<Atom> get_atom(const string& handle, const PublicKey& public_key) override;
+    shared_ptr<Node> get_node(const string& handle, const PublicKey& public_key) override;
+    shared_ptr<Link> get_link(const string& handle, const PublicKey& public_key) override;
+
+    shared_ptr<Atom> get_allowed_atom(const string& handle, const PublicKey& public_key) override;
 
     vector<shared_ptr<Atom>> get_matching_atoms(bool is_toplevel,
                                                 Atom& key,
-                                                const atomdb_api_types::PublicKey& public_key) override;
+                                                const PublicKey& public_key) override;
 
-    shared_ptr<atomdb_api_types::HandleSet> query_for_pattern(
-        const LinkSchema& link_schema, const atomdb_api_types::PublicKey& public_key) override;
-    shared_ptr<atomdb_api_types::HandleList> query_for_targets(
-        const string& handle, const atomdb_api_types::PublicKey& public_key) override;
-    shared_ptr<atomdb_api_types::HandleSet> query_for_incoming_set(
-        const string& handle, const atomdb_api_types::PublicKey& public_key) override;
+    shared_ptr<atomdb_api_types::HandleSet> query_for_pattern(const LinkSchema& link_schema,
+                                                              const PublicKey& public_key) override;
+    shared_ptr<atomdb_api_types::HandleList> query_for_targets(const string& handle,
+                                                               const PublicKey& public_key) override;
+    shared_ptr<atomdb_api_types::HandleSet> query_for_incoming_set(const string& handle,
+                                                                   const PublicKey& public_key) override;
 
-    bool atom_exists(const string& handle, const atomdb_api_types::PublicKey& public_key) override;
-    bool node_exists(const string& handle, const atomdb_api_types::PublicKey& public_key) override;
-    bool link_exists(const string& handle, const atomdb_api_types::PublicKey& public_key) override;
+    bool atom_exists(const string& handle, const PublicKey& public_key) override;
+    bool node_exists(const string& handle, const PublicKey& public_key) override;
+    bool link_exists(const string& handle, const PublicKey& public_key) override;
 
-    set<string> atoms_exist(const vector<string>& handles,
-                            const atomdb_api_types::PublicKey& public_key) override;
-    set<string> nodes_exist(const vector<string>& handles,
-                            const atomdb_api_types::PublicKey& public_key) override;
-    set<string> links_exist(const vector<string>& handles,
-                            const atomdb_api_types::PublicKey& public_key) override;
+    set<string> atoms_exist(const vector<string>& handles, const PublicKey& public_key) override;
+    set<string> nodes_exist(const vector<string>& handles, const PublicKey& public_key) override;
+    set<string> links_exist(const vector<string>& handles, const PublicKey& public_key) override;
 
     string add_atom(const atoms::Atom* atom,
-                    const atomdb_api_types::PublicKey& public_key,
+                    const PublicKey& public_key,
                     const atoms::Merger* merger = NULL) override;
     string add_node(const atoms::Node* node,
-                    const atomdb_api_types::PublicKey& public_key,
+                    const PublicKey& public_key,
                     const atoms::Merger* merger = NULL) override;
     string add_link(const atoms::Link* link,
-                    const atomdb_api_types::PublicKey& public_key,
+                    const PublicKey& public_key,
                     const atoms::Merger* merger = NULL) override;
 
     vector<string> add_atoms(const vector<atoms::Atom*>& atoms,
-                             const atomdb_api_types::PublicKey& public_key,
+                             const PublicKey& public_key,
                              bool is_transactional = false,
                              const atoms::Merger* merger = NULL) override;
     vector<string> add_nodes(const vector<atoms::Node*>& nodes,
-                             const atomdb_api_types::PublicKey& public_key,
+                             const PublicKey& public_key,
                              bool is_transactional = false,
                              const atoms::Merger* merger = NULL) override;
     vector<string> add_links(const vector<atoms::Link*>& links,
-                             const atomdb_api_types::PublicKey& public_key,
+                             const PublicKey& public_key,
                              bool is_transactional = false,
                              const atoms::Merger* merger = NULL) override;
 
     bool delete_atom(const string& handle,
-                     const atomdb_api_types::PublicKey& public_key,
+                     const PublicKey& public_key,
                      bool delete_link_targets = false) override;
     bool delete_node(const string& handle,
-                     const atomdb_api_types::PublicKey& public_key,
+                     const PublicKey& public_key,
                      bool delete_link_targets = false) override;
     bool delete_link(const string& handle,
-                     const atomdb_api_types::PublicKey& public_key,
+                     const PublicKey& public_key,
                      bool delete_link_targets = false) override;
 
     uint delete_atoms(const vector<string>& handles,
-                      const atomdb_api_types::PublicKey& public_key,
+                      const PublicKey& public_key,
                       bool delete_link_targets = false) override;
     uint delete_nodes(const vector<string>& handles,
-                      const atomdb_api_types::PublicKey& public_key,
+                      const PublicKey& public_key,
                       bool delete_link_targets = false) override;
     uint delete_links(const vector<string>& handles,
-                      const atomdb_api_types::PublicKey& public_key,
+                      const PublicKey& public_key,
                       bool delete_link_targets = false) override;
 
-    void re_index_patterns(const atomdb_api_types::PublicKey& public_key,
-                           bool flush_patterns = true) override;
+    void re_index_patterns(const PublicKey& public_key, bool flush_patterns = true) override;
 
-    size_t node_count(const atomdb_api_types::PublicKey& public_key) const override;
-    size_t link_count(const atomdb_api_types::PublicKey& public_key) const override;
-    size_t atom_count(const atomdb_api_types::PublicKey& public_key) const override;
+    size_t node_count(const PublicKey& public_key) const override;
+    size_t link_count(const PublicKey& public_key) const override;
+    size_t atom_count(const PublicKey& public_key) const override;
 
     const map<string, shared_ptr<RemoteAtomDBPeer>>& get_remote_dbs() const { return remote_db_; }
     RemoteAtomDBPeer* get_peer(const string& uid);
@@ -171,12 +166,7 @@ class RemoteAtomDB : public AtomDB, public AtomDBKeySensitiveAPI {
     // Derives the aggregated nested-indexing capability and writable/readonly peer lists.
     // Shared by both constructors so the config and DI paths stay consistent.
     void finalize_peer_lists();
-    [[noreturn]] static void raise_public_key_required(const string& method_name);
     [[noreturn]] static void raise_keyed_not_implemented(const string& method_name);
-    shared_ptr<Atom> get_atom_from_peer(shared_ptr<RemoteAtomDBPeer> peer,
-                                        const string& uid,
-                                        const string& handle,
-                                        const atomdb_api_types::PublicKey& public_key);
 
     map<string, shared_ptr<RemoteAtomDBPeer>> remote_db_;
     // Immutable after construction (peer map never changes).

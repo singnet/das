@@ -42,7 +42,7 @@ cc_library(
     name = "atomdb",
     hdrs = [
         "AtomDB.h",
-        "AtomDBKeySensitiveAPI.h",
+        "AtomDBKeySensitive.h",
     ],
     includes = ["."],
     deps = [
@@ -95,6 +95,7 @@ cc_library(
         ":atomdb",
         ":atomdb_api_types",
         "//atomdb/auth:auth_lib",
+        "//atomdb/inmemorydb:inmemorydb_api_types",
         "//commons:commons_lib",
         "//commons/atoms:atoms_lib",
     ],
