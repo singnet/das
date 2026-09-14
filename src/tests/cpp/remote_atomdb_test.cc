@@ -834,8 +834,8 @@ TEST(RemoteAtomDBFederationTest, PatternAssignmentsSurvivePeerAndFacadeAggregati
     auto handles = populate_inheritance_mammal_links(backend);
 
     map<string, shared_ptr<RemoteAtomDBPeer>> peers;
-    peers["inmemory"] = make_shared<RemoteAtomDBPeer>(backend, nullptr, "inmemory");
-    auto db = make_shared<RemoteAtomDB>(peers);
+    peers["inmemory"] = make_shared<RemoteAtomDBPeer>("test_inmemory", backend, nullptr);
+    auto db = make_shared<RemoteAtomDB>("remote", peers);
 
     auto result = db->query_for_pattern(inheritance_mammal_schema());
     ASSERT_NE(result, nullptr);
