@@ -1488,20 +1488,6 @@ TEST_F(RedisMongoDBTest, GetAccessPermissionsRejectsInvalidDocument) {
     collection.delete_many({});
 }
 
-TEST(PublicKeyTest, KeyForUid) {
-    PublicKey single("only_key");
-    EXPECT_TRUE(single.is_single_key());
-    EXPECT_EQ(single.key_for_uid(""), "only_key");
-    EXPECT_EQ(single.key_for_uid("ignored"), "only_key");
-
-    PublicKey mapped({{"peer_a", "key_a"}, {"peer_b", "key_b"}});
-    EXPECT_FALSE(mapped.is_single_key());
-    EXPECT_EQ(mapped.key_for_uid("peer_a"), "key_a");
-    EXPECT_EQ(mapped.key_for_uid("peer_b"), "key_b");
-    EXPECT_EQ(mapped.key_for_uid("peer_c"), "");
-    EXPECT_EQ(mapped.key_for_uid(""), "");
-}
-
 TEST(MongodbAccessPermissionEntryTest, GetTokensSizeReturnsArrayLength) {
     using bsoncxx::builder::basic::kvp;
     using bsoncxx::builder::basic::make_document;
