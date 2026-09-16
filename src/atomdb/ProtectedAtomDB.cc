@@ -95,16 +95,18 @@ shared_ptr<atomdb_api_types::HandleSet> ProtectedAtomDB::query_for_pattern(
 shared_ptr<atomdb_api_types::HandleList> ProtectedAtomDB::query_for_targets(
     const string& handle, shared_ptr<Keychain> keychain) {
     string public_key = keychain ? keychain->get_public_key(this->uid_) : "";
-    if (public_key.empty() || !this->ensure_registered(public_key)) {
+    if (public_key.empty() || !this->ensure_registered(public_key) ||
+        !this->can_read(public_key, handle)) {
         return make_shared<atomdb_api_types::HandleListInMemory>();
     }
-    return this->filter_handle_list(this->backend->query_for_targets(handle), public_key);
+    return this->backend->query_for_targets(handle);
 }
 
 shared_ptr<atomdb_api_types::HandleSet> ProtectedAtomDB::query_for_incoming_set(
     const string& handle, shared_ptr<Keychain> keychain) {
     string public_key = keychain ? keychain->get_public_key(this->uid_) : "";
-    if (public_key.empty() || !this->ensure_registered(public_key)) {
+    if (public_key.empty() || !this->ensure_registered(public_key) ||
+        !this->can_read(public_key, handle)) {
         return make_shared<atomdb_api_types::HandleSetInMemory>();
     }
     return this->filter_handle_set(this->backend->query_for_incoming_set(handle), public_key);
@@ -442,34 +444,6 @@ shared_ptr<atomdb_api_types::HandleSet> ProtectedAtomDB::filter_handle_set(
 #endif
 
     return authorized_handle_set;
-}
-
-shared_ptr<atomdb_api_types::HandleList> ProtectedAtomDB::filter_handle_list(
-    const shared_ptr<atomdb_api_types::HandleList>& original_handle_list, const string& public_key) {
-    auto authorized_handle_list = make_shared<atomdb_api_types::HandleListInMemory>();
-
-    if (original_handle_list == nullptr) {
-        return authorized_handle_list;
-    }
-
-    for (unsigned int i = 0; i < original_handle_list->size(); ++i) {
-        const char* handle_cstr = original_handle_list->get_handle(i);
-        if (handle_cstr == nullptr) {
-            continue;
-        }
-        string handle(handle_cstr);
-        if (!this->can_read(public_key, handle)) continue;
-        authorized_handle_list->add_handle(handle);
-    }
-
-#if LOG_LEVEL >= DEBUG_LEVEL
-    LOG_DEBUG("[ ProtectedAtomDB::filter_handle_list() - original handle_list: ]" +
-              std::to_string(original_handle_list->size()));
-    LOG_DEBUG("[ ProtectedAtomDB::filter_handle_list() - authorized handle_list: ]" +
-              std::to_string(authorized_handle_list->size()));
-#endif
-
-    return authorized_handle_list;
 }
 
 set<string> ProtectedAtomDB::filter_handles(const set<string>& original_handles,

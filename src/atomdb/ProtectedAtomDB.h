@@ -202,13 +202,6 @@ class ProtectedAtomDB : public AtomDB, public AtomDBKeySensitive {
         const shared_ptr<atomdb_api_types::HandleSet>& original_handle_set, const string& public_key);
 
     /**
-     * @brief Returns a filtered copy of original_handle_list containing only handles that public_key may
-     * READ.
-     */
-    shared_ptr<atomdb_api_types::HandleList> filter_handle_list(
-        const shared_ptr<atomdb_api_types::HandleList>& original_handle_list, const string& public_key);
-
-    /**
      * @brief Returns the subset of original_handles that public_key may READ.
      */
     set<string> filter_handles(const set<string>& original_handles, const string& public_key);

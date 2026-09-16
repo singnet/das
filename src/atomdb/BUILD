@@ -54,6 +54,8 @@ cc_library(
     includes = ["."],
     deps = [
         ":atomdb_api_types",
+        "//atomdb/auth:keychain",
+        "//commons:commons_lib",
         "//commons/atoms:atoms_lib",
     ],
 )
