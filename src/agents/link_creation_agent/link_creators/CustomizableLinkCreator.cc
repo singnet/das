@@ -33,7 +33,8 @@ LinkCreationStats CustomizableLinkCreator::create(shared_ptr<QueryAnswer> query_
             for (QueryAnswerElement& element : spec.strength_elements) {
                 strength_components.push_back(get_strength(query_answer->get(element)));
             }
-            AddLinkStatus add_status = add_or_update_link(handles, compute_strength(strength_components, spec.strength_composition));
+            AddLinkStatus add_status = add_or_update_link(
+                handles, compute_strength(strength_components, spec.strength_composition));
             if (add_status == CREATED) {
                 stats.created++;
             } else if (add_status == UPDATED) {

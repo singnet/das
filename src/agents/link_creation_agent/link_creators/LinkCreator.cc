@@ -15,7 +15,8 @@ LinkCreator::LinkCreator() {
     this->_log_new_links = false;
 }
 
-LinkCreator::AddLinkStatus LinkCreator::add_or_update_link(const vector<string>& targets, double strength) {
+LinkCreator::AddLinkStatus LinkCreator::add_or_update_link(const vector<string>& targets,
+                                                           double strength) {
     STACK_TRACE();
     if (strength < this->_strength_threshold) {
         return REJECTED;
