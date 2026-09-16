@@ -28,21 +28,21 @@ ProtectedAtomDB::ProtectedAtomDB(shared_ptr<AtomDB> backend) : backend(backend) 
 // --------------------------------------------------------------------------------
 // Public methods
 
-shared_ptr<Atom> ProtectedAtomDB::get_atom(const string& handle, const Keychain& keychain) {
+shared_ptr<Atom> ProtectedAtomDB::get_atom(const string& handle, shared_ptr<Keychain> keychain) {
     if (!this->can_read(keychain, handle)) {
         return nullptr;
     }
     return this->backend->get_atom(handle);
 }
 
-shared_ptr<Node> ProtectedAtomDB::get_node(const string& handle, const Keychain& keychain) {
+shared_ptr<Node> ProtectedAtomDB::get_node(const string& handle, shared_ptr<Keychain> keychain) {
     if (!this->can_read(keychain, handle)) {
         return nullptr;
     }
     return this->backend->get_node(handle);
 }
 
-shared_ptr<Link> ProtectedAtomDB::get_link(const string& handle, const Keychain& keychain) {
+shared_ptr<Link> ProtectedAtomDB::get_link(const string& handle, shared_ptr<Keychain> keychain) {
     if (!this->can_read(keychain, handle)) {
         return nullptr;
     }
@@ -51,146 +51,146 @@ shared_ptr<Link> ProtectedAtomDB::get_link(const string& handle, const Keychain&
 
 vector<shared_ptr<Atom>> ProtectedAtomDB::get_matching_atoms(bool is_toplevel,
                                                              Atom& key,
-                                                             const Keychain& keychain) {
+                                                             shared_ptr<Keychain> keychain) {
     RAISE_ERROR("ProtectedAtomDB::get_matching_atoms(..., public_key) is not implemented yet");
 }
 
-shared_ptr<atomdb_api_types::HandleSet> ProtectedAtomDB::query_for_pattern(const LinkSchema& link_schema,
-                                                                           const Keychain& keychain) {
+shared_ptr<atomdb_api_types::HandleSet> ProtectedAtomDB::query_for_pattern(
+    const LinkSchema& link_schema, shared_ptr<Keychain> keychain) {
     return this->filter_handle_set(this->backend->query_for_pattern(link_schema), keychain);
 }
 
-shared_ptr<atomdb_api_types::HandleList> ProtectedAtomDB::query_for_targets(const string& handle,
-                                                                            const Keychain& keychain) {
+shared_ptr<atomdb_api_types::HandleList> ProtectedAtomDB::query_for_targets(
+    const string& handle, shared_ptr<Keychain> keychain) {
     return this->filter_handle_list(this->backend->query_for_targets(handle), keychain);
 }
 
 shared_ptr<atomdb_api_types::HandleSet> ProtectedAtomDB::query_for_incoming_set(
-    const string& handle, const Keychain& keychain) {
+    const string& handle, shared_ptr<Keychain> keychain) {
     return this->filter_handle_set(this->backend->query_for_incoming_set(handle), keychain);
 }
 
-bool ProtectedAtomDB::atom_exists(const string& handle, const Keychain& keychain) {
+bool ProtectedAtomDB::atom_exists(const string& handle, shared_ptr<Keychain> keychain) {
     if (!this->can_read(keychain, handle)) {
         return false;
     }
     return this->backend->atom_exists(handle);
 }
 
-bool ProtectedAtomDB::node_exists(const string& handle, const Keychain& keychain) {
+bool ProtectedAtomDB::node_exists(const string& handle, shared_ptr<Keychain> keychain) {
     if (!this->can_read(keychain, handle)) {
         return false;
     }
     return this->backend->node_exists(handle);
 }
 
-bool ProtectedAtomDB::link_exists(const string& handle, const Keychain& keychain) {
+bool ProtectedAtomDB::link_exists(const string& handle, shared_ptr<Keychain> keychain) {
     if (!this->can_read(keychain, handle)) {
         return false;
     }
     return this->backend->link_exists(handle);
 }
 
-set<string> ProtectedAtomDB::atoms_exist(const vector<string>& handles, const Keychain& keychain) {
+set<string> ProtectedAtomDB::atoms_exist(const vector<string>& handles, shared_ptr<Keychain> keychain) {
     return this->filter_handles(this->backend->atoms_exist(handles), keychain);
 }
 
-set<string> ProtectedAtomDB::nodes_exist(const vector<string>& handles, const Keychain& keychain) {
+set<string> ProtectedAtomDB::nodes_exist(const vector<string>& handles, shared_ptr<Keychain> keychain) {
     return this->filter_handles(this->backend->nodes_exist(handles), keychain);
 }
 
-set<string> ProtectedAtomDB::links_exist(const vector<string>& handles, const Keychain& keychain) {
+set<string> ProtectedAtomDB::links_exist(const vector<string>& handles, shared_ptr<Keychain> keychain) {
     return this->filter_handles(this->backend->links_exist(handles), keychain);
 }
 
 string ProtectedAtomDB::add_atom(const atoms::Atom* atom,
-                                 const Keychain& keychain,
+                                 shared_ptr<Keychain> keychain,
                                  const atoms::Merger* merger) {
     RAISE_ERROR("ProtectedAtomDB::add_atom(atom, public_key) is not implemented yet");
 }
 
 string ProtectedAtomDB::add_node(const atoms::Node* node,
-                                 const Keychain& keychain,
+                                 shared_ptr<Keychain> keychain,
                                  const atoms::Merger* merger) {
     RAISE_ERROR("ProtectedAtomDB::add_node(node, public_key) is not implemented yet");
 }
 
 string ProtectedAtomDB::add_link(const atoms::Link* link,
-                                 const Keychain& keychain,
+                                 shared_ptr<Keychain> keychain,
                                  const atoms::Merger* merger) {
     RAISE_ERROR("ProtectedAtomDB::add_link(link, public_key) is not implemented yet");
 }
 
 vector<string> ProtectedAtomDB::add_atoms(const vector<atoms::Atom*>& atom_list,
-                                          const Keychain& keychain,
+                                          shared_ptr<Keychain> keychain,
                                           bool is_transactional,
                                           const atoms::Merger* merger) {
     RAISE_ERROR("ProtectedAtomDB::add_atoms(atom_list, public_key) is not implemented yet");
 }
 
 vector<string> ProtectedAtomDB::add_nodes(const vector<atoms::Node*>& nodes,
-                                          const Keychain& keychain,
+                                          shared_ptr<Keychain> keychain,
                                           bool is_transactional,
                                           const atoms::Merger* merger) {
     RAISE_ERROR("ProtectedAtomDB::add_nodes(nodes, public_key) is not implemented yet");
 }
 
 vector<string> ProtectedAtomDB::add_links(const vector<atoms::Link*>& links,
-                                          const Keychain& keychain,
+                                          shared_ptr<Keychain> keychain,
                                           bool is_transactional,
                                           const atoms::Merger* merger) {
     RAISE_ERROR("ProtectedAtomDB::add_links(links, public_key) is not implemented yet");
 }
 
 bool ProtectedAtomDB::delete_atom(const string& handle,
-                                  const Keychain& keychain,
+                                  shared_ptr<Keychain> keychain,
                                   bool delete_link_targets) {
     RAISE_ERROR("ProtectedAtomDB::delete_atom(handle, public_key) is not implemented yet");
 }
 
 bool ProtectedAtomDB::delete_node(const string& handle,
-                                  const Keychain& keychain,
+                                  shared_ptr<Keychain> keychain,
                                   bool delete_link_targets) {
     RAISE_ERROR("ProtectedAtomDB::delete_node(handle, public_key) is not implemented yet");
 }
 
 bool ProtectedAtomDB::delete_link(const string& handle,
-                                  const Keychain& keychain,
+                                  shared_ptr<Keychain> keychain,
                                   bool delete_link_targets) {
     RAISE_ERROR("ProtectedAtomDB::delete_link(handle, public_key) is not implemented yet");
 }
 
 uint ProtectedAtomDB::delete_atoms(const vector<string>& handles,
-                                   const Keychain& keychain,
+                                   shared_ptr<Keychain> keychain,
                                    bool delete_link_targets) {
     RAISE_ERROR("ProtectedAtomDB::delete_atoms(handles, public_key) is not implemented yet");
 }
 
 uint ProtectedAtomDB::delete_nodes(const vector<string>& handles,
-                                   const Keychain& keychain,
+                                   shared_ptr<Keychain> keychain,
                                    bool delete_link_targets) {
     RAISE_ERROR("ProtectedAtomDB::delete_nodes(handles, public_key) is not implemented yet");
 }
 
 uint ProtectedAtomDB::delete_links(const vector<string>& handles,
-                                   const Keychain& keychain,
+                                   shared_ptr<Keychain> keychain,
                                    bool delete_link_targets) {
     RAISE_ERROR("ProtectedAtomDB::delete_links(handles, public_key) is not implemented yet");
 }
 
-void ProtectedAtomDB::re_index_patterns(const Keychain& keychain, bool flush_patterns) {
+void ProtectedAtomDB::re_index_patterns(shared_ptr<Keychain> keychain, bool flush_patterns) {
     RAISE_ERROR("ProtectedAtomDB::re_index_patterns(public_key) is not implemented yet");
 }
 
-size_t ProtectedAtomDB::node_count(const Keychain& keychain) const {
+size_t ProtectedAtomDB::node_count(shared_ptr<Keychain> keychain) const {
     RAISE_ERROR("ProtectedAtomDB::node_count(public_key) is not implemented yet");
 }
 
-size_t ProtectedAtomDB::link_count(const Keychain& keychain) const {
+size_t ProtectedAtomDB::link_count(shared_ptr<Keychain> keychain) const {
     RAISE_ERROR("ProtectedAtomDB::link_count(public_key) is not implemented yet");
 }
 
-size_t ProtectedAtomDB::atom_count(const Keychain& keychain) const {
+size_t ProtectedAtomDB::atom_count(shared_ptr<Keychain> keychain) const {
     RAISE_ERROR("ProtectedAtomDB::atom_count(public_key) is not implemented yet");
 }
 
