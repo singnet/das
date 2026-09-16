@@ -15,8 +15,12 @@ LinkCreator::LinkCreator() {
     this->_log_new_links = false;
 }
 
-bool LinkCreator::add_or_update_link(const vector<string>& targets, double strength) {
+LinkCreator::AddLinkStatus LinkCreator::add_or_update_link(const vector<string>& targets,
+                                                           double strength) {
     STACK_TRACE();
+    if (strength < this->_strength_threshold) {
+        return REJECTED;
+    }
     auto db = atomdb();
     bool new_link_created_flag = false;
     shared_ptr<Link> new_link =
@@ -47,7 +51,7 @@ bool LinkCreator::add_or_update_link(const vector<string>& targets, double stren
             save_link_metta(new_link);
         }
     }
-    return new_link_created_flag;
+    return (new_link_created_flag ? CREATED : UPDATED);
 }
 
 string LinkCreator::get_node_name(const string& handle) {

@@ -19,6 +19,7 @@ class LinkCreatorRegistry {
    public:
     static string REMOTE_FUNCTION;
     static string UNIT_TEST;
+    static string CUSTOMIZABLE;
     static string AND_TWO_PREDICATES;
 
     ~LinkCreatorRegistry() {}
