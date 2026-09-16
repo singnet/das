@@ -44,14 +44,11 @@ LinkCreationStats AndTwoPredicates::create(shared_ptr<QueryAnswer> query_answer)
                 for (string& h : query_answer->get_handles_vector()) {
                     strength *= get_strength(h);
                 }
-                if (strength >= strength_threshold()) {
-                    string new_predicate_handle = Hasher::link_handle(EXPRESSION, targets);
-                    if (add_or_update_link({EVALUATION_HANDLE, new_predicate_handle, concept_},
-                                           strength)) {
-                        stats.created++;
-                    } else {
-                        stats.updated++;
-                    }
+                string new_predicate_handle = Hasher::link_handle(EXPRESSION, targets);
+                if (add_or_update_link({EVALUATION_HANDLE, new_predicate_handle, concept_}, strength)) {
+                    stats.created++;
+                } else {
+                    stats.updated++;
                 }
             } else {
                 LOG_DEBUG("(" +

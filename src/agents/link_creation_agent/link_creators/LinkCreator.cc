@@ -17,6 +17,9 @@ LinkCreator::LinkCreator() {
 
 bool LinkCreator::add_or_update_link(const vector<string>& targets, double strength) {
     STACK_TRACE();
+    if (strength < this->_strength_threshold) {
+        return false;
+    }
     auto db = atomdb();
     bool new_link_created_flag = false;
     shared_ptr<Link> new_link =
