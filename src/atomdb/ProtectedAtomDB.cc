@@ -29,30 +29,54 @@ ProtectedAtomDB::ProtectedAtomDB(shared_ptr<AtomDB> backend) : backend(backend) 
 // Public methods
 
 shared_ptr<Atom> ProtectedAtomDB::get_atom(const string& handle, shared_ptr<Keychain> keychain) {
-    if (!this->can_read(keychain, handle)) {
+    string public_key = keychain->get_public_key(this->uid_);
+    if (public_key.empty() || !this->ensure_registered(public_key)) {
         return nullptr;
     }
-    return this->backend->get_atom(handle);
+
+    auto atom = this->backend->get_atom(handle);
+    if (!this->can_read(public_key, atom)) {
+        return nullptr;
+    }
+    return atom;
 }
 
 shared_ptr<Node> ProtectedAtomDB::get_node(const string& handle, shared_ptr<Keychain> keychain) {
-    if (!this->can_read(keychain, handle)) {
+    string public_key = keychain->get_public_key(this->uid_);
+    if (public_key.empty() || !this->ensure_registered(public_key)) {
         return nullptr;
     }
-    return this->backend->get_node(handle);
+
+    auto node = this->backend->get_node(handle);
+    if (!this->can_read(public_key, node)) {
+        return nullptr;
+    }
+    return node;
 }
 
 shared_ptr<Link> ProtectedAtomDB::get_link(const string& handle, shared_ptr<Keychain> keychain) {
-    if (!this->can_read(keychain, handle)) {
+    string public_key = keychain->get_public_key(this->uid_);
+    if (public_key.empty() || !this->ensure_registered(public_key)) {
         return nullptr;
     }
-    return this->backend->get_link(handle);
+
+    auto link = this->backend->get_link(handle);
+    if (!this->can_read(public_key, link)) {
+        return nullptr;
+    }
+    return link;
 }
 
 vector<shared_ptr<Atom>> ProtectedAtomDB::get_matching_atoms(bool is_toplevel,
                                                              Atom& key,
                                                              shared_ptr<Keychain> keychain) {
-    vector<shared_ptr<Atom>> original_matching_atoms = this->backend->get_matching_atoms(is_toplevel, key);
+    string public_key = keychain->get_public_key(this->uid_);
+    if (public_key.empty() || !this->ensure_registered(public_key)) {
+        return {};
+    }
+
+    vector<shared_ptr<Atom>> original_matching_atoms =
+        this->backend->get_matching_atoms(is_toplevel, key);
 
     if (original_matching_atoms.empty()) {
         return {};
@@ -61,9 +85,9 @@ vector<shared_ptr<Atom>> ProtectedAtomDB::get_matching_atoms(bool is_toplevel,
     vector<shared_ptr<Atom>> authorized_matching_atoms;
 
     for (const auto& atom : original_matching_atoms) {
-        if (this->can_read(keychain, atom->handle())) {
+        if (this->can_read(public_key, atom)) {
             authorized_matching_atoms.push_back(atom);
-        };
+        }
     }
 
     return authorized_matching_atoms;
@@ -71,50 +95,80 @@ vector<shared_ptr<Atom>> ProtectedAtomDB::get_matching_atoms(bool is_toplevel,
 
 shared_ptr<atomdb_api_types::HandleSet> ProtectedAtomDB::query_for_pattern(
     const LinkSchema& link_schema, shared_ptr<Keychain> keychain) {
-    return this->filter_handle_set(this->backend->query_for_pattern(link_schema), keychain);
+    string public_key = keychain->get_public_key(this->uid_);
+    if (public_key.empty() || !this->ensure_registered(public_key)) {
+        return make_shared<atomdb_api_types::HandleSetInMemory>();
+    }
+    return this->filter_handle_set(this->backend->query_for_pattern(link_schema), public_key);
 }
 
 shared_ptr<atomdb_api_types::HandleList> ProtectedAtomDB::query_for_targets(
     const string& handle, shared_ptr<Keychain> keychain) {
-    return this->filter_handle_list(this->backend->query_for_targets(handle), keychain);
+    string public_key = keychain->get_public_key(this->uid_);
+    if (public_key.empty() || !this->ensure_registered(public_key)) {
+        return make_shared<atomdb_api_types::HandleListInMemory>();
+    }
+    return this->filter_handle_list(this->backend->query_for_targets(handle), public_key);
 }
 
 shared_ptr<atomdb_api_types::HandleSet> ProtectedAtomDB::query_for_incoming_set(
     const string& handle, shared_ptr<Keychain> keychain) {
-    return this->filter_handle_set(this->backend->query_for_incoming_set(handle), keychain);
+    string public_key = keychain->get_public_key(this->uid_);
+    if (public_key.empty() || !this->ensure_registered(public_key)) {
+        return make_shared<atomdb_api_types::HandleSetInMemory>();
+    }
+    return this->filter_handle_set(this->backend->query_for_incoming_set(handle), public_key);
 }
 
 bool ProtectedAtomDB::atom_exists(const string& handle, shared_ptr<Keychain> keychain) {
-    if (!this->can_read(keychain, handle)) {
+    string public_key = keychain->get_public_key(this->uid_);
+    if (public_key.empty() || !this->ensure_registered(public_key) ||
+        !this->can_read(public_key, handle)) {
         return false;
     }
     return this->backend->atom_exists(handle);
 }
 
 bool ProtectedAtomDB::node_exists(const string& handle, shared_ptr<Keychain> keychain) {
-    if (!this->can_read(keychain, handle)) {
+    string public_key = keychain->get_public_key(this->uid_);
+    if (public_key.empty() || !this->ensure_registered(public_key) ||
+        !this->can_read(public_key, handle)) {
         return false;
     }
     return this->backend->node_exists(handle);
 }
 
 bool ProtectedAtomDB::link_exists(const string& handle, shared_ptr<Keychain> keychain) {
-    if (!this->can_read(keychain, handle)) {
+    string public_key = keychain->get_public_key(this->uid_);
+    if (public_key.empty() || !this->ensure_registered(public_key) ||
+        !this->can_read(public_key, handle)) {
         return false;
     }
     return this->backend->link_exists(handle);
 }
 
 set<string> ProtectedAtomDB::atoms_exist(const vector<string>& handles, shared_ptr<Keychain> keychain) {
-    return this->filter_handles(this->backend->atoms_exist(handles), keychain);
+    string public_key = keychain->get_public_key(this->uid_);
+    if (public_key.empty() || !this->ensure_registered(public_key)) {
+        return {};
+    }
+    return this->filter_handles(this->backend->atoms_exist(handles), public_key);
 }
 
 set<string> ProtectedAtomDB::nodes_exist(const vector<string>& handles, shared_ptr<Keychain> keychain) {
-    return this->filter_handles(this->backend->nodes_exist(handles), keychain);
+    string public_key = keychain->get_public_key(this->uid_);
+    if (public_key.empty() || !this->ensure_registered(public_key)) {
+        return {};
+    }
+    return this->filter_handles(this->backend->nodes_exist(handles), public_key);
 }
 
 set<string> ProtectedAtomDB::links_exist(const vector<string>& handles, shared_ptr<Keychain> keychain) {
-    return this->filter_handles(this->backend->links_exist(handles), keychain);
+    string public_key = keychain->get_public_key(this->uid_);
+    if (public_key.empty() || !this->ensure_registered(public_key)) {
+        return {};
+    }
+    return this->filter_handles(this->backend->links_exist(handles), public_key);
 }
 
 string ProtectedAtomDB::add_atom(const atoms::Atom* atom,
@@ -337,28 +391,34 @@ void ProtectedAtomDB::raise_public_key_required(const string& method_name) {
                 "a Keychain.");
 }
 
-bool ProtectedAtomDB::can_read(shared_ptr<Keychain> keychain, const string& handle) {
-    auto public_key = keychain->get_public_key(this->uid_);
-    if (!this->ensure_registered(public_key)) {
-        return false;
+string ProtectedAtomDB::resolve_caller(shared_ptr<Keychain> keychain) {
+    string public_key = keychain->get_public_key(this->uid_);
+    if (public_key.empty() || !this->ensure_registered(public_key)) {
+        return "";
     }
+    return public_key;
+}
+
+bool ProtectedAtomDB::can_read(const string& public_key, const string& handle) {
     return this->manifest->is_granted(public_key, handle, AuthorizationOperation::READ);
 }
 
-bool ProtectedAtomDB::can_write(shared_ptr<Keychain> keychain, const string& handle) {
-    auto public_key = keychain->get_public_key(this->uid_);
-    if (!this->ensure_registered(public_key)) {
-        return false;
-    }
+bool ProtectedAtomDB::can_write(const string& public_key, const string& handle) {
     return this->manifest->is_granted(public_key, handle, AuthorizationOperation::WRITE);
 }
 
-bool ProtectedAtomDB::can_read(shared_ptr<Keychain> keychain, const atoms::Atom& atom) {
-    RAISE_ERROR("ProtectedAtomDB::can_read is not implemented yet.");
+bool ProtectedAtomDB::can_read(const string& public_key, const shared_ptr<Atom>& atom) {
+    if (atom == nullptr) {
+        return false;
+    }
+    return this->manifest->is_granted(public_key, atom, AuthorizationOperation::READ);
 }
 
-bool ProtectedAtomDB::can_write(shared_ptr<Keychain> keychain, const atoms::Atom& atom) {
-    RAISE_ERROR("ProtectedAtomDB::can_write is not implemented yet.");
+bool ProtectedAtomDB::can_write(const string& public_key, const shared_ptr<Atom>& atom) {
+    if (atom == nullptr) {
+        return false;
+    }
+    return this->manifest->is_granted(public_key, atom, AuthorizationOperation::WRITE);
 }
 
 bool ProtectedAtomDB::ensure_registered(const string& public_key) {
@@ -382,7 +442,7 @@ bool ProtectedAtomDB::ensure_registered(const string& public_key) {
 }
 
 shared_ptr<atomdb_api_types::HandleSet> ProtectedAtomDB::filter_handle_set(
-    shared_ptr<atomdb_api_types::HandleSet> original_handle_set, shared_ptr<Keychain> keychain) {
+    shared_ptr<atomdb_api_types::HandleSet> original_handle_set, const string& public_key) {
     auto authorized_handle_set = make_shared<atomdb_api_types::HandleSetInMemory>();
 
     if (original_handle_set == nullptr) {
@@ -396,7 +456,7 @@ shared_ptr<atomdb_api_types::HandleSet> ProtectedAtomDB::filter_handle_set(
         if (!handle_cstr) break;
         string handle(handle_cstr);
 
-        if (!this->can_read(keychain, handle)) continue;
+        if (!this->can_read(public_key, handle)) continue;
 
         authorized_handle_set->add_handle(handle,
                                           original_handle_set->get_metta_expressions_by_handle(handle),
@@ -414,7 +474,7 @@ shared_ptr<atomdb_api_types::HandleSet> ProtectedAtomDB::filter_handle_set(
 }
 
 shared_ptr<atomdb_api_types::HandleList> ProtectedAtomDB::filter_handle_list(
-    shared_ptr<atomdb_api_types::HandleList> original_handle_list, shared_ptr<Keychain> keychain) {
+    shared_ptr<atomdb_api_types::HandleList> original_handle_list, const string& public_key) {
     auto authorized_handle_list = make_shared<atomdb_api_types::HandleListInMemory>();
 
     if (original_handle_list == nullptr) {
@@ -427,7 +487,7 @@ shared_ptr<atomdb_api_types::HandleList> ProtectedAtomDB::filter_handle_list(
             continue;
         }
         string handle(handle_cstr);
-        if (this->can_read(keychain, handle)) {
+        if (this->can_read(public_key, handle)) {
             authorized_handle_list->add_handle(handle);
         }
     }
@@ -442,12 +502,11 @@ shared_ptr<atomdb_api_types::HandleList> ProtectedAtomDB::filter_handle_list(
     return authorized_handle_list;
 }
 
-set<string> ProtectedAtomDB::filter_handles(set<string> original_handles,
-                                            shared_ptr<Keychain> keychain) {
+set<string> ProtectedAtomDB::filter_handles(set<string> original_handles, const string& public_key) {
     set<string> authorized_handles;
 
     for (const auto& handle : original_handles) {
-        if (!this->can_read(keychain, handle)) continue;
+        if (!this->can_read(public_key, handle)) continue;
         authorized_handles.insert(handle);
     }
 

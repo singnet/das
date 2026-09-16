@@ -169,11 +169,11 @@ class ProtectedAtomDB : public AtomDB, public AtomDBKeySensitive {
 
     [[noreturn]] static void raise_public_key_required(const string& method_name);
 
-    bool can_read(shared_ptr<Keychain> keychain, const string& handle);
-    bool can_read(shared_ptr<Keychain> keychain, const atoms::Atom& atom);
+    bool can_read(const string& public_key, const string& handle);
+    bool can_read(const string& public_key, const shared_ptr<Atom>& atom);
 
-    bool can_write(shared_ptr<Keychain> keychain, const string& handle);
-    bool can_write(shared_ptr<Keychain> keychain, const atoms::Atom& atom);
+    bool can_write(const string& public_key, const string& handle);
+    bool can_write(const string& public_key, const shared_ptr<Atom>& atom);
 
     /**
      * @brief Loads access-permission documents for public_key into the manifest when missing.
@@ -183,10 +183,10 @@ class ProtectedAtomDB : public AtomDB, public AtomDBKeySensitive {
     bool ensure_registered(const string& public_key);
 
     shared_ptr<atomdb_api_types::HandleSet> filter_handle_set(
-        shared_ptr<atomdb_api_types::HandleSet> original_handle_set, shared_ptr<Keychain> keychain);
+        shared_ptr<atomdb_api_types::HandleSet> original_handle_set, const string& public_key);
     shared_ptr<atomdb_api_types::HandleList> filter_handle_list(
-        shared_ptr<atomdb_api_types::HandleList> original_handle_list, shared_ptr<Keychain> keychain);
-    set<string> filter_handles(set<string> original_handles, shared_ptr<Keychain> keychain);
+        shared_ptr<atomdb_api_types::HandleList> original_handle_list, const string& public_key);
+    set<string> filter_handles(set<string> original_handles, const string& public_key);
 };
 
 }  // namespace atomdb
