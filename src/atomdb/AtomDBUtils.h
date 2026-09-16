@@ -1,7 +1,7 @@
 #pragma once
+#include <map>
 #include <memory>
 #include <set>
-#include <map>
 #include <string>
 
 #include "AtomDB.h"
@@ -24,7 +24,10 @@ class AtomDBUtils {
                                                  shared_ptr<Link> link,
                                                  bool metta_mapping);
 
-    static string handle_to_metta_recursion(const string& handle, map<string, string>& mapping, bool populate_mapping, shared_ptr<Keychain> keychain);
+    static string handle_to_metta_recursion(const string& handle,
+                                            map<string, string>& mapping,
+                                            bool populate_mapping,
+                                            shared_ptr<Keychain> keychain);
 
    public:
     /**
@@ -59,7 +62,9 @@ class AtomDBUtils {
      * @param metta_mapping A handle -> metta expression map to be used to store mappings.
      * @param keychain Keychain with public keys to be passed when the AtomDB is protected.
      */
-    static string handle_to_metta(const string& handle, map<string, string>& mapping, shared_ptr<Keychain> keychain = nullptr);
+    static string handle_to_metta(const string& handle,
+                                  map<string, string>& mapping,
+                                  shared_ptr<Keychain> keychain = nullptr);
 };
 
 }  // namespace atomdb

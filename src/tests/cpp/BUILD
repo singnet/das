@@ -1013,10 +1013,10 @@ cc_test(
     ],
     linkstatic = 1,
     deps = [
+        "//agents/query_engine:pattern_matching_query_proxy",
+        "//agents/query_engine:query_answer",
         "//atomdb:atomdb_lib",
         "//atomdb/redis_mongodb:redis_mongodb_lib",
-        "//agents/query_engine:query_answer",
-        "//agents/query_engine:pattern_matching_query_proxy",
         "//commons/atoms:atoms_lib",
         "//tests/cpp/test_commons:test_atomdb_json_config",
         "//tests/cpp/test_commons:test_system_params",

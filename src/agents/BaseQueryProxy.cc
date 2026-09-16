@@ -1,7 +1,7 @@
 #include "BaseQueryProxy.h"
 
-#include "Logger.h"
 #include "AtomDBUtils.h"
+#include "Logger.h"
 #include "ServiceBus.h"
 #include "SystemParametersSingleton.h"
 

@@ -155,7 +155,8 @@ TEST(AtomDBTest, handle_to_metta) {
     // (D (((A) (A B)) (A B) C) ((A) (A B)) (((A) (A B)) (A B) C))
     auto L5 = new Link("Expression", {D->handle(), L4->handle(), L3->handle(), L4->handle()}, true);
     db->add_link(L5);
-    EXPECT_EQ(AtomDBUtils::handle_to_metta(L5->handle()), "(D (((A) (A B)) (A B) C) ((A) (A B)) (((A) (A B)) (A B) C))");
+    EXPECT_EQ(AtomDBUtils::handle_to_metta(L5->handle()),
+              "(D (((A) (A B)) (A B) C) ((A) (A B)) (((A) (A B)) (A B) C))");
 
     db->delete_links({L1->handle(), L2->handle(), L3->handle(), L4->handle(), L5->handle()}, true);
 }

@@ -27,7 +27,7 @@ class MettaMapping {
         string answer = "(";
         bool first = true;
         for (string& target : targets) {
-            if (! first) {
+            if (!first) {
                 answer += " ";
             } else {
                 first = false;

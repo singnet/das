@@ -1,9 +1,9 @@
 #include "AtomDBUtils.h"
 
-#include "Logger.h"
-#include "ProtectedAtomDB.h"
 #include "AtomDBSingleton.h"
+#include "Logger.h"
 #include "MettaMapping.h"
+#include "ProtectedAtomDB.h"
 
 using namespace atomdb;
 
@@ -31,7 +31,9 @@ string AtomDBUtils::handle_to_metta(const string& handle, shared_ptr<Keychain> k
     return handle_to_metta_recursion(handle, not_used, false, keychain);
 }
 
-string AtomDBUtils::handle_to_metta(const string& handle, map<string, string>& mapping, shared_ptr<Keychain> keychain) {
+string AtomDBUtils::handle_to_metta(const string& handle,
+                                    map<string, string>& mapping,
+                                    shared_ptr<Keychain> keychain) {
     return handle_to_metta_recursion(handle, mapping, true, keychain);
 }
 
@@ -56,8 +58,10 @@ void AtomDBUtils::reachable_terminal_set_recursive(set<string>& output,
     }
 }
 
-string AtomDBUtils::handle_to_metta_recursion(const string& handle, map<string, string>& mapping, bool populate_map, shared_ptr<Keychain> keychain) {
-
+string AtomDBUtils::handle_to_metta_recursion(const string& handle,
+                                              map<string, string>& mapping,
+                                              bool populate_map,
+                                              shared_ptr<Keychain> keychain) {
     string answer = "UNKNOWN_HANDLE";
     auto iterator = mapping.find(handle);
     if (iterator != mapping.end()) {
@@ -74,7 +78,7 @@ string AtomDBUtils::handle_to_metta_recursion(const string& handle, map<string, 
             // AtomDB is protected. Keychain must be forwarded.
             if (keychain != nullptr) {
                 // TODO __AUTH__ uncomment line below
-                //atom = protected_atomdb->get_atom(handle, keychain);
+                // atom = protected_atomdb->get_atom(handle, keychain);
             } else {
                 RAISE_ERROR("AtomDB is protected and requires a keychain");
             }
@@ -86,7 +90,8 @@ string AtomDBUtils::handle_to_metta_recursion(const string& handle, map<string, 
             } else {
                 vector<string> targets;
                 for (string& handle : dynamic_pointer_cast<Link>(atom)->targets) {
-                    targets.push_back(handle_to_metta_recursion(handle, mapping, populate_map, keychain));
+                    targets.push_back(
+                        handle_to_metta_recursion(handle, mapping, populate_map, keychain));
                 }
                 answer = MettaMapping::metta_expr(targets);
             }

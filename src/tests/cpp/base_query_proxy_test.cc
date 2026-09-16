@@ -1,14 +1,12 @@
-#include "AtomDBUtils.h"
-
 #include <gtest/gtest.h>
 
 #include "AtomDBSingleton.h"
+#include "AtomDBUtils.h"
 #include "InMemoryDB.h"
-#include "TestAtomDBJsonConfig.h"
-#include "QueryAnswer.h"
 #include "PatternMatchingQueryProxy.h"
-#include "TestSystemParams.h"
+#include "QueryAnswer.h"
 #include "TestAtomDBJsonConfig.h"
+#include "TestSystemParams.h"
 
 using namespace query_engine;
 using namespace atomdb;
@@ -17,10 +15,9 @@ using namespace std;
 using das_test::init_test_system_parameters_singleton;
 
 TEST(AtomDBTest, handle_to_metta) {
-    //AtomDBSingleton::init(test_atomdb_json_config());
+    // AtomDBSingleton::init(test_atomdb_json_config());
     AtomDBSingleton::init(test_atomdb_json_config("redismongodb", "base_query_proxy_test_"));
     init_test_system_parameters_singleton();
-
 
     auto db = AtomDBSingleton::get_instance();
 
@@ -54,7 +51,8 @@ TEST(AtomDBTest, handle_to_metta) {
     // (D (((A) (A B)) (A B) C) ((A) (A B)) (((A) (A B)) (A B) C))
     auto L5 = new Link("Expression", {D->handle(), L4->handle(), L3->handle(), L4->handle()}, true);
     db->add_link(L5);
-    EXPECT_EQ(AtomDBUtils::handle_to_metta(L5->handle()), "(D (((A) (A B)) (A B) C) ((A) (A B)) (((A) (A B)) (A B) C))");
+    EXPECT_EQ(AtomDBUtils::handle_to_metta(L5->handle()),
+              "(D (((A) (A B)) (A B) C) ((A) (A B)) (((A) (A B)) (A B) C))");
 
     QueryAnswer answer(L5->handle(), 0);
     PatternMatchingQueryProxy proxy;
@@ -68,7 +66,8 @@ TEST(AtomDBTest, handle_to_metta) {
     EXPECT_EQ(answer.metta_expression[L2->handle()], "(A B)");
     EXPECT_EQ(answer.metta_expression[L3->handle()], "((A) (A B))");
     EXPECT_EQ(answer.metta_expression[L4->handle()], "(((A) (A B)) (A B) C)");
-    EXPECT_EQ(answer.metta_expression[L5->handle()], "(D (((A) (A B)) (A B) C) ((A) (A B)) (((A) (A B)) (A B) C))");
+    EXPECT_EQ(answer.metta_expression[L5->handle()],
+              "(D (((A) (A B)) (A B) C) ((A) (A B)) (((A) (A B)) (A B) C))");
 
     db->delete_links({L1->handle(), L2->handle(), L3->handle(), L4->handle(), L5->handle()}, true);
 }
