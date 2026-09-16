@@ -54,6 +54,7 @@ class LinkCreationStats {
  */
 class LinkCreator {
    public:
+    enum AddLinkStatus { REJECTED = 0, UPDATED, CREATED };
     LinkCreator();
     virtual ~LinkCreator() {}
 
@@ -168,7 +169,7 @@ class LinkCreator {
     inline HandleDecoder* decoder() { return static_pointer_cast<HandleDecoder>(atomdb()).get(); }
     inline void add_determiners(vector<string>& entry) { this->_buffer_determiners.push_back(entry); }
 
-    bool add_or_update_link(const vector<string>& targets, double strength);
+    AddLinkStatus add_or_update_link(const vector<string>& targets, double strength);
     double get_strength(const string& handle);
     string get_node_name(const string& handle);
     void save_link_metta(shared_ptr<Link> link);
