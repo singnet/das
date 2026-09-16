@@ -19,12 +19,11 @@ namespace atomdb {
  * @brief Authorization wrapper around any AtomDB backend for protected databases.
  *
  * Data-access methods expose two forms:
- * - overloads without Keychain: reject the call (protected access requires a key)
- * - overloads with Keychain: authorize and delegate to the backend
+ * - overloads without Keychain: reject the call because protected access requires authentication.
+ * - overloads with Keychain: authorize the request and delegate to the backend.
  *
- * This class is the local wrapper for ProtectionMode::PROTECTED: it filters
- * get/query results against the caller's Keychain.
- *
+ * This class implements ProtectionMode::PROTECTED by filtering reads and
+ * queries according to the permissions associated with the caller's Keychain.
  */
 class ProtectedAtomDB : public AtomDB, public AtomDBKeySensitive {
    public:
@@ -170,48 +169,47 @@ class ProtectedAtomDB : public AtomDB, public AtomDBKeySensitive {
     /**
      * @brief Whether public_key may READ the atom identified by handle.
      *
-     * Uses the handle overload of the manifest, which loads the atom from the
-     * backend. Prefer the Atom overload when the object is already in hand.
+     * This overload resolves the atom from the backend before checking
+     * permissions. Prefer the Atom overload when the atom is already
+     * available.
      */
     bool can_read(const string& public_key, const string& handle);
 
     /**
-     * @brief Whether public_key may READ atom, without fetching it again.
+     * @brief Whether public_key may READ atom.
      *
-     * @return false if atom is null or the profile denies READ.
+     * Avoids an additional backend lookup when the atom is already available.
+     *
+     * @return false if atom is null or the associated profile denies READ.
      */
     bool can_read(const string& public_key, const shared_ptr<Atom>& atom);
 
     /**
-     * @brief Loads the access-permission document for public_key into the
-     *        manifest when it is not cached yet.
+     * @brief Ensures that public_key is loaded into the authorization manifest.
      *
-     * @return true if the key is registered after the lookup attempt.
+     * If the key is not already cached, its access-permission document is
+     * loaded from the backend and registered in the manifest.
+     *
+     * @return true if public_key is registered after the lookup attempt.
      */
     bool ensure_registered(const string& public_key);
 
     /**
-     * @brief Copies handles from original_handle_set that public_key may READ.
-     *
-     * Preserves per-handle metta expressions and assignments. Caller must
-     * already be registered. A null input yields an empty in-memory set.
+     * @brief Returns a filtered copy of original_handle_set containing only handles that public_key may
+     * READ.
      */
     shared_ptr<atomdb_api_types::HandleSet> filter_handle_set(
         const shared_ptr<atomdb_api_types::HandleSet>& original_handle_set, const string& public_key);
 
     /**
-     * @brief Copies handles from original_handle_list that public_key may READ.
-     *
-     * Caller must already be registered. A null input yields an empty
-     * in-memory list.
+     * @brief Returns a filtered copy of original_handle_list containing only handles that public_key may
+     * READ.
      */
     shared_ptr<atomdb_api_types::HandleList> filter_handle_list(
         const shared_ptr<atomdb_api_types::HandleList>& original_handle_list, const string& public_key);
 
     /**
      * @brief Returns the subset of original_handles that public_key may READ.
-     *
-     * Caller must already be registered.
      */
     set<string> filter_handles(const set<string>& original_handles, const string& public_key);
 };
