@@ -339,29 +339,24 @@ bool ProtectedAtomDB::can_write(const Keychain& keychain, const string& handle) 
     return this->manifest->is_granted(public_key, handle, AuthorizationOperation::WRITE);
 }
 
-// bool ProtectedAtomDB::can_read(const Keychain& keychain, const atoms::Atom& atom) {
-//     if (!this->ensure_registered(public_key)) {
-//         return false;
-//     }
-//     return this->manifest->is_granted(public_key, atom, AuthorizationOperation::READ);
-// }
+bool ProtectedAtomDB::can_read(const Keychain& keychain, const atoms::Atom& atom) {
+    RAISE_ERROR("ProtectedAtomDB::can_read is not implemented yet.");
+}
 
-// bool ProtectedAtomDB::can_write(const Keychain& keychain, const atoms::Atom& atom) {
-//     if (!this->ensure_registered(public_key)) {
-//         return false;
-//     }
-
-//     HandleDecoder& decoder = *this->backend;
-//     return this->manifest->is_granted(
-//         atom, public_key.keys[0], AuthorizationOperation::WRITE, decoder);
-// }
+bool ProtectedAtomDB::can_write(const Keychain& keychain, const atoms::Atom& atom) {
+    RAISE_ERROR("ProtectedAtomDB::can_write is not implemented yet.");
+}
 
 bool ProtectedAtomDB::ensure_registered(const string& public_key) {
     if (this->manifest->is_registered(public_key)) {
         return true;
     }
 
-    auto access_document = this->backend->get_access_permission(public_key);
+    auto access_document = this->backend->get_access_permissions(public_key);
+
+    if (access_document == nullptr) {
+        return false;
+    }
 
     if (access_document->get_access_key() != public_key) {
         return false;
@@ -394,6 +389,13 @@ shared_ptr<atomdb_api_types::HandleSet> ProtectedAtomDB::filter_handle_set(
                                           original_handle_set->get_assignments_by_handle(handle));
     }
 
+#if LOG_LEVEL >= DEBUG_LEVEL
+    LOG_DEBUG("[ ProtectedAtomDB::filter_handle_set() - original handle_set: ]" +
+              std::to_string(original_handle_set->size()));
+    LOG_DEBUG("[ ProtectedAtomDB::filter_handle_set() - authorized handle_set: ]" +
+              std::to_string(authorized_handle_set->size()));
+#endif
+
     return authorized_handle_set;
 }
 
@@ -415,6 +417,14 @@ shared_ptr<atomdb_api_types::HandleList> ProtectedAtomDB::filter_handle_list(
             authorized_handle_list->add_handle(handle);
         }
     }
+
+#if LOG_LEVEL >= DEBUG_LEVEL
+    LOG_DEBUG("[ ProtectedAtomDB::filter_handle_list() - original handle_list: ]" +
+              std::to_string(original_handle_list->size()));
+    LOG_DEBUG("[ ProtectedAtomDB::filter_handle_list() - authorized handle_list: ]" +
+              std::to_string(authorized_handle_list->size()));
+#endif
+
     return authorized_handle_list;
 }
 

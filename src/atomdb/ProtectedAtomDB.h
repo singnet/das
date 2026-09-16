@@ -162,10 +162,10 @@ class ProtectedAtomDB : public AtomDB, public AtomDBKeySensitive {
     [[noreturn]] static void raise_public_key_required(const string& method_name);
 
     bool can_read(const Keychain& keychain, const string& handle);
-    // bool can_read(const Keychain& keychain, const atoms::Atom& atom);
+    bool can_read(const Keychain& keychain, const atoms::Atom& atom);
 
     bool can_write(const Keychain& keychain, const string& handle);
-    // bool can_write(const Keychain& keychain, const atoms::Atom& atom);
+    bool can_write(const Keychain& keychain, const atoms::Atom& atom);
 
     /**
      * @brief Loads access-permission documents for public_key into the manifest when missing.
