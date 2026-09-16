@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <vector>
 
 using namespace std;
 namespace commons {
@@ -22,23 +23,37 @@ class MettaMapping {
     static string OR_QUERY_OPERATOR;
     static string CHAIN_QUERY_OPERATOR;
 
-    static string metta_expr3(const string& expr1, const string& expr2, const string& expr3) {
+    inline static string metta_expr(vector<string>& targets) {
+        string answer = "(";
+        bool first = true;
+        for (string& target : targets) {
+            if (! first) {
+                answer += " ";
+            } else {
+                first = false;
+            }
+            answer += target;
+        }
+        return answer + ")";
+    }
+
+    inline static string metta_expr3(const string& expr1, const string& expr2, const string& expr3) {
         return "(" + expr1 + " " + expr2 + " " + expr3 + ")";
     }
 
-    static string metta_or(const string& expr1, const string& expr2) {
+    inline static string metta_or(const string& expr1, const string& expr2) {
         return metta_expr3("or", expr1, expr2);
     }
 
-    static string metta_and(const string& expr1, const string& expr2) {
+    inline static string metta_and(const string& expr1, const string& expr2) {
         return metta_expr3("and", expr1, expr2);
     }
 
-    static string metta_chain(const string& source, const string& target, const string& query) {
+    inline static string metta_chain(const string& source, const string& target, const string& query) {
         return "(chain 0 1 2 " + source + " " + target + " " + query + ")";
     }
 
-    static string metta_var(const string& name) { return "$" + name; }
+    inline static string metta_var(const string& name) { return "$" + name; }
 };
 
 }  // namespace commons
