@@ -80,8 +80,7 @@ string AtomDBUtils::handle_to_metta_recursion(const string& handle,
         } else {
             // AtomDB is protected. Keychain must be forwarded.
             if (keychain != nullptr) {
-                // TODO __AUTH__ uncomment line below
-                // atom = protected_atomdb->get_atom(handle, keychain);
+                atom = protected_atomdb->get_atom(handle, keychain);
             } else {
                 RAISE_ERROR("AtomDB is protected and requires a keychain");
             }
