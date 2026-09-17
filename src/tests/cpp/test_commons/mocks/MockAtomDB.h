@@ -26,9 +26,9 @@ class AtomDBMock : public AtomDB {
    public:
     MOCK_METHOD(bool, allow_nested_indexing, (), (override));
     MOCK_METHOD(bool, composite_type_enabled, (), (const, override));
-    MOCK_METHOD(vector<shared_ptr<atomdb_api_types::AccessPermissionDocument>>,
+    MOCK_METHOD(shared_ptr<atomdb_api_types::AccessPermissionDocument>,
                 get_access_permissions,
-                (const atomdb_api_types::PublicKey& public_key),
+                (const string& public_key),
                 (const, override));
     MOCK_METHOD(ProtectionMode, get_protection_mode, (), (const, override));
     MOCK_METHOD(shared_ptr<Atom>, get_atom, (const string& handle), (override));

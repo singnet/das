@@ -1411,11 +1411,32 @@ TEST_F(RedisMongoDBTest, GetAccessPermissionsEmptyCollection) {
     auto collection = (*conn)[db->MONGODB_DB_NAME][db->MONGODB_ACCESS_PERMISSIONS_COLLECTION_NAME];
     collection.delete_many({});
 
-    auto permissions = db->get_access_permissions(PublicKey("any_key"));
-    EXPECT_TRUE(permissions.empty());
+    auto permissions = db->get_access_permissions("any_key");
+    EXPECT_EQ(permissions, nullptr);
 }
 
-TEST_F(RedisMongoDBTest, GetAccessPermissionsReturnsStoredDocuments) {
+TEST_F(RedisMongoDBTest, GetAccessPermissionsEmptyPublicKeyReturnsNullptr) {
+    using bsoncxx::builder::basic::kvp;
+    using bsoncxx::builder::basic::make_array;
+    using bsoncxx::builder::basic::make_document;
+
+    auto pool = db->get_mongo_pool();
+    auto conn = pool->acquire();
+    auto collection = (*conn)[db->MONGODB_DB_NAME][db->MONGODB_ACCESS_PERMISSIONS_COLLECTION_NAME];
+    collection.delete_many({});
+
+    string empty_key_id = Hasher::plain_string_hash("");
+    collection.insert_one(make_document(kvp("_id", empty_key_id),
+                                        kvp("public_key", ""),
+                                        kvp("full_access", true),
+                                        kvp("allowed_schemas", make_array())));
+
+    EXPECT_EQ(db->get_access_permissions(""), nullptr);
+
+    collection.delete_many({});
+}
+
+TEST_F(RedisMongoDBTest, GetAccessPermissionsReturnsStoredDocument) {
     using bsoncxx::builder::basic::kvp;
     using bsoncxx::builder::basic::make_array;
     using bsoncxx::builder::basic::make_document;
@@ -1441,18 +1462,18 @@ TEST_F(RedisMongoDBTest, GetAccessPermissionsReturnsStoredDocuments) {
             make_array(make_document(
                 kvp("tokens", similarity_tokens), kvp("read", true), kvp("write", false))))));
 
-    auto admin_permissions = db->get_access_permissions(PublicKey("key_admin"));
-    ASSERT_EQ(admin_permissions.size(), 1u);
-    EXPECT_STREQ(admin_permissions[0]->get_access_key(), "key_admin");
-    EXPECT_TRUE(admin_permissions[0]->get_full_access());
-    EXPECT_EQ(admin_permissions[0]->get_entries_size(), 0u);
+    auto admin_permissions = db->get_access_permissions("key_admin");
+    ASSERT_NE(admin_permissions, nullptr);
+    EXPECT_STREQ(admin_permissions->get_access_key(), "key_admin");
+    EXPECT_TRUE(admin_permissions->get_full_access());
+    EXPECT_EQ(admin_permissions->get_entries_size(), 0u);
 
-    auto reader_permissions = db->get_access_permissions(PublicKey("key_reader"));
-    ASSERT_EQ(reader_permissions.size(), 1u);
-    EXPECT_STREQ(reader_permissions[0]->get_access_key(), "key_reader");
-    EXPECT_FALSE(reader_permissions[0]->get_full_access());
-    ASSERT_EQ(reader_permissions[0]->get_entries_size(), 1u);
-    const auto& reader_entry = reader_permissions[0]->get_entry(0);
+    auto reader_permissions = db->get_access_permissions("key_reader");
+    ASSERT_NE(reader_permissions, nullptr);
+    EXPECT_STREQ(reader_permissions->get_access_key(), "key_reader");
+    EXPECT_FALSE(reader_permissions->get_full_access());
+    ASSERT_EQ(reader_permissions->get_entries_size(), 1u);
+    const auto& reader_entry = reader_permissions->get_entry(0);
     EXPECT_TRUE(reader_entry.get_read());
     EXPECT_FALSE(reader_entry.get_write());
     vector<string> expected_tokens = {
@@ -1465,22 +1486,10 @@ TEST_F(RedisMongoDBTest, GetAccessPermissionsReturnsStoredDocuments) {
     }
     EXPECT_EQ(LinkSchema(actual_tokens).handle(), expected_schema.handle());
 
-    EXPECT_TRUE(db->get_access_permissions(
-                      PublicKey(map<string, string>{{"peer_a", "key_admin"}, {"peer_b", "key_reader"}}))
-                    .empty());
-
-    auto config_peer_a = test_atomdb_json_config("redismongodb", "redis_mongodb_test_", "peer_a");
-    TestRedisMongoDB db_peer_a(config_peer_a);
-    EXPECT_EQ(db_peer_a.get_uid(), "peer_a");
-    auto map_permissions = db_peer_a.get_access_permissions(
-        PublicKey(map<string, string>{{"peer_a", "key_admin"}, {"peer_b", "key_reader"}}));
-    ASSERT_EQ(map_permissions.size(), 1u);
-    EXPECT_STREQ(map_permissions[0]->get_access_key(), "key_admin");
-
-    EXPECT_TRUE(db->get_access_permissions(PublicKey("missing_key")).empty());
+    EXPECT_EQ(db->get_access_permissions("missing_key"), nullptr);
 
     collection.delete_many({});
-    EXPECT_TRUE(db->get_access_permissions(PublicKey("key_admin")).empty());
+    EXPECT_EQ(db->get_access_permissions("key_admin"), nullptr);
 }
 
 TEST_F(RedisMongoDBTest, GetAccessPermissionsRejectsInvalidDocument) {
@@ -1495,23 +1504,9 @@ TEST_F(RedisMongoDBTest, GetAccessPermissionsRejectsInvalidDocument) {
     collection.insert_one(make_document(kvp("_id", string(compute_hash((char*) "key_broken"))),
                                         kvp("full_access", false)));
 
-    EXPECT_THROW(db->get_access_permissions(PublicKey("key_broken")), runtime_error);
+    EXPECT_THROW(db->get_access_permissions("key_broken"), runtime_error);
 
     collection.delete_many({});
-}
-
-TEST(PublicKeyTest, KeyForUid) {
-    PublicKey single("only_key");
-    EXPECT_TRUE(single.is_single_key());
-    EXPECT_EQ(single.key_for_uid(""), "only_key");
-    EXPECT_EQ(single.key_for_uid("ignored"), "only_key");
-
-    PublicKey mapped({{"peer_a", "key_a"}, {"peer_b", "key_b"}});
-    EXPECT_FALSE(mapped.is_single_key());
-    EXPECT_EQ(mapped.key_for_uid("peer_a"), "key_a");
-    EXPECT_EQ(mapped.key_for_uid("peer_b"), "key_b");
-    EXPECT_EQ(mapped.key_for_uid("peer_c"), "");
-    EXPECT_EQ(mapped.key_for_uid(""), "");
 }
 
 TEST(MongodbAccessPermissionEntryTest, GetTokensSizeReturnsArrayLength) {
