@@ -67,8 +67,7 @@ LinkTemplate::LinkTemplate(const string& type,
                 }
             }
             if (!parse_error && (keymap.size() == (tokens.size() / 2))) {
-                // TODO __AUTH__ uncomment line below
-                // this->keychain = new Keychain(keymap);
+                this->keychain = make_shared<Keychain>(keymap);
             } else {
                 parse_error = true;
             }
