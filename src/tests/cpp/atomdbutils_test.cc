@@ -166,4 +166,3 @@ int main(int argc, char** argv) {
     AtomDBSingleton::init(test_atomdb_json_config("redismongodb", "atomdbutils_test_"));
     return RUN_ALL_TESTS();
 }
-
