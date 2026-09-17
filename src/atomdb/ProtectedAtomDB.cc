@@ -395,10 +395,6 @@ bool ProtectedAtomDB::can_read(const string& public_key, const shared_ptr<Atom>&
 }
 
 bool ProtectedAtomDB::ensure_registered(const string& public_key) {
-    if (this->manifest->is_registered(public_key)) {
-        return true;
-    }
-
     auto access_document = this->backend->get_access_permissions(public_key);
 
     if (access_document == nullptr) {

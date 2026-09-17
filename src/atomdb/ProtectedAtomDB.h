@@ -187,10 +187,10 @@ class ProtectedAtomDB : public AtomDB, public AtomDBKeySensitive {
     /**
      * @brief Ensures that public_key is loaded into the authorization manifest.
      *
-     * If the key is not already cached, its access-permission document is
-     * loaded from the backend and registered in the manifest.
+     * The access-permission document is loaded from the backend. If the key is
+     * not already cached, the document is registered in the manifest.
      *
-     * @return true if public_key is registered after the lookup attempt.
+     * @return true if the backend has a matching document for public_key.
      */
     bool ensure_registered(const string& public_key);
 
