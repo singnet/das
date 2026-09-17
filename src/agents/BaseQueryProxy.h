@@ -260,7 +260,6 @@ class BaseQueryProxy : public BaseProxy {
 
    private:
     void init();
-    void recursive_metta_mapping(string handle, map<string, string>& table);
 
     recursive_mutex api_mutex;
     SharedQueue answer_queue;

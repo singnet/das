@@ -991,6 +991,7 @@ cc_test(
         "//atomdb:atomdb_lib",
         "//atomdb/redis_mongodb:redis_mongodb_lib",
         "//commons/atoms:atoms_lib",
+        "//metta:metta_mapping",
         "//tests/cpp/test_commons:test_atomdb_json_config",
         "@com_github_google_googletest//:gtest_main",
     ],

@@ -6,6 +6,7 @@
 
 #include "AtomDB.h"
 #include "Keychain.h"
+#include "ProtectedAtomDB.h"
 
 using namespace std;
 
@@ -27,7 +28,9 @@ class AtomDBUtils {
     static string handle_to_metta_recursion(const string& handle,
                                             map<string, string>& mapping,
                                             bool populate_mapping,
-                                            shared_ptr<Keychain> keychain);
+                                            shared_ptr<Keychain> keychain,
+                                            shared_ptr<AtomDB> atomdb,
+                                            shared_ptr<ProtectedAtomDB> protected_atomdb);
 
    public:
     /**
@@ -56,7 +59,7 @@ class AtomDBUtils {
 
     /**
      * Build a metta expression out of an atom handle. All the internal sub-expressions
-     * (as well the the toplevel one) are inserted in the passed map handle -> metta expression.
+     * (as well the toplevel one) are inserted in the passed map handle -> metta expression.
      *
      * @param handle The handle whose metta expression we want to build.
      * @param metta_mapping A handle -> metta expression map to be used to store mappings.

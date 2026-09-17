@@ -174,46 +174,6 @@ string BaseQueryProxy::to_string() {
     return answer;
 }
 
-void BaseQueryProxy::recursive_metta_mapping(string handle, map<string, string>& table) {
-    if (table.find(handle) == table.end()) {
-        auto atom = this->atomdb->get_atom(handle);
-        if (atom->arity() > 0) {
-            // is link
-            auto link = dynamic_cast<Link*>(atom.get());
-            if (link->type != "Expression") {
-                RAISE_ERROR("Link type \"" + link->type + "\" can't be mapped to MeTTa");
-                table[handle] = "";
-                return;
-            }
-            unsigned int arity = link->arity();
-            for (unsigned int i = 0; i < arity; i++) {
-                recursive_metta_mapping(link->targets[i], table);
-            }
-            string expression = "(";
-            bool empty_flag = true;
-            for (unsigned int i = 0; i < arity; i++) {
-                expression += table[link->targets[i]];
-                expression += " ";
-                empty_flag = false;
-            }
-            if (!empty_flag) {
-                expression.pop_back();
-            }
-            expression += ")";
-            table[handle] = expression;
-        } else {
-            // is node
-            auto node = dynamic_cast<Node*>(atom.get());
-            if (node->type != "Symbol") {
-                RAISE_ERROR("Node type \"" + node->type + "\" can't be mapped to MeTTa");
-                table[handle] = "";
-                return;
-            }
-            table[handle] = node->name;
-        }
-    }
-}
-
 void BaseQueryProxy::populate_metta_mapping(QueryAnswer* answer) {
     for (string& handle : answer->get_handles_vector()) {
         AtomDBUtils::handle_to_metta(handle, answer->metta_expression);
