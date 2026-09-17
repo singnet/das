@@ -1,6 +1,9 @@
 #include "AtomDBUtils.h"
 
 #include "AtomDBSingleton.h"
+#include "Logger.h"
+#include "MettaMapping.h"
+#include "ProtectedAtomDB.h"
 
 using namespace atomdb;
 
@@ -23,6 +26,17 @@ void AtomDBUtils::reachable_terminal_set(set<string>& output, const string& hand
     }
 }
 
+string AtomDBUtils::handle_to_metta(const string& handle, shared_ptr<Keychain> keychain) {
+    map<string, string> not_used;
+    return handle_to_metta_recursion(handle, not_used, false, keychain);
+}
+
+string AtomDBUtils::handle_to_metta(const string& handle,
+                                    map<string, string>& mapping,
+                                    shared_ptr<Keychain> keychain) {
+    return handle_to_metta_recursion(handle, mapping, true, keychain);
+}
+
 // -------------------------------------------------------------------------------------------------
 // Private methods
 
@@ -42,4 +56,51 @@ void AtomDBUtils::reachable_terminal_set_recursive(set<string>& output,
         }
         first_target = false;
     }
+}
+
+string AtomDBUtils::handle_to_metta_recursion(const string& handle,
+                                              map<string, string>& mapping,
+                                              bool populate_map,
+                                              shared_ptr<Keychain> keychain) {
+    string answer = "UNKNOWN_HANDLE";
+    auto iterator = mapping.find(handle);
+    if (iterator != mapping.end()) {
+        answer = iterator->second;
+    } else {
+        shared_ptr<Atom> atom = nullptr;
+        shared_ptr<AtomDB> atomdb = AtomDBSingleton::get_instance();
+        shared_ptr<ProtectedAtomDB> protected_atomdb = dynamic_pointer_cast<ProtectedAtomDB>(atomdb);
+
+        if (protected_atomdb == nullptr) {
+            // AtomDB is not protected. Disregard keychain.
+            atom = atomdb->get_atom(handle);
+        } else {
+            // AtomDB is protected. Keychain must be forwarded.
+            if (keychain != nullptr) {
+                // TODO __AUTH__ uncomment line below
+                // atom = protected_atomdb->get_atom(handle, keychain);
+            } else {
+                RAISE_ERROR("AtomDB is protected and requires a keychain");
+            }
+        }
+
+        if (atom != nullptr) {
+            if (Atom::is_node(*atom)) {
+                answer = dynamic_pointer_cast<Node>(atom)->name;
+            } else {
+                vector<string> targets;
+                for (string& handle : dynamic_pointer_cast<Link>(atom)->targets) {
+                    targets.push_back(
+                        handle_to_metta_recursion(handle, mapping, populate_map, keychain));
+                }
+                answer = MettaMapping::metta_expr(targets);
+            }
+        } else {
+            RAISE_ERROR("Unknown handle in handle_to_metta(): " + handle);
+        }
+        if (populate_map) {
+            mapping[handle] = answer;
+        }
+    }
+    return answer;
 }

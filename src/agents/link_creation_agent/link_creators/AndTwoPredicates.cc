@@ -37,21 +37,20 @@ LinkCreationStats AndTwoPredicates::create(shared_ptr<QueryAnswer> query_answer)
             extract_mentioned_predicates(mentioned_predicates1, predicates[1]);
             if (!Utils::intersects(mentioned_predicates0, mentioned_predicates1)) {
                 vector<string> targets = {LOGICAL_AND_HANDLE, predicates[0], predicates[1]};
-                if (add_or_update_link(targets, 1.0)) {
+                if (add_or_update_link(targets, 1.0) == CREATED) {
                     stats.created++;
                 }
                 double strength = 1;
                 for (string& h : query_answer->get_handles_vector()) {
                     strength *= get_strength(h);
                 }
-                if (strength >= strength_threshold()) {
-                    string new_predicate_handle = Hasher::link_handle(EXPRESSION, targets);
-                    if (add_or_update_link({EVALUATION_HANDLE, new_predicate_handle, concept_},
-                                           strength)) {
-                        stats.created++;
-                    } else {
-                        stats.updated++;
-                    }
+                string new_predicate_handle = Hasher::link_handle(EXPRESSION, targets);
+                AddLinkStatus add_status =
+                    add_or_update_link({EVALUATION_HANDLE, new_predicate_handle, concept_}, strength);
+                if (add_status == CREATED) {
+                    stats.created++;
+                } else if (add_status == UPDATED) {
+                    stats.updated++;
                 }
             } else {
                 LOG_DEBUG("(" +

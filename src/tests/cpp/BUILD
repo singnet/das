@@ -997,9 +997,9 @@ cc_test(
 )
 
 cc_test(
-    name = "metta_mapping_test",
+    name = "base_query_proxy_test",
     size = "small",
-    srcs = ["metta_mapping_test.cc"],
+    srcs = ["base_query_proxy_test.cc"],
     copts = [
         "-Iexternal/gtest/googletest/include",
         "-Iexternal/gtest/googletest",
@@ -1013,10 +1013,13 @@ cc_test(
     ],
     linkstatic = 1,
     deps = [
+        "//agents/query_engine:pattern_matching_query_proxy",
+        "//agents/query_engine:query_answer",
         "//atomdb:atomdb_lib",
         "//atomdb/redis_mongodb:redis_mongodb_lib",
         "//commons/atoms:atoms_lib",
         "//tests/cpp/test_commons:test_atomdb_json_config",
+        "//tests/cpp/test_commons:test_system_params",
         "@com_github_google_googletest//:gtest_main",
     ],
 )

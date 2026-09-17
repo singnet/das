@@ -42,7 +42,7 @@ LinkCreationStats CustomizableLinkCreator::create(shared_ptr<QueryAnswer> query_
     for (LinkSpecification& spec : this->link_specification) {
         if ((spec.target_elements.size() == 0) || (spec.link_type == "")) {
             RAISE_ERROR("Invalid empty target elements or link_type");
-            return stats;
+            break;
         }
         vector<string> handles;
         vector<double> strength_components;
@@ -54,9 +54,11 @@ LinkCreationStats CustomizableLinkCreator::create(shared_ptr<QueryAnswer> query_
         if (!visited(key)) {
             visit(key);
             stats.visited = true;
-            if (add_or_update_link(handles, compute_strength(query_answer, spec))) {
+            AddLinkStatus add_status = add_or_update_link(
+                handles, compute_strength(strength_components, spec.strength_composition));
+            if (add_status == CREATED) {
                 stats.created++;
-            } else {
+            } else if (add_status == UPDATED) {
                 stats.updated++;
             }
         }

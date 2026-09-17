@@ -1,5 +1,6 @@
 #include "BaseQueryProxy.h"
 
+#include "AtomDBUtils.h"
 #include "Logger.h"
 #include "ServiceBus.h"
 #include "SystemParametersSingleton.h"
@@ -215,11 +216,11 @@ void BaseQueryProxy::recursive_metta_mapping(string handle, map<string, string>&
 
 void BaseQueryProxy::populate_metta_mapping(QueryAnswer* answer) {
     for (string& handle : answer->get_handles_vector()) {
-        recursive_metta_mapping(handle, answer->metta_expression);
+        AtomDBUtils::handle_to_metta(handle, answer->metta_expression);
     }
     for (unsigned int i = 0; i < answer->get_paths_size(); i++) {
         for (string& handle : answer->get_path_vector(i)) {
-            recursive_metta_mapping(handle, answer->metta_expression);
+            AtomDBUtils::handle_to_metta(handle, answer->metta_expression);
         }
     }
 }
