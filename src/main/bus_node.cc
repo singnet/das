@@ -122,7 +122,11 @@ int main(int argc, char* argv[]) {
         ///////// Initializing AtomDB
         auto atomdb_config = json_config.at_path("atomdb").get_or<JsonConfig>(JsonConfig());
         AtomDBSingleton::init(atomdb_config);
-        LOG_INFO("Atom count: " + std::to_string(AtomDBSingleton::get_instance()->atom_count()));
+
+        if (AtomDBSingleton::get_instance()->get_protection_mode() ==
+            atomdb_api_types::ProtectionMode::UNPROTECTED) {
+            LOG_INFO("Atom count: " + std::to_string(AtomDBSingleton::get_instance()->atom_count()));
+        }
 
         ///////// Initializing misc statics
         link_creators::LinkCreatorRegistry::initialize_statics();

@@ -2,6 +2,7 @@
 
 #include <map>
 #include <memory>
+#include <mutex>
 #include <string>
 #include <vector>
 
@@ -39,21 +40,23 @@ class AuthorizationManifest {
      * @brief Returns whether public_key has an authorization document.
      */
     inline bool is_registered(const string& public_key) const {
+        lock_guard<mutex> lock(this->profiles_mutex);
         return this->profiles.find(public_key) != this->profiles.end();
     }
 
     /**
      * @brief Adds an authorization document to the manifest.
      *
-     * Builds an AuthorizationProfile from the document and stores it in the
-     * in-memory cache keyed by access_key. Raises an error if the access_key
-     * is already registered.
+     * If access_key is already registered, this is a no-op. Otherwise builds
+     * an AuthorizationProfile from the document and stores it keyed by
+     * access_key. The registered-check and the insertion are atomic.
      */
     void add_document(const shared_ptr<atomdb_api_types::AccessPermissionDocument>& document);
 
    private:
     shared_ptr<AtomDB> atomdb;
     map<string, shared_ptr<AuthorizationProfile>> profiles;
+    mutable mutex profiles_mutex;
 };
 
 }  // namespace atomdb

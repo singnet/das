@@ -91,13 +91,10 @@ shared_ptr<InMemoryDB> db_with_inheritance_link(string* link_handle) {
     return db;
 }
 
-AuthorizationManifest manifest_from_persistence(shared_ptr<AtomDB> atomdb,
-                                                const DummyPersistence& persistence) {
-    AuthorizationManifest manifest(atomdb);
+void add_persisted_documents(AuthorizationManifest& manifest, const DummyPersistence& persistence) {
     for (const auto& [public_key, entries] : persistence.documents) {
         manifest.add_document(make_document(public_key, false, entries));
     }
-    return manifest;
 }
 
 unique_ptr<MongodbAuthorizationPersistence> make_mongo_persistence(const string& database_name,
@@ -212,7 +209,8 @@ TEST(AuthorizationPersistenceTest, ManifestReflectsPersistedPermissions) {
 
     persistence->grant("pk", schemas);
 
-    AuthorizationManifest manifest = manifest_from_persistence(db, *persistence);
+    AuthorizationManifest manifest(db);
+    add_persisted_documents(manifest, *persistence);
     auto link = db->get_link(link_handle);
     ASSERT_NE(link, nullptr);
 
