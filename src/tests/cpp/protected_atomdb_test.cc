@@ -470,7 +470,7 @@ class AccessDocumentBackend : public InMemoryDB {
 
 TEST(ProtectedAtomDBTest, RejectsNullBackend) { EXPECT_THROW(ProtectedAtomDB(nullptr), runtime_error); }
 
-TEST(ProtectedAtomDBTest, UnprotectedOverloadsRequireKeychain) {
+TEST(ProtectedAtomDBTest, ProtectedMethodsRequireKeychain) {
     shared_ptr<ProtectedRedisMongo> protected_atomdb = make_shared<ProtectedRedisMongo>(false);
     Node node("Symbol", "\"node\"");
     LinkSchema schema("Expression", 2);
@@ -483,15 +483,14 @@ TEST(ProtectedAtomDBTest, UnprotectedOverloadsRequireKeychain) {
     EXPECT_THROW(protected_atomdb->db->atom_count(), runtime_error);
 }
 
-TEST(ProtectedAtomDBTest, MissingPublicKeyDeniesAccess) {
+TEST(ProtectedAtomDBTest, KeychainWithoutDatabaseKeyDeniesAccess) {
     shared_ptr<ProtectedRedisMongo> protected_atomdb = make_shared<ProtectedRedisMongo>(true);
     protected_atomdb->grant_full_access(PKAdmin);
     Animals animals;
-    LinkSchema human_schema(similarity_human_tokens());
+    LinkSchema similarity_human_schema(similarity_human_tokens());
     auto granted_link = protected_atomdb->backend->get_link(animals.similarity_human_monkey);
     ASSERT_NE(granted_link, nullptr);
 
-    // Null keychain, empty key, and a keychain for another uid all yield an empty public key.
     vector<shared_ptr<Keychain>> missing_keys = {
         nullptr,
         make_keychain(protected_atomdb->db->get_uid(), ""),
@@ -501,10 +500,9 @@ TEST(ProtectedAtomDBTest, MissingPublicKeyDeniesAccess) {
         EXPECT_EQ(protected_atomdb->db->get_atom(animals.similarity_human_monkey, keys), nullptr);
     }
 
-    // Same gate for every read: nullptr, false, or an empty collection — never an exception.
     shared_ptr<Keychain> keys = nullptr;
     EXPECT_TRUE(protected_atomdb->db->get_matching_atoms(false, *granted_link, keys).empty());
-    EXPECT_EQ(protected_atomdb->db->query_for_pattern(human_schema, keys)->size(), 0u);
+    EXPECT_EQ(protected_atomdb->db->query_for_pattern(similarity_human_schema, keys)->size(), 0u);
     EXPECT_EQ(protected_atomdb->db->query_for_targets(animals.similarity_human_monkey, keys)->size(),
               0u);
     EXPECT_EQ(protected_atomdb->db->query_for_incoming_set(animals.human, keys)->size(), 0u);
@@ -512,13 +510,11 @@ TEST(ProtectedAtomDBTest, MissingPublicKeyDeniesAccess) {
     EXPECT_TRUE(protected_atomdb->db->atoms_exist({animals.similarity_human_monkey}, keys).empty());
 }
 
-TEST(ProtectedAtomDBTest, UnregisteredPublicKeyDeniesAccess) {
+TEST(ProtectedAtomDBTest, UnknownPublicKeyDeniesAccess) {
     shared_ptr<ProtectedRedisMongo> protected_atomdb = make_shared<ProtectedRedisMongo>(true);
     auto unknown_keys = protected_atomdb->keys(PKUnknown);
     Animals animals;
 
-    // No permission document exists for this key. Reads fail the same way as a missing keychain:
-    // nullptr, false, or an empty collection — never an exception.
     EXPECT_EQ(protected_atomdb->db->get_atom(animals.similarity_human_monkey, unknown_keys), nullptr);
     EXPECT_FALSE(protected_atomdb->db->link_exists(animals.similarity_human_monkey, unknown_keys));
     EXPECT_TRUE(
@@ -526,7 +522,7 @@ TEST(ProtectedAtomDBTest, UnregisteredPublicKeyDeniesAccess) {
     EXPECT_EQ(protected_atomdb->db->query_for_incoming_set(animals.human, unknown_keys)->size(), 0u);
 }
 
-TEST(ProtectedAtomDBTest, MismatchedAccessKeyDeniesAccess) {
+TEST(ProtectedAtomDBTest, LoadedPermissionDocumentMustMatchRequestedKey) {
     Node node("Symbol", "\"human\"");
 
     auto matching_backend = make_shared<AccessDocumentBackend>("pk");
@@ -541,7 +537,7 @@ TEST(ProtectedAtomDBTest, MismatchedAccessKeyDeniesAccess) {
     EXPECT_EQ(mismatched_db.get_atom(handle, keys), nullptr);
 }
 
-TEST(ProtectedAtomDBTest, GrantControlsVisibleAtoms) {
+TEST(ProtectedAtomDBTest, ReadOperationsReturnOnlyAuthorizedAtoms) {
     shared_ptr<ProtectedRedisMongo> protected_atomdb = make_shared<ProtectedRedisMongo>(true);
     protected_atomdb->grant_full_access(PKAdmin);
     protected_atomdb->grant_link_template(PKSimilarityHuman, similarity_human_tokens());
@@ -560,6 +556,8 @@ TEST(ProtectedAtomDBTest, GrantControlsVisibleAtoms) {
               nullptr);
     EXPECT_NE(protected_atomdb->db->get_link(animals.similarity_human_chimp, similarity_human_keys),
               nullptr);
+    EXPECT_NE(protected_atomdb->db->get_link(animals.similarity_human_ent, similarity_human_keys),
+              nullptr);
     EXPECT_EQ(protected_atomdb->db->get_link(animals.similarity_snake_vine, similarity_human_keys),
               nullptr);
     EXPECT_EQ(protected_atomdb->db->get_link(animals.inheritance_human_mammal, similarity_human_keys),
@@ -574,7 +572,6 @@ TEST(ProtectedAtomDBTest, GrantControlsVisibleAtoms) {
         protected_atomdb->db->atom_exists(animals.inheritance_human_mammal, similarity_human_keys));
     EXPECT_FALSE(protected_atomdb->db->node_exists(animals.human, similarity_human_keys));
 
-    // Denied handles and missing handles are indistinguishable from the caller.
     EXPECT_EQ(protected_atomdb->db->get_atom("missing", admin_keys), nullptr);
     EXPECT_FALSE(protected_atomdb->db->atom_exists("missing", admin_keys));
     EXPECT_EQ(protected_atomdb->db->get_atom(animals.similarity_snake_vine, similarity_human_keys),
@@ -583,28 +580,35 @@ TEST(ProtectedAtomDBTest, GrantControlsVisibleAtoms) {
         protected_atomdb->db->atom_exists(animals.similarity_snake_vine, similarity_human_keys));
 
     EXPECT_EQ(protected_atomdb->db->links_exist({animals.similarity_human_monkey,
+                                                 animals.similarity_human_chimp,
+                                                 animals.similarity_human_ent,
                                                  animals.similarity_snake_vine,
                                                  animals.inheritance_human_mammal},
                                                 similarity_human_keys),
-              set<string>({animals.similarity_human_monkey}));
-    EXPECT_EQ(protected_atomdb->db->atoms_exist(
-                  {animals.similarity_human_monkey, animals.human, animals.similarity_snake_vine},
-                  similarity_human_keys),
-              set<string>({animals.similarity_human_monkey}));
+              set<string>({animals.similarity_human_monkey,
+                           animals.similarity_human_chimp,
+                           animals.similarity_human_ent}));
+    EXPECT_EQ(protected_atomdb->db->atoms_exist({animals.similarity_human_monkey,
+                                                 animals.similarity_human_chimp,
+                                                 animals.similarity_human_ent,
+                                                 animals.human,
+                                                 animals.similarity_snake_vine},
+                                                similarity_human_keys),
+              set<string>({animals.similarity_human_monkey,
+                           animals.similarity_human_chimp,
+                           animals.similarity_human_ent}));
     EXPECT_TRUE(protected_atomdb->db->nodes_exist({animals.human, animals.monkey}, similarity_human_keys)
                     .empty());
     EXPECT_EQ(protected_atomdb->db->nodes_exist({animals.human}, admin_keys),
               set<string>({animals.human}));
 }
 
-TEST(ProtectedAtomDBTest, CollectionQueriesDropUnauthorizedHandles) {
+TEST(ProtectedAtomDBTest, QueryForPatternReturnsOnlyAuthorizedHandles) {
     shared_ptr<ProtectedRedisMongo> protected_atomdb = make_shared<ProtectedRedisMongo>(true);
     protected_atomdb->grant_full_access(PKAdmin);
     protected_atomdb->grant_link_template(PKSimilarityHuman, similarity_human_tokens());
-
     auto admin_keys = protected_atomdb->keys(PKAdmin);
     auto similarity_human_keys = protected_atomdb->keys(PKSimilarityHuman);
-
     Animals animals;
 
     LinkSchema similarity_human_schema(similarity_human_tokens());
@@ -646,7 +650,7 @@ TEST(ProtectedAtomDBTest, CollectionQueriesDropUnauthorizedHandles) {
     EXPECT_TRUE(protected_atomdb->db->get_matching_atoms(false, *denied, similarity_human_keys).empty());
 }
 
-TEST(ProtectedAtomDBTest, IncomingSetRequiresReadableSeedThenFilters) {
+TEST(ProtectedAtomDBTest, IncomingSetRequiresReadableHandleAndFiltersResults) {
     shared_ptr<ProtectedRedisMongo> protected_atomdb = make_shared<ProtectedRedisMongo>(true);
     protected_atomdb->grant_full_access(PKAdmin);
     protected_atomdb->grant_link_template(PKSimilarityHuman, similarity_human_tokens());
@@ -654,10 +658,16 @@ TEST(ProtectedAtomDBTest, IncomingSetRequiresReadableSeedThenFilters) {
     auto similarity_human_keys = protected_atomdb->keys(PKSimilarityHuman);
     Animals animals;
 
-    auto admin_incoming =
+    auto admin_incoming_human =
         handles_from_set(protected_atomdb->db->query_for_incoming_set(animals.human, admin_keys));
-    EXPECT_TRUE(admin_incoming.count(animals.similarity_human_monkey));
-    EXPECT_TRUE(admin_incoming.count(animals.inheritance_human_mammal));
+    EXPECT_EQ(admin_incoming_human,
+              set<string>({animals.similarity_human_monkey,
+                           animals.similarity_human_chimp,
+                           animals.similarity_human_ent,
+                           animals.similarity_monkey_human,
+                           animals.similarity_chimp_human,
+                           animals.similarity_ent_human,
+                           animals.inheritance_human_mammal}));
 
     // The Similarity-human grant does not cover the "human" node, so the incoming query is denied.
     EXPECT_TRUE(handles_from_set(
@@ -666,12 +676,22 @@ TEST(ProtectedAtomDBTest, IncomingSetRequiresReadableSeedThenFilters) {
 
     // The seed link is readable, so the query runs. Related links that point to it are not granted
     // and are dropped from the result.
-    auto admin_similarity_incoming = handles_from_set(
+    auto admin_incoming_similarity_human_monkey = handles_from_set(
         protected_atomdb->db->query_for_incoming_set(animals.similarity_human_monkey, admin_keys));
-    EXPECT_TRUE(admin_similarity_incoming.count(animals.related_similarity_and_inheritance));
-    auto similarity_incoming = handles_from_set(protected_atomdb->db->query_for_incoming_set(
-        animals.similarity_human_monkey, similarity_human_keys));
-    EXPECT_FALSE(similarity_incoming.count(animals.related_similarity_and_inheritance));
+    EXPECT_EQ(admin_incoming_similarity_human_monkey,
+              set<string>({animals.related_similarity_human_monkey_similarity_human_chimp,
+                           animals.related_similarity_human_monkey_similarity_chimp_monkey,
+                           animals.related_similarity_human_monkey_similarity_human_ent,
+                           animals.related_similarity_human_monkey_similarity_monkey_human,
+                           animals.related_similarity_human_monkey_similarity_chimp_human,
+                           animals.related_similarity_human_monkey_similarity_monkey_chimp,
+                           animals.related_similarity_human_monkey_similarity_ent_human,
+                           animals.related_similarity_and_inheritance,
+                           animals.related_similarity_human_monkey_inheritance_monkey_mammal}));
+    auto incoming_similarity_human_monkey =
+        handles_from_set(protected_atomdb->db->query_for_incoming_set(animals.similarity_human_monkey,
+                                                                      similarity_human_keys));
+    EXPECT_TRUE(incoming_similarity_human_monkey.empty());
 }
 
 TEST(ProtectedAtomDBTest, TargetsReturnOutgoingWithoutFiltering) {
@@ -714,33 +734,35 @@ TEST(ProtectedAtomDBTest, ParentAndChildGrantsAreIndependent) {
     protected_atomdb->grant_link_template(PKOnlyH, expression_ab_variable_tokens(graph.A, graph.B));
     protected_atomdb->grant_link_templates(
         PKOnlyABC, {similarity_human_tokens(), similarity_to_vine_tokens(), inheritance_human_tokens()});
-    auto only_h = protected_atomdb->keys(PKOnlyH);
-    auto only_abc = protected_atomdb->keys(PKOnlyABC);
+    auto only_h_keys = protected_atomdb->keys(PKOnlyH);
+    auto only_abc_keys = protected_atomdb->keys(PKOnlyABC);
 
-    EXPECT_NE(protected_atomdb->db->get_atom(graph.H, only_h), nullptr);
-    EXPECT_EQ(protected_atomdb->db->get_atom(graph.A, only_h), nullptr);
-    EXPECT_EQ(protected_atomdb->db->get_atom(graph.B, only_h), nullptr);
-    EXPECT_EQ(protected_atomdb->db->get_atom(graph.C, only_h), nullptr);
+    EXPECT_NE(protected_atomdb->db->get_atom(graph.H, only_h_keys), nullptr);
+    EXPECT_EQ(protected_atomdb->db->get_atom(graph.A, only_h_keys), nullptr);
+    EXPECT_EQ(protected_atomdb->db->get_atom(graph.B, only_h_keys), nullptr);
+    EXPECT_EQ(protected_atomdb->db->get_atom(graph.C, only_h_keys), nullptr);
 
-    EXPECT_EQ(protected_atomdb->db->get_atom(graph.H, only_abc), nullptr);
-    EXPECT_NE(protected_atomdb->db->get_atom(graph.A, only_abc), nullptr);
-    EXPECT_NE(protected_atomdb->db->get_atom(graph.B, only_abc), nullptr);
-    EXPECT_NE(protected_atomdb->db->get_atom(graph.C, only_abc), nullptr);
+    EXPECT_EQ(protected_atomdb->db->get_atom(graph.H, only_abc_keys), nullptr);
+    EXPECT_NE(protected_atomdb->db->get_atom(graph.A, only_abc_keys), nullptr);
+    EXPECT_NE(protected_atomdb->db->get_atom(graph.B, only_abc_keys), nullptr);
+    EXPECT_NE(protected_atomdb->db->get_atom(graph.C, only_abc_keys), nullptr);
 
     // Readable parent: targets are returned even though A, B and C are not granted.
-    auto targets = handles_from_list(protected_atomdb->db->query_for_targets(graph.H, only_h));
+    auto targets = handles_from_list(protected_atomdb->db->query_for_targets(graph.H, only_h_keys));
     ASSERT_EQ(targets.size(), 3);
     EXPECT_EQ(targets[0], graph.A);
     EXPECT_EQ(targets[1], graph.B);
     EXPECT_EQ(targets[2], graph.C);
 
     // Unreadable parent: targets are empty even though A, B and C are granted.
-    EXPECT_TRUE(handles_from_list(protected_atomdb->db->query_for_targets(graph.H, only_abc)).empty());
+    EXPECT_TRUE(
+        handles_from_list(protected_atomdb->db->query_for_targets(graph.H, only_abc_keys)).empty());
 
     // Incoming requires a readable seed. Granting H does not make incoming(A) visible.
-    EXPECT_TRUE(handles_from_set(protected_atomdb->db->query_for_incoming_set(graph.A, only_h)).empty());
+    EXPECT_TRUE(
+        handles_from_set(protected_atomdb->db->query_for_incoming_set(graph.A, only_h_keys)).empty());
     // Seed A is readable, but H is not granted, so it is dropped from incoming(A).
-    EXPECT_FALSE(handles_from_set(protected_atomdb->db->query_for_incoming_set(graph.A, only_abc))
+    EXPECT_FALSE(handles_from_set(protected_atomdb->db->query_for_incoming_set(graph.A, only_abc_keys))
                      .count(graph.H));
 }
 
@@ -748,34 +770,23 @@ TEST(ProtectedAtomDBTest, NestedRelatedGrantDoesNotImplyInnerSimilarity) {
     shared_ptr<ProtectedRedisMongo> protected_atomdb = make_shared<ProtectedRedisMongo>(true);
     protected_atomdb->grant_link_template(PKRelatedHuman, related_of_similarity_human_tokens());
     protected_atomdb->grant_link_template(PKSimilarityHuman, similarity_human_tokens());
-    auto related_keys = protected_atomdb->keys(PKRelatedHuman);
-    auto similarity_keys = protected_atomdb->keys(PKSimilarityHuman);
+    auto related_human_keys = protected_atomdb->keys(PKRelatedHuman);
+    auto similarity_human_keys = protected_atomdb->keys(PKSimilarityHuman);
     Animals animals;
 
     EXPECT_NE(protected_atomdb->backend->get_link(animals.related_similarity_and_inheritance), nullptr);
-    EXPECT_NE(protected_atomdb->db->get_link(animals.related_similarity_and_inheritance, related_keys),
-              nullptr);
-    EXPECT_EQ(
-        protected_atomdb->db->get_link(animals.related_similarity_and_inheritance, similarity_keys),
+    EXPECT_NE(
+        protected_atomdb->db->get_link(animals.related_similarity_and_inheritance, related_human_keys),
         nullptr);
+    EXPECT_EQ(protected_atomdb->db->get_link(animals.related_similarity_and_inheritance,
+                                             similarity_human_keys),
+              nullptr);
 
-    LinkSchema related_schema(related_of_similarity_human_tokens());
-    EXPECT_TRUE(handles_from_set(protected_atomdb->db->query_for_pattern(related_schema, related_keys))
+    LinkSchema related_similarity_human_schema(related_of_similarity_human_tokens());
+    EXPECT_TRUE(handles_from_set(protected_atomdb->db->query_for_pattern(related_similarity_human_schema,
+                                                                         related_human_keys))
                     .count(animals.related_similarity_and_inheritance));
-    EXPECT_TRUE(
-        handles_from_set(protected_atomdb->db->query_for_pattern(related_schema, similarity_keys))
-            .empty());
-}
-
-TEST(ProtectedAtomDBTest, KeychainMutationsAreNotImplemented) {
-    shared_ptr<ProtectedRedisMongo> protected_atomdb = make_shared<ProtectedRedisMongo>(true);
-    protected_atomdb->grant_full_access(PKAdmin);
-    auto admin_keys = protected_atomdb->keys(PKAdmin);
-    Node node("Symbol", "\"node\"");
-    Animals animals;
-
-    EXPECT_THROW(protected_atomdb->db->add_node(&node, admin_keys), runtime_error);
-    EXPECT_THROW(protected_atomdb->db->delete_link(animals.similarity_human_monkey, admin_keys),
-                 runtime_error);
-    EXPECT_THROW(protected_atomdb->db->atom_count(admin_keys), runtime_error);
+    EXPECT_TRUE(handles_from_set(protected_atomdb->db->query_for_pattern(related_similarity_human_schema,
+                                                                         similarity_human_keys))
+                    .empty());
 }
