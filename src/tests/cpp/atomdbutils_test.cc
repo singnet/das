@@ -11,7 +11,6 @@ using namespace atoms;
 using namespace std;
 
 TEST(AtomDBTest, reachable_terminal_set) {
-    AtomDBSingleton::init(test_atomdb_json_config("redismongodb", "atomdbutils_test_"));
     auto db = AtomDBSingleton::get_instance();
 
     auto A = new Node("Symbol", "A");
@@ -160,3 +159,11 @@ TEST(AtomDBTest, handle_to_metta) {
 
     db->delete_links({L1->handle(), L2->handle(), L3->handle(), L4->handle(), L5->handle()}, true);
 }
+
+int main(int argc, char** argv) {
+    ::testing::InitGoogleTest(&argc, argv);
+    Utils::init_random(0);
+    AtomDBSingleton::init(test_atomdb_json_config("redismongodb", "atomdbutils_test_"));
+    return RUN_ALL_TESTS();
+}
+
