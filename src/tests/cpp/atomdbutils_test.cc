@@ -4,6 +4,7 @@
 
 #include "AtomDBSingleton.h"
 #include "InMemoryDB.h"
+#include "MettaMapping.h"
 #include "TestAtomDBJsonConfig.h"
 
 using namespace atomdb;
@@ -11,45 +12,38 @@ using namespace atoms;
 using namespace std;
 
 TEST(AtomDBTest, reachable_terminal_set) {
-    AtomDBSingleton::init(test_atomdb_json_config("redismongodb", "atomdbutils_test_"));
     auto db = AtomDBSingleton::get_instance();
 
-    auto A = new Node("Symbol", "A");
-    auto B = new Node("Symbol", "B");
-    auto C = new Node("Symbol", "C");
-    auto D = new Node("Symbol", "D");
-    auto E = new Node("Symbol", "E");
-    auto F = new Node("Symbol", "F");
-    auto G = new Node("Symbol", "G");
-    auto H = new Node("Symbol", "H");
-    auto I = new Node("Symbol", "I");
-    auto J = new Node("Symbol", "J");
-    auto K = new Node("Symbol", "K");
-    auto NOT_ADDED = new Node("Symbol", "NOT_ADDED");
-    cout << "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX 1" << endl;
+    auto A = new Node(MettaMapping::SYMBOL_NODE_TYPE, "A");
+    auto B = new Node(MettaMapping::SYMBOL_NODE_TYPE, "B");
+    auto C = new Node(MettaMapping::SYMBOL_NODE_TYPE, "C");
+    auto D = new Node(MettaMapping::SYMBOL_NODE_TYPE, "D");
+    auto E = new Node(MettaMapping::SYMBOL_NODE_TYPE, "E");
+    auto F = new Node(MettaMapping::SYMBOL_NODE_TYPE, "F");
+    auto G = new Node(MettaMapping::SYMBOL_NODE_TYPE, "G");
+    auto H = new Node(MettaMapping::SYMBOL_NODE_TYPE, "H");
+    auto I = new Node(MettaMapping::SYMBOL_NODE_TYPE, "I");
+    auto J = new Node(MettaMapping::SYMBOL_NODE_TYPE, "J");
+    auto K = new Node(MettaMapping::SYMBOL_NODE_TYPE, "K");
+    auto NOT_ADDED = new Node(MettaMapping::SYMBOL_NODE_TYPE, "NOT_ADDED");
     db->add_nodes({A, B, C, D, E, F, G, H, I, J, K});
-    cout << "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX 2" << endl;
 
-    auto L6 = new Link("Expression", {I->handle(), J->handle(), K->handle()}, true);
-    cout << "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX 3" << endl;
+    auto L6 =
+        new Link(MettaMapping::EXPRESSION_LINK_TYPE, {I->handle(), J->handle(), K->handle()}, true);
     db->add_link(L6);
-    auto L5 = new Link("Expression", {C->handle(), D->handle()}, true);
-    cout << "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX 4" << endl;
+    auto L5 = new Link(MettaMapping::EXPRESSION_LINK_TYPE, {C->handle(), D->handle()}, true);
     db->add_link(L5);
-    auto L4 = new Link("Expression", {L5->handle(), E->handle()}, true);
-    cout << "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX 5" << endl;
+    auto L4 = new Link(MettaMapping::EXPRESSION_LINK_TYPE, {L5->handle(), E->handle()}, true);
     db->add_link(L4);
-    auto L3 = new Link("Expression", {L4->handle(), F->handle()}, true);
-    cout << "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX 6" << endl;
+    auto L3 = new Link(MettaMapping::EXPRESSION_LINK_TYPE, {L4->handle(), F->handle()}, true);
     db->add_link(L3);
-    auto L2 = new Link("Expression", {G->handle(), L6->handle(), H->handle()}, true);
-    cout << "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX 7" << endl;
+    auto L2 =
+        new Link(MettaMapping::EXPRESSION_LINK_TYPE, {G->handle(), L6->handle(), H->handle()}, true);
     db->add_link(L2);
-    auto L1 = new Link("Expression", {A->handle(), B->handle(), L3->handle()}, true);
-    cout << "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX 8" << endl;
+    auto L1 =
+        new Link(MettaMapping::EXPRESSION_LINK_TYPE, {A->handle(), B->handle(), L3->handle()}, true);
     db->add_link(L1);
-    auto L0 = new Link("Expression", {L1->handle(), L2->handle()}, true);
-    cout << "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX 9" << endl;
+    auto L0 = new Link(MettaMapping::EXPRESSION_LINK_TYPE, {L1->handle(), L2->handle()}, true);
     db->add_link(L0);
 
     string a = A->handle();
@@ -126,4 +120,53 @@ TEST(AtomDBTest, reachable_terminal_set) {
                       L5->handle(),
                       L6->handle()},
                      true);
+}
+
+TEST(AtomDBTest, handle_to_metta) {
+    auto db = AtomDBSingleton::get_instance();
+
+    auto A = new Node("Symbol", "A");
+    auto B = new Node("Symbol", "B");
+    auto C = new Node("Symbol", "C");
+    auto D = new Node("Symbol", "D");
+
+    db->add_nodes({A, B, C, D});
+
+    // A
+    EXPECT_EQ(AtomDBUtils::handle_to_metta(A->handle()), "A");
+
+    // (A)
+    auto L1 = new Link("Expression", {A->handle()}, true);
+    db->add_link(L1);
+    EXPECT_EQ(AtomDBUtils::handle_to_metta(L1->handle()), "(A)");
+
+    // (A B)
+    auto L2 = new Link("Expression", {A->handle(), B->handle()}, true);
+    db->add_link(L2);
+    EXPECT_EQ(AtomDBUtils::handle_to_metta(L2->handle()), "(A B)");
+
+    // ((A) (A B))
+    auto L3 = new Link("Expression", {L1->handle(), L2->handle()}, true);
+    db->add_link(L3);
+    EXPECT_EQ(AtomDBUtils::handle_to_metta(L3->handle()), "((A) (A B))");
+
+    // (((A) (A B)) (A B) C)
+    auto L4 = new Link("Expression", {L3->handle(), L2->handle(), C->handle()}, true);
+    db->add_link(L4);
+    EXPECT_EQ(AtomDBUtils::handle_to_metta(L4->handle()), "(((A) (A B)) (A B) C)");
+
+    // (D (((A) (A B)) (A B) C) ((A) (A B)) (((A) (A B)) (A B) C))
+    auto L5 = new Link("Expression", {D->handle(), L4->handle(), L3->handle(), L4->handle()}, true);
+    db->add_link(L5);
+    EXPECT_EQ(AtomDBUtils::handle_to_metta(L5->handle()),
+              "(D (((A) (A B)) (A B) C) ((A) (A B)) (((A) (A B)) (A B) C))");
+
+    db->delete_links({L1->handle(), L2->handle(), L3->handle(), L4->handle(), L5->handle()}, true);
+}
+
+int main(int argc, char** argv) {
+    ::testing::InitGoogleTest(&argc, argv);
+    Utils::init_random(0);
+    AtomDBSingleton::init(test_atomdb_json_config("redismongodb", "atomdbutils_test_"));
+    return RUN_ALL_TESTS();
 }
