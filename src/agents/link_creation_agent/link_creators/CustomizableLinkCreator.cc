@@ -1,8 +1,8 @@
 #include "CustomizableLinkCreator.h"
-#include "ServiceBusSingleton.h"
-#include "AtomDBUtils.h"
 
+#include "AtomDBUtils.h"
 #include "Hasher.h"
+#include "ServiceBusSingleton.h"
 #include "tags.h"
 
 using namespace link_creators;
@@ -13,7 +13,12 @@ char CustomizableLinkCreator::EXTRA_PARAMETERS_SPLIT_CHAR = ',';
 // -------------------------------------------------------------------------------------------------
 // Public methods
 
-CustomizableLinkCreator::LinkSpecification::LinkSpecification(const vector<QueryAnswerElement>& target_elements, const vector<QueryAnswerElement>& strength_elements, string link_type, StrengthComposition strength_composition, const vector<string> queries) {
+CustomizableLinkCreator::LinkSpecification::LinkSpecification(
+    const vector<QueryAnswerElement>& target_elements,
+    const vector<QueryAnswerElement>& strength_elements,
+    string link_type,
+    StrengthComposition strength_composition,
+    const vector<string> queries) {
     this->target_elements = target_elements;
     this->strength_elements = strength_elements;
     this->link_type = link_type;
@@ -27,8 +32,11 @@ void CustomizableLinkCreator::LinkSpecification::check() {
         RAISE_ERROR("Invalid empty target elements");
     }
     if (this->strength_composition > PRODUCT) {
-        if ((this->target_elements.size() != 2) || (this->strength_elements.size() != 2) || (this->queries.size() != 2)) {
-            RAISE_ERROR("Strength composition = " + std::to_string((unsigned int) this->strength_composition) + " requires exactly 2 target elements, 2 strength elements and 2 queries");
+        if ((this->target_elements.size() != 2) || (this->strength_elements.size() != 2) ||
+            (this->queries.size() != 2)) {
+            RAISE_ERROR(
+                "Strength composition = " + std::to_string((unsigned int) this->strength_composition) +
+                " requires exactly 2 target elements, 2 strength elements and 2 queries");
         }
     }
 }
@@ -144,7 +152,8 @@ void CustomizableLinkCreator::untokenize(vector<string>& tokens) {
         for (unsigned int j = 0; j < num_elements; j++) {
             _queries.push_back(safe_get_next_token(tokens, cursor));
         }
-        add_link_specification(_target_elements, _strength_elements, _link_type, _strength_composition, _queries);
+        add_link_specification(
+            _target_elements, _strength_elements, _link_type, _strength_composition, _queries);
     }
     if (cursor != tokens.size()) {
         RAISE_ERROR("Invalid trailing tokens for CustomizableLinkCreator");
@@ -154,8 +163,8 @@ void CustomizableLinkCreator::untokenize(vector<string>& tokens) {
 // -------------------------------------------------------------------------------------------------
 // Private methods
 
-shared_ptr<PatternMatchingQueryProxy> CustomizableLinkCreator::issue_link_count_query(const string& query_str) {
-
+shared_ptr<PatternMatchingQueryProxy> CustomizableLinkCreator::issue_link_count_query(
+    const string& query_str) {
     vector<string> query_tokens = Utils::split(query_str);
     auto proxy = make_shared<PatternMatchingQueryProxy>(query_tokens, context());
     proxy->parameters[BaseQueryProxy::UNIQUE_ASSIGNMENT_FLAG] = true;
@@ -170,7 +179,9 @@ shared_ptr<PatternMatchingQueryProxy> CustomizableLinkCreator::issue_link_count_
     return proxy;
 }
 
-void CustomizableLinkCreator::insert_or_update(map<string, double>& count_map, const string& key, double value) {
+void CustomizableLinkCreator::insert_or_update(map<string, double>& count_map,
+                                               const string& key,
+                                               double value) {
     STACK_TRACE();
     auto iterator = count_map.find(key);
     if (iterator == count_map.end()) {
@@ -182,10 +193,17 @@ void CustomizableLinkCreator::insert_or_update(map<string, double>& count_map, c
     }
 }
 
-void CustomizableLinkCreator::compute_counts(shared_ptr<QueryAnswer> base_query_answer, LinkSpecification& spec, double& count_A, double& count_B, double& count_intersection, double& count_union) {
+void CustomizableLinkCreator::compute_counts(shared_ptr<QueryAnswer> base_query_answer,
+                                             LinkSpecification& spec,
+                                             double& count_A,
+                                             double& count_B,
+                                             double& count_intersection,
+                                             double& count_union) {
     STACK_TRACE();
 
-    LOG_DEBUG("Computing counts for: " + AtomDBUtils::handle_to_metta(base_query_answer->get(spec.target_elements[0])) + " and " + AtomDBUtils::handle_to_metta(base_query_answer->get(spec.target_elements[1])));
+    LOG_DEBUG("Computing counts for: " +
+              AtomDBUtils::handle_to_metta(base_query_answer->get(spec.target_elements[0])) + " and " +
+              AtomDBUtils::handle_to_metta(base_query_answer->get(spec.target_elements[1])));
     LOG_DEBUG("Query answer: " + base_query_answer->to_string());
     shared_ptr<PatternMatchingQueryProxy> proxy[2];
     for (unsigned int i = 0; i < 2; i++) {
@@ -250,8 +268,8 @@ void CustomizableLinkCreator::compute_counts(shared_ptr<QueryAnswer> base_query_
               to_string(count_intersection) + " " + to_string(count_union));
 }
 
-double CustomizableLinkCreator::compute_strength(shared_ptr<QueryAnswer> query_answer, LinkSpecification& spec) {
-
+double CustomizableLinkCreator::compute_strength(shared_ptr<QueryAnswer> query_answer,
+                                                 LinkSpecification& spec) {
     STACK_TRACE();
     double answer = 0.0;
     double count_A = 0.0;
@@ -262,7 +280,7 @@ double CustomizableLinkCreator::compute_strength(shared_ptr<QueryAnswer> query_a
     if ((spec.strength_composition == INTERSECTION_OVER_UNION) ||
         (spec.strength_composition == INTERSECTION_OVER_A) ||
         (spec.strength_composition == INTERSECTION_OVER_B)) {
-            compute_counts(query_answer, spec, count_A, count_B, count_intersection, count_union);
+        compute_counts(query_answer, spec, count_A, count_B, count_intersection, count_union);
     }
 
     switch (spec.strength_composition) {

@@ -3,10 +3,10 @@
 
 #include <gtest/gtest.h>
 
+#include <cfloat>
 #include <fstream>
 #include <iostream>
 #include <vector>
-#include <cfloat>
 
 #include "test_utils.h"
 

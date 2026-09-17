@@ -106,7 +106,8 @@ TEST(LinkCreation, customizable_tokenization) {
         copy1.emplace_back();
         copy2.emplace_back();
         original[i].tokenize(tokens1);
-        string tokens_string = Utils::join(tokens1, CustomizableLinkCreator::EXTRA_PARAMETERS_SPLIT_CHAR);
+        string tokens_string =
+            Utils::join(tokens1, CustomizableLinkCreator::EXTRA_PARAMETERS_SPLIT_CHAR);
         LOG_INFO("tokens_string: <" + tokens_string + ">");
         copy1[i].untokenize(tokens1);
         copy1[i].tokenize(tokens2);
@@ -141,13 +142,35 @@ TEST(LinkCreation, customizable_link_specification) {
                  runtime_error);
 
     specs.emplace_back();
-    specs[count++].add_link_specification({QueryAnswerElement(1), QueryAnswerElement(2)}, {QueryAnswerElement("v1"), QueryAnswerElement("v2")}, "link-type", CustomizableLinkCreator::INTERSECTION_OVER_UNION, {"query1", "query2"});
+    specs[count++].add_link_specification({QueryAnswerElement(1), QueryAnswerElement(2)},
+                                          {QueryAnswerElement("v1"), QueryAnswerElement("v2")},
+                                          "link-type",
+                                          CustomizableLinkCreator::INTERSECTION_OVER_UNION,
+                                          {"query1", "query2"});
     specs.emplace_back();
-    EXPECT_THROW(specs[count++].add_link_specification({QueryAnswerElement(2)}, {QueryAnswerElement("v1"), QueryAnswerElement("v2")}, "link-type", CustomizableLinkCreator::INTERSECTION_OVER_UNION, {"query1", "query2"}), runtime_error);
+    EXPECT_THROW(
+        specs[count++].add_link_specification({QueryAnswerElement(2)},
+                                              {QueryAnswerElement("v1"), QueryAnswerElement("v2")},
+                                              "link-type",
+                                              CustomizableLinkCreator::INTERSECTION_OVER_UNION,
+                                              {"query1", "query2"}),
+        runtime_error);
     specs.emplace_back();
-    EXPECT_THROW(specs[count++].add_link_specification({QueryAnswerElement(1), QueryAnswerElement(2)}, {QueryAnswerElement("v1"), QueryAnswerElement("v2"), QueryAnswerElement("v3")}, "link-type", CustomizableLinkCreator::INTERSECTION_OVER_UNION, {"query1", "query2"}), runtime_error);
+    EXPECT_THROW(specs[count++].add_link_specification(
+                     {QueryAnswerElement(1), QueryAnswerElement(2)},
+                     {QueryAnswerElement("v1"), QueryAnswerElement("v2"), QueryAnswerElement("v3")},
+                     "link-type",
+                     CustomizableLinkCreator::INTERSECTION_OVER_UNION,
+                     {"query1", "query2"}),
+                 runtime_error);
     specs.emplace_back();
-    EXPECT_THROW(specs[count++].add_link_specification({QueryAnswerElement(1), QueryAnswerElement(2)}, {QueryAnswerElement("v1"), QueryAnswerElement("v2")}, "link-type", CustomizableLinkCreator::INTERSECTION_OVER_UNION, {}), runtime_error);
+    EXPECT_THROW(
+        specs[count++].add_link_specification({QueryAnswerElement(1), QueryAnswerElement(2)},
+                                              {QueryAnswerElement("v1"), QueryAnswerElement("v2")},
+                                              "link-type",
+                                              CustomizableLinkCreator::INTERSECTION_OVER_UNION,
+                                              {}),
+        runtime_error);
 }
 
 int main(int argc, char** argv) {

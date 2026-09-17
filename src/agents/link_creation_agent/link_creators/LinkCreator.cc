@@ -1,6 +1,7 @@
+#include "LinkCreator.h"
+
 #include <fstream>
 
-#include "LinkCreator.h"
 #include "AttentionBrokerClient.h"
 #include "Link.h"
 

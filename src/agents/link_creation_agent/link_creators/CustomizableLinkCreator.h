@@ -14,7 +14,13 @@ namespace link_creators {
  */
 class CustomizableLinkCreator : public LinkCreator {
    public:
-    enum StrengthComposition { UNDEFINED = 0, PRODUCT, INTERSECTION_OVER_UNION, INTERSECTION_OVER_A, INTERSECTION_OVER_B };
+    enum StrengthComposition {
+        UNDEFINED = 0,
+        PRODUCT,
+        INTERSECTION_OVER_UNION,
+        INTERSECTION_OVER_A,
+        INTERSECTION_OVER_B
+    };
     static char EXTRA_PARAMETERS_SPLIT_CHAR;
 
     CustomizableLinkCreator();
@@ -36,6 +42,7 @@ class CustomizableLinkCreator : public LinkCreator {
         string link_type;
         StrengthComposition strength_composition;
         vector<string> queries;
+
        private:
         void check();
     };
@@ -44,7 +51,12 @@ class CustomizableLinkCreator : public LinkCreator {
 
     void insert_or_update(map<string, double>& count_map, const string& key, double value);
     shared_ptr<PatternMatchingQueryProxy> issue_link_count_query(const string& query_str);
-    void compute_counts(shared_ptr<QueryAnswer> query_answer, LinkSpecification& spec, double& count_A, double& count_B, double& count_intersection, double& count_union);
+    void compute_counts(shared_ptr<QueryAnswer> query_answer,
+                        LinkSpecification& spec,
+                        double& count_A,
+                        double& count_B,
+                        double& count_intersection,
+                        double& count_union);
     double compute_strength(shared_ptr<QueryAnswer> query_answer, LinkSpecification& spec);
 
    public:

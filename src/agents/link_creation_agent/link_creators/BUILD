@@ -13,8 +13,8 @@ cc_library(
         "//agents/query_engine:query_answer",
         "//atomdb:atomdb_singleton",
         "//attention_broker:attention_broker_lib",
-        "//service_bus:service_bus_lib",
         "//commons:commons_lib",
         "//hasher:hasher_lib",
+        "//service_bus:service_bus_lib",
     ],
 )

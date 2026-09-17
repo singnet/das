@@ -153,7 +153,9 @@ static double get_strength(const string& handle) {
     return answer;
 }
 
-static double compute_expected_strength(const string& handle1, const string& handle2, CustomizableLinkCreator::StrengthComposition composition) {
+static double compute_expected_strength(const string& handle1,
+                                        const string& handle2,
+                                        CustomizableLinkCreator::StrengthComposition composition) {
     auto db = AtomDBSingleton::get_instance();
     auto concept_link1 = db->get_link(handle1);
     auto concept_link2 = db->get_link(handle2);
@@ -177,18 +179,29 @@ static double compute_expected_strength(const string& handle1, const string& han
             set2.insert("ends_with_" + v[v.size() - 1]);
             set2.insert("sort");
             std::set<string> _intersection, _union;
-            std::set_intersection(set1.begin(), set1.end(), set2.begin(), set2.end(), std::inserter(_intersection, _intersection.begin()));
-            std::set_union(set1.begin(), set1.end(), set2.begin(), set2.end(), std::inserter(_union, _union.begin()));
-            LOG_DEBUG("Counts: " << set1.size() << " " << set2.size() << " " << _intersection.size() << " " << _union.size());
+            std::set_intersection(set1.begin(),
+                                  set1.end(),
+                                  set2.begin(),
+                                  set2.end(),
+                                  std::inserter(_intersection, _intersection.begin()));
+            std::set_union(set1.begin(),
+                           set1.end(),
+                           set2.begin(),
+                           set2.end(),
+                           std::inserter(_union, _union.begin()));
+            LOG_DEBUG("Counts: " << set1.size() << " " << set2.size() << " " << _intersection.size()
+                                 << " " << _union.size());
 
             switch (composition) {
                 case CustomizableLinkCreator::INTERSECTION_OVER_UNION:
-                    return (_intersection.size() == 0) ? 0 : ((double) _intersection.size() / _union.size());
+                    return (_intersection.size() == 0) ? 0
+                                                       : ((double) _intersection.size() / _union.size());
                 case CustomizableLinkCreator::INTERSECTION_OVER_A:
                     return (set1.size() == 0) ? 0 : ((double) _intersection.size() / set1.size());
                 case CustomizableLinkCreator::INTERSECTION_OVER_B:
                     return (set2.size() == 0) ? 0 : ((double) _intersection.size() / set2.size());
-                default: RAISE_ERROR("Invalid composition: " + std::to_string((unsigned int) composition));
+                default:
+                    RAISE_ERROR("Invalid composition: " + std::to_string((unsigned int) composition));
             }
         }
     }
@@ -229,7 +242,8 @@ static bool test_customizable() {
     tokens.clear();
     link_creator1.tokenize(tokens);
     auto proxy1 = make_proxy(query_tokens1, LinkCreatorRegistry::CUSTOMIZABLE);
-    proxy1->parameters[LinkCreationProxy::LINK_CREATOR_EXTRA_PARAMETERS] = (string) Utils::join(tokens, ',');
+    proxy1->parameters[LinkCreationProxy::LINK_CREATOR_EXTRA_PARAMETERS] =
+        (string) Utils::join(tokens, ',');
     proxy1->parameters[LinkCreationProxy::MAX_SUCCESSFUL_CREATION_PER_ROUND] = (unsigned int) 200;
 
     ServiceBusSingleton::get_instance()->issue_bus_command(proxy1);
@@ -266,7 +280,8 @@ static bool test_customizable() {
     tokens.clear();
     link_creator2.tokenize(tokens);
     auto proxy2 = make_proxy(query_tokens2, LinkCreatorRegistry::CUSTOMIZABLE);
-    proxy2->parameters[LinkCreationProxy::LINK_CREATOR_EXTRA_PARAMETERS] = (string) Utils::join(tokens, ',');
+    proxy2->parameters[LinkCreationProxy::LINK_CREATOR_EXTRA_PARAMETERS] =
+        (string) Utils::join(tokens, ',');
 
     ServiceBusSingleton::get_instance()->issue_bus_command(proxy2);
 
@@ -339,10 +354,7 @@ static bool test_customizable_counts() {
                 ATOM, "QueryAnswerElement($v2)",
     };
     // clang-format on
-    vector<string> queries = {
-        Utils::join(count_query_tokens_A),
-        Utils::join(count_query_tokens_B)
-    };
+    vector<string> queries = {Utils::join(count_query_tokens_A), Utils::join(count_query_tokens_B)};
 
     CustomizableLinkCreator link_creator[3];
     link_creator[0].add_link_specification({QueryAnswerElement("v1"), QueryAnswerElement("v2")},
@@ -364,8 +376,7 @@ static bool test_customizable_counts() {
     CustomizableLinkCreator::StrengthComposition composition[3] = {
         CustomizableLinkCreator::INTERSECTION_OVER_UNION,
         CustomizableLinkCreator::INTERSECTION_OVER_A,
-        CustomizableLinkCreator::INTERSECTION_OVER_B
-    };
+        CustomizableLinkCreator::INTERSECTION_OVER_B};
 
     vector<string> tokens;
     shared_ptr<LinkCreationProxy> proxy[3];
@@ -373,7 +384,8 @@ static bool test_customizable_counts() {
         tokens.clear();
         link_creator[i].tokenize(tokens);
         proxy[i] = make_proxy(query_tokens, LinkCreatorRegistry::CUSTOMIZABLE);
-        proxy[i]->parameters[LinkCreationProxy::LINK_CREATOR_EXTRA_PARAMETERS] = (string) Utils::join(tokens, ',');
+        proxy[i]->parameters[LinkCreationProxy::LINK_CREATOR_EXTRA_PARAMETERS] =
+            (string) Utils::join(tokens, ',');
         proxy[i]->parameters[LinkCreationProxy::MAX_SUCCESSFUL_CREATION_PER_ROUND] = (unsigned int) 10;
         proxy[i]->parameters[LinkCreationProxy::LINK_CREATION_STRENGTH_THRESHOLD] = (double) 0.001;
         ServiceBusSingleton::get_instance()->issue_bus_command(proxy[i]);
@@ -389,9 +401,12 @@ static bool test_customizable_counts() {
             if (answer != nullptr) {
                 string handle = proxy[i]->get_built_atoms()[count_answers++];
                 double strength = get_strength(handle);
-                double expected_strength = compute_expected_strength(answer->get("v1"), answer->get("v2"), composition[i]);
-                LOG_DEBUG("[" << strength << ", " << expected_strength << "] " << AtomDBUtils::handle_to_metta(handle));
-                success &= assert_true(Utils::is_zero(strength - expected_strength), "link strength composition: " + std::to_string(i));
+                double expected_strength =
+                    compute_expected_strength(answer->get("v1"), answer->get("v2"), composition[i]);
+                LOG_DEBUG("[" << strength << ", " << expected_strength << "] "
+                              << AtomDBUtils::handle_to_metta(handle));
+                success &= assert_true(Utils::is_zero(strength - expected_strength),
+                                       "link strength composition: " + std::to_string(i));
             } else {
                 Utils::sleep();
             }
