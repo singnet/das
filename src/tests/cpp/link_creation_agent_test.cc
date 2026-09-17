@@ -1,5 +1,7 @@
 #include <cmath>
 
+#include "AndTwoPredicates.h"
+#include "CustomizableLinkCreator.h"
 #include "InMemoryDB.h"
 #include "LinkCreationProcessor.h"
 #include "LinkCreationProxy.h"
@@ -9,6 +11,7 @@
 #include "ServiceBusSingleton.h"
 #include "TestAtomDBJsonConfig.h"
 #include "TestSystemParams.h"
+#include "UnitTestLinkCreator.h"
 #include "Utils.h"
 #include "gtest/gtest.h"
 
@@ -56,6 +59,73 @@ TEST(LinkCreation, proxy_object) {
     cout << "tokens1: " << Utils::join(tokens1) << endl;
     cout << "tokens3: " << Utils::join(tokens3) << endl;
     EXPECT_EQ(tokens1, tokens3);
+}
+
+TEST(LinkCreation, link_creator_registry) {
+    ASSERT_TRUE(dynamic_pointer_cast<UnitTestLinkCreator>(
+                    LinkCreatorRegistry::function(LinkCreatorRegistry::UNIT_TEST)) != nullptr);
+    ASSERT_TRUE(dynamic_pointer_cast<CustomizableLinkCreator>(
+                    LinkCreatorRegistry::function(LinkCreatorRegistry::CUSTOMIZABLE)) != nullptr);
+    ASSERT_TRUE(dynamic_pointer_cast<AndTwoPredicates>(
+                    LinkCreatorRegistry::function(LinkCreatorRegistry::AND_TWO_PREDICATES)) != nullptr);
+}
+
+TEST(LinkCreation, customizable_tokenization) {
+    vector<CustomizableLinkCreator> original;
+    vector<CustomizableLinkCreator> copy1;
+    vector<CustomizableLinkCreator> copy2;
+    unsigned int count = 0;
+
+    original.emplace_back();
+    original[count++].add_link_specification({QueryAnswerElement(1), QueryAnswerElement(2)},
+                                             {QueryAnswerElement("v1"), QueryAnswerElement("v2")},
+                                             CustomizableLinkCreator::PRODUCT,
+                                             " type0 ");
+
+    original.emplace_back();
+    original[count++].add_link_specification({QueryAnswerElement(1)},
+                                             {QueryAnswerElement("v1"), QueryAnswerElement("v2")},
+                                             CustomizableLinkCreator::PRODUCT,
+                                             "type0");
+
+    original.emplace_back();
+    original[count++].add_link_specification(
+        {QueryAnswerElement(1), QueryAnswerElement(2)}, {}, CustomizableLinkCreator::PRODUCT, "type0");
+
+    original.emplace_back();
+    original[count++].add_link_specification(
+        {}, {}, (CustomizableLinkCreator::StrengthComposition) 0, "blah");
+
+    vector<string> tokens1, tokens2, tokens3;
+    for (unsigned int i = 0; i < count; i++) {
+        copy1.emplace_back();
+        copy2.emplace_back();
+        original[i].tokenize(tokens1);
+        string tokens_string = Utils::join(tokens1);
+        copy1[i].untokenize(tokens1);
+        copy1[i].tokenize(tokens2);
+        copy2[i].extra_parameters(tokens_string);
+        copy2[i].tokenize(tokens3);
+        if (i == 0) {
+            ASSERT_EQ(tokens_string, "1 2 _1 _2 2 $v1 $v2 1 type0");
+        }
+        ASSERT_EQ(tokens1, tokens2);
+        ASSERT_EQ(tokens1, tokens3);
+        tokens1.clear();
+        tokens2.clear();
+        tokens3.clear();
+    }
+
+    original.emplace_back();
+    EXPECT_THROW(original[count++].add_link_specification(
+                     {}, {}, (CustomizableLinkCreator::StrengthComposition) 0, ""),
+                 runtime_error);
+    EXPECT_THROW(original[count++].add_link_specification(
+                     {}, {}, (CustomizableLinkCreator::StrengthComposition) 0, " "),
+                 runtime_error);
+    EXPECT_THROW(original[count++].add_link_specification(
+                     {}, {}, (CustomizableLinkCreator::StrengthComposition) 0, "  "),
+                 runtime_error);
 }
 
 int main(int argc, char** argv) {

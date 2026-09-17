@@ -54,6 +54,7 @@ class LinkCreationStats {
  */
 class LinkCreator {
    public:
+    enum AddLinkStatus { REJECTED = 0, UPDATED, CREATED };
     LinkCreator();
     virtual ~LinkCreator() {}
 
@@ -143,6 +144,15 @@ class LinkCreator {
     virtual LinkCreationStats create(shared_ptr<QueryAnswer> query_answer) = 0;
 
     /**
+     * Concrete subclasses may implement this in order to receive optional extra parameters passed
+     * to the LinkCreationProxy by caller under the tag LINK_CREATOR_EXTRA_PARAMETERS.
+     *
+     * @param extra_parameters A string which is supposed to be parsed in order to obtain the actual
+     * parameters.
+     */
+    virtual void extra_parameters(const string& extra_parameters) {}
+
+    /**
      * Return the AttentionBroker context to be used.
      *
      * @return the AttentionBroker context to be used.
@@ -159,7 +169,7 @@ class LinkCreator {
     inline HandleDecoder* decoder() { return static_pointer_cast<HandleDecoder>(atomdb()).get(); }
     inline void add_determiners(vector<string>& entry) { this->_buffer_determiners.push_back(entry); }
 
-    bool add_or_update_link(const vector<string>& targets, double strength);
+    AddLinkStatus add_or_update_link(const vector<string>& targets, double strength);
     double get_strength(const string& handle);
     string get_node_name(const string& handle);
     void save_link_metta(shared_ptr<Link> link);

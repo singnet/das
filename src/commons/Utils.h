@@ -156,6 +156,7 @@ class Utils {
     static map<string, string> parse_config(string const& config_path);
     static vector<string> split(string const& str, char delimiter = ' ');
     static pair<size_t, size_t> parse_ports_range(string const& str, char delimiter = ':');
+    static string join(vector<string> const& tokens, const string& delimiter);
     static string join(vector<string> const& tokens, char delimiter = ' ');
     static bool is_number(const string& s);
     static int string_to_int(const string& s);
