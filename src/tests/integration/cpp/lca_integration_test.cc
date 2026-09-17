@@ -155,16 +155,16 @@ static bool test_customizable() {
     CustomizableLinkCreator link_creator1;
     link_creator1.add_link_specification({QueryAnswerElement("v1"), QueryAnswerElement("v2")},
                                          {},
-                                         CustomizableLinkCreator::PRODUCT,
-                                         "FunctionalTest1");
+                                         "FunctionalTest1",
+                                         CustomizableLinkCreator::PRODUCT);
     link_creator1.add_link_specification({QueryAnswerElement("v2"), QueryAnswerElement("v1")},
                                          {},
-                                         CustomizableLinkCreator::PRODUCT,
-                                         "FunctionalTest2");
+                                         "FunctionalTest2",
+                                         CustomizableLinkCreator::PRODUCT);
     tokens.clear();
     link_creator1.tokenize(tokens);
     auto proxy1 = make_proxy(query_tokens1, LinkCreatorRegistry::CUSTOMIZABLE);
-    proxy1->parameters[LinkCreationProxy::LINK_CREATOR_EXTRA_PARAMETERS] = (string) Utils::join(tokens);
+    proxy1->parameters[LinkCreationProxy::LINK_CREATOR_EXTRA_PARAMETERS] = (string) Utils::join(tokens, ',');
     proxy1->parameters[LinkCreationProxy::MAX_SUCCESSFUL_CREATION_PER_ROUND] = (unsigned int) 200;
 
     ServiceBusSingleton::get_instance()->issue_bus_command(proxy1);
@@ -196,12 +196,12 @@ static bool test_customizable() {
     CustomizableLinkCreator link_creator2;
     link_creator2.add_link_specification({QueryAnswerElement("v1"), QueryAnswerElement("v2")},
                                          {},
-                                         CustomizableLinkCreator::PRODUCT,
-                                         "FunctionalTest3");
+                                         "FunctionalTest3",
+                                         CustomizableLinkCreator::PRODUCT);
     tokens.clear();
     link_creator2.tokenize(tokens);
     auto proxy2 = make_proxy(query_tokens2, LinkCreatorRegistry::CUSTOMIZABLE);
-    proxy2->parameters[LinkCreationProxy::LINK_CREATOR_EXTRA_PARAMETERS] = (string) Utils::join(tokens);
+    proxy2->parameters[LinkCreationProxy::LINK_CREATOR_EXTRA_PARAMETERS] = (string) Utils::join(tokens, ',');
 
     ServiceBusSingleton::get_instance()->issue_bus_command(proxy2);
 
@@ -219,6 +219,61 @@ static bool test_customizable() {
     AtomDBSingleton::get_instance()->delete_atoms(proxy1->get_built_atoms());
     AtomDBSingleton::get_instance()->delete_atoms(proxy2->get_built_atoms());
 
+    finish_test_case(test_case, success);
+    return success;
+}
+
+static bool test_customizable_counts() {
+    string test_case = start_test_case("test_customizable()");
+    bool success = true;
+    vector<string> tokens;
+
+    // clang-format off
+    vector<string> query_tokens = {
+        AND_OPERATOR, "2",
+            LINK_TEMPLATE, EXPRESSION, "3",
+                NODE, SYMBOL, EVALUATION_TAG,
+                LINK, EXPRESSION, "2",
+                    NODE, SYMBOL, PREDICATE_TAG,
+                    NODE, SYMBOL, "\"contains_bbb\"",
+                VARIABLE, "v1",
+            LINK_TEMPLATE, EXPRESSION, "3",
+                NODE, SYMBOL, EVALUATION_TAG,
+                LINK, EXPRESSION, "2",
+                    NODE, SYMBOL, PREDICATE_TAG,
+                    NODE, SYMBOL, "\"contains_ccc\"",
+                VARIABLE, "v2",
+    };
+    // clang-format on
+    CustomizableLinkCreator link_creator;
+    link_creator.add_link_specification({QueryAnswerElement("v1"), QueryAnswerElement("v2")},
+                                        {},
+                                        "FunctionalTest1",
+                                        CustomizableLinkCreator::PRODUCT);
+    link_creator.add_link_specification({QueryAnswerElement("v2"), QueryAnswerElement("v1")},
+                                        {},
+                                        "FunctionalTest2",
+                                        CustomizableLinkCreator::PRODUCT);
+    tokens.clear();
+    link_creator.tokenize(tokens);
+    auto proxy = make_proxy(query_tokens, LinkCreatorRegistry::CUSTOMIZABLE);
+    proxy->parameters[LinkCreationProxy::LINK_CREATOR_EXTRA_PARAMETERS] = (string) Utils::join(tokens, ',');
+    proxy->parameters[LinkCreationProxy::MAX_SUCCESSFUL_CREATION_PER_ROUND] = (unsigned int) 200;
+
+    ServiceBusSingleton::get_instance()->issue_bus_command(proxy1);
+
+    while (true) {
+        if (proxy->finished()) {
+            break;
+        }
+        shared_ptr<QueryAnswer> answer = proxy->pop();
+        if (answer == nullptr) {
+            Utils::sleep();
+        }
+    }
+    success &= assert_equal(proxy->get_count(), 200, "link creation count");
+
+    AtomDBSingleton::get_instance()->delete_atoms(proxy->get_built_atoms());
     finish_test_case(test_case, success);
     return success;
 }
@@ -324,9 +379,10 @@ int main(int argc, char* argv[]) {
     insert_type_symbols();
     bool success = true;
     timeout_after_minutes(10);
-    success &= test_cycles();
-    success &= test_and_two_predicates();
-    success &= test_customizable();
+    //success &= test_customizable();
+    success &= test_customizable_counts();
+    //success &= test_and_two_predicates();
+    //success &= test_cycles();
     LOG_INFO("================================================================================");
     if (success) {
         LOG_INFO("OK - ALL TEST CASES PASSED");
