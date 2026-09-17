@@ -25,6 +25,7 @@ static void insert_type_symbols() {
     vector<string> to_insert = {EQUIVALENCE_TAG,
                                 IMPLICATION_TAG,
                                 LOGICAL_AND_TAG,
+                                "FunctionalTest0",
                                 "FunctionalTest1",
                                 "FunctionalTest2",
                                 "FunctionalTest3"};
@@ -346,7 +347,7 @@ static bool test_customizable_counts() {
     CustomizableLinkCreator link_creator[3];
     link_creator[0].add_link_specification({QueryAnswerElement("v1"), QueryAnswerElement("v2")},
                                            {QueryAnswerElement("Node"), QueryAnswerElement("Node")},
-                                           "FunctionalTest1",
+                                           "FunctionalTest0",
                                            CustomizableLinkCreator::INTERSECTION_OVER_UNION,
                                            queries);
     link_creator[1].add_link_specification({QueryAnswerElement("v1"), QueryAnswerElement("v2")},
@@ -356,7 +357,7 @@ static bool test_customizable_counts() {
                                            queries);
     link_creator[2].add_link_specification({QueryAnswerElement("v1"), QueryAnswerElement("v2")},
                                            {QueryAnswerElement("Node"), QueryAnswerElement("Node")},
-                                           "FunctionalTest1",
+                                           "FunctionalTest2",
                                            CustomizableLinkCreator::INTERSECTION_OVER_B,
                                            queries);
 
@@ -502,11 +503,11 @@ int main(int argc, char* argv[]) {
 
     insert_type_symbols();
     bool success = true;
-    timeout_after_minutes(10);
-    //success &= test_customizable();
+    timeout_after_minutes(15);
+    success &= test_customizable();
     success &= test_customizable_counts();
-    //success &= test_and_two_predicates();
-    //success &= test_cycles();
+    success &= test_and_two_predicates();
+    success &= test_cycles();
     LOG_INFO("================================================================================");
     if (success) {
         LOG_INFO("OK - ALL TEST CASES PASSED");
