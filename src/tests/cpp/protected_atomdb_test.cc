@@ -565,13 +565,12 @@ TEST(ProtectedAtomDBTest, NestedRelatedGrantDoesNotImplyInnerSimilarity) {
     EXPECT_EQ(protected_atomdb->db->get_link(animals.related_similarity_and_inheritance,
                                              similarity_human_keys),
               nullptr);
-    EXPECT_EQ(protected_atomdb->db->get_link(animals.similarity_human_monkey,
-                                             related_human_keys),
+    EXPECT_EQ(protected_atomdb->db->get_link(animals.similarity_human_monkey, related_human_keys),
               nullptr);
 
     LinkSchema similarity_human_schema(similarity_human_tokens());
-    EXPECT_TRUE(handles_from_set(protected_atomdb->db->query_for_pattern(
-                                    similarity_human_schema, related_human_keys))
+    EXPECT_TRUE(handles_from_set(
+                    protected_atomdb->db->query_for_pattern(similarity_human_schema, related_human_keys))
                     .empty());
 
     LinkSchema related_similarity_human_schema(related_of_similarity_human);
