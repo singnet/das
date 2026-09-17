@@ -1,11 +1,12 @@
-#define LOG_LEVEL DEBUG_LEVEL
 #include "CustomizableLinkCreator.h"
 #include "ServiceBusSingleton.h"
+#include "AtomDBUtils.h"
 
 #include "Hasher.h"
 #include "tags.h"
 
 using namespace link_creators;
+using namespace atomdb;
 
 char CustomizableLinkCreator::EXTRA_PARAMETERS_SPLIT_CHAR = ',';
 
@@ -45,7 +46,6 @@ LinkCreationStats CustomizableLinkCreator::create(shared_ptr<QueryAnswer> query_
             break;
         }
         vector<string> handles;
-        vector<double> strength_components;
         handles.push_back(Hasher::node_handle(SYMBOL, spec.link_type));
         for (QueryAnswerElement& element : spec.target_elements) {
             handles.push_back(query_answer->get(element));
@@ -54,8 +54,7 @@ LinkCreationStats CustomizableLinkCreator::create(shared_ptr<QueryAnswer> query_
         if (!visited(key)) {
             visit(key);
             stats.visited = true;
-            AddLinkStatus add_status = add_or_update_link(
-                handles, compute_strength(strength_components, spec.strength_composition));
+            AddLinkStatus add_status = add_or_update_link(handles, compute_strength(query_answer, spec));
             if (add_status == CREATED) {
                 stats.created++;
             } else if (add_status == UPDATED) {
@@ -186,14 +185,16 @@ void CustomizableLinkCreator::insert_or_update(map<string, double>& count_map, c
 void CustomizableLinkCreator::compute_counts(shared_ptr<QueryAnswer> base_query_answer, LinkSpecification& spec, double& count_A, double& count_B, double& count_intersection, double& count_union) {
     STACK_TRACE();
 
+    LOG_DEBUG("Computing counts for: " + AtomDBUtils::handle_to_metta(base_query_answer->get(spec.target_elements[0])) + " and " + AtomDBUtils::handle_to_metta(base_query_answer->get(spec.target_elements[1])));
+    LOG_DEBUG("Query answer: " + base_query_answer->to_string());
     shared_ptr<PatternMatchingQueryProxy> proxy[2];
     for (unsigned int i = 0; i < 2; i++) {
         string query = spec.queries[i];
-        LOG_DEBUG("Query template: " + query);
-        LOG_DEBUG("Query answer: " + base_query_answer->to_string());
         string pattern = "QueryAnswerElement(" + spec.target_elements[i].to_string() + ")";
+        LOG_DEBUG("Query element pattern: " + pattern);
+        LOG_DEBUG("Query template: <" + query + ">");
         Utils::replace_all(query, pattern, base_query_answer->get(spec.target_elements[i]));
-        LOG_DEBUG("Query: " + query);
+        LOG_DEBUG("  Query string: <" + query + ">");
         proxy[i] = issue_link_count_query(query);
     }
 
@@ -217,7 +218,7 @@ void CustomizableLinkCreator::compute_counts(shared_ptr<QueryAnswer> base_query_
                 for (string& h : query_answer->get_handles_vector()) {
                     d *= get_strength(h);
                 }
-                handle = query_answer->get(spec.target_elements[i]);
+                handle = query_answer->get(spec.strength_elements[i]);
                 insert_or_update(count_map[i], handle, d);
             }
         }

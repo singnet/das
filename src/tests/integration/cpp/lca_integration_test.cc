@@ -1,5 +1,6 @@
 #include "AndTwoPredicates.h"
 #include "AtomDBSingleton.h"
+#include "AtomDBUtils.h"
 #include "CustomizableLinkCreator.h"
 #include "JsonConfigParser.h"
 #include "LinkCreationProxy.h"
@@ -59,6 +60,15 @@ static bool assert_equal(unsigned int v1, unsigned int v2, const string& tag) {
         LOG_INFO("ASSERT FAILED - " + tag + ": " + to_string(v1) + " != " + to_string(v2));
         return false;
     }
+}
+
+static bool assert_true(bool v, const string& tag) {
+    if (v) {
+        LOG_DEBUG("ASSERT PASSED - " + tag);
+    } else {
+        LOG_INFO("ASSERT FAILED - " + tag);
+    }
+    return v;
 }
 
 static void timeout_after_minutes(unsigned int minutes) {
@@ -128,6 +138,60 @@ static bool test_and_two_predicates() {
 
     finish_test_case(test_case, success);
     return success;
+}
+
+static double get_strength(const string& handle) {
+    STACK_TRACE();
+    double answer = 1.0;
+    auto atom = AtomDBSingleton::get_instance()->get_atom(handle);
+    if (atom == nullptr) {
+        RAISE_ERROR("Atom does not exist: " + handle);
+    } else {
+        answer = atom->custom_attributes.get_or<double>(STRENGTH_TAG, 1.0);
+    }
+    return answer;
+}
+
+static double compute_expected_strength(const string& handle1, const string& handle2, CustomizableLinkCreator::StrengthComposition composition) {
+    auto db = AtomDBSingleton::get_instance();
+    auto concept_link1 = db->get_link(handle1);
+    auto concept_link2 = db->get_link(handle2);
+    if ((concept_link1 != nullptr) && (concept_link2 != nullptr)) {
+        auto terminal1 = db->get_node(concept_link1->targets[1]);
+        auto terminal2 = db->get_node(concept_link2->targets[1]);
+        if ((terminal1 != nullptr) && (terminal2 != nullptr)) {
+            string s1 = terminal1->name.substr(1, terminal1->name.size() - 2);
+            string s2 = terminal2->name.substr(1, terminal2->name.size() - 2);
+            LOG_DEBUG("Computing expected strength for: \"" + s1 + "\" and \"" + s2 + "\"");
+            vector<string> v;
+            v = Utils::split(s1);
+            set<string> set1(v.begin(), v.end());
+            set1.insert("begins_with_" + v[0]);
+            set1.insert("ends_with_" + v[v.size() - 1]);
+            set1.insert("sort");
+            v.clear();
+            v = Utils::split(s2);
+            set<string> set2(v.begin(), v.end());
+            set2.insert("begins_with_" + v[0]);
+            set2.insert("ends_with_" + v[v.size() - 1]);
+            set2.insert("sort");
+            std::set<string> _intersection, _union;
+            std::set_intersection(set1.begin(), set1.end(), set2.begin(), set2.end(), std::inserter(_intersection, _intersection.begin()));
+            std::set_union(set1.begin(), set1.end(), set2.begin(), set2.end(), std::inserter(_union, _union.begin()));
+            LOG_DEBUG("Counts: " << set1.size() << " " << set2.size() << " " << _intersection.size() << " " << _union.size());
+
+            switch (composition) {
+                case CustomizableLinkCreator::INTERSECTION_OVER_UNION:
+                    return (_intersection.size() == 0) ? 0 : ((double) _intersection.size() / _union.size());
+                case CustomizableLinkCreator::INTERSECTION_OVER_A:
+                    return (set1.size() == 0) ? 0 : ((double) _intersection.size() / set1.size());
+                case CustomizableLinkCreator::INTERSECTION_OVER_B:
+                    return (set2.size() == 0) ? 0 : ((double) _intersection.size() / set2.size());
+                default: RAISE_ERROR("Invalid composition: " + std::to_string((unsigned int) composition));
+            }
+        }
+    }
+    return 0;
 }
 
 static bool test_customizable() {
@@ -226,7 +290,6 @@ static bool test_customizable() {
 static bool test_customizable_counts() {
     string test_case = start_test_case("test_customizable()");
     bool success = true;
-    vector<string> tokens;
 
     // clang-format off
     vector<string> query_tokens = {
@@ -244,36 +307,97 @@ static bool test_customizable_counts() {
                     NODE, SYMBOL, "\"contains_ccc\"",
                 VARIABLE, "v2",
     };
+    vector<string> count_query_tokens_A = {
+        AND_OPERATOR, "2",
+            LINK_TEMPLATE, EXPRESSION, "3",
+                NODE, SYMBOL, EVALUATION_TAG,
+                LINK_TEMPLATE, EXPRESSION, "2",
+                    NODE, SYMBOL, PREDICATE_TAG,
+                    VARIABLE, "Node",
+                ATOM, "QueryAnswerElement($v1)",
+            LINK_TEMPLATE, EXPRESSION, "3",
+                NODE, SYMBOL, EVALUATION_TAG,
+                LINK_TEMPLATE, EXPRESSION, "2",
+                    NODE, SYMBOL, PREDICATE_TAG,
+                    NODE, SYMBOL, "\"sort\"",
+                ATOM, "QueryAnswerElement($v1)",
+    };
+    vector<string> count_query_tokens_B = {
+        AND_OPERATOR, "2",
+            LINK_TEMPLATE, EXPRESSION, "3",
+                NODE, SYMBOL, EVALUATION_TAG,
+                LINK_TEMPLATE, EXPRESSION, "2",
+                    NODE, SYMBOL, PREDICATE_TAG,
+                    VARIABLE, "Node",
+                ATOM, "QueryAnswerElement($v2)",
+            LINK_TEMPLATE, EXPRESSION, "3",
+                NODE, SYMBOL, EVALUATION_TAG,
+                LINK_TEMPLATE, EXPRESSION, "2",
+                    NODE, SYMBOL, PREDICATE_TAG,
+                    NODE, SYMBOL, "\"sort\"",
+                ATOM, "QueryAnswerElement($v2)",
+    };
     // clang-format on
-    CustomizableLinkCreator link_creator;
-    link_creator.add_link_specification({QueryAnswerElement("v1"), QueryAnswerElement("v2")},
-                                        {},
-                                        "FunctionalTest1",
-                                        CustomizableLinkCreator::PRODUCT);
-    link_creator.add_link_specification({QueryAnswerElement("v2"), QueryAnswerElement("v1")},
-                                        {},
-                                        "FunctionalTest2",
-                                        CustomizableLinkCreator::PRODUCT);
-    tokens.clear();
-    link_creator.tokenize(tokens);
-    auto proxy = make_proxy(query_tokens, LinkCreatorRegistry::CUSTOMIZABLE);
-    proxy->parameters[LinkCreationProxy::LINK_CREATOR_EXTRA_PARAMETERS] = (string) Utils::join(tokens, ',');
-    proxy->parameters[LinkCreationProxy::MAX_SUCCESSFUL_CREATION_PER_ROUND] = (unsigned int) 200;
+    vector<string> queries = {
+        Utils::join(count_query_tokens_A),
+        Utils::join(count_query_tokens_B)
+    };
 
-    ServiceBusSingleton::get_instance()->issue_bus_command(proxy1);
+    CustomizableLinkCreator link_creator[3];
+    link_creator[0].add_link_specification({QueryAnswerElement("v1"), QueryAnswerElement("v2")},
+                                           {QueryAnswerElement("Node"), QueryAnswerElement("Node")},
+                                           "FunctionalTest1",
+                                           CustomizableLinkCreator::INTERSECTION_OVER_UNION,
+                                           queries);
+    link_creator[1].add_link_specification({QueryAnswerElement("v1"), QueryAnswerElement("v2")},
+                                           {QueryAnswerElement("Node"), QueryAnswerElement("Node")},
+                                           "FunctionalTest1",
+                                           CustomizableLinkCreator::INTERSECTION_OVER_A,
+                                           queries);
+    link_creator[2].add_link_specification({QueryAnswerElement("v1"), QueryAnswerElement("v2")},
+                                           {QueryAnswerElement("Node"), QueryAnswerElement("Node")},
+                                           "FunctionalTest1",
+                                           CustomizableLinkCreator::INTERSECTION_OVER_B,
+                                           queries);
 
-    while (true) {
-        if (proxy->finished()) {
-            break;
-        }
-        shared_ptr<QueryAnswer> answer = proxy->pop();
-        if (answer == nullptr) {
-            Utils::sleep();
-        }
+    CustomizableLinkCreator::StrengthComposition composition[3] = {
+        CustomizableLinkCreator::INTERSECTION_OVER_UNION,
+        CustomizableLinkCreator::INTERSECTION_OVER_A,
+        CustomizableLinkCreator::INTERSECTION_OVER_B
+    };
+
+    vector<string> tokens;
+    shared_ptr<LinkCreationProxy> proxy[3];
+    for (unsigned int i = 0; i < 3; i++) {
+        tokens.clear();
+        link_creator[i].tokenize(tokens);
+        proxy[i] = make_proxy(query_tokens, LinkCreatorRegistry::CUSTOMIZABLE);
+        proxy[i]->parameters[LinkCreationProxy::LINK_CREATOR_EXTRA_PARAMETERS] = (string) Utils::join(tokens, ',');
+        proxy[i]->parameters[LinkCreationProxy::MAX_SUCCESSFUL_CREATION_PER_ROUND] = (unsigned int) 10;
+        proxy[i]->parameters[LinkCreationProxy::LINK_CREATION_STRENGTH_THRESHOLD] = (double) 0.001;
+        ServiceBusSingleton::get_instance()->issue_bus_command(proxy[i]);
     }
-    success &= assert_equal(proxy->get_count(), 200, "link creation count");
 
-    AtomDBSingleton::get_instance()->delete_atoms(proxy->get_built_atoms());
+    for (unsigned int i = 0; i < 3; i++) {
+        unsigned int count_answers = 0;
+        while (true) {
+            if (proxy[i]->finished()) {
+                break;
+            }
+            shared_ptr<QueryAnswer> answer = proxy[i]->pop();
+            if (answer != nullptr) {
+                string handle = proxy[i]->get_built_atoms()[count_answers++];
+                double strength = get_strength(handle);
+                double expected_strength = compute_expected_strength(answer->get("v1"), answer->get("v2"), composition[i]);
+                LOG_DEBUG("[" << strength << ", " << expected_strength << "] " << AtomDBUtils::handle_to_metta(handle));
+                success &= assert_true(Utils::is_zero(strength - expected_strength), "link strength composition: " + std::to_string(i));
+            } else {
+                Utils::sleep();
+            }
+        }
+        success &= assert_equal(proxy[i]->get_count(), 10, "link creation count");
+        AtomDBSingleton::get_instance()->delete_atoms(proxy[i]->get_built_atoms());
+    }
     finish_test_case(test_case, success);
     return success;
 }

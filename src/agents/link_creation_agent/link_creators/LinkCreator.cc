@@ -1,7 +1,6 @@
-#include "LinkCreator.h"
-
 #include <fstream>
 
+#include "LinkCreator.h"
 #include "AttentionBrokerClient.h"
 #include "Link.h"
 
@@ -19,6 +18,7 @@ LinkCreator::AddLinkStatus LinkCreator::add_or_update_link(const vector<string>&
                                                            double strength) {
     STACK_TRACE();
     if (strength < this->_strength_threshold) {
+        LOG_DEBUG("Rejecting low stregnth link " << strength << " < " << this->_strength_threshold);
         return REJECTED;
     }
     auto db = atomdb();
