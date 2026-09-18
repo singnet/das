@@ -3,6 +3,7 @@
 
 #include <gtest/gtest.h>
 
+#include <cfloat>
 #include <fstream>
 #include <iostream>
 #include <vector>
@@ -148,6 +149,16 @@ TEST(LocalFileTestSuite, uint_rand) {
     EXPECT_THROW(Utils::uint_rand(0, 0), runtime_error);
     EXPECT_THROW(Utils::uint_rand(2, 2), runtime_error);
     EXPECT_THROW(Utils::uint_rand(2, 1), runtime_error);
+}
+
+TEST(LocalFileTestSuite, double_is_zero) {
+    EXPECT_TRUE(Utils::is_zero((double) 0));
+    EXPECT_TRUE(Utils::is_zero(Utils::EPSILON - DBL_EPSILON));
+    EXPECT_TRUE(Utils::is_zero(-Utils::EPSILON + DBL_EPSILON));
+    EXPECT_FALSE(Utils::is_zero(Utils::EPSILON));
+    EXPECT_FALSE(Utils::is_zero(-Utils::EPSILON));
+    EXPECT_FALSE(Utils::is_zero(Utils::EPSILON + DBL_EPSILON));
+    EXPECT_FALSE(Utils::is_zero(-Utils::EPSILON - DBL_EPSILON));
 }
 
 int main(int argc, char** argv) {
