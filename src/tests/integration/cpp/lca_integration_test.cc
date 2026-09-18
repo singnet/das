@@ -304,7 +304,7 @@ static bool test_customizable() {
 }
 
 static bool test_customizable_counts() {
-    string test_case = start_test_case("test_customizable()");
+    string test_case = start_test_case("test_customizable_counts()");
     bool success = true;
 
     // clang-format off

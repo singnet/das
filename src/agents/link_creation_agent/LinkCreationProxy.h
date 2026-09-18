@@ -33,7 +33,13 @@ class LinkCreationProxy : public BaseQueryProxy {
 
     // Optional parameter which are not part of the configuration file
     static string LOG_NEW_LINKS;
-    static string LINK_CREATOR_EXTRA_PARAMETERS;
+    static string LINK_CREATOR_EXTRA_PARAMETERS; // LINK_CREATOR_EXTRA_PARAMETERS is tipically
+                                                 // parsed as a list of tokens separated by a
+                                                 // character defined in
+                                                 // CustomizableLinkCreator::EXTRA_PARAMETERS_SPLIT_CHAR
+                                                 // If the separator character is used inside
+                                                 // LINK_CREATOR_EXTRA_PARAMETERS, the parsing
+                                                 // will fail, even if it's quoted or escaped.
 
     LinkCreationProxy();
 
