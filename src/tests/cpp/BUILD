@@ -1216,6 +1216,8 @@ cc_test(
         "//agents/command_router/http_api:command_router_http_api_config",
         "//agents/command_router/http_api:command_router_http_api_singleton",
         "//agents/command_router/http_api:http_command_proxy_factory",
+        "//agents/evolution:query_evolution_proxy",
+        "//agents/evolution/fitness_functions:fitness_functions_lib",
         "//agents/query_engine:query_answer",
         "//atomdb:atomdb_singleton",
         "//commons/processor:processor_lib",

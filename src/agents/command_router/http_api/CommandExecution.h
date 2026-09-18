@@ -2,6 +2,7 @@
 
 #include <chrono>
 #include <condition_variable>
+#include <functional>
 #include <mutex>
 #include <optional>
 #include <string>
@@ -34,6 +35,8 @@ class CommandExecution {
     /** WebSocket / stream command names (same envelope as HTTP requests). */
     static constexpr const char* COMMAND_QUERY_ANSWERS = "query_answers";
     static constexpr const char* COMMAND_EXECUTION_STATUS = "execution_status";
+    static constexpr const char* COMMAND_EVAL_FITNESS = "eval_fitness";
+    static constexpr const char* COMMAND_EVAL_FITNESS_RESPONSE = "eval_fitness_response";
 
     CommandExecution(const string& execution_id,
                      const string& command,
@@ -82,6 +85,36 @@ class CommandExecution {
     /** @brief Append a query_answers event and update received_count. @p data must be a JSON array. */
     void publish_chunk(int seq, const json& data);
 
+    /**
+     * @brief Append an eval_fitness event for the HTTP client to score.
+     * @p answers must be a JSON array of QueryAnswer objects.
+     */
+    void publish_eval_fitness(int seq, const json& answers);
+
+    /**
+     * @brief Record an inbound eval_fitness_response from the WebSocket client.
+     * @return false if seq does not match the pending request.
+     */
+    bool submit_fitness_response(int seq, const vector<float>& fitness);
+
+    /**
+     * @brief Block until a fitness response for @p seq arrives, or abort/timeout/terminal.
+     * @return true with @p fitness filled on success.
+     */
+    bool wait_fitness_response(int seq,
+                               chrono::milliseconds timeout,
+                               const function<bool()>& should_abort,
+                               vector<float>& fitness);
+
+    /** @brief Register an active WebSocket session; clears the closed flag. */
+    void ws_session_opened();
+
+    /**
+     * @brief Unregister a WebSocket session. When no session remains, fitness waiters
+     * are woken and fail (a reconnect clears the flag again via ws_session_opened()).
+     */
+    void ws_session_closed();
+
     /** @brief PENDING -> RUNNING; emits an execution_status event. */
     void mark_running();
 
@@ -109,6 +142,12 @@ class CommandExecution {
     string error_message_;
     bool cancel_requested_ = false;
     vector<string> events_;
+
+    int pending_fitness_seq_ = -1;
+    bool fitness_response_ready_ = false;
+    vector<float> fitness_response_;
+    bool ws_closed_ = false;
+    int active_ws_sessions_ = 0;
 
     void publish_event_locked(const json& payload);
     void stamp_finished_at_locked();

@@ -25,6 +25,8 @@
 #include "TestAtomDBJsonConfig.h"
 #include "Utils.h"
 #include "commons/atoms/MettaParserActions.h"
+#include "httplib.h"
+#include "nlohmann/json.hpp"
 
 // Symbols
 #define AND_OPERATOR "AND"
@@ -82,6 +84,8 @@ static string TARGET_PREDICATE_HANDLE = "undefined";
 
 static bool USE_MORK = false;
 static bool SETUP_ONLY = false;
+static bool USE_HTTP = false;
+static string HTTP_ENDPOINT = "";
 static double LINK_CREATION_STRENGTH_THRESHOLD = (SETUP_ONLY ? 0.0 : 0.1);
 static unsigned int LINK_CREATION_COUNT = 10;
 static unsigned int LINK_CREATION_MAX_VISIT_ATTEMPTS = LINK_CREATION_COUNT;
@@ -104,6 +108,8 @@ using namespace evolution;
 using namespace service_bus;
 using namespace attention_broker;
 using namespace context_broker;
+using namespace fitness_functions;
+using json = nlohmann::json;
 
 enum ContextTaskType { UNDEFINED = 0, DETERMINER, CORRELATION, ACTIVATION };
 
@@ -827,6 +833,178 @@ static void build_links(const vector<string>& query,
 }
 
 // clang-format off
+static void record_evolution_answer(shared_ptr<QueryAnswer> query_answer,
+                                    unsigned int iteration,
+                                    double& best_fitness) {
+    if (query_answer->strength > best_fitness) {
+        best_fitness = query_answer->strength;
+        LOG_INFO("ANSWER: " + answer_to_string(query_answer));
+        recorded_answers.push_back({query_answer, iteration});
+    }
+}
+
+static pair<string, int> split_host_port(const string& endpoint, int default_port) {
+    auto colon = endpoint.rfind(':');
+    if (colon == string::npos) {
+        return {endpoint, default_port};
+    }
+    string host = endpoint.substr(0, colon);
+    int port = Utils::string_to_int(endpoint.substr(colon + 1));
+    return {host, port};
+}
+
+static json metta_tokens_object(const vector<string>& tokens) {
+    json token_array = json::array();
+    for (const string& token : tokens) {
+        token_array.push_back(token);
+    }
+    return {{"tokens", token_array}};
+}
+
+static void query_evolution_http(
+    const vector<string>& query_to_evolve,
+    const vector<vector<string>>& correlation_query_template,
+    unsigned int iteration,
+    const string& context) {
+
+    STACK_TRACE();
+    QueryAnswerElement qa_predicate(PREDICATE);
+    QueryAnswerElement qa_concept(CONCEPT);
+    QueryAnswerElement qa_path1(0, 1, 2, false, false, true);
+    QueryAnswerElement qa_path2(1, 1, 2, false, false, true);
+    QueryAnswerElement qa_nothing;
+
+    json correlation_queries = json::array();
+    for (const auto& query : correlation_query_template) {
+        correlation_queries.push_back(metta_tokens_object(query));
+    }
+
+    json correlation_replacements = json::array({
+        json::array({json::array({V1, PREDICATE})}),
+        json::array({json::array({V2, CONCEPT})}),
+    });
+
+    json correlation_mappings = json::array();
+    auto mapping_pair = [](const QueryAnswerElement& left, const QueryAnswerElement& right) {
+        auto as_token = [](const QueryAnswerElement& element) {
+            string encoded = element.to_string();
+            if (!encoded.empty() && encoded[0] == '$') {
+                return encoded.substr(1);
+            }
+            return encoded;
+        };
+        return json::array({as_token(left), as_token(right)});
+    };
+    correlation_mappings.push_back(json::array({
+        mapping_pair(qa_concept, qa_concept),
+        mapping_pair(qa_path1, qa_nothing),
+        mapping_pair(qa_path2, qa_nothing),
+    }));
+    correlation_mappings.push_back(json::array({
+        mapping_pair(qa_predicate, qa_predicate),
+        mapping_pair(qa_path1, qa_nothing),
+        mapping_pair(qa_path2, qa_nothing),
+    }));
+
+    json body = {
+        {"command", "evolution"},
+        {"params",
+         {{"evolution",
+           {{"query", metta_tokens_object(query_to_evolve)},
+            {"fitness_function_tag", FitnessFunctionRegistry::REMOTE_FUNCTION},
+            {"correlation_queries", correlation_queries},
+            {"correlation_replacements", correlation_replacements},
+            {"correlation_mappings", correlation_mappings}}},
+          {"context", context},
+          {"unique_assignment_flag", false},
+          {"populate_metta_mapping", true},
+          {"use_metta_as_query_tokens", true},
+          {"allow_incomplete_chain_path", true},
+          {"max_bundle_size", 1000},
+          {"attention_focus_strictness", ATTENTION_FOCUS_STRICTNESS},
+          {"disregard_importance_flag", false},
+          {"positive_importance_flag", true},
+          {"unique_value_flag", false},
+          {"count_flag", false},
+          {"population_size", POPULATION_SIZE},
+          {"max_generations", MAX_GENERATIONS},
+          {"elitism_rate", ELITISM_RATE},
+          {"selection_rate", SELECTION_RATE}}}};
+
+    auto [host, port] = split_host_port(HTTP_ENDPOINT, 40009);
+    httplib::Client http(host, port);
+    http.set_connection_timeout(5);
+    http.set_read_timeout(600);
+
+    auto create = http.Post("/command-router/executions", body.dump(), "application/json");
+    if (!create || create->status != 202) {
+        string detail = create ? create->body : "no response";
+        RAISE_ERROR("HTTP evolution create failed: " + detail);
+    }
+    const string execution_id = json::parse(create->body)["execution_id"].get<string>();
+    LOG_INFO("HTTP evolution execution_id=" + execution_id);
+
+    httplib::ws::WebSocketClient ws("ws://" + host + ":" + std::to_string(port) +
+                                    "/command-router/ws/" + execution_id);
+    if (!ws.is_valid() || !ws.connect()) {
+        RAISE_ERROR("HTTP evolution WebSocket connect failed for " + execution_id);
+    }
+    ws.set_read_timeout(600, 0);
+
+    auto fitness_fn = FitnessFunctionRegistry::function(FITNESS_FUNCTION);
+    unsigned int count_answers = 0;
+    static double best_fitness = 0.0;
+    static unsigned int count_iterations = 1;
+    string terminal_status;
+    string msg;
+
+    while (ws.read(msg)) {
+        auto event = json::parse(msg);
+        const string command = event.value("command", "");
+        if (command == "eval_fitness") {
+            const int seq = event["params"]["seq"].get<int>();
+            const json& answers = event["params"]["answers"];
+            json fitness_values = json::array();
+            for (const auto& answer_json : answers) {
+                auto answer = make_shared<QueryAnswer>();
+                answer->from_json(answer_json);
+                fitness_values.push_back(fitness_fn->eval(answer));
+            }
+            json response = {{"command", "eval_fitness_response"},
+                             {"params",
+                              {{"execution_id", execution_id},
+                               {"seq", seq},
+                               {"fitness", fitness_values}}}};
+            if (!ws.send(response.dump())) {
+                RAISE_ERROR("Failed to send eval_fitness_response");
+            }
+        } else if (command == "query_answers") {
+            for (const auto& answer_json : event["params"]["answers"]) {
+                auto answer = make_shared<QueryAnswer>();
+                answer->from_json(answer_json);
+                count_answers++;
+                record_evolution_answer(answer, iteration, best_fitness);
+            }
+        } else if (command == "execution_status") {
+            terminal_status = event["params"].value("status", "");
+            if (terminal_status == "completed" || terminal_status == "error" ||
+                terminal_status == "aborted") {
+                if (terminal_status == "error") {
+                    string message = event["params"].value("message", "unknown error");
+                    ws.close();
+                    RAISE_ERROR("HTTP evolution failed: " + message);
+                }
+                break;
+            }
+        }
+    }
+    ws.close();
+    if (terminal_status != "completed") {
+        RAISE_ERROR("HTTP evolution ended with status: " + terminal_status);
+    }
+    LOG_INFO("Total answers in iteration " << count_iterations++ << ": " << count_answers);
+}
+
 static void query_evolution(
     const vector<string>& query_to_evolve,
     const vector<vector<string>>& correlation_query_template,
@@ -834,6 +1012,11 @@ static void query_evolution(
     const string& context) {
 
     STACK_TRACE();
+    if (USE_HTTP) {
+        query_evolution_http(query_to_evolve, correlation_query_template, iteration, context);
+        return;
+    }
+
     QueryAnswerElement qa_predicate(PREDICATE);
     QueryAnswerElement qa_concept(CONCEPT);
     QueryAnswerElement qa_path1(0, 1, 2, false, false, true);
@@ -887,11 +1070,7 @@ static void query_evolution(
             Utils::sleep();
         } else {
             count_answers++;
-            if (query_answer->strength > best_fitness) {
-                best_fitness = query_answer->strength;
-                LOG_INFO("ANSWER: " + answer_to_string(query_answer));
-                recorded_answers.push_back({query_answer, iteration});
-            }
+            record_evolution_answer(query_answer, iteration, best_fitness);
         }
     }
     LOG_INFO("Total answers in iteration " << count_iterations++ << ": " << count_answers);
@@ -1385,10 +1564,12 @@ static void run(const string& context_tag) {
         AttentionBrokerClient::stimulate({{TARGET_PREDICATE_HANDLE, 1}, {TARGET_CONCEPT_HANDLE, 1}},
                                          context);
         LOG_INFO("----- Evolving query");
-        query_evolution((USE_MORK ? metta_query_to_evolve : query_to_evolve),
-                        (USE_MORK ? correlation_metta_query_template : correlation_query_template),
-                        iteration,
-                        context);
+        const bool use_metta_query = USE_MORK || USE_HTTP;
+        query_evolution(
+            (use_metta_query ? metta_query_to_evolve : query_to_evolve),
+            (use_metta_query ? correlation_metta_query_template : correlation_query_template),
+            iteration,
+            context);
     }
 
     LOG_INFO("--------------------------------------------------------------------------------");
@@ -1413,13 +1594,31 @@ static void insert_type_symbols() {
 
 int main(int argc, char* argv[]) {
     STACK_TRACE();
+    vector<string> positional;
+    for (int i = 1; i < argc; ++i) {
+        string arg(argv[i]);
+        if (arg.rfind("--use-http=", 0) == 0) {
+            USE_HTTP = (arg.substr(string("--use-http=").size()) == "true");
+        } else if (arg == "--use-http") {
+            USE_HTTP = true;
+        } else if (arg.rfind("--http-endpoint=", 0) == 0) {
+            HTTP_ENDPOINT = arg.substr(string("--http-endpoint=").size());
+        } else if (arg.rfind("--", 0) == 0) {
+            cerr << "Unknown flag: " << arg << endl;
+            exit(1);
+        } else {
+            positional.push_back(arg);
+        }
+    }
+
     // clang-format off
-    if (argc != 16) {
+    if (positional.size() != 15) {
         cerr << "Usage: " << argv[0]
              << " <client_endpoint> <server_endpoint> <start_port:end_port> <config_file>"
                 " <context_tag> <target_predicate> <target_concept>"
                 " <RENT_RATE> <SPREADING_RATE_LOWERBOUND> <SPREADING_RATE_UPPERBOUND>"
-                " <ELITISM_RATE> <SELECTION_RATE> <POPULATION_SIZE> <MAX_GENERATIONS> <NUM_ITERATIONS>" << endl;
+                " <ELITISM_RATE> <SELECTION_RATE> <POPULATION_SIZE> <MAX_GENERATIONS> <NUM_ITERATIONS>"
+                " [--use-http=true] [--http-endpoint=host:port]" << endl;
         cerr << endl;
         cerr << "<target_predicate> <target_concept> are MeTTa expressions" << endl;
         cerr << endl;
@@ -1440,23 +1639,23 @@ int main(int argc, char* argv[]) {
 
     int cursor = 0;
 
-    string client_endpoint = argv[++cursor];
-    string server_endpoint = argv[++cursor];
-    auto ports_range = Utils::parse_ports_range(argv[++cursor]);
-    string config_file = argv[++cursor];
-    string context_tag = argv[++cursor];
-    TARGET_PREDICATE = argv[++cursor];
-    TARGET_CONCEPT = argv[++cursor];
+    string client_endpoint = positional[cursor++];
+    string server_endpoint = positional[cursor++];
+    auto ports_range = Utils::parse_ports_range(positional[cursor++]);
+    string config_file = positional[cursor++];
+    string context_tag = positional[cursor++];
+    TARGET_PREDICATE = positional[cursor++];
+    TARGET_CONCEPT = positional[cursor++];
 
-    RENT_RATE = Utils::string_to_float(string(argv[++cursor]));
-    SPREADING_RATE_LOWERBOUND = Utils::string_to_float(string(argv[++cursor]));
-    SPREADING_RATE_UPPERBOUND = Utils::string_to_float(string(argv[++cursor]));
+    RENT_RATE = Utils::string_to_float(positional[cursor++]);
+    SPREADING_RATE_LOWERBOUND = Utils::string_to_float(positional[cursor++]);
+    SPREADING_RATE_UPPERBOUND = Utils::string_to_float(positional[cursor++]);
 
-    ELITISM_RATE = (double) Utils::string_to_float(string(argv[++cursor]));
-    SELECTION_RATE = (double) Utils::string_to_float(string(argv[++cursor]));
-    POPULATION_SIZE = (unsigned int) Utils::string_to_int(string(argv[++cursor]));
-    MAX_GENERATIONS = (unsigned int) Utils::string_to_int(string(argv[++cursor]));
-    NUM_ITERATIONS = (unsigned int) Utils::string_to_int(string(argv[++cursor]));
+    ELITISM_RATE = (double) Utils::string_to_float(positional[cursor++]);
+    SELECTION_RATE = (double) Utils::string_to_float(positional[cursor++]);
+    POPULATION_SIZE = (unsigned int) Utils::string_to_int(positional[cursor++]);
+    MAX_GENERATIONS = (unsigned int) Utils::string_to_int(positional[cursor++]);
+    NUM_ITERATIONS = (unsigned int) Utils::string_to_int(positional[cursor++]);
 
     if (cursor != 15) {
         RAISE_ERROR("Error setting up parameters");
@@ -1466,6 +1665,11 @@ int main(int argc, char* argv[]) {
     auto atomdb_config = json_config.at_path("atomdb").get_or<JsonConfig>(JsonConfig());
     SystemParametersSingleton::init(json_config);
     AtomDBSingleton::init(atomdb_config);
+
+    if (HTTP_ENDPOINT.empty()) {
+        HTTP_ENDPOINT = json_config.at_path("agents.command_router.http_api.endpoint")
+                            .get_or<string>("localhost:40009");
+    }
 
     Utils::init_random(RANDOM_SEED);
     db = AtomDBSingleton::get_instance();
@@ -1478,6 +1682,10 @@ int main(int argc, char* argv[]) {
 
     insert_type_symbols();
 
+    LOG_INFO("USE_HTTP: " + string(USE_HTTP ? "true" : "false"));
+    if (USE_HTTP) {
+        LOG_INFO("HTTP_ENDPOINT: " + HTTP_ENDPOINT);
+    }
     LOG_INFO("ELITISM_RATE: " + to_string(ELITISM_RATE));
     LOG_INFO("RENT_RATE: " + to_string(RENT_RATE));
     LOG_INFO("SPREADING_RATE_LOWERBOUND: " + to_string(SPREADING_RATE_LOWERBOUND));
