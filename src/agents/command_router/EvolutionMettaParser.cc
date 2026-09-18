@@ -195,7 +195,8 @@ bool is_quoted_string_literal(const string& name) {
 
 string query_expression_from_atom(const shared_ptr<Atom>& atom, const EvolutionParserActions& actions) {
     if (!Atom::is_link(atom)) {
-        return unquote_string_literal(atom_name(atom));
+        const string& expression = actions.handle_to_metta_expression.at(atom->handle());
+        return is_quoted_string_literal(expression) ? unquote_string_literal(expression) : expression;
     }
     return actions.handle_to_metta_expression.at(atom->handle());
 }
