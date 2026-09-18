@@ -24,6 +24,7 @@ cc_library(
     deps = [
         "//atomdb",
         "//atomdb:atomdb_api_types",
+        "//atomdb:atomdb_key_sensitive",
         "//atomdb/inmemorydb",
         "//atomdb/inmemorydb:inmemorydb_api_types",
         "//atomdb/morkdb:morkdb_lib",
