@@ -252,6 +252,16 @@ TEST(EvolutionMettaParser, percent_variables_outside_quotes_become_dollar) {
     EXPECT_EQ(normalize_metta_percent_variables("(Word \"100% off\")"), "(Word \"100% off\")");
     EXPECT_EQ(normalize_metta_percent_variables("100%"), "100%");
     EXPECT_EQ(normalize_metta_percent_variables("foo%bar"), "foo%bar");
+    EXPECT_EQ(normalize_metta_percent_variables("%name-extra"), "%name-extra");
+    EXPECT_EQ(normalize_metta_percent_variables("(Contains %name-extra (Word \"bbb\"))"),
+              "(Contains %name-extra (Word \"bbb\"))");
+}
+
+TEST(EvolutionMettaParser, query_expression_preserves_incomplete_percent_token) {
+    auto queries = metta_correlation_queries({"(Contains %name-extra %word1)"});
+    ASSERT_EQ(queries.size(), 1u);
+    ASSERT_EQ(queries[0].size(), 1u);
+    EXPECT_EQ(queries[0][0], "(Contains %name-extra $word1)");
 }
 
 TEST(EvolutionMettaParser, correlation_values_preserve_non_variable_percent) {

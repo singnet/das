@@ -372,14 +372,19 @@ string command_router::normalize_metta_percent_variables(const string& expressio
             (i == 0) || is_delimiter(static_cast<unsigned char>(expression[i - 1]));
         if (c == '%' && at_token_start && i + 1 < expression.size() &&
             is_ident_start(static_cast<unsigned char>(expression[i + 1]))) {
-            parsed.push_back('$');
-            ++i;
-            while (i < expression.size() && is_ident_cont(static_cast<unsigned char>(expression[i]))) {
-                parsed.push_back(expression[i]);
-                ++i;
+            size_t ident_end = i + 1;
+            while (ident_end < expression.size() &&
+                   is_ident_cont(static_cast<unsigned char>(expression[ident_end]))) {
+                ++ident_end;
             }
-            --i;
-            continue;
+            const bool complete_token = (ident_end == expression.size()) ||
+                                        is_delimiter(static_cast<unsigned char>(expression[ident_end]));
+            if (complete_token) {
+                parsed.push_back('$');
+                parsed.append(expression, i + 1, ident_end - (i + 1));
+                i = ident_end - 1;
+                continue;
+            }
         }
         parsed.push_back(expression[i]);
     }
