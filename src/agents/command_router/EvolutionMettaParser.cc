@@ -191,12 +191,40 @@ bool is_atom_pair_link(const shared_ptr<Link>& link, const EvolutionParserAction
     return true;
 }
 
+/**
+ * Strip surrounding quotes and decode \" / \\ escapes from a MeTTa string literal.
+ * The lexer keeps quotes and escape backslashes in STRING_LITERAL token text, so
+ * quoted pair tokens (as produced by the HTTP factory) must be decoded before they
+ * are matched against variable names or element encodings.
+ */
+string unquote_string_literal(const string& name) {
+    if (name.size() < 2 || name.front() != '"' || name.back() != '"') {
+        return name;
+    }
+    string decoded;
+    decoded.reserve(name.size() - 2);
+    bool escape = false;
+    for (size_t i = 1; i + 1 < name.size(); i++) {
+        const char c = name[i];
+        if (escape) {
+            decoded.push_back(c);
+            escape = false;
+        } else if (c == '\\') {
+            escape = true;
+        } else {
+            decoded.push_back(c);
+        }
+    }
+    return decoded;
+}
+
 pair<string, string> as_pair(const shared_ptr<Link>& link, const EvolutionParserActions& actions) {
     if (!is_atom_pair_link(link, actions)) {
         RAISE_ERROR("Expected pair (X Y) of two atoms");
     }
     auto targets = link_targets(link, actions);
-    return make_pair(atom_name(targets[0]), atom_name(targets[1]));
+    return make_pair(unquote_string_literal(atom_name(targets[0])),
+                     unquote_string_literal(atom_name(targets[1])));
 }
 
 vector<vector<pair<string, string>>> walk_pair_groups(const shared_ptr<Atom>& body_atom,
@@ -237,6 +265,22 @@ string strip_leading_variable_sigil(const string& name) {
     return name;
 }
 
+/**
+ * Build a QueryAnswerElement from a MeTTa atom name / encoding string.
+ * Encoded forms (-, *, $Name, _N, ^..., >..., <...) use from_string;
+ * bare identifiers become VARIABLE elements.
+ */
+QueryAnswerElement element_from_token(const string& token) {
+    string normalized = normalize_metta_percent_variables(token);
+    if (!normalized.empty()) {
+        const char c = normalized[0];
+        if (c == '-' || c == '*' || c == '$' || c == '_' || c == '^' || c == '>' || c == '<') {
+            return QueryAnswerElement::from_string(normalized);
+        }
+    }
+    return QueryAnswerElement(strip_leading_variable_sigil(normalized));
+}
+
 }  // namespace
 
 string command_router::canonical_evolution_param_key(const string& key_or_alias) {
@@ -268,8 +312,7 @@ vector<map<string, QueryAnswerElement>> command_router::metta_correlation_replac
         map<string, QueryAnswerElement> replacement_map;
         for (const auto& pair : group) {
             string key = strip_leading_variable_sigil(normalize_metta_percent_variables(pair.first));
-            string value = strip_leading_variable_sigil(normalize_metta_percent_variables(pair.second));
-            replacement_map[key] = QueryAnswerElement(value);
+            replacement_map[key] = element_from_token(pair.second);
         }
         replacements.push_back(replacement_map);
     }
@@ -282,9 +325,8 @@ vector<vector<pair<QueryAnswerElement, QueryAnswerElement>>> command_router::met
     for (const auto& group : groups) {
         vector<pair<QueryAnswerElement, QueryAnswerElement>> mapping;
         for (const auto& pair : group) {
-            string first = strip_leading_variable_sigil(normalize_metta_percent_variables(pair.first));
-            string second = strip_leading_variable_sigil(normalize_metta_percent_variables(pair.second));
-            mapping.push_back(make_pair(QueryAnswerElement(first), QueryAnswerElement(second)));
+            mapping.push_back(
+                make_pair(element_from_token(pair.first), element_from_token(pair.second)));
         }
         mappings.push_back(mapping);
     }

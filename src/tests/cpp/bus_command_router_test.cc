@@ -223,6 +223,55 @@ TEST(EvolutionMettaParser, plain_query_arg_is_not_labeled_form) {
     EXPECT_FALSE(try_parse_evolution_metta_arg("(Similarity $a $b)", args));
 }
 
+TEST(EvolutionMettaParser, correlation_mappings_accept_element_encodings) {
+    vector<vector<pair<string, string>>> groups = {
+        {{"Concept", "Concept"}, {">$0_1_2", "-"}, {"*", "*"}}};
+
+    auto mappings = metta_correlation_mappings(groups);
+    ASSERT_EQ(mappings.size(), 1u);
+    ASSERT_EQ(mappings[0].size(), 3u);
+    EXPECT_EQ(mappings[0][0].first.to_string(), "$Concept");
+    EXPECT_EQ(mappings[0][0].second.to_string(), "$Concept");
+    EXPECT_EQ(mappings[0][1].first.to_string(), ">$0_1_2");
+    EXPECT_EQ(mappings[0][1].second.to_string(), "-");
+    EXPECT_EQ(mappings[0][2].first.to_string(), "*");
+    EXPECT_EQ(mappings[0][2].second.to_string(), "*");
+
+    auto replacements = metta_correlation_replacements({{{"V1", "Predicate"}, {"V2", ">$1_0_1"}}});
+    ASSERT_EQ(replacements.size(), 1u);
+    EXPECT_EQ(replacements[0].at("V1").to_string(), "$Predicate");
+    EXPECT_EQ(replacements[0].at("V2").to_string(), ">$1_0_1");
+}
+
+// The HTTP factory quotes cr/cm pair tokens; the parser must strip the quotes (and
+// decode escapes) so keys match variable names and element encodings still parse.
+TEST(EvolutionMettaParser, quoted_pair_tokens_are_unquoted) {
+    EvolutionMettaArgs args;
+    string metta_arg =
+        "((query (Similarity \"human\" $C)) "
+        "(ff remote_fitness_function) "
+        "(cr (((\"V1\" \"Predicate\")))) "
+        "(cm (((\"Concept\" \"Concept\") (\">$0_1_2\" \"-\")))))";
+    ASSERT_TRUE(try_parse_evolution_metta_arg(metta_arg, args));
+
+    ASSERT_EQ(args.correlation_replacement_groups.size(), 1u);
+    EXPECT_EQ(args.correlation_replacement_groups[0][0].first, "V1");
+    EXPECT_EQ(args.correlation_replacement_groups[0][0].second, "Predicate");
+
+    auto replacements = metta_correlation_replacements(args.correlation_replacement_groups);
+    ASSERT_EQ(replacements.size(), 1u);
+    ASSERT_EQ(replacements[0].count("V1"), 1u);
+    EXPECT_EQ(replacements[0].at("V1").to_string(), "$Predicate");
+
+    auto mappings = metta_correlation_mappings(args.correlation_mapping_groups);
+    ASSERT_EQ(mappings.size(), 1u);
+    ASSERT_EQ(mappings[0].size(), 2u);
+    EXPECT_EQ(mappings[0][0].first.to_string(), "$Concept");
+    EXPECT_EQ(mappings[0][0].second.to_string(), "$Concept");
+    EXPECT_EQ(mappings[0][1].first.to_string(), ">$0_1_2");
+    EXPECT_EQ(mappings[0][1].second.to_string(), "-");
+}
+
 TEST(BusCommandRouter, get_and_set_params) {
     set<string> commands = {ServiceBus::BUS_COMMAND_ROUTER};
     ServiceBus::initialize_statics(commands, 40500, 40599);

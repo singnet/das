@@ -1,5 +1,8 @@
 #include "CommandRouterHttpAPI.h"
 
+#include <chrono>
+#include <thread>
+
 #include "BusCommandRouterProcessor.h"
 #include "BusCommandRouterProxy.h"
 #include "BusCommandRouterProxyStreamPoller.h"
@@ -17,7 +20,8 @@ using namespace agents;
 
 using json = nlohmann::json;
 
-const unordered_set<string> CommandRouterHttpAPI::VALID_COMMAND = {HttpCommandProxyFactory::QUERY};
+const unordered_set<string> CommandRouterHttpAPI::VALID_COMMAND = {HttpCommandProxyFactory::QUERY,
+                                                                   HttpCommandProxyFactory::EVOLUTION};
 
 // -------------------------------------------------------------------------------------------------
 // Constructors, destructors
@@ -129,7 +133,7 @@ void CommandRouterHttpAPI::setup_routes() {
 
             if (!this->is_valid_command(command)) {
                 this->set_json_response(
-                    response, 400, {{"error", "Invalid command. Allowed values: query"}});
+                    response, 400, {{"error", "Invalid command. Allowed values: query, evolution"}});
                 return;
             }
 
@@ -185,6 +189,50 @@ void CommandRouterHttpAPI::setup_routes() {
 
             LOG_INFO("CommandRouter HTTP API WebSocket open id=" << execution_id);
 
+            exec->ws_session_opened();
+
+            // Reader thread accepts inbound eval_fitness_response while the main loop sends.
+            std::thread reader([exec, &ws]() {
+                string msg;
+                while (ws.is_open() && ws.read(msg)) {
+                    try {
+                        const json event = json::parse(msg);
+                        if (!event.is_object() || !event.contains("command") ||
+                            !event["command"].is_string()) {
+                            continue;
+                        }
+                        if (event["command"].get_ref<const string&>() !=
+                            CommandExecution::COMMAND_EVAL_FITNESS_RESPONSE) {
+                            continue;
+                        }
+                        if (!event.contains("params") || !event["params"].is_object()) {
+                            continue;
+                        }
+                        const json& params = event["params"];
+                        if (!params.contains("seq") || !params["seq"].is_number_integer() ||
+                            !params.contains("fitness") || !params["fitness"].is_array()) {
+                            continue;
+                        }
+                        vector<float> fitness;
+                        fitness.reserve(params["fitness"].size());
+                        bool ok = true;
+                        for (const auto& value : params["fitness"]) {
+                            if (!value.is_number()) {
+                                ok = false;
+                                break;
+                            }
+                            fitness.push_back(value.get<float>());
+                        }
+                        if (!ok) {
+                            continue;
+                        }
+                        exec->submit_fitness_response(params["seq"].get<int>(), fitness);
+                    } catch (const exception& e) {
+                        LOG_INFO("CommandRouter HTTP API WebSocket inbound parse failed: " << e.what());
+                    }
+                }
+            });
+
             size_t next_index = 0;
             bool stream_finished = false;
 
@@ -198,11 +246,17 @@ void CommandRouterHttpAPI::setup_routes() {
 
                 if (!send_ok) {
                     LOG_INFO("CommandRouter HTTP API WebSocket send failed id=" << execution_id);
-                    return;
+                    break;
                 }
             }
 
             ws.close(httplib::ws::CloseStatus::Normal, "stream complete");
+            if (reader.joinable()) {
+                reader.join();
+            }
+            // After join, so a fitness response already read is submitted before the
+            // session is unregistered.
+            exec->ws_session_closed();
 
             LOG_INFO("CommandRouter HTTP API WebSocket closed id=" << execution_id);
         });
@@ -273,6 +327,7 @@ void CommandRouterHttpAPI::run_execution_inner(const shared_ptr<CommandExecution
     timer.start();
 
     int seq = 0;
+    int fitness_seq = 0;
 
     auto should_abort = [&]() { return exec->is_cancel_requested() || this->shutting_down.load(); };
     auto on_chunk = [&](const json& chunk) { exec->publish_chunk(++seq, chunk); };
@@ -281,14 +336,33 @@ void CommandRouterHttpAPI::run_execution_inner(const shared_ptr<CommandExecution
         exec->mark_aborted();
         LOG_INFO("CommandRouter HTTP API execution aborted id=" << exec->execution_id);
     };
-    auto on_complete = [&](unsigned long duration_ms, int total_items) {
-        exec->mark_completed(duration_ms, total_items);
-        LOG_INFO("CommandRouter HTTP API execution completed id="
-                 << exec->execution_id << " duration_ms=" << duration_ms << " items=" << total_items);
+    auto on_eval_fitness = [&](const json& answers, vector<string>& fitness_out) -> bool {
+        const int request_seq = ++fitness_seq;
+        exec->publish_eval_fitness(request_seq, answers);
+        vector<float> fitness;
+        // Allow long remote fitness evaluations (client-side InferenceToy, MeTTa, etc.).
+        if (!exec->wait_fitness_response(request_seq, chrono::minutes(30), should_abort, fitness)) {
+            return false;
+        }
+        fitness_out.clear();
+        fitness_out.reserve(fitness.size());
+        for (float value : fitness) {
+            // Round-trip serialization; std::to_string() truncates to 6 decimals and
+            // collapses small fitness values to "0.000000".
+            fitness_out.push_back(json(value).dump());
+        }
+        return true;
     };
 
     const PollStreamResult poll_result = this->execute_router_command(
-        exec->command, exec->params, should_abort, on_chunk, on_error, on_aborted);
+        exec->command,
+        exec->params,
+        should_abort,
+        on_chunk,
+        on_error,
+        on_aborted,
+        exec->command == HttpCommandProxyFactory::EVOLUTION ? EvalFitnessHandler(on_eval_fitness)
+                                                            : nullptr);
     if (!poll_result.ok) {
         return;
     }
@@ -297,7 +371,10 @@ void CommandRouterHttpAPI::run_execution_inner(const shared_ptr<CommandExecution
 
     const int total_items =
         poll_result.is_count_only ? poll_result.count_only_total : exec->received_count();
-    on_complete(timer.milliseconds(), total_items);
+    exec->mark_completed(timer.milliseconds(), total_items);
+    LOG_INFO("CommandRouter HTTP API execution completed id=" << exec->execution_id
+                                                              << " duration_ms=" << timer.milliseconds()
+                                                              << " items=" << total_items);
 }
 
 PollStreamResult CommandRouterHttpAPI::execute_router_command(
@@ -306,7 +383,8 @@ PollStreamResult CommandRouterHttpAPI::execute_router_command(
     const function<bool()>& should_abort,
     const function<void(const json& chunk)>& on_chunk,
     const function<void(const string& error)>& on_error,
-    const function<void()>& on_aborted) {
+    const function<void()>& on_aborted,
+    const EvalFitnessHandler& on_eval_fitness) {
     if (this->router_processor == nullptr) {
         if (on_error) {
             on_error("Command router processor is not configured for HTTP execution");
@@ -332,7 +410,8 @@ PollStreamResult CommandRouterHttpAPI::execute_router_command(
                                                               should_abort,
                                                               on_chunk,
                                                               on_error,
-                                                              on_aborted);
+                                                              on_aborted,
+                                                              on_eval_fitness);
 
     } catch (const exception& e) {
         if (on_error) {

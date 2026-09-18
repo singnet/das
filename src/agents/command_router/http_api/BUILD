@@ -20,6 +20,7 @@ cc_library(
     deps = [
         "//agents:base_query_proxy",
         "//agents/command_router:bus_command_router_proxy",
+        "//agents/query_engine:query_answer",
         "//commons:commons_lib",
     ],
 )
