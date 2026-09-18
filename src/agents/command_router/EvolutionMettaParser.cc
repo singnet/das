@@ -161,41 +161,11 @@ vector<shared_ptr<Atom>> link_targets(const shared_ptr<Link>& link,
     return atoms;
 }
 
-vector<string> walk_query_list(const shared_ptr<Atom>& body_atom,
-                               const EvolutionParserActions& actions) {
-    auto body_link = as_link(body_atom);
-    if (!body_link) {
-        return {};
-    }
-    vector<shared_ptr<Atom>> targets = link_targets(body_link, actions);
-    if (!targets.empty() && Atom::is_link(targets[0])) {
-        vector<string> queries;
-        queries.reserve(targets.size());
-        for (const auto& target : targets) {
-            queries.push_back(actions.handle_to_metta_expression.at(target->handle()));
-        }
-        return queries;
-    }
-    return {actions.handle_to_metta_expression.at(body_link->handle())};
-}
-
-bool is_atom_pair_link(const shared_ptr<Link>& link, const EvolutionParserActions& actions) {
-    if (link->arity() != 2) {
-        return false;
-    }
-    for (const auto& target : link_targets(link, actions)) {
-        if (Atom::is_link(target)) {
-            return false;
-        }
-    }
-    return true;
-}
-
 /**
  * Strip surrounding quotes and decode \" / \\ escapes from a MeTTa string literal.
  * The lexer keeps quotes and escape backslashes in STRING_LITERAL token text, so
- * quoted pair tokens (as produced by the HTTP factory) must be decoded before they
- * are matched against variable names or element encodings.
+ * quoted pair tokens and quoted LINK_TEMPLATE streams (as produced by the HTTP
+ * factory) must be decoded before they are used as names or query tokens.
  */
 string unquote_string_literal(const string& name) {
     if (name.size() < 2 || name.front() != '"' || name.back() != '"') {
@@ -216,6 +186,51 @@ string unquote_string_literal(const string& name) {
         }
     }
     return decoded;
+}
+
+bool is_quoted_string_literal(const string& name) {
+    return name.size() >= 2 && name.front() == '"' && name.back() == '"';
+}
+
+string query_expression_from_atom(const shared_ptr<Atom>& atom, const EvolutionParserActions& actions) {
+    if (!Atom::is_link(atom)) {
+        return unquote_string_literal(atom_name(atom));
+    }
+    return actions.handle_to_metta_expression.at(atom->handle());
+}
+
+vector<string> walk_query_list(const shared_ptr<Atom>& body_atom,
+                               const EvolutionParserActions& actions) {
+    auto body_link = as_link(body_atom);
+    if (!body_link) {
+        string expression = query_expression_from_atom(body_atom, actions);
+        return expression.empty() ? vector<string>{} : vector<string>{expression};
+    }
+    vector<shared_ptr<Atom>> targets = link_targets(body_link, actions);
+    if (targets.empty()) {
+        return {};
+    }
+    if (Atom::is_link(targets[0]) || is_quoted_string_literal(atom_name(targets[0]))) {
+        vector<string> queries;
+        queries.reserve(targets.size());
+        for (const auto& target : targets) {
+            queries.push_back(query_expression_from_atom(target, actions));
+        }
+        return queries;
+    }
+    return {actions.handle_to_metta_expression.at(body_link->handle())};
+}
+
+bool is_atom_pair_link(const shared_ptr<Link>& link, const EvolutionParserActions& actions) {
+    if (link->arity() != 2) {
+        return false;
+    }
+    for (const auto& target : link_targets(link, actions)) {
+        if (Atom::is_link(target)) {
+            return false;
+        }
+    }
+    return true;
 }
 
 pair<string, string> as_pair(const shared_ptr<Link>& link, const EvolutionParserActions& actions) {
@@ -371,7 +386,7 @@ bool command_router::try_parse_evolution_metta_arg(const string& arg, EvolutionM
         }
         const auto& body = children[1];
         if (canonical == PARAM_QUERY) {
-            out.query = actions->handle_to_metta_expression.at(body->handle());
+            out.query = query_expression_from_atom(body, *actions);
         } else if (canonical == PARAM_FITNESS_FUNCTION) {
             out.fitness_function_tag = atom_name(body);
         } else if (canonical == PARAM_CORRELATION_QUERIES) {

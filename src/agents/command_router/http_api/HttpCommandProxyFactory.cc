@@ -2,6 +2,7 @@
 
 #include <vector>
 
+#include "BaseQueryProxy.h"
 #include "ProxyParametersFromJson.h"
 #include "Utils.h"
 
@@ -22,17 +23,10 @@ string quote_metta_token(const string& value) {
     return "\"" + escaped + "\"";
 }
 
-bool parse_metta_tokens_object(const json& object,
-                               const string& path,
-                               string& expression,
-                               string& error_message) {
+bool parse_query_tokens_object(
+    const json& object, const string& path, bool use_metta, string& expression, string& error_message) {
     if (!object.is_object()) {
         error_message = path + " must be an object";
-        return false;
-    }
-    if (object.contains("syntax") &&
-        (!object["syntax"].is_string() || object["syntax"].get_ref<const string&>() != "metta")) {
-        error_message = path + ".syntax must be \"metta\"";
         return false;
     }
     if (!object.contains("tokens") || !object["tokens"].is_array() || object["tokens"].empty()) {
@@ -51,16 +45,19 @@ bool parse_metta_tokens_object(const json& object,
     }
 
     expression = Utils::join(tokens, ' ');
-    Utils::replace_all(expression, "%", "$");
+    if (use_metta) {
+        Utils::replace_all(expression, "%", "$");
+    }
     return true;
 }
 
-bool parse_query_arg(const json& params, string& query_arg, string& error_message) {
+bool parse_query_arg(const json& params, bool use_metta, string& query_arg, string& error_message) {
     if (!params.contains("query")) {
         error_message = "params.query must be an object";
         return false;
     }
-    return parse_metta_tokens_object(params["query"], "params.query", query_arg, error_message);
+    return parse_query_tokens_object(
+        params["query"], "params.query", use_metta, query_arg, error_message);
 }
 
 bool parse_pair_groups(const json& groups_json, const string& path, string& out, string& error_message) {
@@ -103,7 +100,10 @@ bool parse_pair_groups(const json& groups_json, const string& path, string& out,
     return true;
 }
 
-bool parse_evolution_arg(const json& params, string& evolution_arg, string& error_message) {
+bool parse_evolution_arg(const json& params,
+                         bool use_metta,
+                         string& evolution_arg,
+                         string& error_message) {
     if (!params.contains("evolution") || !params["evolution"].is_object()) {
         error_message = "params.evolution must be an object";
         return false;
@@ -116,8 +116,8 @@ bool parse_evolution_arg(const json& params, string& evolution_arg, string& erro
         error_message = "params.evolution.query must be an object";
         return false;
     }
-    if (!parse_metta_tokens_object(
-            evolution["query"], "params.evolution.query", query_expr, error_message)) {
+    if (!parse_query_tokens_object(
+            evolution["query"], "params.evolution.query", use_metta, query_expr, error_message)) {
         return false;
     }
 
@@ -136,7 +136,8 @@ bool parse_evolution_arg(const json& params, string& evolution_arg, string& erro
         return false;
     }
 
-    string arg = "((query " + query_expr + ") (ff " + fitness_tag + ")";
+    const string query_body = use_metta ? query_expr : quote_metta_token(query_expr);
+    string arg = "((query " + query_body + ") (ff " + fitness_tag + ")";
 
     if (evolution.contains("correlation_queries")) {
         if (!evolution["correlation_queries"].is_array()) {
@@ -147,14 +148,15 @@ bool parse_evolution_arg(const json& params, string& evolution_arg, string& erro
         const auto& cq = evolution["correlation_queries"];
         for (size_t i = 0; i < cq.size(); ++i) {
             string cq_expr;
-            if (!parse_metta_tokens_object(
+            if (!parse_query_tokens_object(
                     cq[i],
                     "params.evolution.correlation_queries[" + std::to_string(i) + "]",
+                    use_metta,
                     cq_expr,
                     error_message)) {
                 return false;
             }
-            arg += cq_expr;
+            arg += use_metta ? cq_expr : quote_metta_token(cq_expr);
             if (i + 1 < cq.size()) {
                 arg += " ";
             }
@@ -199,14 +201,19 @@ shared_ptr<BusCommandRouterProxy> HttpCommandProxyFactory::create(const string& 
         return nullptr;
     }
 
-    string arg;
+    auto proxy = make_shared<BusCommandRouterProxy>(command, "");
+    if (!ProxyParametersFromJson::set(proxy->parameters, params, command, error_message)) {
+        return nullptr;
+    }
+    const bool use_metta = proxy->parameters.get<bool>(BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS);
 
+    string arg;
     if (command == QUERY) {
-        if (!parse_query_arg(params, arg, error_message)) {
+        if (!parse_query_arg(params, use_metta, arg, error_message)) {
             return nullptr;
         }
     } else if (command == EVOLUTION) {
-        if (!parse_evolution_arg(params, arg, error_message)) {
+        if (!parse_evolution_arg(params, use_metta, arg, error_message)) {
             return nullptr;
         }
     } else {
@@ -214,11 +221,6 @@ shared_ptr<BusCommandRouterProxy> HttpCommandProxyFactory::create(const string& 
         return nullptr;
     }
 
-    auto proxy = make_shared<BusCommandRouterProxy>(command, arg);
-
-    if (!ProxyParametersFromJson::set(proxy->parameters, params, command, error_message)) {
-        return nullptr;
-    }
-
+    proxy->args = {command, arg};
     return proxy;
 }

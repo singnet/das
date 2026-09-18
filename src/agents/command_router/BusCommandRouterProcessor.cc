@@ -265,14 +265,25 @@ void BusCommandRouterProcessor::handle_evolution(shared_ptr<BusCommandRouterProx
         RAISE_ERROR("Evolution ARG must be a labeled MeTTa form starting with (query ...)");
     }
 
-    vector<string> query = {normalize_metta_percent_variables(metta_args.query)};
-
     string fitness_tag = metta_args.fitness_function_tag;
     if (fitness_tag.empty()) {
         RAISE_ERROR("Missing fitness function tag in Evolution ARG: " + arg);
     }
 
-    auto correlation_queries = metta_correlation_queries(metta_args.correlation_query_expressions);
+    const bool use_metta = proxy->parameters.get<bool>(BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS);
+
+    vector<string> query;
+    vector<vector<string>> correlation_queries;
+    if (use_metta) {
+        query = {normalize_metta_percent_variables(metta_args.query)};
+        correlation_queries = metta_correlation_queries(metta_args.correlation_query_expressions);
+    } else {
+        query = Utils::split(metta_args.query, ' ');
+        correlation_queries.reserve(metta_args.correlation_query_expressions.size());
+        for (const auto& expression : metta_args.correlation_query_expressions) {
+            correlation_queries.push_back(Utils::split(expression, ' '));
+        }
+    }
     auto correlation_replacements =
         metta_correlation_replacements(metta_args.correlation_replacement_groups);
     auto correlation_mappings = metta_correlation_mappings(metta_args.correlation_mapping_groups);

@@ -272,6 +272,19 @@ TEST(EvolutionMettaParser, quoted_pair_tokens_are_unquoted) {
     EXPECT_EQ(mappings[0][1].second.to_string(), "-");
 }
 
+TEST(EvolutionMettaParser, quoted_link_template_query_is_unquoted) {
+    EvolutionMettaArgs args;
+    string metta_arg =
+        "((query \"LINK_TEMPLATE Expression 3 NODE Symbol Similarity VARIABLE v1 VARIABLE v2\") "
+        "(ff count_letter) "
+        "(cq (\"LINK_TEMPLATE Expression 3 NODE Symbol Inheritance VARIABLE v1 VARIABLE v2\")))";
+    ASSERT_TRUE(try_parse_evolution_metta_arg(metta_arg, args));
+    EXPECT_EQ(args.query, "LINK_TEMPLATE Expression 3 NODE Symbol Similarity VARIABLE v1 VARIABLE v2");
+    ASSERT_EQ(args.correlation_query_expressions.size(), 1u);
+    EXPECT_EQ(args.correlation_query_expressions[0],
+              "LINK_TEMPLATE Expression 3 NODE Symbol Inheritance VARIABLE v1 VARIABLE v2");
+}
+
 TEST(BusCommandRouter, get_and_set_params) {
     set<string> commands = {ServiceBus::BUS_COMMAND_ROUTER};
     ServiceBus::initialize_statics(commands, 40500, 40599);

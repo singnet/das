@@ -858,7 +858,7 @@ static json metta_tokens_object(const vector<string>& tokens) {
     for (const string& token : tokens) {
         token_array.push_back(token);
     }
-    return {{"syntax", "metta"}, {"tokens", token_array}};
+    return {{"tokens", token_array}};
 }
 
 static void query_evolution_http(
