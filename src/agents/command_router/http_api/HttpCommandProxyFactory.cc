@@ -3,6 +3,7 @@
 #include <vector>
 
 #include "BaseQueryProxy.h"
+#include "EvolutionMettaParser.h"
 #include "ProxyParametersFromJson.h"
 #include "Utils.h"
 
@@ -46,7 +47,7 @@ bool parse_query_tokens_object(
 
     expression = Utils::join(tokens, ' ');
     if (use_metta) {
-        Utils::replace_all(expression, "%", "$");
+        expression = normalize_metta_percent_variables(expression);
     }
     return true;
 }

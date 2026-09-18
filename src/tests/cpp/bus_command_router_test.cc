@@ -243,6 +243,31 @@ TEST(EvolutionMettaParser, correlation_mappings_accept_element_encodings) {
     EXPECT_EQ(replacements[0].at("V2").to_string(), ">$1_0_1");
 }
 
+TEST(EvolutionMettaParser, percent_variables_outside_quotes_become_dollar) {
+    EXPECT_EQ(normalize_metta_percent_variables("%C"), "$C");
+    EXPECT_EQ(normalize_metta_percent_variables("%sentence1"), "$sentence1");
+    EXPECT_EQ(normalize_metta_percent_variables("(Contains %sentence1 (Word \"bbb\"))"),
+              "(Contains $sentence1 (Word \"bbb\"))");
+    EXPECT_EQ(normalize_metta_percent_variables("(Similarity \"50%\" %C)"), "(Similarity \"50%\" $C)");
+    EXPECT_EQ(normalize_metta_percent_variables("(Word \"100% off\")"), "(Word \"100% off\")");
+    EXPECT_EQ(normalize_metta_percent_variables("100%"), "100%");
+    EXPECT_EQ(normalize_metta_percent_variables("foo%bar"), "foo%bar");
+}
+
+TEST(EvolutionMettaParser, correlation_values_preserve_non_variable_percent) {
+    auto replacements = metta_correlation_replacements({{{"%V1", "50%"}, {"V2", "%Predicate"}}});
+    ASSERT_EQ(replacements.size(), 1u);
+    ASSERT_EQ(replacements[0].count("V1"), 1u);
+    EXPECT_EQ(replacements[0].at("V1").to_string(), "$50%");
+    EXPECT_EQ(replacements[0].at("V2").to_string(), "$Predicate");
+
+    auto mappings = metta_correlation_mappings({{{"Concept", "50%"}}});
+    ASSERT_EQ(mappings.size(), 1u);
+    ASSERT_EQ(mappings[0].size(), 1u);
+    EXPECT_EQ(mappings[0][0].first.to_string(), "$Concept");
+    EXPECT_EQ(mappings[0][0].second.to_string(), "$50%");
+}
+
 // The HTTP factory quotes cr/cm pair tokens; the parser must strip the quotes (and
 // decode escapes) so keys match variable names and element encodings still parse.
 TEST(EvolutionMettaParser, quoted_pair_tokens_are_unquoted) {

@@ -475,6 +475,35 @@ TEST(HttpCommandProxyFactoryTest, create_query_sets_params_onto_proxy_defaults) 
     EXPECT_EQ(proxy->parameters.get<unsigned int>(BaseQueryProxy::MAX_ANSWERS), 7u);
 }
 
+TEST(HttpCommandProxyFactoryTest, create_query_preserves_percent_in_quoted_literals) {
+    string error;
+    const json params = {{"query", {{"tokens", json::array({"(Similarity \"50%\" %C)"})}}},
+                         {"use_metta_as_query_tokens", true}};
+
+    auto proxy = HttpCommandProxyFactory::create(HttpCommandProxyFactory::QUERY, params, error);
+    ASSERT_NE(proxy, nullptr) << error;
+    EXPECT_EQ(proxy->get_args()[1], "(Similarity \"50%\" $C)");
+}
+
+TEST(HttpCommandProxyFactoryTest, create_evolution_preserves_percent_in_query_and_correlation) {
+    string error;
+    const json params = {
+        {"evolution",
+         {{"query", {{"tokens", json::array({"(Similarity \"50%\" %C)"})}}},
+          {"fitness_function_tag", "count_letter"},
+          {"correlation_queries",
+           json::array({json({{"tokens", json::array({"(Evaluation \"100%\" %V1)"})}})})},
+          {"correlation_replacements", json::array({json::array({json::array({"V1", "50%"})})})}}},
+        {"use_metta_as_query_tokens", true}};
+
+    auto proxy = HttpCommandProxyFactory::create(HttpCommandProxyFactory::EVOLUTION, params, error);
+    ASSERT_NE(proxy, nullptr) << error;
+    const string& arg = proxy->get_args()[1];
+    EXPECT_NE(arg.find("(query (Similarity \"50%\" $C))"), string::npos);
+    EXPECT_NE(arg.find("(Evaluation \"100%\" $V1)"), string::npos);
+    EXPECT_NE(arg.find("\"50%\""), string::npos);
+}
+
 TEST(HttpCommandProxyFactoryTest, create_rejects_unknown_parameter) {
     string error;
     const json params = {{"query", {{"tokens", json::array({"(Similarity \"human\" %C)"})}}},

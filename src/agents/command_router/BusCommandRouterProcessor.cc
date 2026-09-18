@@ -243,12 +243,11 @@ void BusCommandRouterProcessor::forward_to_service(shared_ptr<BusCommandRouterPr
 void BusCommandRouterProcessor::handle_query(shared_ptr<BusCommandRouterProxy> proxy,
                                              const string& arg) {
     string context = proxy->parameters.get<string>(CONTEXT_KEY);
-    string normalized_arg = normalize_metta_percent_variables(arg);
     vector<string> query_tokens;
     if (proxy->parameters.get<bool>(BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS)) {
-        query_tokens = {normalized_arg};
+        query_tokens = {normalize_metta_percent_variables(arg)};
     } else {
-        query_tokens = Utils::split(normalized_arg, ' ');
+        query_tokens = Utils::split(arg, ' ');
     }
 
     auto pm_proxy = make_shared<PatternMatchingQueryProxy>(query_tokens, context);

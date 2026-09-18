@@ -1,6 +1,7 @@
 #include "EvolutionMettaParser.h"
 
 #include <algorithm>
+#include <cctype>
 #include <stack>
 #include <unordered_map>
 
@@ -307,8 +308,49 @@ string command_router::canonical_evolution_param_key(const string& key_or_alias)
 }
 
 string command_router::normalize_metta_percent_variables(const string& expression) {
-    string parsed = expression;
-    Utils::replace_all(parsed, "%", "$");
+    string parsed;
+    parsed.reserve(expression.size());
+    bool in_string = false;
+    bool escape = false;
+    const auto is_delimiter = [](unsigned char c) {
+        return std::isspace(c) != 0 || c == '(' || c == ')' || c == '[' || c == ']';
+    };
+    const auto is_ident_start = [](unsigned char c) { return std::isalpha(c) != 0 || c == '_'; };
+    const auto is_ident_cont = [](unsigned char c) { return std::isalnum(c) != 0 || c == '_'; };
+
+    for (size_t i = 0; i < expression.size(); ++i) {
+        const unsigned char c = static_cast<unsigned char>(expression[i]);
+        if (in_string) {
+            parsed.push_back(expression[i]);
+            if (escape) {
+                escape = false;
+            } else if (c == '\\') {
+                escape = true;
+            } else if (c == '"') {
+                in_string = false;
+            }
+            continue;
+        }
+        if (c == '"') {
+            in_string = true;
+            parsed.push_back(expression[i]);
+            continue;
+        }
+        const bool at_token_start =
+            (i == 0) || is_delimiter(static_cast<unsigned char>(expression[i - 1]));
+        if (c == '%' && at_token_start && i + 1 < expression.size() &&
+            is_ident_start(static_cast<unsigned char>(expression[i + 1]))) {
+            parsed.push_back('$');
+            ++i;
+            while (i < expression.size() && is_ident_cont(static_cast<unsigned char>(expression[i]))) {
+                parsed.push_back(expression[i]);
+                ++i;
+            }
+            --i;
+            continue;
+        }
+        parsed.push_back(expression[i]);
+    }
     return parsed;
 }
 

@@ -44,6 +44,7 @@ cc_library(
     deps = [
         ":proxy_parameters_from_json",
         "//agents/command_router:bus_command_router_proxy",
+        "//agents/command_router:evolution_metta_parser",
         "//commons:commons_lib",
         "@nlohmann_json//:json",
     ],
