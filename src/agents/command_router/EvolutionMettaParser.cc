@@ -163,10 +163,11 @@ vector<shared_ptr<Atom>> link_targets(const shared_ptr<Link>& link,
 }
 
 /**
- * Strip surrounding quotes and decode \" / \\ escapes from a MeTTa string literal.
- * The lexer keeps quotes and escape backslashes in STRING_LITERAL token text, so
- * quoted pair tokens and quoted LINK_TEMPLATE streams (as produced by the HTTP
- * factory) must be decoded before they are used as names or query tokens.
+ * Strip surrounding quotes and decode supported \" / \\ escapes from a MeTTa
+ * string literal. The lexer keeps quotes and escape backslashes in STRING_LITERAL
+ * token text, so quoted pair tokens and quoted LINK_TEMPLATE streams (as produced
+ * by the HTTP factory) must be decoded before they are used as names or query tokens.
+ * Unsupported escapes (e.g. \n, \%) keep both the backslash and the following character.
  */
 string unquote_string_literal(const string& name) {
     if (name.size() < 2 || name.front() != '"' || name.back() != '"') {
@@ -178,13 +179,21 @@ string unquote_string_literal(const string& name) {
     for (size_t i = 1; i + 1 < name.size(); i++) {
         const char c = name[i];
         if (escape) {
-            decoded.push_back(c);
+            if (c == '"' || c == '\\') {
+                decoded.push_back(c);
+            } else {
+                decoded.push_back('\\');
+                decoded.push_back(c);
+            }
             escape = false;
         } else if (c == '\\') {
             escape = true;
         } else {
             decoded.push_back(c);
         }
+    }
+    if (escape) {
+        decoded.push_back('\\');
     }
     return decoded;
 }
@@ -282,12 +291,34 @@ string strip_leading_variable_sigil(const string& name) {
     return name;
 }
 
+bool is_ident_start(unsigned char c) { return std::isalpha(c) != 0 || c == '_'; }
+
+bool is_ident_cont(unsigned char c) { return std::isalnum(c) != 0 || c == '_'; }
+
+bool is_percent_variable_identifier(const string& name) {
+    if (name.empty() || !is_ident_start(static_cast<unsigned char>(name[0]))) {
+        return false;
+    }
+    for (size_t i = 1; i < name.size(); ++i) {
+        if (!is_ident_cont(static_cast<unsigned char>(name[i]))) {
+            return false;
+        }
+    }
+    return true;
+}
+
 /**
  * Build a QueryAnswerElement from a MeTTa atom name / encoding string.
  * Encoded forms (-, *, $Name, _N, ^..., >..., <...) use from_string;
  * bare identifiers become VARIABLE elements.
+ * A leading `%` is accepted only when the remainder is a complete identifier.
  */
 QueryAnswerElement element_from_token(const string& token) {
+    if (!token.empty() && token[0] == '%') {
+        if (!is_percent_variable_identifier(token.substr(1))) {
+            RAISE_ERROR("Invalid percent-variable token: " + token);
+        }
+    }
     string normalized = normalize_metta_percent_variables(token);
     if (!normalized.empty()) {
         const char c = normalized[0];

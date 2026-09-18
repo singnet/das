@@ -268,6 +268,42 @@ TEST(EvolutionMettaParser, correlation_values_preserve_non_variable_percent) {
     EXPECT_EQ(mappings[0][0].second.to_string(), "$50%");
 }
 
+TEST(EvolutionMettaParser, percent_variable_tokens_must_match_identifier_grammar) {
+    auto replacements = metta_correlation_replacements({{{"V1", "%C"}, {"V2", "%sentence1"}}});
+    ASSERT_EQ(replacements.size(), 1u);
+    EXPECT_EQ(replacements[0].at("V1").to_string(), "$C");
+    EXPECT_EQ(replacements[0].at("V2").to_string(), "$sentence1");
+
+    EXPECT_THROW(metta_correlation_replacements({{{"V1", "%9"}}}), runtime_error);
+    EXPECT_THROW(metta_correlation_replacements({{{"V1", "%"}}}), runtime_error);
+    EXPECT_THROW(metta_correlation_replacements({{{"V1", "%name-extra"}}}), runtime_error);
+    EXPECT_THROW(metta_correlation_mappings({{{"%9", "Concept"}}}), runtime_error);
+    EXPECT_THROW(metta_correlation_mappings({{{"Concept", "%name-extra"}}}), runtime_error);
+}
+
+TEST(EvolutionMettaParser, quoted_query_preserves_unsupported_escapes) {
+    EvolutionMettaArgs args;
+    string metta_arg =
+        "((query \"LINK_TEMPLATE Expression 3 NODE Symbol Similarity VARIABLE v1 50\\% off\") "
+        "(ff count_letter))";
+    ASSERT_TRUE(try_parse_evolution_metta_arg(metta_arg, args));
+    EXPECT_EQ(args.query, "LINK_TEMPLATE Expression 3 NODE Symbol Similarity VARIABLE v1 50\\% off");
+}
+
+TEST(EvolutionMettaParser, quoted_correlation_values_preserve_unsupported_escapes) {
+    EvolutionMettaArgs args;
+    string metta_arg =
+        "((query (Similarity $A $B)) "
+        "(ff count_letter) "
+        "(cr (((\"V1\" \"a\\nb\")))) "
+        "(cm (((\"Concept\" \"x\\%y\")))))";
+    ASSERT_TRUE(try_parse_evolution_metta_arg(metta_arg, args));
+    ASSERT_EQ(args.correlation_replacement_groups.size(), 1u);
+    EXPECT_EQ(args.correlation_replacement_groups[0][0].second, "a\\nb");
+    ASSERT_EQ(args.correlation_mapping_groups.size(), 1u);
+    EXPECT_EQ(args.correlation_mapping_groups[0][0].second, "x\\%y");
+}
+
 // The HTTP factory quotes cr/cm pair tokens; the parser must strip the quotes (and
 // decode escapes) so keys match variable names and element encodings still parse.
 TEST(EvolutionMettaParser, quoted_pair_tokens_are_unquoted) {
