@@ -87,9 +87,21 @@ static json metta_tokens_object(const string& expression) {
 }
 
 static string sentence_name_from_answer(shared_ptr<QueryAnswer> answer) {
-    string handle = answer->assignment.get(SENTENCE_VAR);
+    const string handle = answer->assignment.get(SENTENCE_VAR);
     auto sentence_link = db->get_link(handle);
-    auto sentence_name_node = db->get_node(sentence_link->targets[1]);
+    if (sentence_link == nullptr) {
+        RAISE_ERROR("sentence_name_from_answer: get_link returned null for handle '" + handle + "'");
+    }
+    if (sentence_link->targets.size() < 2) {
+        RAISE_ERROR("sentence_name_from_answer: link '" + handle + "' has fewer than 2 targets (got " +
+                    to_string(sentence_link->targets.size()) + ")");
+    }
+    const string& name_handle = sentence_link->targets[1];
+    auto sentence_name_node = db->get_node(name_handle);
+    if (sentence_name_node == nullptr) {
+        RAISE_ERROR("sentence_name_from_answer: get_node returned null for handle '" + name_handle +
+                    "' (sentence link '" + handle + "')");
+    }
     return sentence_name_node->name;
 }
 

@@ -1,7 +1,8 @@
 #include "CommandRouterHttpAPI.h"
 
 #include <chrono>
-#include <thread>
+#include <cmath>
+#include <limits>
 
 #include "BusCommandRouterProcessor.h"
 #include "BusCommandRouterProxy.h"
@@ -22,6 +23,70 @@ using json = nlohmann::json;
 
 const unordered_set<string> CommandRouterHttpAPI::VALID_COMMAND = {HttpCommandProxyFactory::QUERY,
                                                                    HttpCommandProxyFactory::EVOLUTION};
+
+namespace {
+
+bool parse_eval_fitness_response(const json& event, int& seq, vector<float>& fitness) {
+    if (!event.is_object() || !event.contains("command") || !event["command"].is_string()) {
+        return false;
+    }
+    if (event["command"].get_ref<const string&>() != CommandExecution::COMMAND_EVAL_FITNESS_RESPONSE) {
+        return false;
+    }
+    if (!event.contains("params") || !event["params"].is_object()) {
+        return false;
+    }
+    const json& params = event["params"];
+    if (!params.contains("seq") || !params["seq"].is_number_integer() || !params.contains("fitness") ||
+        !params["fitness"].is_array()) {
+        return false;
+    }
+
+    vector<float> parsed;
+    parsed.reserve(params["fitness"].size());
+    for (const auto& value : params["fitness"]) {
+        if (!value.is_number()) {
+            return false;
+        }
+        const double number = value.get<double>();
+        if (!std::isfinite(number) || number > static_cast<double>(numeric_limits<float>::max()) ||
+            number < -static_cast<double>(numeric_limits<float>::max())) {
+            return false;
+        }
+        parsed.push_back(static_cast<float>(number));
+    }
+
+    seq = params["seq"].get<int>();
+    fitness = std::move(parsed);
+    return true;
+}
+
+bool read_and_submit_fitness_response(httplib::ws::WebSocket& ws,
+                                      const shared_ptr<CommandExecution>& exec,
+                                      int expected_seq) {
+    string msg;
+    while (ws.is_open()) {
+        if (ws.read(msg) == httplib::ws::ReadResult::Fail) {
+            return false;
+        }
+        try {
+            int seq = -1;
+            vector<float> fitness;
+            if (!parse_eval_fitness_response(json::parse(msg), seq, fitness)) {
+                continue;
+            }
+            if (seq != expected_seq) {
+                continue;
+            }
+            return exec->submit_fitness_response(seq, fitness);
+        } catch (const exception& e) {
+            LOG_INFO("CommandRouter HTTP API WebSocket inbound parse failed: " << e.what());
+        }
+    }
+    return false;
+}
+
+}  // namespace
 
 // -------------------------------------------------------------------------------------------------
 // Constructors, destructors
@@ -191,48 +256,9 @@ void CommandRouterHttpAPI::setup_routes() {
 
             exec->ws_session_opened();
 
-            // Reader thread accepts inbound eval_fitness_response while the main loop sends.
-            std::thread reader([exec, &ws]() {
-                string msg;
-                while (ws.is_open() && ws.read(msg)) {
-                    try {
-                        const json event = json::parse(msg);
-                        if (!event.is_object() || !event.contains("command") ||
-                            !event["command"].is_string()) {
-                            continue;
-                        }
-                        if (event["command"].get_ref<const string&>() !=
-                            CommandExecution::COMMAND_EVAL_FITNESS_RESPONSE) {
-                            continue;
-                        }
-                        if (!event.contains("params") || !event["params"].is_object()) {
-                            continue;
-                        }
-                        const json& params = event["params"];
-                        if (!params.contains("seq") || !params["seq"].is_number_integer() ||
-                            !params.contains("fitness") || !params["fitness"].is_array()) {
-                            continue;
-                        }
-                        vector<float> fitness;
-                        fitness.reserve(params["fitness"].size());
-                        bool ok = true;
-                        for (const auto& value : params["fitness"]) {
-                            if (!value.is_number()) {
-                                ok = false;
-                                break;
-                            }
-                            fitness.push_back(value.get<float>());
-                        }
-                        if (!ok) {
-                            continue;
-                        }
-                        exec->submit_fitness_response(params["seq"].get<int>(), fitness);
-                    } catch (const exception& e) {
-                        LOG_INFO("CommandRouter HTTP API WebSocket inbound parse failed: " << e.what());
-                    }
-                }
-            });
-
+            // Send, inbound fitness reads, and close stay on this thread so they
+            // never race on httplib's stream (close() itself reads the handshake
+            // with a 5s timeout).
             size_t next_index = 0;
             bool stream_finished = false;
 
@@ -242,20 +268,27 @@ void CommandRouterHttpAPI::setup_routes() {
                     continue;
                 }
 
-                bool send_ok = ws.send(*payload);
-
-                if (!send_ok) {
+                if (!ws.send(*payload)) {
                     LOG_INFO("CommandRouter HTTP API WebSocket send failed id=" << execution_id);
                     break;
+                }
+
+                try {
+                    const json event = json::parse(*payload);
+                    if (event.value("command", "") == CommandExecution::COMMAND_EVAL_FITNESS) {
+                        const int seq = event.at("params").at("seq").get<int>();
+                        if (!read_and_submit_fitness_response(ws, exec, seq)) {
+                            LOG_INFO("CommandRouter HTTP API WebSocket fitness read failed id="
+                                     << execution_id);
+                            break;
+                        }
+                    }
+                } catch (const exception& e) {
+                    LOG_INFO("CommandRouter HTTP API WebSocket outbound parse failed: " << e.what());
                 }
             }
 
             ws.close(httplib::ws::CloseStatus::Normal, "stream complete");
-            if (reader.joinable()) {
-                reader.join();
-            }
-            // After join, so a fitness response already read is submitted before the
-            // session is unregistered.
             exec->ws_session_closed();
 
             LOG_INFO("CommandRouter HTTP API WebSocket closed id=" << execution_id);
