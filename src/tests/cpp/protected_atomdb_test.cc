@@ -267,6 +267,17 @@ TEST(ProtectedAtomDBTest, UnknownPublicKeyDeniesAccess) {
     EXPECT_EQ(protected_atomdb->db->query_for_incoming_set(animals.human, unknown_keys)->size(), 0u);
 }
 
+TEST(ProtectedAtomDBTest, CachedAuthorizationSurvivesBackendRevoke) {
+    shared_ptr<ProtectedRedisMongo> protected_atomdb = make_shared<ProtectedRedisMongo>(true);
+    protected_atomdb->grant_full_access(PKAdmin);
+    auto admin_keys = protected_atomdb->keys(PKAdmin);
+    Animals animals;
+
+    ASSERT_NE(protected_atomdb->db->get_atom(animals.similarity_human_monkey, admin_keys), nullptr);
+    protected_atomdb->persistence->revoke(PKAdmin);
+    EXPECT_NE(protected_atomdb->db->get_atom(animals.similarity_human_monkey, admin_keys), nullptr);
+}
+
 TEST(ProtectedAtomDBTest, LoadedPermissionDocumentMustMatchRequestedKey) {
     Node node("Symbol", "\"human\"");
 

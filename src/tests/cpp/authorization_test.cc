@@ -74,8 +74,22 @@ class DummyPersistence : public AuthorizationPersistence {
     void revoke(const string& public_key) override { documents.erase(public_key); }
 };
 
-shared_ptr<InMemoryDB> db_with_inheritance_link(string* link_handle) {
-    auto db = make_shared<InMemoryDB>();
+class AccessPermissionAtomDB : public InMemoryDB {
+   public:
+    map<string, shared_ptr<AccessPermissionDocument>> permissions;
+
+    shared_ptr<AccessPermissionDocument> get_access_permissions(
+        const string& public_key) const override {
+        auto it = this->permissions.find(public_key);
+        if (it == this->permissions.end()) {
+            return nullptr;
+        }
+        return it->second;
+    }
+};
+
+shared_ptr<AccessPermissionAtomDB> db_with_inheritance_link(string* link_handle) {
+    auto db = make_shared<AccessPermissionAtomDB>();
     auto human = new Node("Symbol", "\"human\"");
     auto mammal = new Node("Symbol", "\"mammal\"");
     auto inheritance = new Node("Symbol", "Inheritance");
@@ -91,9 +105,12 @@ shared_ptr<InMemoryDB> db_with_inheritance_link(string* link_handle) {
     return db;
 }
 
-void add_persisted_documents(AuthorizationManifest& manifest, const DummyPersistence& persistence) {
+void add_persisted_documents(AuthorizationManifest& manifest,
+                             AccessPermissionAtomDB& db,
+                             const DummyPersistence& persistence) {
     for (const auto& [public_key, entries] : persistence.documents) {
-        manifest.add_document(make_document(public_key, false, entries));
+        db.permissions[public_key] = make_document(public_key, false, entries);
+        manifest.ensure_authorized(public_key);
     }
 }
 
@@ -114,18 +131,35 @@ unique_ptr<MongodbAuthorizationPersistence> make_mongo_persistence(const string&
 }  // namespace
 
 TEST(AuthorizationManifestTest, BuildsProfilesFromDocuments) {
-    AuthorizationManifest manifest(nullptr);
-    manifest.add_document(make_document("pk1", false, {read_only_inheritance_schema()}));
-    manifest.add_document(make_document("pk2", true, {}));
+    auto db = make_shared<AccessPermissionAtomDB>();
+    db->permissions["pk1"] = make_document("pk1", false, {read_only_inheritance_schema()});
+    db->permissions["pk2"] = make_document("pk2", true, {});
+    AuthorizationManifest manifest(db);
 
-    EXPECT_TRUE(manifest.is_registered("pk1"));
-    EXPECT_TRUE(manifest.is_registered("pk2"));
-    EXPECT_FALSE(manifest.is_registered("unknown"));
+    EXPECT_TRUE(manifest.ensure_authorized("pk1"));
+    EXPECT_TRUE(manifest.ensure_authorized("pk2"));
+    EXPECT_TRUE(manifest.ensure_authorized("pk1"));
+    EXPECT_FALSE(manifest.ensure_authorized("unknown"));
 }
 
 TEST(AuthorizationManifestTest, EmptyDocuments) {
-    AuthorizationManifest manifest(nullptr);
-    EXPECT_FALSE(manifest.is_registered("pk"));
+    auto db = make_shared<AccessPermissionAtomDB>();
+    AuthorizationManifest manifest(db);
+    EXPECT_FALSE(manifest.ensure_authorized("pk"));
+}
+
+TEST(AuthorizationManifestTest, RejectsNullAtomDB) {
+    EXPECT_THROW(AuthorizationManifest(nullptr), runtime_error);
+}
+
+TEST(AuthorizationManifestTest, DoesNotReloadAfterFirstAuthorization) {
+    auto db = make_shared<AccessPermissionAtomDB>();
+    db->permissions["pk"] = make_document("pk", true, {});
+    AuthorizationManifest manifest(db);
+
+    ASSERT_TRUE(manifest.ensure_authorized("pk"));
+    db->permissions.erase("pk");
+    EXPECT_TRUE(manifest.ensure_authorized("pk"));
 }
 
 TEST(AuthorizationManifestTest, IsGranted) {
@@ -133,18 +167,19 @@ TEST(AuthorizationManifestTest, IsGranted) {
     auto db = db_with_inheritance_link(&link_handle);
 
     AuthorizationManifest manifest(db);
-    manifest.add_document(make_document("pk", false, {read_only_inheritance_schema()}));
+    db->permissions["pk"] = make_document("pk", false, {read_only_inheritance_schema()});
+    ASSERT_TRUE(manifest.ensure_authorized("pk"));
 
     auto link = db->get_link(link_handle);
     ASSERT_NE(link, nullptr);
 
-    EXPECT_FALSE(manifest.is_registered("unknown"));
+    EXPECT_FALSE(manifest.ensure_authorized("unknown"));
 
     EXPECT_FALSE(manifest.is_granted("unknown", link, AuthorizationOperation::READ));
     EXPECT_FALSE(manifest.is_granted("unknown", link, AuthorizationOperation::WRITE));
     EXPECT_FALSE(manifest.is_granted("unknown", link_handle, AuthorizationOperation::READ));
     EXPECT_FALSE(manifest.is_granted("unknown", link_handle, AuthorizationOperation::WRITE));
-    EXPECT_FALSE(manifest.is_registered("unknown"));
+    EXPECT_FALSE(manifest.ensure_authorized("unknown"));
 
     EXPECT_TRUE(manifest.is_granted("pk", link, AuthorizationOperation::READ));
     EXPECT_TRUE(manifest.is_granted("pk", link_handle, AuthorizationOperation::READ));
@@ -161,7 +196,8 @@ TEST(AuthorizationManifestTest, FullAccessGrantsAllOperations) {
     auto db = db_with_inheritance_link(&link_handle);
 
     AuthorizationManifest manifest(db);
-    manifest.add_document(make_document("pk", true, {}));
+    db->permissions["pk"] = make_document("pk", true, {});
+    ASSERT_TRUE(manifest.ensure_authorized("pk"));
 
     auto link = db->get_link(link_handle);
     ASSERT_NE(link, nullptr);
@@ -210,7 +246,7 @@ TEST(AuthorizationPersistenceTest, ManifestReflectsPersistedPermissions) {
     persistence->grant("pk", schemas);
 
     AuthorizationManifest manifest(db);
-    add_persisted_documents(manifest, *persistence);
+    add_persisted_documents(manifest, *db, *persistence);
     auto link = db->get_link(link_handle);
     ASSERT_NE(link, nullptr);
 
@@ -259,9 +295,6 @@ TEST(MongodbAuthorizationPersistenceTest, RemoveLastSchemaDeletesDocument) {
     auto reply = collection.find_one(
         bsoncxx::builder::basic::make_document(bsoncxx::builder::basic::kvp("public_key", public_key)));
     EXPECT_FALSE(static_cast<bool>(reply));
-
-    AuthorizationManifest manifest(nullptr);
-    EXPECT_FALSE(manifest.is_registered(public_key));
 }
 
 TEST(MongodbAuthorizationPersistenceTest, RemoveDoesNotDeadlockWithMaxPoolSize1) {
