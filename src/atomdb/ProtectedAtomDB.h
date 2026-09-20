@@ -6,8 +6,8 @@
 #include <vector>
 
 #include "AtomDB.h"
-#include "AtomDBKeySensitive.h"
 #include "AuthorizationManifest.h"
+#include "KeySensitiveAtomDB.h"
 #include "Keychain.h"
 
 using namespace std;
@@ -25,7 +25,7 @@ namespace atomdb {
  * This class implements ProtectionMode::PROTECTED by filtering reads and
  * queries according to the permissions associated with the caller's Keychain.
  */
-class ProtectedAtomDB : public AtomDB, public AtomDBKeySensitive {
+class ProtectedAtomDB : public AtomDB, public KeySensitiveAtomDB {
    public:
     /**
      * @param backend Shared concrete AtomDB to wrap.
@@ -36,63 +36,63 @@ class ProtectedAtomDB : public AtomDB, public AtomDBKeySensitive {
     atomdb_api_types::ProtectionMode get_protection_mode() const override;
 
     shared_ptr<Atom> get_atom(const string& handle) override;
-    shared_ptr<Atom> get_atom(const string& handle, shared_ptr<Keychain> keychain);
+    shared_ptr<Atom> get_atom(const string& handle, shared_ptr<Keychain> keychain) override;
 
     shared_ptr<Node> get_node(const string& handle) override;
-    shared_ptr<Node> get_node(const string& handle, shared_ptr<Keychain> keychain);
+    shared_ptr<Node> get_node(const string& handle, shared_ptr<Keychain> keychain) override;
 
     shared_ptr<Link> get_link(const string& handle) override;
-    shared_ptr<Link> get_link(const string& handle, shared_ptr<Keychain> keychain);
+    shared_ptr<Link> get_link(const string& handle, shared_ptr<Keychain> keychain) override;
 
     vector<shared_ptr<Atom>> get_matching_atoms(bool is_toplevel, Atom& key) override;
     vector<shared_ptr<Atom>> get_matching_atoms(bool is_toplevel,
                                                 Atom& key,
-                                                shared_ptr<Keychain> keychain);
+                                                shared_ptr<Keychain> keychain) override;
 
     shared_ptr<atomdb_api_types::HandleSet> query_for_pattern(const LinkSchema& link_schema) override;
     shared_ptr<atomdb_api_types::HandleSet> query_for_pattern(const LinkSchema& link_schema,
-                                                              shared_ptr<Keychain> keychain);
+                                                              shared_ptr<Keychain> keychain) override;
 
     shared_ptr<atomdb_api_types::HandleList> query_for_targets(const string& handle) override;
     shared_ptr<atomdb_api_types::HandleList> query_for_targets(const string& handle,
-                                                               shared_ptr<Keychain> keychain);
+                                                               shared_ptr<Keychain> keychain) override;
 
     shared_ptr<atomdb_api_types::HandleSet> query_for_incoming_set(const string& handle) override;
-    shared_ptr<atomdb_api_types::HandleSet> query_for_incoming_set(const string& handle,
-                                                                   shared_ptr<Keychain> keychain);
+    shared_ptr<atomdb_api_types::HandleSet> query_for_incoming_set(
+        const string& handle, shared_ptr<Keychain> keychain) override;
 
     bool atom_exists(const string& handle) override;
-    bool atom_exists(const string& handle, shared_ptr<Keychain> keychain);
+    bool atom_exists(const string& handle, shared_ptr<Keychain> keychain) override;
 
     bool node_exists(const string& handle) override;
-    bool node_exists(const string& handle, shared_ptr<Keychain> keychain);
+    bool node_exists(const string& handle, shared_ptr<Keychain> keychain) override;
 
     bool link_exists(const string& handle) override;
-    bool link_exists(const string& handle, shared_ptr<Keychain> keychain);
+    bool link_exists(const string& handle, shared_ptr<Keychain> keychain) override;
 
     set<string> atoms_exist(const vector<string>& handles) override;
-    set<string> atoms_exist(const vector<string>& handles, shared_ptr<Keychain> keychain);
+    set<string> atoms_exist(const vector<string>& handles, shared_ptr<Keychain> keychain) override;
 
     set<string> nodes_exist(const vector<string>& handles) override;
-    set<string> nodes_exist(const vector<string>& handles, shared_ptr<Keychain> keychain);
+    set<string> nodes_exist(const vector<string>& handles, shared_ptr<Keychain> keychain) override;
 
     set<string> links_exist(const vector<string>& handles) override;
-    set<string> links_exist(const vector<string>& handles, shared_ptr<Keychain> keychain);
+    set<string> links_exist(const vector<string>& handles, shared_ptr<Keychain> keychain) override;
 
     string add_atom(const atoms::Atom* atom, const atoms::Merger* merger = NULL) override;
     string add_atom(const atoms::Atom* atom,
                     shared_ptr<Keychain> keychain,
-                    const atoms::Merger* merger = NULL);
+                    const atoms::Merger* merger = NULL) override;
 
     string add_node(const atoms::Node* node, const atoms::Merger* merger = NULL) override;
     string add_node(const atoms::Node* node,
                     shared_ptr<Keychain> keychain,
-                    const atoms::Merger* merger = NULL);
+                    const atoms::Merger* merger = NULL) override;
 
     string add_link(const atoms::Link* link, const atoms::Merger* merger = NULL) override;
     string add_link(const atoms::Link* link,
                     shared_ptr<Keychain> keychain,
-                    const atoms::Merger* merger = NULL);
+                    const atoms::Merger* merger = NULL) override;
 
     vector<string> add_atoms(const vector<atoms::Atom*>& atom_list,
                              bool is_transactional = false,
@@ -100,7 +100,7 @@ class ProtectedAtomDB : public AtomDB, public AtomDBKeySensitive {
     vector<string> add_atoms(const vector<atoms::Atom*>& atom_list,
                              shared_ptr<Keychain> keychain,
                              bool is_transactional = false,
-                             const atoms::Merger* merger = NULL);
+                             const atoms::Merger* merger = NULL) override;
 
     vector<string> add_nodes(const vector<atoms::Node*>& nodes,
                              bool is_transactional = false,
@@ -108,7 +108,7 @@ class ProtectedAtomDB : public AtomDB, public AtomDBKeySensitive {
     vector<string> add_nodes(const vector<atoms::Node*>& nodes,
                              shared_ptr<Keychain> keychain,
                              bool is_transactional = false,
-                             const atoms::Merger* merger = NULL);
+                             const atoms::Merger* merger = NULL) override;
 
     vector<string> add_links(const vector<atoms::Link*>& links,
                              bool is_transactional = false,
@@ -116,49 +116,49 @@ class ProtectedAtomDB : public AtomDB, public AtomDBKeySensitive {
     vector<string> add_links(const vector<atoms::Link*>& links,
                              shared_ptr<Keychain> keychain,
                              bool is_transactional = false,
-                             const atoms::Merger* merger = NULL);
+                             const atoms::Merger* merger = NULL) override;
 
     bool delete_atom(const string& handle, bool delete_link_targets = false) override;
     bool delete_atom(const string& handle,
                      shared_ptr<Keychain> keychain,
-                     bool delete_link_targets = false);
+                     bool delete_link_targets = false) override;
 
     bool delete_node(const string& handle, bool delete_link_targets = false) override;
     bool delete_node(const string& handle,
                      shared_ptr<Keychain> keychain,
-                     bool delete_link_targets = false);
+                     bool delete_link_targets = false) override;
 
     bool delete_link(const string& handle, bool delete_link_targets = false) override;
     bool delete_link(const string& handle,
                      shared_ptr<Keychain> keychain,
-                     bool delete_link_targets = false);
+                     bool delete_link_targets = false) override;
 
     uint delete_atoms(const vector<string>& handles, bool delete_link_targets = false) override;
     uint delete_atoms(const vector<string>& handles,
                       shared_ptr<Keychain> keychain,
-                      bool delete_link_targets = false);
+                      bool delete_link_targets = false) override;
 
     uint delete_nodes(const vector<string>& handles, bool delete_link_targets = false) override;
     uint delete_nodes(const vector<string>& handles,
                       shared_ptr<Keychain> keychain,
-                      bool delete_link_targets = false);
+                      bool delete_link_targets = false) override;
 
     uint delete_links(const vector<string>& handles, bool delete_link_targets = false) override;
     uint delete_links(const vector<string>& handles,
                       shared_ptr<Keychain> keychain,
-                      bool delete_link_targets = false);
+                      bool delete_link_targets = false) override;
 
     void re_index_patterns(bool flush_patterns = true) override;
-    void re_index_patterns(shared_ptr<Keychain> keychain, bool flush_patterns = true);
+    void re_index_patterns(shared_ptr<Keychain> keychain, bool flush_patterns = true) override;
 
     size_t node_count() const override;
-    size_t node_count(shared_ptr<Keychain> keychain) const;
+    size_t node_count(shared_ptr<Keychain> keychain) const override;
 
     size_t link_count() const override;
-    size_t link_count(shared_ptr<Keychain> keychain) const;
+    size_t link_count(shared_ptr<Keychain> keychain) const override;
 
     size_t atom_count() const override;
-    size_t atom_count(shared_ptr<Keychain> keychain) const;
+    size_t atom_count(shared_ptr<Keychain> keychain) const override;
 
    private:
     shared_ptr<AtomDB> backend;
@@ -167,13 +167,32 @@ class ProtectedAtomDB : public AtomDB, public AtomDBKeySensitive {
     [[noreturn]] static void raise_public_key_required(const string& method_name);
 
     /**
+     * @brief Returns the caller's public_key if the Keychain is valid and the
+     *        caller is in the authorization manifest.
+     *
+     * @return public_key, or empty if public_key is missing or the manifest
+     *         has no access permissions for it.
+     */
+    string authorize_caller(const shared_ptr<Keychain>& keychain);
+
+    /**
+     * @brief Same as authorize_caller, plus a permission check on handle.
+     *
+     * @return public_key, or empty if the caller is unauthorized or denied on
+     *         handle.
+     */
+    string authorize_reader(const shared_ptr<Keychain>& keychain, const string& handle);
+
+    /**
      * @brief Whether public_key may READ the atom identified by handle.
      *
      * This overload resolves the atom from the backend before checking
      * permissions. Prefer the Atom overload when the atom is already
      * available.
      */
-    bool can_read(const string& public_key, const string& handle);
+    inline bool can_read(const string& public_key, const string& handle) {
+        return this->manifest->is_granted(public_key, handle, AuthorizationOperation::READ);
+    }
 
     /**
      * @brief Whether public_key may READ atom.
@@ -182,17 +201,10 @@ class ProtectedAtomDB : public AtomDB, public AtomDBKeySensitive {
      *
      * @return false if atom is null or the associated profile denies READ.
      */
-    bool can_read(const string& public_key, const shared_ptr<Atom>& atom);
-
-    /**
-     * @brief Ensures that public_key is loaded into the authorization manifest.
-     *
-     * The access-permission document is loaded from the backend. If the key is
-     * not already cached, the document is registered in the manifest.
-     *
-     * @return true if the backend has a matching document for public_key.
-     */
-    bool ensure_registered(const string& public_key);
+    inline bool can_read(const string& public_key, const shared_ptr<Atom>& atom) {
+        if (atom == nullptr) return false;
+        return this->manifest->is_granted(public_key, atom, AuthorizationOperation::READ);
+    }
 
     /**
      * @brief Returns a filtered copy of original_handle_set containing only handles that public_key may
