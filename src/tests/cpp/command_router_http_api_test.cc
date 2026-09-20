@@ -1,3 +1,4 @@
+#include <mutex>
 #include <nlohmann/json.hpp>
 #include <thread>
 
@@ -109,6 +110,34 @@ class EchoQueryProcessor : public BusCommandProcessor {
             }
             query->query_processing_finished();
         }).detach();
+    }
+};
+
+/** Captures QueryEvolutionProxy parameters after HTTP/router forward. */
+class CaptureEvolutionProcessor : public BusCommandProcessor {
+   public:
+    mutex mutex_;
+    Properties last_parameters;
+    bool received = false;
+
+    CaptureEvolutionProcessor() : BusCommandProcessor({ServiceBus::QUERY_EVOLUTION}) {}
+
+    shared_ptr<BusCommandProxy> factory_empty_proxy() override {
+        return make_shared<QueryEvolutionProxy>();
+    }
+
+    void run_command(shared_ptr<BusCommandProxy> proxy) override {
+        auto evo = dynamic_pointer_cast<QueryEvolutionProxy>(proxy);
+        if (evo == nullptr) {
+            return;
+        }
+        evo->untokenize(evo->args);
+        {
+            lock_guard<mutex> lock(mutex_);
+            last_parameters = evo->parameters;
+            received = true;
+        }
+        evo->query_processing_finished();
     }
 };
 
@@ -459,6 +488,55 @@ TEST(BusCommandRouterProcessorTest, dispatch_http_command_preserves_caller_param
     EXPECT_EQ(query_caller->parameters.get<unsigned int>(BaseQueryProxy::MAX_ANSWERS), 10u);
 }
 
+TEST(BusCommandRouterProcessorTest, http_evolution_keeps_bus_parameter_set) {
+    initialize_test_service_bus_statics_once();
+
+    const string requestor_id = TEST_HOST + ":http-evo-params-test";
+    const unsigned int evo_port = PortPool::get_port();
+    const unsigned int router_port = PortPool::get_port();
+    const string evo_id = TEST_HOST + ":" + std::to_string(evo_port);
+    const string router_id = TEST_HOST + ":" + std::to_string(router_port);
+
+    auto evo_processor = make_shared<CaptureEvolutionProcessor>();
+    auto evo_bus = make_shared<ServiceBus>(evo_id);
+    evo_bus->register_processor(evo_processor);
+    Utils::sleep(300);
+
+    auto router_bus = make_shared<ServiceBus>(router_id, evo_id);
+    auto router_processor = make_shared<BusCommandRouterProcessor>(router_bus);
+    router_bus->register_processor(router_processor);
+    Utils::sleep(500);
+
+    string error;
+    const json params = {{"evolution",
+                          {{"query", {{"tokens", json::array({"(Similarity \"human\" %C)"})}}},
+                           {"fitness_function_tag", FitnessFunctionRegistry::REMOTE_FUNCTION}}},
+                         {"use_metta_as_query_tokens", true},
+                         {"context", "test-ctx"},
+                         {"population_size", 50},
+                         {"positive_importance_flag", true},
+                         {"use_cache", false},
+                         {"initial_rent_rate", 0.1}};
+
+    auto caller = HttpCommandProxyFactory::create(HttpCommandProxyFactory::EVOLUTION, params, error);
+    ASSERT_NE(caller, nullptr) << error;
+    router_processor->dispatch_http_command(caller, requestor_id);
+    Utils::sleep(1500);
+
+    lock_guard<mutex> lock(evo_processor->mutex_);
+    ASSERT_TRUE(evo_processor->received);
+    EXPECT_EQ(evo_processor->last_parameters.get<unsigned int>(QueryEvolutionProxy::POPULATION_SIZE),
+              50u);
+    EXPECT_TRUE(
+        evo_processor->last_parameters.get<bool>(PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG));
+    EXPECT_EQ(evo_processor->last_parameters.find("use_cache"), evo_processor->last_parameters.end());
+    EXPECT_EQ(evo_processor->last_parameters.find("initial_rent_rate"),
+              evo_processor->last_parameters.end());
+    EXPECT_EQ(evo_processor->last_parameters.find("enforce_cache_recreation"),
+              evo_processor->last_parameters.end());
+    EXPECT_EQ(evo_processor->last_parameters.find("context"), evo_processor->last_parameters.end());
+}
+
 TEST(HttpCommandProxyFactoryTest, create_query_sets_params_onto_proxy_defaults) {
     string error;
     const json params = {{"query", {{"tokens", json::array({"(Similarity \"human\" %C)"})}}},
@@ -571,7 +649,7 @@ TEST(HttpCommandProxyFactoryTest, create_evolution_requires_query_and_fitness_ta
 
 TEST(HttpCommandProxyFactoryTest, create_evolution_rejects_fitness_tag_with_delimiters) {
     const json query = {{"tokens", json::array({"(Similarity %A %B)"})}};
-    for (const string& bad_tag : {"count letter", "count\tletter", "(count_letter)", "a\"b"}) {
+    for (const string bad_tag : {"count letter", "count\tletter", "(count_letter)", "a\"b"}) {
         string error;
         auto proxy = HttpCommandProxyFactory::create(
             HttpCommandProxyFactory::EVOLUTION,

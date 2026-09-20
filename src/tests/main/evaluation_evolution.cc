@@ -85,6 +85,7 @@ static string TARGET_PREDICATE_HANDLE = "undefined";
 static bool USE_MORK = false;
 static bool SETUP_ONLY = false;
 static bool USE_HTTP = false;
+static bool USE_REMOTE_FITNESS = false;
 static string HTTP_ENDPOINT = "";
 static double LINK_CREATION_STRENGTH_THRESHOLD = (SETUP_ONLY ? 0.0 : 0.1);
 static unsigned int LINK_CREATION_COUNT = 10;
@@ -906,19 +907,22 @@ static void query_evolution_http(
         mapping_pair(qa_path2, qa_nothing),
     }));
 
+    const string fitness_tag =
+        USE_REMOTE_FITNESS ? FitnessFunctionRegistry::REMOTE_FUNCTION : string(FITNESS_FUNCTION);
+
     json body = {
         {"command", "evolution"},
         {"params",
          {{"evolution",
            {{"query", metta_tokens_object(query_to_evolve)},
-            {"fitness_function_tag", FitnessFunctionRegistry::REMOTE_FUNCTION},
+            {"fitness_function_tag", fitness_tag},
             {"correlation_queries", correlation_queries},
             {"correlation_replacements", correlation_replacements},
             {"correlation_mappings", correlation_mappings}}},
           {"context", context},
           {"unique_assignment_flag", false},
           {"populate_metta_mapping", true},
-          {"use_metta_as_query_tokens", true},
+          {"use_metta_as_query_tokens", USE_MORK},
           {"allow_incomplete_chain_path", true},
           {"max_bundle_size", 1000},
           {"attention_focus_strictness", ATTENTION_FOCUS_STRICTNESS},
@@ -950,6 +954,7 @@ static void query_evolution_http(
         RAISE_ERROR("HTTP evolution WebSocket connect failed for " + execution_id);
     }
     ws.set_read_timeout(600, 0);
+    LOG_INFO("HTTP evolution WebSocket connected (fitness_function_tag=" + fitness_tag + ")");
 
     auto fitness_fn = FitnessFunctionRegistry::function(FITNESS_FUNCTION);
     unsigned int count_answers = 0;
@@ -1564,7 +1569,7 @@ static void run(const string& context_tag) {
         AttentionBrokerClient::stimulate({{TARGET_PREDICATE_HANDLE, 1}, {TARGET_CONCEPT_HANDLE, 1}},
                                          context);
         LOG_INFO("----- Evolving query");
-        const bool use_metta_query = USE_MORK || USE_HTTP;
+        const bool use_metta_query = USE_MORK;
         query_evolution(
             (use_metta_query ? metta_query_to_evolve : query_to_evolve),
             (use_metta_query ? correlation_metta_query_template : correlation_query_template),
@@ -1601,6 +1606,10 @@ int main(int argc, char* argv[]) {
             USE_HTTP = (arg.substr(string("--use-http=").size()) == "true");
         } else if (arg == "--use-http") {
             USE_HTTP = true;
+        } else if (arg.rfind("--remote-fitness=", 0) == 0) {
+            USE_REMOTE_FITNESS = (arg.substr(string("--remote-fitness=").size()) == "true");
+        } else if (arg == "--remote-fitness") {
+            USE_REMOTE_FITNESS = true;
         } else if (arg.rfind("--http-endpoint=", 0) == 0) {
             HTTP_ENDPOINT = arg.substr(string("--http-endpoint=").size());
         } else if (arg.rfind("--", 0) == 0) {
@@ -1618,7 +1627,7 @@ int main(int argc, char* argv[]) {
                 " <context_tag> <target_predicate> <target_concept>"
                 " <RENT_RATE> <SPREADING_RATE_LOWERBOUND> <SPREADING_RATE_UPPERBOUND>"
                 " <ELITISM_RATE> <SELECTION_RATE> <POPULATION_SIZE> <MAX_GENERATIONS> <NUM_ITERATIONS>"
-                " [--use-http=true] [--http-endpoint=host:port]" << endl;
+                " [--use-http=true] [--remote-fitness=true] [--http-endpoint=host:port]" << endl;
         cerr << endl;
         cerr << "<target_predicate> <target_concept> are MeTTa expressions" << endl;
         cerr << endl;
@@ -1683,8 +1692,12 @@ int main(int argc, char* argv[]) {
     insert_type_symbols();
 
     LOG_INFO("USE_HTTP: " + string(USE_HTTP ? "true" : "false"));
+    LOG_INFO("USE_REMOTE_FITNESS: " + string(USE_REMOTE_FITNESS ? "true" : "false"));
     if (USE_HTTP) {
         LOG_INFO("HTTP_ENDPOINT: " + HTTP_ENDPOINT);
+        LOG_INFO("HTTP fitness_function_tag: " + string(USE_REMOTE_FITNESS
+                                                            ? FitnessFunctionRegistry::REMOTE_FUNCTION
+                                                            : FITNESS_FUNCTION));
     }
     LOG_INFO("ELITISM_RATE: " + to_string(ELITISM_RATE));
     LOG_INFO("RENT_RATE: " + to_string(RENT_RATE));

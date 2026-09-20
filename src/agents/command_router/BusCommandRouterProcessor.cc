@@ -10,6 +10,7 @@
 #include "PortPool.h"
 #include "QueryEvolutionProxy.h"
 #include "ServiceBusSingleton.h"
+#include "SystemParametersSingleton.h"
 #include "Utils.h"
 
 #define LOG_LEVEL INFO_LEVEL
@@ -19,11 +20,26 @@ using namespace command_router;
 using namespace query_engine;
 using namespace evolution;
 using namespace service_bus;
+using namespace commons;
 
 namespace {
 
 const string CONTEXT_KEY = "context";
 atomic<unsigned int> HTTP_REQUEST_SERIAL{1};
+
+// Copy HTTP/router overrides onto a QueryEvolutionProxy the same way a bus
+// client does: keep evolution-agent defaults, apply query+evolution keys, and
+// drop context-agent keys (use_cache, initial_rent_rate, ...). Replacing the
+// whole map leaked those keys into sampling queries and changed attention.
+void apply_direct_evolution_parameters(Properties& evo_parameters, const Properties& router_parameters) {
+    Properties allowed = SystemParametersSingleton::get_instance()->get_evolution_agent_params() +
+                         SystemParametersSingleton::get_instance()->get_query_agent_params();
+    for (const auto& entry : router_parameters) {
+        if (allowed.find(entry.first) != allowed.end()) {
+            evo_parameters[entry.first] = entry.second;
+        }
+    }
+}
 
 }  // namespace
 
@@ -293,6 +309,6 @@ void BusCommandRouterProcessor::handle_evolution(shared_ptr<BusCommandRouterProx
                                                       correlation_mappings,
                                                       context,
                                                       fitness_tag);
-    evo_proxy->parameters = proxy->parameters;
+    apply_direct_evolution_parameters(evo_proxy->parameters, proxy->parameters);
     forward_to_service(proxy, evo_proxy);
 }
