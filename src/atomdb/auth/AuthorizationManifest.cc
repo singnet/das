@@ -15,7 +15,11 @@ using namespace atomdb;
 // --------------------------------------------------------------------------------
 // Public methods
 
-AuthorizationManifest::AuthorizationManifest(shared_ptr<AtomDB> atomdb) : atomdb(atomdb) {}
+AuthorizationManifest::AuthorizationManifest(shared_ptr<AtomDB> atomdb) : atomdb(atomdb) {
+    if (this->atomdb == nullptr) {
+        RAISE_ERROR("AuthorizationManifest requires a non-null AtomDB");
+    }
+}
 
 bool AuthorizationManifest::is_granted(const string& public_key,
                                        shared_ptr<Atom> atom,
@@ -40,16 +44,26 @@ bool AuthorizationManifest::is_granted(const string& public_key,
     return it->second->is_granted(atom, operation);
 }
 
-void AuthorizationManifest::add_document(
-    const shared_ptr<atomdb_api_types::AccessPermissionDocument>& document) {
-    if (document == nullptr) {
-        RAISE_ERROR("Authorization manifest document cannot be null");
+bool AuthorizationManifest::ensure_authorized(const string& public_key) {
+    lock_guard<mutex> lock(this->profiles_mutex);
+
+    if (this->profiles.find(public_key) != this->profiles.end()) {
+        return true;
     }
 
-    lock_guard<mutex> lock(this->profiles_mutex);
-    if (this->profiles.find(document->get_access_key()) != this->profiles.end()) {
-        return;
+    auto access_document = this->atomdb->get_access_permissions(public_key);
+
+    if (access_document == nullptr) {
+        return false;
     }
-    this->profiles.emplace(document->get_access_key(),
-                           AuthorizationProfile::from_document(this->atomdb, document));
+
+    string access_key = access_document->get_access_key();
+    auto profile = AuthorizationProfile::from_document(this->atomdb, access_document);
+    bool inserted = this->profiles.emplace(access_key, profile).second;
+
+    if (!inserted) {
+        RAISE_ERROR(string("Duplicate access_key in authorization manifest: ") + access_key);
+    }
+
+    return true;
 }
