@@ -23,9 +23,9 @@ namespace atomdb {
 /**
  * @brief AtomDB operations that take a Keychain.
  */
-class AtomDBKeySensitive {
+class KeySensitiveAtomDB {
    public:
-    virtual ~AtomDBKeySensitive() = default;
+    virtual ~KeySensitiveAtomDB() = default;
 
     virtual shared_ptr<Atom> get_atom(const string& handle, shared_ptr<Keychain> keychain) = 0;
     virtual shared_ptr<Node> get_node(const string& handle, shared_ptr<Keychain> keychain) = 0;

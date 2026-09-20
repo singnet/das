@@ -59,7 +59,7 @@ cc_library(
         ":authorization_types",
         ":keychain",
         "//atomdb:atomdb_api_types",
-        "//atomdb:atomdb_key_sensitive",
+        "//atomdb:key_sensitive_atomdb",
         "//commons:commons_lib",
         "//commons/atoms:atoms_lib",
     ],
