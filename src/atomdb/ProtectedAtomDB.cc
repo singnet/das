@@ -29,12 +29,12 @@ ProtectedAtomDB::ProtectedAtomDB(shared_ptr<AtomDB> backend) : backend(backend) 
 // Public methods
 
 shared_ptr<Atom> ProtectedAtomDB::get_atom(const string& handle, shared_ptr<Keychain> keychain) {
-    string public_key = this->authorize_caller(keychain);
-    if (public_key.empty()) {
+    auto public_key = this->identify_caller(keychain);
+    if (!public_key) {
         return nullptr;
     }
     auto atom = this->backend->get_atom(handle);
-    if (!this->can_read(public_key, atom)) {
+    if (!this->can_read(*public_key, atom)) {
         return nullptr;
     }
     return atom;
@@ -51,25 +51,25 @@ shared_ptr<Link> ProtectedAtomDB::get_link(const string& handle, shared_ptr<Keyc
 vector<shared_ptr<Atom>> ProtectedAtomDB::get_matching_atoms(bool is_toplevel,
                                                              Atom& key,
                                                              shared_ptr<Keychain> keychain) {
-    string public_key = this->authorize_caller(keychain);
-    if (public_key.empty()) {
+    auto public_key = this->identify_caller(keychain);
+    if (!public_key) {
         return {};
     }
-    return this->filter_atoms(this->backend->get_matching_atoms(is_toplevel, key), public_key);
+    return this->filter_atoms(this->backend->get_matching_atoms(is_toplevel, key), *public_key);
 }
 
 shared_ptr<atomdb_api_types::HandleSet> ProtectedAtomDB::query_for_pattern(
     const LinkSchema& link_schema, shared_ptr<Keychain> keychain) {
-    string public_key = this->authorize_caller(keychain);
-    if (public_key.empty()) {
+    auto public_key = this->identify_caller(keychain);
+    if (!public_key) {
         return make_shared<atomdb_api_types::HandleSetInMemory>();
     }
-    return this->filter_handle_set(this->backend->query_for_pattern(link_schema), public_key);
+    return this->filter_handle_set(this->backend->query_for_pattern(link_schema), *public_key);
 }
 
 shared_ptr<atomdb_api_types::HandleList> ProtectedAtomDB::query_for_targets(
     const string& handle, shared_ptr<Keychain> keychain) {
-    if (!this->can_read(this->authorize_caller(keychain), handle)) {
+    if (!this->authorize_read(keychain, handle)) {
         return make_shared<atomdb_api_types::HandleListInMemory>();
     }
     return this->backend->query_for_targets(handle);
@@ -77,56 +77,56 @@ shared_ptr<atomdb_api_types::HandleList> ProtectedAtomDB::query_for_targets(
 
 shared_ptr<atomdb_api_types::HandleSet> ProtectedAtomDB::query_for_incoming_set(
     const string& handle, shared_ptr<Keychain> keychain) {
-    string public_key = this->authorize_caller(keychain);
-    if (!this->can_read(public_key, handle)) {
+    auto public_key = this->authorize_read(keychain, handle);
+    if (!public_key) {
         return make_shared<atomdb_api_types::HandleSetInMemory>();
     }
-    return this->filter_handle_set(this->backend->query_for_incoming_set(handle), public_key);
+    return this->filter_handle_set(this->backend->query_for_incoming_set(handle), *public_key);
 }
 
 bool ProtectedAtomDB::atom_exists(const string& handle, shared_ptr<Keychain> keychain) {
-    if (!this->can_read(this->authorize_caller(keychain), handle)) {
+    if (!this->authorize_read(keychain, handle)) {
         return false;
     }
     return this->backend->atom_exists(handle);
 }
 
 bool ProtectedAtomDB::node_exists(const string& handle, shared_ptr<Keychain> keychain) {
-    if (!this->can_read(this->authorize_caller(keychain), handle)) {
+    if (!this->authorize_read(keychain, handle)) {
         return false;
     }
     return this->backend->node_exists(handle);
 }
 
 bool ProtectedAtomDB::link_exists(const string& handle, shared_ptr<Keychain> keychain) {
-    if (!this->can_read(this->authorize_caller(keychain), handle)) {
+    if (!this->authorize_read(keychain, handle)) {
         return false;
     }
     return this->backend->link_exists(handle);
 }
 
 set<string> ProtectedAtomDB::atoms_exist(const vector<string>& handles, shared_ptr<Keychain> keychain) {
-    string public_key = this->authorize_caller(keychain);
-    if (public_key.empty()) {
+    auto public_key = this->identify_caller(keychain);
+    if (!public_key) {
         return {};
     }
-    return this->filter_handles(this->backend->atoms_exist(handles), public_key);
+    return this->filter_handles(this->backend->atoms_exist(handles), *public_key);
 }
 
 set<string> ProtectedAtomDB::nodes_exist(const vector<string>& handles, shared_ptr<Keychain> keychain) {
-    string public_key = this->authorize_caller(keychain);
-    if (public_key.empty()) {
+    auto public_key = this->identify_caller(keychain);
+    if (!public_key) {
         return {};
     }
-    return this->filter_handles(this->backend->nodes_exist(handles), public_key);
+    return this->filter_handles(this->backend->nodes_exist(handles), *public_key);
 }
 
 set<string> ProtectedAtomDB::links_exist(const vector<string>& handles, shared_ptr<Keychain> keychain) {
-    string public_key = this->authorize_caller(keychain);
-    if (public_key.empty()) {
+    auto public_key = this->identify_caller(keychain);
+    if (!public_key) {
         return {};
     }
-    return this->filter_handles(this->backend->links_exist(handles), public_key);
+    return this->filter_handles(this->backend->links_exist(handles), *public_key);
 }
 
 string ProtectedAtomDB::add_atom(const atoms::Atom* atom,
@@ -349,9 +349,16 @@ void ProtectedAtomDB::raise_public_key_required(const string& method_name) {
                 "a Keychain.");
 }
 
-string ProtectedAtomDB::authorize_caller(const shared_ptr<Keychain>& keychain) {
+optional<string> ProtectedAtomDB::identify_caller(const shared_ptr<Keychain>& keychain) {
     string public_key = keychain ? keychain->get_public_key(this->uid_) : "";
-    if (!this->manifest->ensure_profile_loaded(public_key)) return "";
+    if (!this->manifest->ensure_profile_loaded(public_key)) return nullopt;
+    return public_key;
+}
+
+optional<string> ProtectedAtomDB::authorize_read(const shared_ptr<Keychain>& keychain,
+                                                 const string& handle) {
+    auto public_key = this->identify_caller(keychain);
+    if (!public_key || !this->can_read(*public_key, handle)) return nullopt;
     return public_key;
 }
 

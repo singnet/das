@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <optional>
 #include <set>
 #include <string>
 #include <vector>
@@ -170,9 +171,25 @@ class ProtectedAtomDB : public AtomDB, public KeySensitiveAtomDB {
      * @brief Returns the caller's public_key if the Keychain has a key for this
      *        AtomDB and the corresponding profile can be loaded.
      *
-     * @return public_key, or empty if the caller is missing or has no profile.
+     * Used by callers that don't have a single handle to check up front
+     * (e.g. pattern queries, batch existence checks) and instead filter
+     * a result set after fetching it from the backend.
+     *
+     * @return public_key, or nullopt if the caller is missing or has no profile.
      */
-    string authorize_caller(const shared_ptr<Keychain>& keychain);
+    optional<string> identify_caller(const shared_ptr<Keychain>& keychain);
+
+    /**
+     * @brief Like identify_caller(), but also requires READ permission on handle.
+     *
+     * Lets callers reject the request - and skip the backend call entirely -
+     * before ever touching the backend, instead of fetching data that would
+     * just be discarded afterwards.
+     *
+     * @return public_key, or nullopt if the caller is missing, has no profile,
+     *         or is not granted READ on handle.
+     */
+    optional<string> authorize_read(const shared_ptr<Keychain>& keychain, const string& handle);
 
     /**
      * @brief Whether public_key may READ the atom identified by handle.

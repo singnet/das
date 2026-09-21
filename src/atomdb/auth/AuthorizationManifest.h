@@ -37,13 +37,11 @@ class AuthorizationManifest {
     bool is_granted(const string& public_key, const string& handle, AuthorizationOperation operation);
 
     /**
-     * @brief Ensures public_key is authorized, loading its profile if needed.
+     * @brief Loads public_key's profile into memory if it is not already cached.
      *
-     * @param public_key The key to authorize.
-     * @return true if public_key is authorized; false if no access permissions
-     *         exist for it.
+     * @return true if a matching access-permission document exists (cached or newly loaded).
      */
-    bool ensure_authorized(const string& public_key);
+    bool ensure_profile_loaded(const string& public_key);
 
    private:
     shared_ptr<AtomDB> atomdb;

@@ -34,36 +34,42 @@ bool AuthorizationManifest::is_granted(const string& public_key,
 bool AuthorizationManifest::is_granted(const string& public_key,
                                        const string& handle,
                                        AuthorizationOperation operation) {
-    lock_guard<mutex> lock(this->profiles_mutex);
-    auto it = this->profiles.find(public_key);
-    if (it == this->profiles.end() || it->second == nullptr) return false;
+    shared_ptr<AuthorizationProfile> profile;
+    {
+        lock_guard<mutex> lock(this->profiles_mutex);
+        auto it = this->profiles.find(public_key);
+        if (it == this->profiles.end() || it->second == nullptr) return false;
+        profile = it->second;
+    }
 
     auto atom = this->atomdb->get_atom(handle);
     if (atom == nullptr) return false;
 
-    return it->second->is_granted(atom, operation);
+    return profile->is_granted(atom, operation);
 }
 
-bool AuthorizationManifest::ensure_authorized(const string& public_key) {
-    lock_guard<mutex> lock(this->profiles_mutex);
+bool AuthorizationManifest::ensure_profile_loaded(const string& public_key) {
+    if (public_key.empty()) return false;
 
-    if (this->profiles.find(public_key) != this->profiles.end()) {
-        return true;
+    {
+        lock_guard<mutex> lock(this->profiles_mutex);
+        if (this->profiles.find(public_key) != this->profiles.end()) {
+            return true;
+        }
     }
 
     auto access_document = this->atomdb->get_access_permissions(public_key);
-
     if (access_document == nullptr) {
         return false;
     }
 
     string access_key = access_document->get_access_key();
     auto profile = AuthorizationProfile::from_document(this->atomdb, access_document);
-    bool inserted = this->profiles.emplace(access_key, profile).second;
 
+    lock_guard<mutex> lock(this->profiles_mutex);
+    bool inserted = this->profiles.emplace(access_key, profile).second;
     if (!inserted) {
         RAISE_ERROR(string("Duplicate access_key in authorization manifest: ") + access_key);
     }
-
     return true;
 }
