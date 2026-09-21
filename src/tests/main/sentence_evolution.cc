@@ -83,7 +83,7 @@ static pair<string, int> split_host_port(const string& endpoint, int default_por
 }
 
 static json metta_tokens_object(const string& expression) {
-    return {{"tokens", json::array({expression})}};
+    return {{"syntax", "metta"}, {"tokens", json::array({expression})}};
 }
 
 static string sentence_name_from_answer(shared_ptr<QueryAnswer> answer) {

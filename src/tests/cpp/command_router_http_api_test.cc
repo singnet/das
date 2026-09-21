@@ -508,15 +508,16 @@ TEST(BusCommandRouterProcessorTest, http_evolution_keeps_bus_parameter_set) {
     Utils::sleep(500);
 
     string error;
-    const json params = {{"evolution",
-                          {{"query", {{"tokens", json::array({"(Similarity \"human\" %C)"})}}},
-                           {"fitness_function_tag", FitnessFunctionRegistry::REMOTE_FUNCTION}}},
-                         {"use_metta_as_query_tokens", true},
-                         {"context", "test-ctx"},
-                         {"population_size", 50},
-                         {"positive_importance_flag", true},
-                         {"use_cache", false},
-                         {"initial_rent_rate", 0.1}};
+    const json params = {
+        {"evolution",
+         {{"query", {{"syntax", "metta"}, {"tokens", json::array({"(Similarity \"human\" %C)"})}}},
+          {"fitness_function_tag", FitnessFunctionRegistry::REMOTE_FUNCTION}}},
+        {"use_metta_as_query_tokens", true},
+        {"context", "test-ctx"},
+        {"population_size", 50},
+        {"positive_importance_flag", true},
+        {"use_cache", false},
+        {"initial_rent_rate", 0.1}};
 
     auto caller = HttpCommandProxyFactory::create(HttpCommandProxyFactory::EVOLUTION, params, error);
     ASSERT_NE(caller, nullptr) << error;
@@ -567,10 +568,11 @@ TEST(HttpCommandProxyFactoryTest, create_evolution_preserves_percent_in_query_an
     string error;
     const json params = {
         {"evolution",
-         {{"query", {{"tokens", json::array({"(Similarity \"50%\" %C)"})}}},
+         {{"query", {{"syntax", "metta"}, {"tokens", json::array({"(Similarity \"50%\" %C)"})}}},
           {"fitness_function_tag", "count_letter"},
           {"correlation_queries",
-           json::array({json({{"tokens", json::array({"(Evaluation \"100%\" %V1)"})}})})},
+           json::array(
+               {json({{"syntax", "metta"}, {"tokens", json::array({"(Evaluation \"100%\" %V1)"})}})})},
           {"correlation_replacements", json::array({json::array({json::array({"V1", "50%"})})})}}},
         {"use_metta_as_query_tokens", true}};
 
@@ -603,10 +605,11 @@ TEST(HttpCommandProxyFactoryTest, create_evolution_builds_metta_arg_and_params) 
     string error;
     const json params = {
         {"evolution",
-         {{"query", {{"tokens", json::array({"(Similarity \"human\" %C)"})}}},
+         {{"query", {{"syntax", "metta"}, {"tokens", json::array({"(Similarity \"human\" %C)"})}}},
           {"fitness_function_tag", "remote_fitness_function"},
           {"correlation_queries",
-           json::array({json({{"tokens", json::array({"(Evaluation %V1 %Concept)"})}})})},
+           json::array(
+               {json({{"syntax", "metta"}, {"tokens", json::array({"(Evaluation %V1 %Concept)"})}})})},
           {"correlation_replacements", json::array({json::array({json::array({"V1", "Predicate"})})})},
           {"correlation_mappings",
            json::array(
@@ -641,14 +644,15 @@ TEST(HttpCommandProxyFactoryTest, create_evolution_requires_query_and_fitness_ta
 
     auto missing_ff = HttpCommandProxyFactory::create(
         HttpCommandProxyFactory::EVOLUTION,
-        {{"evolution", {{"query", {{"tokens", json::array({"(Similarity %A %B)"})}}}}}},
+        {{"evolution",
+          {{"query", {{"syntax", "metta"}, {"tokens", json::array({"(Similarity %A %B)"})}}}}}},
         error);
     EXPECT_EQ(missing_ff, nullptr);
     EXPECT_NE(error.find("fitness_function_tag"), string::npos);
 }
 
 TEST(HttpCommandProxyFactoryTest, create_evolution_rejects_fitness_tag_with_delimiters) {
-    const json query = {{"tokens", json::array({"(Similarity %A %B)"})}};
+    const json query = {{"syntax", "metta"}, {"tokens", json::array({"(Similarity %A %B)"})}};
     for (const string bad_tag : {"count letter", "count\tletter", "(count_letter)", "a\"b"}) {
         string error;
         auto proxy = HttpCommandProxyFactory::create(
@@ -664,7 +668,8 @@ TEST(HttpCommandProxyFactoryTest, create_evolution_quotes_link_template_tokens) 
     string error;
     const json params = {{"evolution",
                           {{"query",
-                            {{"tokens",
+                            {{"syntax", "link_template"},
+                             {"tokens",
                               json::array({"LINK_TEMPLATE",
                                            "Expression",
                                            "3",
@@ -677,7 +682,8 @@ TEST(HttpCommandProxyFactoryTest, create_evolution_quotes_link_template_tokens) 
                                            "v2"})}}},
                            {"fitness_function_tag", "count_letter"},
                            {"correlation_queries",
-                            json::array({json({{"tokens",
+                            json::array({json({{"syntax", "link_template"},
+                                               {"tokens",
                                                 json::array({"LINK_TEMPLATE",
                                                              "Expression",
                                                              "3",
@@ -700,6 +706,32 @@ TEST(HttpCommandProxyFactoryTest, create_evolution_quotes_link_template_tokens) 
     EXPECT_NE(arg.find("\"LINK_TEMPLATE Expression 3 NODE Symbol Inheritance VARIABLE v1 VARIABLE v2\""),
               string::npos);
     EXPECT_FALSE(proxy->parameters.get<bool>(BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS));
+}
+
+TEST(HttpCommandProxyFactoryTest, create_evolution_requires_syntax) {
+    string error;
+    auto proxy =
+        HttpCommandProxyFactory::create(HttpCommandProxyFactory::EVOLUTION,
+                                        {{"evolution",
+                                          {{"query", {{"tokens", json::array({"(Similarity %A %B)"})}}},
+                                           {"fitness_function_tag", "count_letter"}}}},
+                                        error);
+    EXPECT_EQ(proxy, nullptr);
+    EXPECT_NE(error.find(".syntax"), string::npos);
+}
+
+TEST(HttpCommandProxyFactoryTest, create_evolution_rejects_syntax_flag_mismatch) {
+    string error;
+    auto proxy = HttpCommandProxyFactory::create(
+        HttpCommandProxyFactory::EVOLUTION,
+        {{"evolution",
+          {{"query",
+            {{"syntax", "link_template"}, {"tokens", json::array({"LINK_TEMPLATE", "Expression"})}}},
+           {"fitness_function_tag", "count_letter"}}},
+         {"use_metta_as_query_tokens", true}},
+        error);
+    EXPECT_EQ(proxy, nullptr);
+    EXPECT_NE(error.find("use_metta_as_query_tokens"), string::npos);
 }
 
 // -----------------------------------------------------------------------------
@@ -1239,16 +1271,17 @@ TEST_F(CommandRouterHttpAPISingletonTest, init_after_provide_throws) {
 }
 
 TEST_F(CommandRouterHttpAPIEvolutionTest, evolution_remote_fitness_round_trip) {
-    const json body = {{"command", "evolution"},
-                       {"params",
-                        {{"evolution",
-                          {{"query", {{"tokens", json::array({"(Similarity \"human\" %C)"})}}},
-                           {"fitness_function_tag", FitnessFunctionRegistry::REMOTE_FUNCTION}}},
-                         {"use_metta_as_query_tokens", true},
-                         {"populate_metta_mapping", false},
-                         {"population_size", 1},
-                         {"max_generations", 1},
-                         {"max_bundle_size", 10}}}};
+    const json body = {
+        {"command", "evolution"},
+        {"params",
+         {{"evolution",
+           {{"query", {{"syntax", "metta"}, {"tokens", json::array({"(Similarity \"human\" %C)"})}}},
+            {"fitness_function_tag", FitnessFunctionRegistry::REMOTE_FUNCTION}}},
+          {"use_metta_as_query_tokens", true},
+          {"populate_metta_mapping", false},
+          {"population_size", 1},
+          {"max_generations", 1},
+          {"max_bundle_size", 10}}}};
 
     auto create = client().Post("/command-router/executions", body.dump(), "application/json");
     ASSERT_TRUE(create);

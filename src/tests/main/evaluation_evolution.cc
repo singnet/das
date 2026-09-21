@@ -859,7 +859,7 @@ static json metta_tokens_object(const vector<string>& tokens) {
     for (const string& token : tokens) {
         token_array.push_back(token);
     }
-    return {{"tokens", token_array}};
+    return {{"syntax", USE_MORK ? "metta" : "link_template"}, {"tokens", token_array}};
 }
 
 static void query_evolution_http(

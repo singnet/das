@@ -24,6 +24,30 @@ string quote_metta_token(const string& value) {
     return "\"" + escaped + "\"";
 }
 
+// Evolution query objects carry an explicit syntax. "metta" is one S-expression;
+// "link_template" is a space-separated LINK_TEMPLATE token stream.
+bool read_query_syntax(const json& object, const string& path, bool& use_metta, string& error_message) {
+    if (!object.is_object()) {
+        error_message = path + " must be an object";
+        return false;
+    }
+    if (!object.contains("syntax") || !object["syntax"].is_string()) {
+        error_message = path + ".syntax must be \"metta\" or \"link_template\"";
+        return false;
+    }
+    const string& syntax = object["syntax"].get_ref<const string&>();
+    if (syntax == "metta") {
+        use_metta = true;
+        return true;
+    }
+    if (syntax == "link_template") {
+        use_metta = false;
+        return true;
+    }
+    error_message = path + ".syntax must be \"metta\" or \"link_template\"";
+    return false;
+}
+
 bool parse_query_tokens_object(
     const json& object, const string& path, bool use_metta, string& expression, string& error_message) {
     if (!object.is_object()) {
@@ -102,7 +126,7 @@ bool parse_pair_groups(const json& groups_json, const string& path, string& out,
 }
 
 bool parse_evolution_arg(const json& params,
-                         bool use_metta,
+                         bool& use_metta,
                          string& evolution_arg,
                          string& error_message) {
     if (!params.contains("evolution") || !params["evolution"].is_object()) {
@@ -115,6 +139,9 @@ bool parse_evolution_arg(const json& params,
     string query_expr;
     if (!evolution.contains("query")) {
         error_message = "params.evolution.query must be an object";
+        return false;
+    }
+    if (!read_query_syntax(evolution["query"], "params.evolution.query", use_metta, error_message)) {
         return false;
     }
     if (!parse_query_tokens_object(
@@ -148,13 +175,17 @@ bool parse_evolution_arg(const json& params,
         arg += " (cq (";
         const auto& cq = evolution["correlation_queries"];
         for (size_t i = 0; i < cq.size(); ++i) {
+            const string cq_path = "params.evolution.correlation_queries[" + std::to_string(i) + "]";
+            bool cq_metta = false;
+            if (!read_query_syntax(cq[i], cq_path, cq_metta, error_message)) {
+                return false;
+            }
+            if (cq_metta != use_metta) {
+                error_message = cq_path + ".syntax must match params.evolution.query.syntax";
+                return false;
+            }
             string cq_expr;
-            if (!parse_query_tokens_object(
-                    cq[i],
-                    "params.evolution.correlation_queries[" + std::to_string(i) + "]",
-                    use_metta,
-                    cq_expr,
-                    error_message)) {
+            if (!parse_query_tokens_object(cq[i], cq_path, use_metta, cq_expr, error_message)) {
                 return false;
             }
             arg += use_metta ? cq_expr : quote_metta_token(cq_expr);
@@ -214,9 +245,15 @@ shared_ptr<BusCommandRouterProxy> HttpCommandProxyFactory::create(const string& 
             return nullptr;
         }
     } else if (command == EVOLUTION) {
-        if (!parse_evolution_arg(params, use_metta, arg, error_message)) {
+        bool evolution_metta = false;
+        if (!parse_evolution_arg(params, evolution_metta, arg, error_message)) {
             return nullptr;
         }
+        if (params.contains(BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS) && use_metta != evolution_metta) {
+            error_message = "use_metta_as_query_tokens does not match params.evolution.query.syntax";
+            return nullptr;
+        }
+        proxy->parameters[BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS] = evolution_metta;
     } else {
         error_message = "Unsupported command: " + command;
         return nullptr;
