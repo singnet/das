@@ -27,6 +27,7 @@ class TestLinkCreator : public LinkCreator {
 };
 
 TEST(LinkCreation, link_creator_function) {
+    STACK_TRACE();
     LinkCreationProxy proxy1({""}, "link_creation_test", "unit_test", BaseProxy::NONE);
     EXPECT_EQ(proxy1.link_creation(make_shared<QueryAnswer>("blah", 0.0)).created, 4);
     EXPECT_EQ(proxy1.link_creation(make_shared<QueryAnswer>("blahhh", 0.5)).created, 6);
@@ -47,6 +48,7 @@ TEST(LinkCreation, link_creator_function) {
 }
 
 TEST(LinkCreation, proxy_object) {
+    STACK_TRACE();
     LinkCreationProxy proxy({"t0", "t1"}, "context", "unit_test", BaseProxy::SYNC_ON_CYCLE_START);
     proxy.parameters[LinkCreationProxy::MAX_SUCCESSFUL_CREATION_PER_ROUND] = (unsigned int) 2;
 
@@ -62,6 +64,7 @@ TEST(LinkCreation, proxy_object) {
 }
 
 TEST(LinkCreation, link_creator_registry) {
+    STACK_TRACE();
     ASSERT_TRUE(dynamic_pointer_cast<UnitTestLinkCreator>(
                     LinkCreatorRegistry::function(LinkCreatorRegistry::UNIT_TEST)) != nullptr);
     ASSERT_TRUE(dynamic_pointer_cast<CustomizableLinkCreator>(
@@ -71,6 +74,7 @@ TEST(LinkCreation, link_creator_registry) {
 }
 
 TEST(LinkCreation, customizable_tokenization) {
+    STACK_TRACE();
     vector<CustomizableLinkCreator> original;
     vector<CustomizableLinkCreator> copy1;
     vector<CustomizableLinkCreator> copy2;
@@ -79,35 +83,38 @@ TEST(LinkCreation, customizable_tokenization) {
     original.emplace_back();
     original[count++].add_link_specification({QueryAnswerElement(1), QueryAnswerElement(2)},
                                              {QueryAnswerElement("v1"), QueryAnswerElement("v2")},
-                                             CustomizableLinkCreator::PRODUCT,
-                                             " type0 ");
+                                             " type0 ",
+                                             CustomizableLinkCreator::INTERSECTION_OVER_UNION,
+                                             {"blah", "bleh  blih"});
 
     original.emplace_back();
     original[count++].add_link_specification({QueryAnswerElement(1)},
                                              {QueryAnswerElement("v1"), QueryAnswerElement("v2")},
-                                             CustomizableLinkCreator::PRODUCT,
-                                             "type0");
+                                             "type0",
+                                             CustomizableLinkCreator::PRODUCT);
 
     original.emplace_back();
     original[count++].add_link_specification(
-        {QueryAnswerElement(1), QueryAnswerElement(2)}, {}, CustomizableLinkCreator::PRODUCT, "type0");
+        {QueryAnswerElement(1), QueryAnswerElement(2)}, {}, "type0", CustomizableLinkCreator::PRODUCT);
 
     original.emplace_back();
     original[count++].add_link_specification(
-        {}, {}, (CustomizableLinkCreator::StrengthComposition) 0, "blah");
+        {QueryAnswerElement(1)}, {}, "blah", (CustomizableLinkCreator::StrengthComposition) 0);
 
     vector<string> tokens1, tokens2, tokens3;
     for (unsigned int i = 0; i < count; i++) {
         copy1.emplace_back();
         copy2.emplace_back();
         original[i].tokenize(tokens1);
-        string tokens_string = Utils::join(tokens1);
+        string tokens_string =
+            Utils::join(tokens1, CustomizableLinkCreator::EXTRA_PARAMETERS_SPLIT_CHAR);
+        LOG_INFO("tokens_string: <" + tokens_string + ">");
         copy1[i].untokenize(tokens1);
         copy1[i].tokenize(tokens2);
         copy2[i].extra_parameters(tokens_string);
         copy2[i].tokenize(tokens3);
         if (i == 0) {
-            ASSERT_EQ(tokens_string, "1 2 _1 _2 2 $v1 $v2 1 type0");
+            ASSERT_EQ(tokens_string, "1,2,_1,_2,2,$v1,$v2,type0,2,2,blah,bleh  blih");
         }
         ASSERT_EQ(tokens1, tokens2);
         ASSERT_EQ(tokens1, tokens3);
@@ -115,20 +122,59 @@ TEST(LinkCreation, customizable_tokenization) {
         tokens2.clear();
         tokens3.clear();
     }
+}
 
-    original.emplace_back();
-    EXPECT_THROW(original[count++].add_link_specification(
-                     {}, {}, (CustomizableLinkCreator::StrengthComposition) 0, ""),
+TEST(LinkCreation, customizable_link_specification) {
+    STACK_TRACE();
+    unsigned int count = 0;
+    vector<CustomizableLinkCreator> specs;
+    specs.emplace_back();
+    EXPECT_THROW(specs[count++].add_link_specification(
+                     {}, {}, "", (CustomizableLinkCreator::StrengthComposition) 0),
                  runtime_error);
-    EXPECT_THROW(original[count++].add_link_specification(
-                     {}, {}, (CustomizableLinkCreator::StrengthComposition) 0, " "),
+    specs.emplace_back();
+    EXPECT_THROW(specs[count++].add_link_specification(
+                     {}, {}, " ", (CustomizableLinkCreator::StrengthComposition) 0),
                  runtime_error);
-    EXPECT_THROW(original[count++].add_link_specification(
-                     {}, {}, (CustomizableLinkCreator::StrengthComposition) 0, "  "),
+    specs.emplace_back();
+    EXPECT_THROW(specs[count++].add_link_specification(
+                     {}, {}, "  ", (CustomizableLinkCreator::StrengthComposition) 0),
                  runtime_error);
+
+    specs.emplace_back();
+    specs[count++].add_link_specification({QueryAnswerElement(1), QueryAnswerElement(2)},
+                                          {QueryAnswerElement("v1"), QueryAnswerElement("v2")},
+                                          "link-type",
+                                          CustomizableLinkCreator::INTERSECTION_OVER_UNION,
+                                          {"query1", "query2"});
+    specs.emplace_back();
+    EXPECT_THROW(
+        specs[count++].add_link_specification({QueryAnswerElement(2)},
+                                              {QueryAnswerElement("v1"), QueryAnswerElement("v2")},
+                                              "link-type",
+                                              CustomizableLinkCreator::INTERSECTION_OVER_UNION,
+                                              {"query1", "query2"}),
+        runtime_error);
+    specs.emplace_back();
+    EXPECT_THROW(specs[count++].add_link_specification(
+                     {QueryAnswerElement(1), QueryAnswerElement(2)},
+                     {QueryAnswerElement("v1"), QueryAnswerElement("v2"), QueryAnswerElement("v3")},
+                     "link-type",
+                     CustomizableLinkCreator::INTERSECTION_OVER_UNION,
+                     {"query1", "query2"}),
+                 runtime_error);
+    specs.emplace_back();
+    EXPECT_THROW(
+        specs[count++].add_link_specification({QueryAnswerElement(1), QueryAnswerElement(2)},
+                                              {QueryAnswerElement("v1"), QueryAnswerElement("v2")},
+                                              "link-type",
+                                              CustomizableLinkCreator::INTERSECTION_OVER_UNION,
+                                              {}),
+        runtime_error);
 }
 
 int main(int argc, char** argv) {
+    STACK_TRACE();
     ::testing::InitGoogleTest(&argc, argv);
     AtomDBSingleton::provide(make_shared<InMemoryDB>());
     init_test_system_parameters_singleton();

@@ -24,6 +24,8 @@ using namespace std;
 mutex StackTrace::api_mutex;
 map<pid_t, stack<StackTrace::StackRecord>> StackTrace::stack_trace;
 
+double Utils::EPSILON = 1e-8;
+
 // --------------------------------------------------------------------------------
 // Public methods
 
@@ -434,6 +436,14 @@ bool Utils::starts_with(const string& s, const string& prefix) {
     }
 
     return s.compare(0, prefix.size(), prefix) == 0;
+}
+
+bool Utils::is_zero(double v) {
+    if (v > 0) {
+        return (v < EPSILON);
+    } else {
+        return (v > -EPSILON);
+    }
 }
 
 // --------------------------------------------------------------------------------
