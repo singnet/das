@@ -81,6 +81,12 @@ void CustomizableLinkCreator::extra_parameters(const string& extra_parameters) {
     }
 }
 
+string CustomizableLinkCreator::extra_parameters() {
+    vector<string> tokens;
+    tokenize(tokens);
+    return Utils::join(tokens, EXTRA_PARAMETERS_SPLIT_CHAR);
+}
+
 void CustomizableLinkCreator::add_link_specification(const vector<QueryAnswerElement>& target_elements,
                                                      const vector<QueryAnswerElement>& strength_elements,
                                                      const string& link_type,

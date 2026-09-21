@@ -153,6 +153,16 @@ class LinkCreator {
     virtual void extra_parameters(const string& extra_parameters) {}
 
     /**
+     * Concrete subclasses may implement this in order to create the extra parameters string
+     * which can be passed to extra_parameters(string). The idea is to build the LinkCreator
+     * using API methods and then calling this method in order to create a string which is
+     * passed through LINK_CREATOR_EXTRA_PARAMETERS from client proxy to server proxy.
+     *
+     * @return a string representation of the extra parameters required to build this LinkCreator
+     */
+    virtual string extra_parameters() { return ""; }
+
+    /**
      * Return the AttentionBroker context to be used.
      *
      * @return the AttentionBroker context to be used.

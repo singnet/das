@@ -28,6 +28,7 @@ class CustomizableLinkCreator : public LinkCreator {
 
     LinkCreationStats create(shared_ptr<QueryAnswer> query_answer);
     virtual void extra_parameters(const string& extra_parameters);
+    virtual string extra_parameters();
 
    private:
     class LinkSpecification {

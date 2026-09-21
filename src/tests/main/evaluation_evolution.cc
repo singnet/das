@@ -1,71 +1,33 @@
-#include <signal.h>
-
-#include <filesystem>
 #include <fstream>
-#include <iomanip>
-#include <iostream>
-#include <string>
 
-#include "AtomDBAPITypes.h"
 #include "AtomDBSingleton.h"
 #include "AttentionBrokerClient.h"
-#include "ContextBrokerProxy.h"
-#include "CountLetterFunction.h"
 #include "FitnessFunctionRegistry.h"
 #include "Hasher.h"
 #include "JsonConfigParser.h"
 #include "Logger.h"
 #include "MettaParser.h"
-#include "PatternMatchingQueryProxy.h"
+#include "LinkCreationProxy.h"
+#include "LinkCreatorRegistry.h"
+#include "CustomizableLinkCreator.h"
+#include "AndTwoPredicates.h"
+#include "tags.h"
 #include "QueryAnswer.h"
 #include "QueryEvolutionProxy.h"
 #include "RemoteAtomDB.h"
 #include "ServiceBusSingleton.h"
 #include "SystemParametersSingleton.h"
-#include "TestAtomDBJsonConfig.h"
 #include "Utils.h"
 #include "commons/atoms/MettaParserActions.h"
-
-// Symbols
-#define AND_OPERATOR "AND"
-#define ANDNOT_OPERATOR "ANDNOT"
-#define OR_OPERATOR "OR"
-#define CHAIN_OPERATOR "CHAIN"
-#define LINK_TEMPLATE "LINK_TEMPLATE"
-#define LINK "LINK"
-#define NODE "NODE"
-#define VARIABLE "VARIABLE"
-#define ATOM "ATOM"
-#define EXPRESSION "Expression"
-#define SYMBOL "Symbol"
-#define EVALUATION "Evaluation"
-#define CONCEPT "Concept"
-#define PREDICATE "Predicate"
-#define EQUIVALENCE "Equivalence"
-#define IMPLICATION "Implication"
-#define LOGICAL_AND "LogicalAnd"
 
 // Variables
 #define V1 "V1"
 #define V2 "V2"
 #define V3 "V3"
-#define PREDICATE1 "Predicate1"
-#define PREDICATE2 "Predicate2"
-#define PREDICATE3 "Predicate3"
-#define CONCEPT1 "Concept1"
-#define CONCEPT2 "Concept2"
-#define CONCEPT3 "Concept3"
 
 // Misc
-#define STRENGTH_TAG "strength"
-#define IS_LITERAL "is_literal"
 #define FITNESS_FUNCTION "inference_toy"
 
-static string IMPLICATION_HANDLE = Hasher::node_handle(SYMBOL, IMPLICATION);
-static string EQUIVALENCE_HANDLE = Hasher::node_handle(SYMBOL, EQUIVALENCE);
-static string PREDICATE_HANDLE = Hasher::node_handle(SYMBOL, PREDICATE);
-static string EVALUATION_HANDLE = Hasher::node_handle(SYMBOL, EVALUATION);
-static string LOGICAL_AND_HANDLE = Hasher::node_handle(SYMBOL, LOGICAL_AND);
 static float RENT_RATE = 0.25;
 static float SPREADING_RATE_LOWERBOUND = 0.90;
 static float SPREADING_RATE_UPPERBOUND = 0.90;
@@ -80,21 +42,12 @@ static string TARGET_PREDICATE = "undefined";
 static string TARGET_CONCEPT_HANDLE = "undefined";
 static string TARGET_PREDICATE_HANDLE = "undefined";
 
-static bool USE_MORK = false;
-static bool SETUP_ONLY = false;
-static double LINK_CREATION_STRENGTH_THRESHOLD = (SETUP_ONLY ? 0.0 : 0.1);
-static unsigned int LINK_CREATION_COUNT = 10;
-static unsigned int LINK_CREATION_MAX_VISIT_ATTEMPTS = LINK_CREATION_COUNT;
-static unsigned int LINK_CREATION_MAX_ATTEMPTS = 500;
 static double ATTENTION_FOCUS_STRICTNESS = 0.30;
 static unsigned int RANDOM_SEED = 1236;
 
 static string PRESET_LINKS_FILE_PREFIX = "/opt/das/_PRESET_LINKS_";
 static string PRESET_LINKS_FILE = PRESET_LINKS_FILE_PREFIX;
 static string CONTEXT_FILE_NAME_PREFIX = "/opt/das/_CONTEXT_DUMP_";
-static bool WRITE_CREATED_LINKS_TO_DB = true;
-static bool WRITE_CREATED_LINKS_TO_FILE = SETUP_ONLY;
-static bool PRINT_CREATED_LINKS_METTA = true;
 
 using namespace std;
 using namespace atomdb;
@@ -103,66 +56,14 @@ using namespace query_engine;
 using namespace evolution;
 using namespace service_bus;
 using namespace attention_broker;
-using namespace context_broker;
+using namespace link_creation_agent;
 
 enum ContextTaskType { UNDEFINED = 0, DETERMINER, CORRELATION, ACTIVATION };
 
 static shared_ptr<AtomDB> db;
 static HandleDecoder* DECODER;
 static shared_ptr<ServiceBus> bus;
-static vector<vector<string>> buffer_determiners;
-static map<string, vector<string>> weight_calculation_cache;
 static vector<pair<shared_ptr<QueryAnswer>, unsigned int>> recorded_answers;
-
-static string metta_expr3(const string& expr1, const string& expr2, const string& expr3) {
-    return "(" + expr1 + " " + expr2 + " " + expr3 + ")";
-}
-
-static string metta_or(const string& expr1, const string& expr2) {
-    return metta_expr3("or", expr1, expr2);
-}
-
-static string metta_and(const string& expr1, const string& expr2) {
-    return metta_expr3("and", expr1, expr2);
-}
-
-static string metta_chain(const string& source, const string& target, const string& query) {
-    return "(chain 0 1 2 " + source + " " + target + " " + query + ")";
-}
-
-static string metta_var(const string& name) { return "$" + name; }
-
-static string hard_wired_metta_expression(const string& handle) {
-    STACK_TRACE();
-    string answer = "UNDEFINED";
-    if (handle == TARGET_CONCEPT_HANDLE) {
-        answer = TARGET_CONCEPT;
-    } else if (handle == TARGET_PREDICATE_HANDLE) {
-        answer = TARGET_PREDICATE;
-    } else {
-        RAISE_ERROR("Unknown handle: " + handle);
-    }
-    return answer;
-}
-
-static double get_strength(const string& handle) {
-    STACK_TRACE();
-    auto atom = db->get_atom(handle);
-    return atom->custom_attributes.get_or<double>(STRENGTH_TAG, 1.0);
-}
-
-static void save_link_metta(shared_ptr<Link> link) {
-    STACK_TRACE();
-    ofstream file;
-    file.open(PRESET_LINKS_FILE, ios::app);
-    if (file.is_open()) {
-        file << link->custom_attributes.get_or<double>("strength", 1.0) << ","
-             << link->metta_representation(*DECODER) << endl;
-        file.close();
-    } else {
-        RAISE_ERROR("Couldn't open file for writing: " + PRESET_LINKS_FILE);
-    }
-}
 
 static string answer_to_string_2(shared_ptr<QueryAnswer> answer) {
     STACK_TRACE();
@@ -236,56 +137,33 @@ static string answer_to_string(shared_ptr<QueryAnswer> answer) {
     }
 }
 
-static shared_ptr<PatternMatchingQueryProxy> issue_link_building_query(
-    const vector<string>& query_tokens, const string& context) {
-    STACK_TRACE();
-    auto proxy = make_shared<PatternMatchingQueryProxy>(query_tokens, context);
-    proxy->parameters[BaseQueryProxy::ATTENTION_CORRELATION] = (unsigned int) BaseQueryProxy::NONE;
-    proxy->parameters[BaseQueryProxy::ATTENTION_UPDATE] = (unsigned int) BaseQueryProxy::NONE;
-    proxy->parameters[BaseQueryProxy::UNIQUE_ASSIGNMENT_FLAG] = true;
-    proxy->parameters[BaseQueryProxy::ALLOW_INCOMPLETE_CHAIN_PATH] = false;
-    proxy->parameters[BaseQueryProxy::ATTENTION_FOCUS_STRICTNESS] =
-        (double) (SETUP_ONLY ? 0.0 : ATTENTION_FOCUS_STRICTNESS);
-    proxy->parameters[PatternMatchingQueryProxy::DISREGARD_IMPORTANCE_FLAG] = false;
-    proxy->parameters[PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG] = true;
+static shared_ptr<LinkCreationProxy> issue_lca_query(
+    const vector<string>& query_tokens,
+    const string& context,
+    const string& link_creator_tag,
+    LinkCreator& link_creator,
+    BaseProxy::ORCHESTRATION_SCHEMA_TYPE orchestration) {
+
+    auto proxy = make_shared<LinkCreationProxy>(query_tokens, context, link_creator_tag, orchestration);
+    proxy->parameters[LinkCreationProxy::LINK_CREATOR_EXTRA_PARAMETERS] = (string) link_creator.extra_parameters();
+    proxy->parameters[LinkCreationProxy::MAX_SUCCESSFUL_CREATION_PER_ROUND] = (unsigned int) 10;
+    proxy->parameters[LinkCreationProxy::MAX_UNPRODUCTIVE_VISITS_PER_ROUND] = (unsigned int) 500;
+    proxy->parameters[LinkCreationProxy::MAX_VISIT_ATTEMPTS_PER_ROUND] = (unsigned int) 10;
+    proxy->parameters[LinkCreationProxy::MAX_ROUNDS] = (unsigned int) 0;
+    proxy->parameters[LinkCreationProxy::LINK_CREATION_STRENGTH_THRESHOLD] = (double) 0.1;
+    proxy->parameters[LinkCreationProxy::LINK_CREATION_LOG_FILE_NAME] = (string) "_new_links.txt";
+    proxy->parameters[LinkCreationProxy::LOG_NEW_LINKS] = (bool) true;
     proxy->parameters[PatternMatchingQueryProxy::MAX_ANSWERS] = (unsigned int) 0;
-    proxy->parameters[BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS] = (query_tokens.size() == 1);
-    proxy->parameters[BaseQueryProxy::POPULATE_METTA_MAPPING] = USE_MORK;
-    proxy->parameters[PatternMatchingQueryProxy::UNIQUE_VALUE_FLAG] = true;
-
-    ServiceBusSingleton::get_instance()->issue_bus_command(proxy);
-    return proxy;
-}
-
-static shared_ptr<PatternMatchingQueryProxy> issue_weight_count_query(const vector<string>& query_tokens,
-                                                                      const string& context) {
-    STACK_TRACE();
-    auto proxy = make_shared<PatternMatchingQueryProxy>(query_tokens, context);
-    proxy->parameters[BaseQueryProxy::UNIQUE_ASSIGNMENT_FLAG] = true;
+    proxy->parameters[PatternMatchingQueryProxy::DISREGARD_IMPORTANCE_FLAG] = (bool) false;
+    proxy->parameters[PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG] = (bool) true;
+    proxy->parameters[PatternMatchingQueryProxy::UNIQUE_VALUE_FLAG] = (bool) true;
+    proxy->parameters[BaseQueryProxy::POPULATE_METTA_MAPPING] = true;
+    proxy->parameters[BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS] = false;
+    proxy->parameters[BaseQueryProxy::UNIQUE_ASSIGNMENT_FLAG] = (bool) true;
+    proxy->parameters[BaseQueryProxy::ALLOW_INCOMPLETE_CHAIN_PATH] = (bool) false;
     proxy->parameters[BaseQueryProxy::ATTENTION_CORRELATION] = (unsigned int) BaseQueryProxy::NONE;
     proxy->parameters[BaseQueryProxy::ATTENTION_UPDATE] = (unsigned int) BaseQueryProxy::NONE;
-    proxy->parameters[PatternMatchingQueryProxy::DISREGARD_IMPORTANCE_FLAG] = true;
-    proxy->parameters[PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG] = false;
-    proxy->parameters[BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS] = USE_MORK;
-    proxy->parameters[BaseQueryProxy::POPULATE_METTA_MAPPING] = false;
-
-    ServiceBusSingleton::get_instance()->issue_bus_command(proxy);
-    return proxy;
-}
-
-static shared_ptr<PatternMatchingQueryProxy> issue_context_creation_query(
-    const vector<string>& query_tokens, const string& context) {
-    STACK_TRACE();
-    auto proxy = make_shared<PatternMatchingQueryProxy>(query_tokens, context);
-    proxy->parameters[BaseQueryProxy::ATTENTION_CORRELATION] = (unsigned int) BaseQueryProxy::NONE;
-    proxy->parameters[BaseQueryProxy::ATTENTION_UPDATE] = (unsigned int) BaseQueryProxy::NONE;
-    proxy->parameters[BaseQueryProxy::UNIQUE_ASSIGNMENT_FLAG] = false;
-    proxy->parameters[PatternMatchingQueryProxy::DISREGARD_IMPORTANCE_FLAG] = true;
-    proxy->parameters[PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG] = false;
-    proxy->parameters[PatternMatchingQueryProxy::MAX_ANSWERS] = (unsigned int) 0;
-    proxy->parameters[BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS] = (query_tokens.size() == 1);
-    proxy->parameters[BaseQueryProxy::POPULATE_METTA_MAPPING] = false;
-    proxy->parameters[PatternMatchingQueryProxy::UNIQUE_VALUE_FLAG] = false;
+    proxy->parameters[BaseQueryProxy::ATTENTION_FOCUS_STRICTNESS] = (double) ATTENTION_FOCUS_STRICTNESS;
 
     ServiceBusSingleton::get_instance()->issue_bus_command(proxy);
     return proxy;
@@ -297,533 +175,6 @@ static void flush_remote_link_template_cache(bool force = false) {
             LinkSchema({LINK_TEMPLATE, EXPRESSION, "3", VARIABLE, "V1", VARIABLE, "V2", VARIABLE, "V3"});
         remote_db->release_caches(link_schema, true, force);
     }
-}
-
-static void insert_or_update(map<string, double>& count_map, const string& key, double value) {
-    STACK_TRACE();
-    auto iterator = count_map.find(key);
-    if (iterator == count_map.end()) {
-        count_map[key] = value;
-    } else {
-        if (value > iterator->second) {
-            count_map[key] = value;
-        }
-    }
-}
-
-static void compute_counts(const vector<vector<string>>& query_tokens,
-                           const string& context,
-                           const QueryAnswerElement& target_element,
-                           const string& handle0,
-                           const string& handle1,
-                           double& count_0,
-                           double& count_1,
-                           double& count_intersection,
-                           double& count_union) {
-    STACK_TRACE();
-    LOG_LOCAL_DEBUG("Computing counts for " + handle0 + " and " + handle1);
-    shared_ptr<PatternMatchingQueryProxy> proxy[2];
-
-    count_0 = 0.0;
-    count_1 = 0.0;
-    count_intersection = 0.0;
-    count_union = 0.0;
-
-    map<string, double> count_map[2];
-    map<string, double> count_map_union;
-    map<string, double> count_map_intersection;
-
-    double d;
-    string handle;
-    for (unsigned int i = 0; i < 2; i++) {
-        proxy[i] = issue_weight_count_query(query_tokens[i], context);
-    }
-    LOG_LOCAL_DEBUG("Queries issued");
-    shared_ptr<QueryAnswer> query_answer;
-    for (unsigned int i = 0; i < 2; i++) {
-        LOG_LOCAL_DEBUG("i: " + to_string(i));
-        while (!proxy[i]->finished()) {
-            if ((query_answer = proxy[i]->pop()) == NULL) {
-                Utils::sleep();
-            } else {
-                d = 1;
-                for (string& h : query_answer->get_handles_vector()) {
-                    d *= get_strength(h);
-                }
-                handle = query_answer->get(target_element);
-                insert_or_update(count_map[i], handle, d);
-            }
-        }
-    }
-    LOG_LOCAL_DEBUG("Query answers processed");
-    count_map_union = count_map[0];
-    for (auto pair : count_map[1]) {
-        auto iterator = count_map[0].find(pair.first);
-        if (iterator == count_map[0].end()) {
-            insert_or_update(count_map_union, pair.first, pair.second);
-        } else {
-            insert_or_update(count_map_union, pair.first, pair.second);
-            insert_or_update(count_map_intersection, pair.first, min(pair.second, iterator->second));
-        }
-    }
-
-    for (auto pair : count_map_intersection) {
-        count_intersection += pair.second;
-    }
-    for (auto pair : count_map_union) {
-        count_union += pair.second;
-    }
-    for (auto pair : count_map[0]) {
-        count_0 += pair.second;
-    }
-    for (auto pair : count_map[1]) {
-        count_1 += pair.second;
-    }
-    LOG_DEBUG("Counts: " + to_string(count_0) + " " + to_string(count_1) + " " +
-              to_string(count_intersection) + " " + to_string(count_union));
-}
-
-static shared_ptr<Link> add_or_update_link(const string& type_handle,
-                                           const string& target1,
-                                           const string& target2,
-                                           double strength,
-                                           const string& context,
-                                           bool& link_created_flag) {
-    STACK_TRACE();
-    link_created_flag = false;
-    if (strength < LINK_CREATION_STRENGTH_THRESHOLD) {
-        return nullptr;
-    }
-    LOG_DEBUG("add_or_update_link(" + type_handle + ", " + target1 + ", " + target2 + ", " +
-              to_string(strength) + ")");
-    shared_ptr<Link> new_link(
-        new Link(EXPRESSION, {type_handle, target1, target2}, true, {{STRENGTH_TAG, strength}}));
-    LOG_DEBUG("Add or update: " + new_link->to_string());
-    string handle = new_link->handle();
-    if (db->link_exists(handle)) {
-        auto old_link = db->get_atom(handle);
-        LOG_DEBUG("Link already exists: " + old_link->to_string());
-        if (strength != old_link->custom_attributes.get_or<double>(STRENGTH_TAG, 1)) {
-            if (WRITE_CREATED_LINKS_TO_DB) {
-                LOG_DEBUG("Updating Link in AtomDB");
-                // Upsert/replace the existing atom (same content-addressed handle, new strength).
-                // Default merger (NULL) upserts/replaces — do not delete_link first.
-                db->add_link(new_link.get());
-            }
-            if (WRITE_CREATED_LINKS_TO_FILE) {
-                LOG_DEBUG("Writing Link to file: " + PRESET_LINKS_FILE);
-                save_link_metta(new_link);
-            }
-        }
-    } else {
-        link_created_flag = true;
-        if (WRITE_CREATED_LINKS_TO_DB) {
-            LOG_DEBUG("Creating Link in AtomDB");
-            if (PRINT_CREATED_LINKS_METTA) {
-                LOG_INFO("ADD LINK: [" + std::to_string(strength) + "] " +
-                         new_link->metta_representation(*DECODER));
-            }
-            db->add_link(new_link.get());
-            buffer_determiners.push_back({handle, target1, target2});
-            AttentionBrokerClient::correlate(set<string>({target1, target2}), context);
-        }
-        if (WRITE_CREATED_LINKS_TO_FILE) {
-            LOG_DEBUG("Writing Link to file: " + PRESET_LINKS_FILE);
-            save_link_metta(new_link);
-        }
-    }
-    LOG_LOCAL_DEBUG("Returning from add_or_update_link()");
-    return new_link;
-}
-
-static void extract_mentioned_predicates(set<string>& mentioned, const string& handle) {
-    STACK_TRACE();
-    shared_ptr<Node> node;
-    shared_ptr<Link> link = db->get_link(handle);
-    if (link != nullptr) {
-        for (string& target_handle : link->targets) {
-            if ((node = db->get_node(target_handle)) != nullptr) {
-                if ((node->name != PREDICATE) && (node->name != LOGICAL_AND)) {
-                    mentioned.insert(node->name);
-                }
-            } else {
-                extract_mentioned_predicates(mentioned, target_handle);
-            }
-        }
-    }
-}
-
-static shared_ptr<Link> add_and_predicate(const string& handle1,
-                                          const string& handle2,
-                                          const string& context,
-                                          bool& link_created_flag) {
-    STACK_TRACE();
-    if (handle1 == handle2) {
-        return nullptr;
-    }
-    set<string> mentioned_predicates1, mentioned_predicates2;
-    extract_mentioned_predicates(mentioned_predicates1, handle1);
-    extract_mentioned_predicates(mentioned_predicates2, handle2);
-    if (Utils::intersects(mentioned_predicates1, mentioned_predicates2)) {
-        LOG_DEBUG("Disregarded AND predicate: " + db->get_atom(handle1)->metta_representation(*DECODER) +
-                  " AND " + db->get_atom(handle2)->metta_representation(*DECODER));
-        return nullptr;
-    }
-
-    string h1, h2;
-    if (handle1 < handle2) {
-        h1 = handle1;
-        h2 = handle2;
-    } else {
-        h1 = handle2;
-        h2 = handle1;
-    }
-
-    return add_or_update_link(LOGICAL_AND_HANDLE, h1, h2, 1.0, context, link_created_flag);
-}
-
-static bool build_and_predicate_link(shared_ptr<QueryAnswer> query_answer,
-                                     const string& context,
-                                     const string& custom_handle) {
-    STACK_TRACE();
-    string predicate1 = query_answer->get(PREDICATE1);
-    string predicate2 = (custom_handle == "" ? query_answer->get(PREDICATE2) : custom_handle);
-    string concept1 = query_answer->get(CONCEPT);
-
-    if (predicate1 == predicate2) {
-        LOG_DEBUG("Skipping link building because targets are the same: " + predicate1);
-        return false;
-    }
-
-    bool link_created_flag;
-    shared_ptr<Link> new_predicate =
-        add_and_predicate(predicate1, predicate2, context, link_created_flag);
-    if ((link_created_flag) && (new_predicate != nullptr)) {
-        double strength = 1;
-        for (string& h : query_answer->get_handles_vector()) {
-            strength *= get_strength(h);
-        }
-        add_or_update_link(
-            EVALUATION_HANDLE, new_predicate->handle(), concept1, strength, context, link_created_flag);
-        return link_created_flag;
-    } else {
-        return false;
-    }
-}
-
-static bool build_implication_link(shared_ptr<QueryAnswer> query_answer,
-                                   const string& context,
-                                   const string& custom_handle,
-                                   set<pair<string, string>>& visited,
-                                   bool& visited_at_least_one) {
-    STACK_TRACE();
-    visited_at_least_one = false;
-    string predicates[2];
-    string metta_predicates[2];
-    if (custom_handle == "") {
-        predicates[0] = query_answer->get(PREDICATE1);
-        predicates[1] = query_answer->get(PREDICATE2);
-        metta_predicates[0] = query_answer->metta_expression[predicates[0]];
-        metta_predicates[1] = query_answer->metta_expression[predicates[1]];
-    } else {
-        predicates[0] = query_answer->get(PREDICATE1);
-        predicates[1] = custom_handle;
-        metta_predicates[0] = query_answer->metta_expression[predicates[0]];
-        metta_predicates[1] = hard_wired_metta_expression(custom_handle);
-    }
-
-    if (predicates[0] == predicates[1]) {
-        LOG_DEBUG("Skipping link building because targets are the same: " + predicates[0]);
-        return false;
-    }
-
-    if (visited.find({predicates[0], predicates[1]}) != visited.end()) {
-        LOG_DEBUG("Skipping link building because targets have already been visited this cycle: " +
-                  predicates[0] + " " + predicates[1]);
-        return false;
-    }
-
-    set<string> mentioned_predicates1, mentioned_predicates2;
-    extract_mentioned_predicates(mentioned_predicates1, predicates[0]);
-    extract_mentioned_predicates(mentioned_predicates2, predicates[1]);
-    if (Utils::intersects(mentioned_predicates1, mentioned_predicates2)) {
-        LOG_DEBUG("Disregarded IMPLICATION predicates: " +
-                  db->get_atom(predicates[0])->metta_representation(*DECODER) + " <=> " +
-                  db->get_atom(predicates[1])->metta_representation(*DECODER));
-        return false;
-    }
-
-    LOG_DEBUG("Visiting: " + predicates[0] + " " + predicates[1]);
-    visited_at_least_one = true;
-    visited.insert({predicates[0], predicates[1]});
-
-    // build Evaluation of the AND of both predicates
-    build_and_predicate_link(query_answer, context, custom_handle);
-
-    vector<vector<string>> query;
-    for (unsigned int i = 0; i < 2; i++) {
-        // clang-format off
-        if (USE_MORK) {
-            /*
-            vector<string> metta_query = {metta_expr3(EVALUATION, metta_predicates[i], metta_var(CONCEPT1))};
-            */
-            vector<string> metta_query = {
-                metta_or(
-                    metta_expr3(EVALUATION, metta_predicates[i], metta_var(CONCEPT1)),
-                    metta_and(
-                        metta_expr3(EVALUATION, metta_predicates[i], metta_var(CONCEPT2)),
-                        metta_expr3(EQUIVALENCE, metta_var(CONCEPT2), metta_var(CONCEPT1))))};
-            LOG_DEBUG("Counting query (implication): " + metta_query[0]);
-            query.push_back(metta_query);
-        } else {
-            query.push_back({
-                OR_OPERATOR, "2",
-                    LINK_TEMPLATE, EXPRESSION, "3",
-                        NODE, SYMBOL, EVALUATION,
-                        ATOM, predicates[i],
-                        VARIABLE, CONCEPT1,
-                    AND_OPERATOR, "2",
-                        LINK_TEMPLATE, EXPRESSION, "3",
-                            NODE, SYMBOL, EVALUATION,
-                            ATOM, predicates[i],
-                            VARIABLE, CONCEPT2,
-                        LINK_TEMPLATE, EXPRESSION, "3",
-                            NODE, SYMBOL, EQUIVALENCE,
-                            VARIABLE, CONCEPT2,
-                            VARIABLE, CONCEPT1,
-            });
-        }
-        // clang-format on
-    }
-    double count_0, count_1, count_intersection, count_union;
-    QueryAnswerElement target_element(CONCEPT1);
-    compute_counts(query,
-                   context,
-                   target_element,
-                   predicates[0],
-                   predicates[1],
-                   count_0,
-                   count_1,
-                   count_intersection,
-                   count_union);
-    bool link_created_flag = false;
-    if (count_intersection > 0) {
-        if (count_0 > 0) {
-            if (count_1 > 0) {
-                if (count_0 < count_1) {
-                    add_or_update_link(IMPLICATION_HANDLE,
-                                       predicates[0],
-                                       predicates[1],
-                                       count_intersection / count_0,
-                                       context,
-                                       link_created_flag);
-                } else {
-                    add_or_update_link(IMPLICATION_HANDLE,
-                                       predicates[1],
-                                       predicates[0],
-                                       count_intersection / count_1,
-                                       context,
-                                       link_created_flag);
-                }
-            } else {
-                add_or_update_link(IMPLICATION_HANDLE,
-                                   predicates[0],
-                                   predicates[1],
-                                   count_intersection / count_0,
-                                   context,
-                                   link_created_flag);
-            }
-        } else {
-            if (count_1 > 0) {
-                add_or_update_link(IMPLICATION_HANDLE,
-                                   predicates[1],
-                                   predicates[0],
-                                   count_intersection / count_1,
-                                   context,
-                                   link_created_flag);
-            }
-        }
-    }
-    return link_created_flag;
-}
-
-static bool build_equivalence_link(shared_ptr<QueryAnswer> query_answer,
-                                   const string& context,
-                                   const string& custom_handle,
-                                   set<pair<string, string>>& visited,
-                                   bool& visited_at_least_one) {
-    STACK_TRACE();
-    visited_at_least_one = false;
-    string concepts[2];
-    string metta_concepts[2];
-    if (custom_handle == "") {
-        concepts[0] = query_answer->get(CONCEPT1);
-        concepts[1] = query_answer->get(CONCEPT2);
-        metta_concepts[0] = query_answer->metta_expression[concepts[0]];
-        metta_concepts[1] = query_answer->metta_expression[concepts[1]];
-    } else {
-        concepts[0] = query_answer->get(CONCEPT1);
-        concepts[1] = custom_handle;
-        metta_concepts[0] = query_answer->metta_expression[concepts[0]];
-        metta_concepts[1] = hard_wired_metta_expression(custom_handle);
-    }
-
-    if (concepts[0] == concepts[1]) {
-        LOG_DEBUG("Skipping link building because targets are the same: " + concepts[0]);
-        return false;
-    }
-    pair<string, string> p;
-    if (concepts[0] < concepts[1]) {
-        p = {concepts[0], concepts[1]};
-    } else {
-        p = {concepts[1], concepts[0]};
-    }
-    if (visited.find(p) != visited.end()) {
-        LOG_DEBUG("Skipping link building because targets have already been visited this cycle: " +
-                  concepts[0] + " " + concepts[1]);
-        return false;
-    }
-
-    LOG_DEBUG("Visiting: " + concepts[0] + " " + concepts[1]);
-    visited_at_least_one = true;
-    visited.insert(p);
-
-    vector<vector<string>> query;
-    for (unsigned int i = 0; i < 2; i++) {
-        // clang-format off
-        if (USE_MORK) {
-            /*
-            vector<string> metta_query = {metta_expr3(EVALUATION, metta_var(PREDICATE1), metta_concepts[i])};
-            */
-            vector<string> metta_query = {
-                metta_or(
-                    metta_expr3(EVALUATION, metta_var(PREDICATE1), metta_concepts[i]),
-                    metta_and(
-                        metta_expr3(EVALUATION, metta_var(PREDICATE2), metta_concepts[i]),
-                        metta_expr3(IMPLICATION, metta_var(PREDICATE2), metta_var(PREDICATE1))))};
-            LOG_DEBUG("Counting query (equivalence): " + metta_query[0]);
-            query.push_back(metta_query);
-        } else {
-            query.push_back({
-                OR_OPERATOR, "2",
-                LINK_TEMPLATE, EXPRESSION, "3",
-                    NODE, SYMBOL, EVALUATION,
-                    VARIABLE, PREDICATE1,
-                    ATOM, concepts[i],
-                AND_OPERATOR, "2",
-                    LINK_TEMPLATE, EXPRESSION, "3",
-                        NODE, SYMBOL, EVALUATION,
-                        VARIABLE, PREDICATE2,
-                        ATOM, concepts[i],
-                    LINK_TEMPLATE, EXPRESSION, "3",
-                        NODE, SYMBOL, IMPLICATION,
-                        VARIABLE, PREDICATE2,
-                        VARIABLE, PREDICATE1,
-            });
-        }
-        // clang-format on
-    }
-    double count_0, count_1, count_intersection, count_union;
-    QueryAnswerElement target_element(PREDICATE1);
-    compute_counts(query,
-                   context,
-                   target_element,
-                   concepts[0],
-                   concepts[1],
-                   count_0,
-                   count_1,
-                   count_intersection,
-                   count_union);
-    bool link_created_flag1 = false;
-    bool link_created_flag2 = false;
-    if ((count_intersection > 0) && (count_union > 0)) {
-        double strength = count_intersection / count_union;
-        add_or_update_link(
-            EQUIVALENCE_HANDLE, concepts[0], concepts[1], strength, context, link_created_flag1);
-        add_or_update_link(
-            EQUIVALENCE_HANDLE, concepts[1], concepts[0], strength, context, link_created_flag2);
-    }
-    return (link_created_flag1 || link_created_flag2);
-}
-
-static bool build_evaluation_link(shared_ptr<QueryAnswer> query_answer,
-                                  const string& context,
-                                  const string& custom_handle,
-                                  set<pair<string, string>>& visited,
-                                  bool& visited_at_least_one) {
-    STACK_TRACE();
-    visited_at_least_one = false;
-    string predicate = query_answer->get(PREDICATE);
-    string concept_ = query_answer->get(CONCEPT);
-    if (visited.find({predicate, concept_}) != visited.end()) {
-        LOG_DEBUG("Skipping link building because targets have already been visited this cycle: " +
-                  predicate + " " + concept_);
-        return false;
-    }
-    LOG_DEBUG("Visiting: " + predicate + " " + concept_);
-    visited_at_least_one = true;
-    visited.insert({predicate, concept_});
-    double strength = 1;
-    for (string& h : query_answer->get_handles_vector()) {
-        strength *= get_strength(h);
-    }
-    bool link_created_flag;
-    add_or_update_link(EVALUATION_HANDLE, predicate, concept_, strength, context, link_created_flag);
-    return link_created_flag;
-}
-
-static void build_links(const vector<string>& query,
-                        const string& context,
-                        const string& custom_handle,
-                        bool (*build_link)(shared_ptr<QueryAnswer> query_answer,
-                                           const string& context,
-                                           const string& custom_handle,
-                                           set<pair<string, string>>& visited,
-                                           bool& visited_at_least_one)) {
-    STACK_TRACE();
-    auto proxy = issue_link_building_query(query, context);
-    unsigned int count_created = 0;
-    unsigned int count_visit_attemps = 0;
-    unsigned int count_attempts = 0;
-    shared_ptr<QueryAnswer> query_answer;
-    set<pair<string, string>> visited;
-    while (true) {
-        if ((query_answer = proxy->pop()) == nullptr) {
-            if (proxy->finished()) {
-                break;
-            }
-            Utils::sleep();
-        } else {
-            LOG_DEBUG("Processing query answer " + to_string(count_created) + ": " +
-                      query_answer->to_string(USE_MORK));
-            bool visited_at_least_one = false;
-            if (build_link(query_answer, context, custom_handle, visited, visited_at_least_one)) {
-                count_created++;
-                count_visit_attemps = 0;
-                count_attempts = 0;
-                if (count_created >= LINK_CREATION_COUNT) {
-                    break;
-                }
-            } else if (visited_at_least_one) {
-                count_visit_attemps++;
-                count_attempts = 0;
-                if (count_visit_attemps >= LINK_CREATION_MAX_VISIT_ATTEMPTS) {
-                    break;
-                }
-            } else {
-                count_attempts++;
-                if (count_attempts >= LINK_CREATION_MAX_ATTEMPTS) {
-                    break;
-                }
-            }
-        }
-    }
-    if (!proxy->finished()) {
-        proxy->abort();
-    }
-    // Persist staged writes once per build cycle instead of per created link.
-    flush_remote_link_template_cache();
-    LOG_DEBUG("Built " + to_string(count_created) + " links");
 }
 
 // clang-format off
@@ -862,7 +213,7 @@ static void query_evolution(
 
     proxy->parameters[BaseQueryProxy::UNIQUE_ASSIGNMENT_FLAG] = false;
     proxy->parameters[BaseQueryProxy::POPULATE_METTA_MAPPING] = true;
-    proxy->parameters[BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS] = USE_MORK;
+    proxy->parameters[BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS] = false;
     proxy->parameters[BaseQueryProxy::ALLOW_INCOMPLETE_CHAIN_PATH] = true;
     proxy->parameters[BaseQueryProxy::MAX_BUNDLE_SIZE] = (unsigned int) 1000;
     proxy->parameters[BaseQueryProxy::ATTENTION_FOCUS_STRICTNESS] = (double) ATTENTION_FOCUS_STRICTNESS;
@@ -896,98 +247,106 @@ static void query_evolution(
     }
     LOG_INFO("Total answers in iteration " << count_iterations++ << ": " << count_answers);
 }
+
+static vector<string> make_implication_query() {
+    return {
+        AND_OPERATOR, "2",
+            LINK_TEMPLATE, EXPRESSION, "3",
+                NODE, SYMBOL, EVALUATION_TAG,
+                VARIABLE, PREDICATE1,
+                VARIABLE, CONCEPT,
+            LINK_TEMPLATE, EXPRESSION, "3",
+                NODE, SYMBOL, EVALUATION_TAG,
+                VARIABLE, PREDICATE2,
+                VARIABLE, CONCEPT
+    };
+}
+
+static string make_implication_count_query(const string& _predicate) {
+    return Utils::join({
+        OR_OPERATOR, "2",
+            LINK_TEMPLATE, EXPRESSION, "3",
+                NODE, SYMBOL, EVALUATION_TAG,
+                ATOM, _predicate,
+                VARIABLE, CONCEPT1,
+            AND_OPERATOR, "2",
+                LINK_TEMPLATE, EXPRESSION, "3",
+                    NODE, SYMBOL, EVALUATION_TAG,
+                    ATOM, _predicate,
+                    VARIABLE, CONCEPT2,
+                LINK_TEMPLATE, EXPRESSION, "3",
+                    NODE, SYMBOL, EQUIVALENCE_TAG,
+                    VARIABLE, CONCEPT2,
+                    VARIABLE, CONCEPT1
+    });
+}
+
+static vector<string> make_equivalence_query() {
+    return {
+        AND_OPERATOR, "2",
+            LINK_TEMPLATE, EXPRESSION, "3",
+                NODE, SYMBOL, EVALUATION_TAG,
+                VARIABLE, PREDICATE,
+                VARIABLE, CONCEPT1,
+            LINK_TEMPLATE, EXPRESSION, "3",
+                NODE, SYMBOL, EVALUATION_TAG,
+                VARIABLE, PREDICATE,
+                VARIABLE, CONCEPT2
+    };
+}
+
+static string make_equivalence_count_query(const string& _concept) {
+    return Utils::join({
+        OR_OPERATOR, "2",
+            LINK_TEMPLATE, EXPRESSION, "3",
+                NODE, SYMBOL, EVALUATION_TAG,
+                VARIABLE, PREDICATE1,
+                ATOM, _concept,
+            AND_OPERATOR, "2",
+                LINK_TEMPLATE, EXPRESSION, "3",
+                    NODE, SYMBOL, EVALUATION_TAG,
+                    VARIABLE, PREDICATE2,
+                    ATOM, _concept,
+                LINK_TEMPLATE, EXPRESSION, "3",
+                    NODE, SYMBOL, IMPLICATION_TAG,
+                    VARIABLE, PREDICATE2,
+                    VARIABLE, PREDICATE1
+    });
+}
+
+static vector<string> make_evaluation_predicate_query() {
+    return {
+        AND_OPERATOR, "2",
+            LINK_TEMPLATE, EXPRESSION, "3",
+                NODE, SYMBOL, EVALUATION_TAG,
+                VARIABLE, PREDICATE,
+                VARIABLE, CONCEPT1,
+            LINK_TEMPLATE, EXPRESSION, "3",
+                NODE, SYMBOL, EQUIVALENCE_TAG,
+                VARIABLE, CONCEPT1,
+                VARIABLE, CONCEPT
+    };
+}
+
+static vector<string> make_evaluation_concept_query() {
+    return {
+        AND_OPERATOR, "2",
+            LINK_TEMPLATE, EXPRESSION, "3",
+                NODE, SYMBOL, EVALUATION_TAG,
+                VARIABLE, PREDICATE1,
+                VARIABLE, CONCEPT,
+            LINK_TEMPLATE, EXPRESSION, "3",
+                NODE, SYMBOL, IMPLICATION_TAG,
+                VARIABLE, PREDICATE1,
+                VARIABLE, PREDICATE,
+    };
+}
 // clang-format on
 
-static void add_to_context_file(const filesystem::path& context_file_name,
-                                const string& context,
-                                ContextTaskType task,
-                                const vector<string>& query,
-                                const vector<vector<QueryAnswerElement>>& selector) {
-    STACK_TRACE();
-    ofstream file;
-    file.open(context_file_name, ios::app);
-    string mnemonic = "";
-    if (file.is_open()) {
-        auto proxy = issue_context_creation_query(query, context);
-        unsigned int count = 0;
-        shared_ptr<QueryAnswer> query_answer;
-        while (!proxy->finished()) {
-            if ((query_answer = proxy->pop()) == nullptr) {
-                Utils::sleep();
-            } else {
-                count++;
-                switch (task) {
-                    case DETERMINER:
-                        mnemonic = "DET";
-                    case CORRELATION:
-                        if (mnemonic == "") mnemonic = "COR";
-                        for (auto pair : selector) {
-                            if (pair.size() != 2) {
-                                RAISE_ERROR("Invalid context task selector for " + mnemonic);
-                                return;
-                            }
-                            file << mnemonic << " " << query_answer->get(pair[0]) << " "
-                                 << query_answer->get(pair[1]) << endl;
-                        }
-                        break;
-                    case ACTIVATION:
-                        mnemonic = "ACT";
-                        if (selector.size() != 1) {
-                            RAISE_ERROR("Invalid context task selector for " + mnemonic);
-                        }
-                        file << mnemonic;
-                        for (auto element : selector[0]) {
-                            file << " " << query_answer->get(element);
-                        }
-                        file << endl;
-                        break;
-                    default:
-                        RAISE_ERROR("Invalid context creation task: " +
-                                    std::to_string((unsigned int) task));
-                }
-            }
-        }
-        file.close();
-    } else {
-        RAISE_ERROR("Couldn't open file for writing: " + string(context_file_name));
-    }
-}
 
-static void add_to_context_file(const filesystem::path& context_file_name,
-                                const string& context,
-                                ContextTaskType task,
-                                const vector<string>& handles) {
+static void add_preset_links(const string& context) {
     STACK_TRACE();
-    ofstream file;
-    file.open(context_file_name, ios::app);
-    if (file.is_open()) {
-        for (string handle : handles) {
-            switch (task) {
-                case DETERMINER:
-                    RAISE_ERROR("Not implemented");
-                    break;
-                case CORRELATION:
-                    RAISE_ERROR("Not implemented");
-                    break;
-                case ACTIVATION:
-                    file << "ACT " << handle << endl;
-                    break;
-                default:
-                    RAISE_ERROR("Invalid context creation task: " + std::to_string((unsigned int) task));
-            }
-        }
-        file.close();
-    } else {
-        RAISE_ERROR("Couldn't open file for writing: " + string(context_file_name));
-    }
-}
-
-static void add_preset_links(const vector<string>& implication_to_target_predicate_metta_query,
-                             const vector<string>& implication_to_target_predicate_query,
-                             const vector<string>& equivalence_to_target_concept_metta_query,
-                             const vector<string>& equivalence_to_target_concept_query,
-                             const string& context) {
-    STACK_TRACE();
+    vector<vector<string>> buffer_determiners; 
     ifstream file(PRESET_LINKS_FILE);
     if (file.is_open()) {
         LOG_INFO("Reading preset links from file: " + PRESET_LINKS_FILE);
@@ -1014,19 +373,7 @@ static void add_preset_links(const vector<string>& implication_to_target_predica
         }
         LOG_INFO(std::to_string(count) + " preset links read.");
     } else {
-        LOG_INFO("Couldn't open file: " + PRESET_LINKS_FILE);
-        LOG_INFO("Building Implication links to TARGET_PREDICATE");
-        build_links((USE_MORK ? implication_to_target_predicate_metta_query
-                              : implication_to_target_predicate_query),
-                    context,
-                    TARGET_PREDICATE_HANDLE,
-                    build_implication_link);
-        LOG_INFO("Building Equivalence links to TARGET_CONCEPT");
-        build_links(
-            (USE_MORK ? equivalence_to_target_concept_metta_query : equivalence_to_target_concept_query),
-            context,
-            TARGET_CONCEPT_HANDLE,
-            build_equivalence_link);
+        RAISE_ERROR("Couldn't open file: " + PRESET_LINKS_FILE);
     }
     file.close();
     LOG_INFO("Updating determiners in AttentionBroker");
@@ -1037,329 +384,106 @@ static void add_preset_links(const vector<string>& implication_to_target_predica
 
 static void run(const string& context_tag) {
     STACK_TRACE();
-    // clang-format off
-    vector<string> implication_query = {
-        ANDNOT_OPERATOR, "3",
-            LINK_TEMPLATE, EXPRESSION, "3",
-                NODE, SYMBOL, EVALUATION,
-                VARIABLE, PREDICATE1,
-                VARIABLE, CONCEPT,
-            LINK_TEMPLATE, EXPRESSION, "3",
-                NODE, SYMBOL, EVALUATION,
-                VARIABLE, PREDICATE2,
-                VARIABLE, CONCEPT,
-            LINK_TEMPLATE, EXPRESSION, "3",
-                NODE, SYMBOL, IMPLICATION,
-                VARIABLE, PREDICATE1,
-                VARIABLE, PREDICATE2,
-    };
 
-    vector<string> implication_to_target_predicate_query = {
-        AND_OPERATOR, "2",
-            LINK_TEMPLATE, EXPRESSION, "3",
-                NODE, SYMBOL, EVALUATION,
-                VARIABLE, PREDICATE1,
-                VARIABLE, CONCEPT,
-            LINK_TEMPLATE, EXPRESSION, "3",
-                NODE, SYMBOL, EVALUATION,
-                ATOM, TARGET_PREDICATE_HANDLE,
-                VARIABLE, CONCEPT,
-    };
-    vector<string> implication_to_target_predicate_metta_query = {
-        metta_and(
-            metta_expr3(EVALUATION, metta_var(PREDICATE1), metta_var(CONCEPT)),
-            metta_expr3(EVALUATION, TARGET_PREDICATE, metta_var(CONCEPT)))
-    };
-
-    vector<string> equivalence_query = {
-        ANDNOT_OPERATOR, "3",
-            LINK_TEMPLATE, EXPRESSION, "3",
-                NODE, SYMBOL, EVALUATION,
-                VARIABLE, PREDICATE,
-                VARIABLE, CONCEPT1,
-            LINK_TEMPLATE, EXPRESSION, "3",
-                NODE, SYMBOL, EVALUATION,
-                VARIABLE, PREDICATE,
-                VARIABLE, CONCEPT2,
-            LINK_TEMPLATE, EXPRESSION, "3",
-                NODE, SYMBOL, EQUIVALENCE,
-                VARIABLE, CONCEPT1,
-                VARIABLE, CONCEPT2,
-    };
-
-    vector<string> equivalence_to_target_concept_query = {
-        AND_OPERATOR, "2",
-            LINK_TEMPLATE, EXPRESSION, "3",
-                NODE, SYMBOL, EVALUATION,
-                VARIABLE, PREDICATE,
-                VARIABLE, CONCEPT1,
-            LINK_TEMPLATE, EXPRESSION, "3",
-                NODE, SYMBOL, EVALUATION,
-                VARIABLE, PREDICATE,
-                ATOM, TARGET_CONCEPT_HANDLE,
-    };
-    vector<string> equivalence_to_target_concept_metta_query = {
-        metta_and(
-            metta_expr3(EVALUATION, metta_var(PREDICATE), metta_var(CONCEPT1)),
-            metta_expr3(EVALUATION, metta_var(PREDICATE), TARGET_CONCEPT))
-    };
-
-    vector<string> evaluation_fixed_predicate_query = {
-        ANDNOT_OPERATOR, "3",
-            LINK_TEMPLATE, EXPRESSION, "3",
-                NODE, SYMBOL, EVALUATION,
-                VARIABLE, PREDICATE,
-                VARIABLE, CONCEPT1,
-            LINK_TEMPLATE, EXPRESSION, "3",
-                NODE, SYMBOL, EQUIVALENCE,
-                VARIABLE, CONCEPT1,
-                VARIABLE, CONCEPT,
-            LINK_TEMPLATE, EXPRESSION, "3",
-                NODE, SYMBOL, EVALUATION,
-                VARIABLE, PREDICATE,
-                VARIABLE, CONCEPT,
-    };
-
-    vector<string> evaluation_fixed_concept_query = {
-        ANDNOT_OPERATOR, "3",
-            LINK_TEMPLATE, EXPRESSION, "3",
-                NODE, SYMBOL, EVALUATION,
-                VARIABLE, PREDICATE1,
-                VARIABLE, CONCEPT,
-            LINK_TEMPLATE, EXPRESSION, "3",
-                NODE, SYMBOL, IMPLICATION,
-                VARIABLE, PREDICATE1,
-                VARIABLE, PREDICATE,
-            LINK_TEMPLATE, EXPRESSION, "3",
-                NODE, SYMBOL, EVALUATION,
-                VARIABLE, PREDICATE,
-                VARIABLE, CONCEPT,
-    };
-
-    vector<string> implication_to_path_query = {
-        ANDNOT_OPERATOR, "4",
-            LINK_TEMPLATE, EXPRESSION, "3",
-                NODE, SYMBOL, EVALUATION,
-                VARIABLE, PREDICATE1,
-                VARIABLE, CONCEPT,
-            LINK_TEMPLATE, EXPRESSION, "3",
-                NODE, SYMBOL, EVALUATION,
-                VARIABLE, PREDICATE2,
-                VARIABLE, CONCEPT,
-            CHAIN_OPERATOR, "0", "1", "2",
-                VARIABLE, PREDICATE2,
-                ATOM, TARGET_PREDICATE_HANDLE,
-                LINK_TEMPLATE, EXPRESSION, "3",
-                    NODE, SYMBOL, IMPLICATION,
-                    VARIABLE, V1,
-                    VARIABLE, V2,
-            LINK_TEMPLATE, EXPRESSION, "3",
-                NODE, SYMBOL, IMPLICATION,
-                VARIABLE, PREDICATE1,
-                VARIABLE, PREDICATE2,
-    };
-
-    vector<string> equivalence_to_path_query = {
-        ANDNOT_OPERATOR, "4",
-            LINK_TEMPLATE, EXPRESSION, "3",
-                NODE, SYMBOL, EVALUATION,
-                VARIABLE, PREDICATE,
-                VARIABLE, CONCEPT1,
-            LINK_TEMPLATE, EXPRESSION, "3",
-                NODE, SYMBOL, EVALUATION,
-                VARIABLE, PREDICATE,
-                VARIABLE, CONCEPT2,
-            CHAIN_OPERATOR, "0", "1", "2",
-                VARIABLE, CONCEPT2,
-                ATOM, TARGET_CONCEPT_HANDLE,
-                LINK_TEMPLATE, EXPRESSION, "3",
-                    NODE, SYMBOL, EQUIVALENCE,
-                    VARIABLE, V1,
-                    VARIABLE, V2,
-            LINK_TEMPLATE, EXPRESSION, "3",
-                NODE, SYMBOL, EQUIVALENCE,
-                VARIABLE, CONCEPT1,
-                VARIABLE, CONCEPT2,
-    };
-
-    vector<string> query_to_evolve = {
-        OR_OPERATOR, "3",
-            AND_OPERATOR, "2",
-                LINK_TEMPLATE, EXPRESSION, "3",
-                    NODE, SYMBOL, EVALUATION,
-                    VARIABLE, PREDICATE,
-                    ATOM, TARGET_CONCEPT_HANDLE,
-                CHAIN_OPERATOR, "0", "1", "2",
-                    VARIABLE, PREDICATE,
-                    ATOM, TARGET_PREDICATE_HANDLE,
-                    LINK_TEMPLATE, EXPRESSION, "3",
-                        NODE, SYMBOL, IMPLICATION,
-                        VARIABLE, PREDICATE1,
-                        VARIABLE, PREDICATE2,
-            AND_OPERATOR, "2",
-                LINK_TEMPLATE, EXPRESSION, "3",
-                    NODE, SYMBOL, EVALUATION,
-                    ATOM, TARGET_PREDICATE_HANDLE,
-                    VARIABLE, CONCEPT,
-                CHAIN_OPERATOR, "0", "1", "2",
-                    VARIABLE, CONCEPT,
-                    ATOM, TARGET_CONCEPT_HANDLE,
-                    LINK_TEMPLATE, EXPRESSION, "3",
-                        NODE, SYMBOL, EQUIVALENCE,
-                        VARIABLE, CONCEPT1,
-                        VARIABLE, CONCEPT2,
-            AND_OPERATOR, "3",
-                LINK_TEMPLATE, EXPRESSION, "3",
-                    NODE, SYMBOL, EVALUATION,
-                    VARIABLE, PREDICATE,
-                    VARIABLE, CONCEPT,
-                CHAIN_OPERATOR, "0", "1", "2",
-                    VARIABLE, PREDICATE,
-                    ATOM, TARGET_PREDICATE_HANDLE,
-                    LINK_TEMPLATE, EXPRESSION, "3",
-                        NODE, SYMBOL, IMPLICATION,
-                        VARIABLE, PREDICATE1,
-                        VARIABLE, PREDICATE2,
-                CHAIN_OPERATOR, "0", "1", "2",
-                    VARIABLE, CONCEPT,
-                    ATOM, TARGET_CONCEPT_HANDLE,
-                    LINK_TEMPLATE, EXPRESSION, "3",
-                        NODE, SYMBOL, EQUIVALENCE,
-                        VARIABLE, CONCEPT1,
-                        VARIABLE, CONCEPT2,
-    };
-    vector<string> metta_query_to_evolve = {
-        metta_or(
-            metta_and(
-                metta_expr3(EVALUATION, metta_var(PREDICATE), TARGET_CONCEPT),
-                metta_chain(metta_var(PREDICATE), TARGET_PREDICATE, metta_expr3(IMPLICATION, metta_var(PREDICATE1) , metta_var(PREDICATE2)))
-            ),
-            metta_or(
-                metta_and(
-                    metta_expr3(EVALUATION, TARGET_PREDICATE, metta_var(CONCEPT)),
-                    metta_chain(metta_var(CONCEPT), TARGET_CONCEPT, metta_expr3(EQUIVALENCE, metta_var(CONCEPT1) , metta_var(CONCEPT2)))
-                ),
-                metta_and(
-                    metta_and(
-                        metta_expr3(EVALUATION, metta_var(PREDICATE), metta_var(CONCEPT)),
-                        metta_chain(metta_var(PREDICATE), TARGET_PREDICATE, metta_expr3(IMPLICATION, metta_var(V1) , metta_var(V2)))
-                    ),
-                    metta_and(
-                        metta_expr3(EVALUATION, metta_var(PREDICATE), metta_var(CONCEPT)),
-                        metta_chain(metta_var(CONCEPT), TARGET_CONCEPT, metta_expr3(EQUIVALENCE, metta_var(V1) , metta_var(V2)))
-                    )
-                )
-            )
-        )
-    };
-
-    vector<vector<string>> correlation_query_template = {
-        {LINK_TEMPLATE, EXPRESSION, "3",
-            NODE, SYMBOL, EVALUATION,
-            VARIABLE, V1,
-            VARIABLE, CONCEPT},
-        {LINK_TEMPLATE, EXPRESSION, "3",
-            NODE, SYMBOL, EVALUATION,
-            VARIABLE, PREDICATE,
-            VARIABLE, V2}
-    };
-    vector<vector<string>> correlation_metta_query_template = {
-        {metta_expr3(EVALUATION, metta_var(V1), metta_var(CONCEPT))},
-        {metta_expr3(EVALUATION, metta_var(PREDICATE), metta_var(V2))}
-    };
-
-    vector<string> context_determiner_query = {
-        LINK_TEMPLATE, EXPRESSION, "3",
-            NODE, SYMBOL, EVALUATION,
-            VARIABLE, PREDICATE,
-            VARIABLE, CONCEPT,
-    };
-
-    vector<string> context_correlation_query = {
-        LINK_TEMPLATE, EXPRESSION, "3",
-            NODE, SYMBOL, EVALUATION,
-            VARIABLE, PREDICATE,
-            VARIABLE, CONCEPT,
-    };
-
-    vector<string> context_activation_query1 = {
-        LINK_TEMPLATE, EXPRESSION, "3",
-            NODE, SYMBOL, EVALUATION,
-            ATOM, TARGET_PREDICATE_HANDLE,
-            VARIABLE, CONCEPT,
-    };
-    vector<string> context_activation_metta_query1 = {
-        metta_expr3(EVALUATION, TARGET_PREDICATE, metta_var(CONCEPT))
-    };
-
-    vector<string> context_activation_query2 = {
-        LINK_TEMPLATE, EXPRESSION, "3",
-            NODE, SYMBOL, EVALUATION,
-            VARIABLE, PREDICATE,
-            ATOM, TARGET_CONCEPT_HANDLE,
-    };
-    vector<string> context_activation_metta_query2 = {
-        metta_expr3(EVALUATION, metta_var(PREDICATE), TARGET_CONCEPT)
-    };
-    // clang-format on
-
-    if (SETUP_ONLY) {
-        LOG_INFO("****************************** Running for SETUP only ******************************");
-    }
     LOG_INFO("Setting up context for tag: " + context_tag);
     string context = Hasher::context_handle(context_tag);
     PRESET_LINKS_FILE = PRESET_LINKS_FILE_PREFIX + context + ".txt";
     filesystem::path context_file_name = CONTEXT_FILE_NAME_PREFIX + context + ".txt";
     if (!filesystem::exists(context_file_name)) {
-        LOG_INFO("Context file doesn't exist. Creating it...");
-        QueryAnswerElement qe_predicate(PREDICATE);
-        QueryAnswerElement qe_concept(CONCEPT);
-        QueryAnswerElement qe_toplevel(0);
-        LOG_INFO("Creating determiners");
-        add_to_context_file(context_file_name,
-                            context,
-                            DETERMINER,
-                            context_determiner_query,
-                            {{qe_toplevel, qe_predicate}, {qe_toplevel, qe_concept}});
-        LOG_INFO("Making correlations");
-        add_to_context_file(context_file_name,
-                            context,
-                            CORRELATION,
-                            context_correlation_query,
-                            {{qe_concept, qe_predicate}, {qe_predicate, qe_concept}});
-        LOG_INFO("Spreading activation");
-        add_to_context_file(context_file_name,
-                            context,
-                            ACTIVATION,
-                            (USE_MORK ? context_activation_metta_query1 : context_activation_query1),
-                            {{qe_concept}});
-        add_to_context_file(context_file_name,
-                            context,
-                            ACTIVATION,
-                            (USE_MORK ? context_activation_metta_query2 : context_activation_query2),
-                            {{qe_predicate}});
-        add_to_context_file(
-            context_file_name, context, ACTIVATION, {TARGET_PREDICATE_HANDLE, TARGET_CONCEPT_HANDLE});
-
-    } else {
-        LOG_INFO("Context file already exists. Reusing it...");
+        RAISE_ERROR("Context file doesn't exist");
     }
     LOG_INFO("Updating AttentionBroker");
     AttentionBrokerClient::drop_and_load_context(context, string(context_file_name));
-    AttentionBrokerClient::stimulate({{TARGET_PREDICATE_HANDLE, 1}, {TARGET_CONCEPT_HANDLE, 1}},
-                                     context);
+    AttentionBrokerClient::stimulate({{TARGET_PREDICATE_HANDLE, 1}, {TARGET_CONCEPT_HANDLE, 1}}, context);
     LOG_INFO("Context " + context + " is ready");
+    add_preset_links(context);
 
-    add_preset_links(implication_to_target_predicate_metta_query,
-                     implication_to_target_predicate_query,
-                     equivalence_to_target_concept_metta_query,
-                     equivalence_to_target_concept_query,
-                     context);
+    // clang-format off
+    vector<string> query_to_evolve = {
+        OR_OPERATOR, "3",
+            AND_OPERATOR, "2",
+                LINK_TEMPLATE, EXPRESSION, "3",
+                    NODE, SYMBOL, EVALUATION_TAG,
+                    VARIABLE, PREDICATE,
+                    ATOM, TARGET_CONCEPT_HANDLE,
+                CHAIN_OPERATOR, "0", "1", "2",
+                    VARIABLE, PREDICATE,
+                    ATOM, TARGET_PREDICATE_HANDLE,
+                    LINK_TEMPLATE, EXPRESSION, "3",
+                        NODE, SYMBOL, IMPLICATION_TAG,
+                        VARIABLE, PREDICATE1,
+                        VARIABLE, PREDICATE2,
+            AND_OPERATOR, "2",
+                LINK_TEMPLATE, EXPRESSION, "3",
+                    NODE, SYMBOL, EVALUATION_TAG,
+                    ATOM, TARGET_PREDICATE_HANDLE,
+                    VARIABLE, CONCEPT,
+                CHAIN_OPERATOR, "0", "1", "2",
+                    VARIABLE, CONCEPT,
+                    ATOM, TARGET_CONCEPT_HANDLE,
+                    LINK_TEMPLATE, EXPRESSION, "3",
+                        NODE, SYMBOL, EQUIVALENCE_TAG,
+                        VARIABLE, CONCEPT1,
+                        VARIABLE, CONCEPT2,
+            AND_OPERATOR, "3",
+                LINK_TEMPLATE, EXPRESSION, "3",
+                    NODE, SYMBOL, EVALUATION_TAG,
+                    VARIABLE, PREDICATE,
+                    VARIABLE, CONCEPT,
+                CHAIN_OPERATOR, "0", "1", "2",
+                    VARIABLE, PREDICATE,
+                    ATOM, TARGET_PREDICATE_HANDLE,
+                    LINK_TEMPLATE, EXPRESSION, "3",
+                        NODE, SYMBOL, IMPLICATION_TAG,
+                        VARIABLE, PREDICATE1,
+                        VARIABLE, PREDICATE2,
+                CHAIN_OPERATOR, "0", "1", "2",
+                    VARIABLE, CONCEPT,
+                    ATOM, TARGET_CONCEPT_HANDLE,
+                    LINK_TEMPLATE, EXPRESSION, "3",
+                        NODE, SYMBOL, EQUIVALENCE_TAG,
+                        VARIABLE, CONCEPT1,
+                        VARIABLE, CONCEPT2,
+    };
 
-    if (SETUP_ONLY) {
-        LOG_INFO("******************************     SETUP finished     ******************************");
-        return;
-    }
+    vector<vector<string>> correlation_query_template = {
+        {LINK_TEMPLATE, EXPRESSION, "3",
+            NODE, SYMBOL, EVALUATION_TAG,
+            VARIABLE, V1,
+            VARIABLE, CONCEPT},
+        {LINK_TEMPLATE, EXPRESSION, "3",
+            NODE, SYMBOL, EVALUATION_TAG,
+            VARIABLE, PREDICATE,
+            VARIABLE, V2}
+    };
+    // clang-format on
+
+    AndTwoPredicates and_two_predicates;
+    CustomizableLinkCreator implication_link_creator;
+    CustomizableLinkCreator equivalence_link_creator;
+    CustomizableLinkCreator evaluation_link_creator;
+
+    implication_link_creator.add_link_specification({QueryAnswerElement(PREDICATE1), QueryAnswerElement(PREDICATE2)},
+                                                    {QueryAnswerElement(CONCEPT1), QueryAnswerElement(CONCEPT1)},
+                                                    IMPLICATION_TAG,
+                                                    CustomizableLinkCreator::INTERSECTION_OVER_A,
+                                                    {make_implication_count_query("QueryAnswerElement($Predicate1)"), make_implication_count_query("QueryAnswerElement($Predicate2)")});
+    equivalence_link_creator.add_link_specification({QueryAnswerElement(CONCEPT1), QueryAnswerElement(CONCEPT2)},
+                                                    {QueryAnswerElement(PREDICATE1), QueryAnswerElement(PREDICATE1)},
+                                                    EQUIVALENCE_TAG,
+                                                    CustomizableLinkCreator::INTERSECTION_OVER_UNION,
+                                                    {make_equivalence_count_query("QueryAnswerElement($Concept1)"), make_equivalence_count_query("QueryAnswerElement($Concept2)")});
+    evaluation_link_creator.add_link_specification({QueryAnswerElement(PREDICATE), QueryAnswerElement(CONCEPT)},
+                                                   {QueryAnswerElement(1), QueryAnswerElement(2)},
+                                                   EVALUATION_TAG,
+                                                   CustomizableLinkCreator::PRODUCT,
+                                                   {});
+
+    auto proxy_and_two_predicates = issue_lca_query(make_implication_query(), context, LinkCreatorRegistry::AND_TWO_PREDICATES, and_two_predicates, BaseProxy::SYNC_ON_CYCLE_START);
+    auto proxy_implication = issue_lca_query(make_implication_query(), context, LinkCreatorRegistry::CUSTOMIZABLE, implication_link_creator, BaseProxy::SYNC_ON_CYCLE_START);
+    auto proxy_equivalence = issue_lca_query(make_equivalence_query(), context, LinkCreatorRegistry::CUSTOMIZABLE, equivalence_link_creator, BaseProxy::SYNC_ON_CYCLE_START);
+    auto proxy_evaluation_predicate = issue_lca_query(make_evaluation_predicate_query(), context, LinkCreatorRegistry::CUSTOMIZABLE, evaluation_link_creator, BaseProxy::SYNC_ON_CYCLE_START);
+    auto proxy_evaluation_concept = issue_lca_query(make_evaluation_concept_query(), context, LinkCreatorRegistry::CUSTOMIZABLE, evaluation_link_creator, BaseProxy::SYNC_ON_CYCLE_START);
 
     for (unsigned int iteration = 1; iteration <= NUM_ITERATIONS; iteration++) {
         LOG_INFO("--------------------------------------------------------------------------------");
@@ -1368,27 +492,16 @@ static void run(const string& context_tag) {
         LOG_INFO("----- Building links");
         AttentionBrokerClient::stimulate({{TARGET_PREDICATE_HANDLE, 1}, {TARGET_CONCEPT_HANDLE, 1}},
                                          context);
-        LOG_INFO("Building Implication links");
-        build_links(implication_query, context, "", build_implication_link);
-        // LOG_INFO("Building Implication links to paths");
-        // build_links(implication_to_path_query, context, "", build_implication_link);
-        LOG_INFO("Building Equivalence links");
-        build_links(equivalence_query, context, "", build_equivalence_link);
-        // LOG_INFO("Building Equivalence links to paths");
-        // build_links(equivalence_to_path_query, context, "", build_equivalence_link);
-        LOG_INFO("Building Evaluation links");
-        build_links(evaluation_fixed_predicate_query, context, "", build_evaluation_link);
-        build_links(evaluation_fixed_concept_query, context, "", build_evaluation_link);
-        LOG_INFO("----- Updating AttentionBroker");
-        AttentionBrokerClient::set_determiners(buffer_determiners, context);
-        buffer_determiners.clear();
-        AttentionBrokerClient::stimulate({{TARGET_PREDICATE_HANDLE, 1}, {TARGET_CONCEPT_HANDLE, 1}},
-                                         context);
+        proxy_and_two_predicates->allow_cycle_start();
+        proxy_implication->allow_cycle_start();
+        proxy_equivalence->allow_cycle_start();
+        proxy_evaluation_predicate->allow_cycle_start();
+        proxy_evaluation_concept->allow_cycle_start();
+        while (!proxy_implication->finished_cycle() || !proxy_equivalence->finished_cycle() || !proxy_evaluation_predicate->finished_cycle() || ! proxy_evaluation_concept->finished_cycle()) {
+            Utils::sleep();
+        }
         LOG_INFO("----- Evolving query");
-        query_evolution((USE_MORK ? metta_query_to_evolve : query_to_evolve),
-                        (USE_MORK ? correlation_metta_query_template : correlation_query_template),
-                        iteration,
-                        context);
+        query_evolution(query_to_evolve, correlation_query_template, iteration, context);
     }
 
     LOG_INFO("--------------------------------------------------------------------------------");
@@ -1401,7 +514,7 @@ static void run(const string& context_tag) {
 
 static void insert_type_symbols() {
     STACK_TRACE();
-    vector<string> to_insert = {EQUIVALENCE, IMPLICATION, LOGICAL_AND};
+    vector<string> to_insert = {EQUIVALENCE_TAG, IMPLICATION_TAG, LOGICAL_AND_TAG};
     Node* node;
     for (string node_name : to_insert) {
         node = new Node(SYMBOL, node_name);
@@ -1472,6 +585,7 @@ int main(int argc, char* argv[]) {
     DECODER = static_pointer_cast<HandleDecoder>(db).get();
     ServiceBusSingleton::init(client_endpoint, server_endpoint, ports_range.first, ports_range.second);
     FitnessFunctionRegistry::initialize_statics();
+    LinkCreatorRegistry::initialize_statics();
     bus = ServiceBusSingleton::get_instance();
     AttentionBrokerClient::set_parameters(
         RENT_RATE, SPREADING_RATE_LOWERBOUND, SPREADING_RATE_UPPERBOUND);

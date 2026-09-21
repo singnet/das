@@ -48,6 +48,8 @@ cc_library(
         "//agents/context_broker:context_broker_lib",
         "//agents/evolution:evolution_lib",
         "//agents/query_engine:query_engine_lib",
+        "//agents/link_creation_agent:link_creation_proxy",
+        "//agents/link_creation_agent/link_creators:link_creators_lib",
         "//atomdb:atomdb_api_types",
         "//atomdb:atomdb_singleton",
         "//commons:commons_lib",

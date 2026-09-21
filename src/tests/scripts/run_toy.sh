@@ -33,16 +33,18 @@ make run-db-loader OPTIONS="--config=/opt/das/config/das.json --file=$KB --threa
 
 echo
 echo "--------------------------------------------------"
-echo "Stating agents"
+echo "Starting agents"
 echo
 make run-attention-broker &>> /tmp/ab.log &
 sleep 2
 make run-busnode OPTIONS="--service=query-engine --config=/opt/das/config/das.json --seed=$SEED" &>> /tmp/qa.log &
 sleep 2
+make run-busnode OPTIONS="--service=link-creation-agent --bus-endpoint=localhost:40002 --config=/opt/das/config/das.json --seed=$SEED" &>> /tmp/lca.log &
+sleep 2
 make run-busnode OPTIONS="--service=evolution-agent --bus-endpoint=localhost:40002 --config=/opt/das/config/das.json --seed=$SEED" &>> /tmp/ev.log &
 sleep 2
 docker update -m $AVAIABLE_RAM --memory-swap $AVAIABLE_RAM $(docker ps -q)
-echo "Done. Logs are in /tmp/ab.log /tmp/qa.log /tmp/ev.log"
+echo "Done. Logs are in /tmp/ab.log /tmp/qa.log /tmp/ev.log /tmp/lca.log"
 
 command_line=(src/scripts/run.sh evaluation_evolution localhost:35000 localhost:40002 35001:35999 /opt/das/config/das.json $CONTEXT_TAG "$TARGET_PREDICATE" "$TARGET_CONCEPT" $RENT $SPREAD_LOWER $SPREAD_UPPER $ELITISM $SELECTION $POPULATION_SIZE $NUM_GENERATIONS $NUM_ITERATIONS)
 echo

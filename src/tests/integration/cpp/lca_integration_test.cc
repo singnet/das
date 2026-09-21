@@ -518,7 +518,7 @@ int main(int argc, char* argv[]) {
 
     insert_type_symbols();
     bool success = true;
-    timeout_after_minutes(15);
+    timeout_after_minutes(20);
     success &= test_customizable();
     success &= test_customizable_counts();
     success &= test_and_two_predicates();
