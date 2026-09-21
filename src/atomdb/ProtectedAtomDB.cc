@@ -85,24 +85,30 @@ shared_ptr<atomdb_api_types::HandleSet> ProtectedAtomDB::query_for_incoming_set(
 }
 
 bool ProtectedAtomDB::atom_exists(const string& handle, shared_ptr<Keychain> keychain) {
-    if (!this->authorize_read(keychain, handle)) {
+    if (!this->backend->atom_exists(handle)) {
+        return false;
+    } else if (!this->authorize_read(keychain, handle)) {
         return false;
     }
-    return this->backend->atom_exists(handle);
+    return true;
 }
 
 bool ProtectedAtomDB::node_exists(const string& handle, shared_ptr<Keychain> keychain) {
-    if (!this->authorize_read(keychain, handle)) {
+    if (!this->backend->node_exists(handle)) {
+        return false;
+    } else if (!this->authorize_read(keychain, handle)) {
         return false;
     }
-    return this->backend->node_exists(handle);
+    return true;
 }
 
 bool ProtectedAtomDB::link_exists(const string& handle, shared_ptr<Keychain> keychain) {
-    if (!this->authorize_read(keychain, handle)) {
+    if (!this->backend->link_exists(handle)) {
+        return false;
+    } else if (!this->authorize_read(keychain, handle)) {
         return false;
     }
-    return this->backend->link_exists(handle);
+    return true;
 }
 
 set<string> ProtectedAtomDB::atoms_exist(const vector<string>& handles, shared_ptr<Keychain> keychain) {
