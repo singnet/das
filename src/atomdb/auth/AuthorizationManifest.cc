@@ -64,6 +64,10 @@ bool AuthorizationManifest::ensure_profile_loaded(const string& public_key) {
     }
 
     string access_key = access_document->get_access_key();
+    if (access_key != public_key) {
+        return false;
+    }
+
     auto profile = AuthorizationProfile::from_document(this->atomdb, access_document);
 
     lock_guard<mutex> lock(this->profiles_mutex);
