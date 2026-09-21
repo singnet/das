@@ -167,21 +167,12 @@ class ProtectedAtomDB : public AtomDB, public KeySensitiveAtomDB {
     [[noreturn]] static void raise_public_key_required(const string& method_name);
 
     /**
-     * @brief Returns the caller's public_key if the Keychain is valid and the
-     *        caller is in the authorization manifest.
+     * @brief Returns the caller's public_key if the Keychain has a key for this
+     *        AtomDB and the corresponding profile can be loaded.
      *
-     * @return public_key, or empty if public_key is missing or the manifest
-     *         has no access permissions for it.
+     * @return public_key, or empty if the caller is missing or has no profile.
      */
     string authorize_caller(const shared_ptr<Keychain>& keychain);
-
-    /**
-     * @brief Same as authorize_caller, plus a permission check on handle.
-     *
-     * @return public_key, or empty if the caller is unauthorized or denied on
-     *         handle.
-     */
-    string authorize_reader(const shared_ptr<Keychain>& keychain, const string& handle);
 
     /**
      * @brief Whether public_key may READ the atom identified by handle.
@@ -191,6 +182,7 @@ class ProtectedAtomDB : public AtomDB, public KeySensitiveAtomDB {
      * available.
      */
     inline bool can_read(const string& public_key, const string& handle) {
+        if (public_key.empty()) return false;
         return this->manifest->is_granted(public_key, handle, AuthorizationOperation::READ);
     }
 
@@ -202,7 +194,7 @@ class ProtectedAtomDB : public AtomDB, public KeySensitiveAtomDB {
      * @return false if atom is null or the associated profile denies READ.
      */
     inline bool can_read(const string& public_key, const shared_ptr<Atom>& atom) {
-        if (atom == nullptr) return false;
+        if (public_key.empty() || atom == nullptr) return false;
         return this->manifest->is_granted(public_key, atom, AuthorizationOperation::READ);
     }
 
@@ -217,6 +209,9 @@ class ProtectedAtomDB : public AtomDB, public KeySensitiveAtomDB {
      * @brief Returns the subset of original_handles that public_key may READ.
      */
     set<string> filter_handles(const set<string>& original_handles, const string& public_key);
+
+    vector<shared_ptr<Atom>> filter_atoms(const vector<shared_ptr<Atom>>& original_atoms,
+                                          const string& public_key);
 };
 
 }  // namespace atomdb
