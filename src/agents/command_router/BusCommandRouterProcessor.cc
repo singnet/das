@@ -268,7 +268,7 @@ void BusCommandRouterProcessor::handle_query(shared_ptr<BusCommandRouterProxy> p
 
     auto pm_proxy = make_shared<PatternMatchingQueryProxy>(query_tokens, context);
     pm_proxy->parameters = proxy->parameters;
-    forward_to_service(proxy, pm_proxy);
+    this->forward_to_service(proxy, pm_proxy);
 }
 
 void BusCommandRouterProcessor::handle_evolution(shared_ptr<BusCommandRouterProxy> proxy,
@@ -310,5 +310,5 @@ void BusCommandRouterProcessor::handle_evolution(shared_ptr<BusCommandRouterProx
                                                       context,
                                                       fitness_tag);
     apply_direct_evolution_parameters(evo_proxy->parameters, proxy->parameters);
-    forward_to_service(proxy, evo_proxy);
+    this->forward_to_service(proxy, evo_proxy);
 }

@@ -83,7 +83,7 @@ bool BusCommandRouterProxy::take_pending_eval_fitness(vector<string>& out) {
 }
 
 void BusCommandRouterProxy::send_eval_fitness_response(const vector<string>& fitness_values) {
-    to_remote_peer(QueryEvolutionProxy::EVAL_FITNESS_RESPONSE, fitness_values);
+    this->to_remote_peer(QueryEvolutionProxy::EVAL_FITNESS_RESPONSE, fitness_values);
 }
 
 void BusCommandRouterProxy::count_answer(const vector<string>& args) {

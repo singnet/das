@@ -195,7 +195,7 @@ bool CommandExecution::wait_fitness_response(int seq,
             this->fitness_response_.clear();
             return true;
         }
-        if (is_terminal(this->status_) || this->cancel_requested_ || this->ws_closed_) {
+        if (this->is_terminal(this->status_) || this->cancel_requested_ || this->ws_closed_) {
             return false;
         }
         lock.unlock();
