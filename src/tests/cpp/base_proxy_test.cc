@@ -29,7 +29,13 @@ TEST(BaseProxyTest, basics) {
     EXPECT_FALSE(proxy.get_waiting_flag());
     EXPECT_TRUE(proxy.is_cycle_start_allowed());
     EXPECT_TRUE(proxy.is_cycle_start_allowed());
+
+    vector<string> tokens1;
+    proxy.tokenize(tokens1);
     proxy.set_orchestration(1);
+    vector<string> tokens2;
+    proxy.tokenize(tokens2);
+
     EXPECT_TRUE(proxy.get_waiting_flag());
     EXPECT_FALSE(proxy.is_cycle_start_allowed());
     EXPECT_TRUE(proxy.get_waiting_flag());
@@ -40,6 +46,15 @@ TEST(BaseProxyTest, basics) {
     EXPECT_TRUE(proxy.is_cycle_start_allowed());
     EXPECT_FALSE(proxy.get_waiting_flag());
     EXPECT_FALSE(proxy.is_cycle_start_allowed());
+
+    TestProxy proxy1;
+    TestProxy proxy2;
+    proxy2.untokenize(tokens1);
+    proxy2.untokenize(tokens2);
+    EXPECT_FALSE(proxy1.get_waiting_flag());
+    EXPECT_TRUE(proxy1.is_cycle_start_allowed());
+    EXPECT_TRUE(proxy2.get_waiting_flag());
+    EXPECT_FALSE(proxy2.is_cycle_start_allowed());
 }
 
 int main(int argc, char** argv) {

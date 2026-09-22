@@ -214,6 +214,7 @@ void BaseProxy::set_orchestration_schema(ORCHESTRATION_SCHEMA_TYPE value) {
         RAISE_ERROR("Invalid orchestration tag: " + std::to_string(value));
     } else {
         this->orchestration_schema = value;
+        this->parameters[ORCHESTRATION_SCHEMA] = (unsigned int) value;
         if (value == NONE) {
             this->cycle_start_allowed_flag = true;
             this->waiting_to_start_new_cycle = false;
