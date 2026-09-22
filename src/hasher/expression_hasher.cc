@@ -38,6 +38,10 @@ char* terminal_hash(char* type, char* name) {
 
 char* composite_hash(char** elements, unsigned int nelements) {
     char hashable_string[MAX_HASHABLE_STRING_SIZE];
+    if (nelements == 0) {
+        hashable_string[0] = '\0';
+        return compute_hash(hashable_string);
+    }
     unsigned int total_size = 0;
     unsigned int element_size[nelements];
 

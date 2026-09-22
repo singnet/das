@@ -87,7 +87,7 @@ static unsigned int LINK_CREATION_COUNT = 10;
 static unsigned int LINK_CREATION_MAX_VISIT_ATTEMPTS = LINK_CREATION_COUNT;
 static unsigned int LINK_CREATION_MAX_ATTEMPTS = 500;
 static double ATTENTION_FOCUS_STRICTNESS = 0.30;
-static unsigned int RANDOM_SEED = 1236;
+static unsigned int RANDOM_SEED = 0;
 
 static string PRESET_LINKS_FILE_PREFIX = "/opt/das/_PRESET_LINKS_";
 static string PRESET_LINKS_FILE = PRESET_LINKS_FILE_PREFIX;
@@ -1414,12 +1414,12 @@ static void insert_type_symbols() {
 int main(int argc, char* argv[]) {
     STACK_TRACE();
     // clang-format off
-    if (argc != 16) {
+    if (argc != 17) {
         cerr << "Usage: " << argv[0]
              << " <client_endpoint> <server_endpoint> <start_port:end_port> <config_file>"
                 " <context_tag> <target_predicate> <target_concept>"
                 " <RENT_RATE> <SPREADING_RATE_LOWERBOUND> <SPREADING_RATE_UPPERBOUND>"
-                " <ELITISM_RATE> <SELECTION_RATE> <POPULATION_SIZE> <MAX_GENERATIONS> <NUM_ITERATIONS>" << endl;
+                " <ELITISM_RATE> <SELECTION_RATE> <POPULATION_SIZE> <MAX_GENERATIONS> <NUM_ITERATIONS> --seed=<RANDOM_SEED>" << endl;
         cerr << endl;
         cerr << "<target_predicate> <target_concept> are MeTTa expressions" << endl;
         cerr << endl;
@@ -1434,6 +1434,7 @@ int main(int argc, char* argv[]) {
         cerr << "    POPULATION_SIZE: 500" << endl;
         cerr << "    MAX_GENERATIONS: 20" << endl;
         cerr << "    NUM_ITERATIONS: 10" << endl;
+        cerr << "    RANDOM_SEED: 0" << endl;
         exit(1);
     }
     // clang-format on
@@ -1458,9 +1459,12 @@ int main(int argc, char* argv[]) {
     MAX_GENERATIONS = (unsigned int) Utils::string_to_int(string(argv[++cursor]));
     NUM_ITERATIONS = (unsigned int) Utils::string_to_int(string(argv[++cursor]));
 
-    if (cursor != 15) {
+    string seed_arg = string(argv[++cursor]);
+    const string seed_prefix = "--seed=";
+    if ((seed_arg.compare(0, seed_prefix.size(), seed_prefix) != 0) || (cursor != 16)) {
         RAISE_ERROR("Error setting up parameters");
     }
+    RANDOM_SEED = Utils::string_to_uint(seed_arg.substr(seed_prefix.size()));
 
     auto json_config = JsonConfigParser::load(config_file);
     auto atomdb_config = json_config.at_path("atomdb").get_or<JsonConfig>(JsonConfig());
@@ -1487,6 +1491,7 @@ int main(int argc, char* argv[]) {
     LOG_INFO("POPULATION_SIZE: " + to_string(POPULATION_SIZE));
     LOG_INFO("MAX_GENERATIONS: " + to_string(MAX_GENERATIONS));
     LOG_INFO("NUM_ITERATIONS: " + to_string(NUM_ITERATIONS));
+    LOG_INFO("RANDOM_SEED: " + to_string(RANDOM_SEED));
 
     shared_ptr<atoms::MettaParserActions> predicate_pa = make_shared<atoms::MettaParserActions>();
     shared_ptr<atoms::MettaParserActions> concept_pa = make_shared<atoms::MettaParserActions>();

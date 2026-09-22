@@ -1,11 +1,13 @@
 #pragma once
 
+#include <algorithm>
 #include <cstring>
 #include <queue>
 
 #include "Logger.h"
 #include "Operator.h"
 #include "QueryAnswer.h"
+#include "Utils.h"
 
 using namespace std;
 
@@ -103,8 +105,18 @@ class And : public Operator<N> {
             memcpy((void*) this->answer, (const void*) other.answer, N * sizeof(QueryAnswer*));
             return *this;
         }
-        bool operator<(const CandidateRecord& other) const { return (this->fitness < other.fitness); }
-        bool operator>(const CandidateRecord& other) const { return (this->fitness > other.fitness); }
+        bool operator<(const CandidateRecord& other) const {
+            if (this->fitness != other.fitness) {
+                return this->fitness < other.fitness;
+            }
+            for (unsigned int i = 0; i < N; i++) {
+                if (this->index[i] != other.index[i]) {
+                    return this->index[i] > other.index[i];
+                }
+            }
+            return false;
+        }
+        bool operator>(const CandidateRecord& other) const { return other < *this; }
         bool operator==(const CandidateRecord& other) const {
             for (unsigned int i = 0; i < N; i++) {
                 if (this->index[i] != other.index[i]) {
@@ -132,6 +144,7 @@ class And : public Operator<N> {
     priority_queue<CandidateRecord> border;
     unordered_set<CandidateRecord, hash_function> visited;
     bool all_answers_arrived[N];
+    bool inputs_ordered;
     bool no_more_answers_to_arrive;
     thread* operator_thread;
     unsigned int query_answer_count;
@@ -147,6 +160,7 @@ class And : public Operator<N> {
             this->all_answers_arrived[i] = false;
         }
         this->no_more_answers_to_arrive = false;
+        this->inputs_ordered = false;
         this->query_answer_count = 0;
         if (this->not_operator_flag) {
             this->id = "AndNot(";
@@ -166,6 +180,16 @@ class And : public Operator<N> {
     }
 
     bool ready_to_process_candidate() {
+        if (Utils::reproducible_seed()) {
+            // Wait until every clause is complete. Combining a prefix depends on which
+            // clause thread delivered answers first, so a fixed seed would not repeat.
+            for (unsigned int i = 0; i < N; i++) {
+                if (!this->all_answers_arrived[i]) {
+                    return false;
+                }
+            }
+            return true;
+        }
         for (unsigned int i = 0; i < this->num_and_clauses; i++) {
             if ((!this->all_answers_arrived[i]) &&
                 (this->query_answer[i].size() <= (this->next_input_to_process[i] + 1))) {
@@ -180,6 +204,24 @@ class And : public Operator<N> {
         } else {
             return true;
         }
+    }
+
+    void order_inputs() {
+        if (this->inputs_ordered || !Utils::reproducible_seed()) {
+            this->inputs_ordered = true;
+            return;
+        }
+        for (unsigned int i = 0; i < N; i++) {
+            std::sort(this->query_answer[i].begin(),
+                      this->query_answer[i].end(),
+                      [](QueryAnswer* left, QueryAnswer* right) {
+                          if (left->importance != right->importance) {
+                              return left->importance > right->importance;
+                          }
+                          return left->compute_hash() < right->compute_hash();
+                      });
+        }
+        this->inputs_ordered = true;
     }
 
     void ingest_newly_arrived_answers() {
@@ -324,6 +366,8 @@ class And : public Operator<N> {
                 }
                 ingest_newly_arrived_answers();
             } while (!ready_to_process_candidate());
+
+            order_inputs();
 
             if (processed_all_input()) {
                 bool all_finished_flag = true;

@@ -6,6 +6,7 @@
 #include "Logger.h"
 #include "Operator.h"
 #include "QueryAnswer.h"
+#include "Utils.h"
 
 using namespace std;
 
@@ -138,16 +139,17 @@ class Or : public Operator<N> {
     }
 
     unsigned int select_answer() {
-        unsigned int best_index;
+        unsigned int best_index = 0;
         double best_importance = -1;
         for (unsigned int i = 0; i < N; i++) {
             if (this->next_input_to_process[i] < this->query_answer[i].size()) {
-                if ((this->query_answer[i][this->next_input_to_process[i]]->importance >
-                     best_importance) ||
-                    ((this->query_answer[i][this->next_input_to_process[i]]->importance ==
-                      best_importance) &&
-                     Utils::flip_coin())) {
-                    best_importance = this->query_answer[i][this->next_input_to_process[i]]->importance;
+                double importance = this->query_answer[i][this->next_input_to_process[i]]->importance;
+                // A fixed seed keeps the lower clause index. Otherwise a coin flip
+                // chooses which tied clause is emitted.
+                bool random_tie =
+                    (importance == best_importance) && !Utils::reproducible_seed() && Utils::flip_coin();
+                if ((importance > best_importance) || random_tie) {
+                    best_importance = importance;
                     best_index = i;
                 }
             }

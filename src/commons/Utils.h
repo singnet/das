@@ -117,9 +117,11 @@ class Utils {
         static void lock_random_generator();
         static void unlock_random_generator();
         static std::mt19937* get_random_generator();
+        static bool reproducible_seed();
 
        private:
         static std::mt19937* random_generator;
+        static unsigned int random_seed;
         static mutex random_generator_mutex;
     };
 
@@ -135,6 +137,12 @@ class Utils {
      * methods with random behavior. If seed == 0, the machine clock is used instead.
      */
     static void init_random(unsigned int seed);
+    /**
+     * True when init_random() was given a nonzero seed. Tie-breaks then follow a stable
+     * order so a run can be repeated. A zero seed uses the clock, and tie-breaks draw
+     * from that generator. False when init_random() has not been called.
+     */
+    static bool reproducible_seed();
     static bool flip_coin(double true_probability = 0.5);
     static unsigned int uint_rand(unsigned int open_upper_bound);
     static unsigned int uint_rand(unsigned int closed_lower_bound, unsigned int open_upper_bound);
