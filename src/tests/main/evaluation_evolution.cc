@@ -1414,12 +1414,12 @@ static void insert_type_symbols() {
 int main(int argc, char* argv[]) {
     STACK_TRACE();
     // clang-format off
-    if (argc != 17) {
+    if ((argc != 16) && (argc != 17)) {
         cerr << "Usage: " << argv[0]
              << " <client_endpoint> <server_endpoint> <start_port:end_port> <config_file>"
                 " <context_tag> <target_predicate> <target_concept>"
                 " <RENT_RATE> <SPREADING_RATE_LOWERBOUND> <SPREADING_RATE_UPPERBOUND>"
-                " <ELITISM_RATE> <SELECTION_RATE> <POPULATION_SIZE> <MAX_GENERATIONS> <NUM_ITERATIONS> --seed=<RANDOM_SEED>" << endl;
+                " <ELITISM_RATE> <SELECTION_RATE> <POPULATION_SIZE> <MAX_GENERATIONS> <NUM_ITERATIONS> [--seed=<RANDOM_SEED>]" << endl;
         cerr << endl;
         cerr << "<target_predicate> <target_concept> are MeTTa expressions" << endl;
         cerr << endl;
@@ -1459,12 +1459,16 @@ int main(int argc, char* argv[]) {
     MAX_GENERATIONS = (unsigned int) Utils::string_to_int(string(argv[++cursor]));
     NUM_ITERATIONS = (unsigned int) Utils::string_to_int(string(argv[++cursor]));
 
-    string seed_arg = string(argv[++cursor]);
-    const string seed_prefix = "--seed=";
-    if ((seed_arg.compare(0, seed_prefix.size(), seed_prefix) != 0) || (cursor != 16)) {
+    if (argc == 17) {
+        string seed_arg = string(argv[++cursor]);
+        const string seed_prefix = "--seed=";
+        if ((seed_arg.compare(0, seed_prefix.size(), seed_prefix) != 0) || (cursor != 16)) {
+            RAISE_ERROR("Error setting up parameters");
+        }
+        RANDOM_SEED = Utils::string_to_uint(seed_arg.substr(seed_prefix.size()));
+    } else if (cursor != 15) {
         RAISE_ERROR("Error setting up parameters");
     }
-    RANDOM_SEED = Utils::string_to_uint(seed_arg.substr(seed_prefix.size()));
 
     auto json_config = JsonConfigParser::load(config_file);
     auto atomdb_config = json_config.at_path("atomdb").get_or<JsonConfig>(JsonConfig());
