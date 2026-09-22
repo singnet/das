@@ -47,6 +47,16 @@ class AuthorizationManifest {
     shared_ptr<AtomDB> atomdb;
     map<string, shared_ptr<AuthorizationProfile>> profiles;
     mutex profiles_mutex;
+
+    /**
+     * @brief Shared core behind both public is_granted overloads (atom vs handle).
+     *
+     * Looks up the profile and resolving the atom (if needed) and running the check.
+     */
+    bool is_granted(const string& public_key,
+                    AuthorizationOperation operation,
+                    shared_ptr<Atom> atom,
+                    const string& handle);
 };
 
 }  // namespace atomdb

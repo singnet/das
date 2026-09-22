@@ -1,5 +1,6 @@
 #pragma once
 
+#include <functional>
 #include <memory>
 #include <optional>
 #include <set>
@@ -165,38 +166,35 @@ class ProtectedAtomDB : public AtomDB, public KeySensitiveAtomDB {
     shared_ptr<AtomDB> backend;
     shared_ptr<AuthorizationManifest> manifest;
 
-    [[noreturn]] static void raise_public_key_required(const string& method_name);
+    [[noreturn]] static void raise_keychain_required(const string& method_name);
 
     /**
-     * @brief Returns the caller's public_key if the Keychain has a key for this
-     *        AtomDB and the corresponding profile can be loaded.
+     * @brief Returns the caller's public key when the Keychain identifies the caller
+     *        and its authorization profile is available.
      *
-     * Used by callers that don't have a single handle to check up front
-     * (e.g. pattern queries, batch existence checks) and instead filter
-     * a result set after fetching it from the backend.
-     *
-     * @return public_key, or nullopt if the caller is missing or has no profile.
+     * @return The caller's public key, or nullopt if the Keychain does not provide
+     *         a key for this AtomDB or the corresponding profile cannot be loaded.
      */
-    optional<string> identify_caller(const shared_ptr<Keychain>& keychain);
+    optional<string> try_get_public_key(const shared_ptr<Keychain>& keychain);
 
     /**
-     * @brief Like identify_caller(), but also requires READ permission on handle.
+     * @brief Authorizes READ access to a handle and returns the caller's public key.
      *
-     * Lets callers reject the request - and skip the backend call entirely -
-     * before ever touching the backend, instead of fetching data that would
-     * just be discarded afterwards.
-     *
-     * @return public_key, or nullopt if the caller is missing, has no profile,
-     *         or is not granted READ on handle.
+     * @return The caller's public key if the caller is identified and has READ
+     *         permission for the handle; otherwise, nullopt.
      */
     optional<string> authorize_read(const shared_ptr<Keychain>& keychain, const string& handle);
 
     /**
-     * @brief Whether public_key may READ the atom identified by handle.
+     * @brief Authorizes READ access to an atom and returns the caller's public key.
      *
-     * This overload resolves the atom from the backend before checking
-     * permissions. Prefer the Atom overload when the atom is already
-     * available.
+     * @return The caller's public key if the caller is identified and has READ
+     *         permission for the atom; otherwise, nullopt.
+     */
+    optional<string> authorize_read(const shared_ptr<Keychain>& keychain, const shared_ptr<Atom>& atom);
+
+    /**
+     * @brief Returns whether the caller may READ the specified handle.
      */
     inline bool can_read(const string& public_key, const string& handle) {
         if (public_key.empty()) return false;
@@ -204,11 +202,7 @@ class ProtectedAtomDB : public AtomDB, public KeySensitiveAtomDB {
     }
 
     /**
-     * @brief Whether public_key may READ atom.
-     *
-     * Avoids an additional backend lookup when the atom is already available.
-     *
-     * @return false if atom is null or the associated profile denies READ.
+     * @brief Returns whether the caller may READ the specified atom.
      */
     inline bool can_read(const string& public_key, const shared_ptr<Atom>& atom) {
         if (public_key.empty() || atom == nullptr) return false;
@@ -216,17 +210,47 @@ class ProtectedAtomDB : public AtomDB, public KeySensitiveAtomDB {
     }
 
     /**
-     * @brief Returns a filtered copy of original_handle_set containing only handles that public_key may
-     * READ.
+     * @brief Checks whether a handle exists and is readable by the caller.
+     *
+     * @return true if the handle exists in the backend and the caller is authorized
+     *         to read it; otherwise, false.
      */
-    shared_ptr<atomdb_api_types::HandleSet> filter_handle_set(
-        const shared_ptr<atomdb_api_types::HandleSet>& original_handle_set, const string& public_key);
+    bool check_handle(shared_ptr<Keychain> keychain,
+                      const string& handle,
+                      const function<bool(const string&)>& exists);
 
     /**
-     * @brief Returns the subset of original_handles that public_key may READ.
+     * @brief Returns the handles that exist and are readable by the caller.
+     *
+     * @return The subset of handles that exist in the backend and that the caller
+     *         is authorized to read. Returns an empty set if the caller cannot be
+     *         identified or its authorization profile cannot be loaded.
+     */
+    set<string> check_handles(shared_ptr<Keychain> keychain,
+                              const vector<string>& handles,
+                              const function<set<string>(const vector<string>&)>& exists_many);
+    /**
+     * @brief Filters a backend handle set to include only handles readable by the caller.
+     *
+     * @return A handle set containing only authorized handles. Returns an empty
+     *         handle set if the caller is not authorized.
+     */
+    shared_ptr<atomdb_api_types::HandleSet> filter_handle_set(
+        const optional<string>& public_key,
+        const function<shared_ptr<atomdb_api_types::HandleSet>()>& query);
+
+    /**
+     * @brief Filters a set of handles to include only those readable by the caller.
+     *
+     * @return The subset of original_handles that the caller is authorized to read.
      */
     set<string> filter_handles(const set<string>& original_handles, const string& public_key);
 
+    /**
+     * @brief Filters a collection of atoms to include only those readable by the caller.
+     *
+     * @return The subset of original_atoms that the caller is authorized to read.
+     */
     vector<shared_ptr<Atom>> filter_atoms(const vector<shared_ptr<Atom>>& original_atoms,
                                           const string& public_key);
 };
