@@ -1,4 +1,3 @@
-#define LOG_LEVEL DEBUG_LEVEL
 #include "Utils.h"
 
 #include <gtest/gtest.h>
@@ -151,6 +150,38 @@ TEST(LocalFileTestSuite, uint_rand) {
     EXPECT_THROW(Utils::uint_rand(2, 1), runtime_error);
 }
 
+TEST(LocalFileTestSuite, double_rand) {
+    double guard_epsilon = Utils::EPSILON;
+    Utils::EPSILON = 10e-2;
+    for (pair<double, double> p : vector<pair<double, double>>(
+             {{0, 1}, {-1, 1}, {-100, 100}})) {
+        for (unsigned int i = 0; i < 10000; i++) {
+            double closed_lower = p.first;
+            double open_upper = p.second;
+            double number = Utils::double_rand(closed_lower, open_upper);
+            EXPECT_TRUE(number >= closed_lower);
+            EXPECT_TRUE(number < open_upper);
+        }
+    }
+    bool exact_one = false;
+    for (unsigned int i = 0; i < 10000; i++) {
+        double number = Utils::double_rand();
+        EXPECT_TRUE(number >= 0.0);
+        EXPECT_TRUE(number <= 1.0);
+        if (number == 1.0) {
+            exact_one = true;
+        }
+    }
+    EXPECT_TRUE(exact_one);
+    Utils::EPSILON = guard_epsilon;
+    EXPECT_THROW(Utils::double_rand(0, 0), runtime_error);
+    EXPECT_THROW(Utils::double_rand(2, 2), runtime_error);
+    EXPECT_THROW(Utils::double_rand(2, 1), runtime_error);
+    EXPECT_THROW(Utils::double_rand(2, -1), runtime_error);
+    EXPECT_THROW(Utils::double_rand(-1, -2), runtime_error);
+    EXPECT_THROW(Utils::double_rand(-1, -1), runtime_error);
+}
+
 TEST(LocalFileTestSuite, double_is_zero) {
     EXPECT_TRUE(Utils::is_zero((double) 0));
     EXPECT_TRUE(Utils::is_zero(Utils::EPSILON - DBL_EPSILON));
@@ -159,6 +190,28 @@ TEST(LocalFileTestSuite, double_is_zero) {
     EXPECT_FALSE(Utils::is_zero(-Utils::EPSILON));
     EXPECT_FALSE(Utils::is_zero(Utils::EPSILON + DBL_EPSILON));
     EXPECT_FALSE(Utils::is_zero(-Utils::EPSILON - DBL_EPSILON));
+}
+
+TEST(LocalFileTestSuite, epsilon_equals) {
+    EXPECT_TRUE(Utils::epsilon_equals(0.0, 0.0));
+    EXPECT_TRUE(Utils::epsilon_equals(0.0, Utils::EPSILON));
+    EXPECT_TRUE(Utils::epsilon_equals(0.0, -Utils::EPSILON));
+    EXPECT_TRUE(Utils::epsilon_equals(1.0, 1.0 + (Utils::EPSILON - DBL_EPSILON)));
+    EXPECT_TRUE(Utils::epsilon_equals(1.0, 1.0 - (Utils::EPSILON - DBL_EPSILON)));
+    EXPECT_FALSE(Utils::epsilon_equals(0.0, Utils::EPSILON + DBL_EPSILON));
+    EXPECT_FALSE(Utils::epsilon_equals(0.0, -Utils::EPSILON - DBL_EPSILON));
+    EXPECT_FALSE(Utils::epsilon_equals(1.0, 1.0 + 2 * Utils::EPSILON));
+    EXPECT_FALSE(Utils::epsilon_equals(1.0, 1.0 - 2 * Utils::EPSILON));
+
+    double guard_epsilon = Utils::EPSILON;
+    Utils::EPSILON = 10e-2;
+    for (unsigned int i = 0; i < 10000; i++) {
+        double v1 = Utils::double_rand(-1.0, 1.0);
+        double v2 = Utils::double_rand(-1.0, 1.0);
+        double diff = abs(v2 - v1);
+        EXPECT_TRUE((diff < Utils::EPSILON) == Utils::epsilon_equals(v1, v2));
+    }
+    Utils::EPSILON = guard_epsilon;
 }
 
 int main(int argc, char** argv) {
