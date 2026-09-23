@@ -15,6 +15,7 @@ AtomDBUtils::~AtomDBUtils() {}
 // Public methods
 
 void AtomDBUtils::reachable_terminal_set(set<string>& output, const string& handle, bool metta_mapping) {
+    STACK_TRACE();
     auto atom = AtomDBSingleton::get_instance()->get_atom(handle);
     if (atom != nullptr) {
         if (Atom::is_node(atom)) {
@@ -27,6 +28,7 @@ void AtomDBUtils::reachable_terminal_set(set<string>& output, const string& hand
 }
 
 string AtomDBUtils::handle_to_metta(const string& handle, shared_ptr<Keychain> keychain) {
+    STACK_TRACE();
     map<string, string> not_used;
     return handle_to_metta_recursion(handle, not_used, false, keychain);
 }
@@ -34,7 +36,30 @@ string AtomDBUtils::handle_to_metta(const string& handle, shared_ptr<Keychain> k
 string AtomDBUtils::handle_to_metta(const string& handle,
                                     map<string, string>& mapping,
                                     shared_ptr<Keychain> keychain) {
+    STACK_TRACE();
     return handle_to_metta_recursion(handle, mapping, true, keychain);
+}
+
+string AtomDBUtils::get_node_name(const string& handle) {
+    STACK_TRACE();
+    auto node = AtomDBSingleton::get_instance()->get_node(handle);
+    if (node == nullptr) {
+        return "";
+    } else {
+        return node->name;
+    }
+}
+
+double AtomDBUtils::get_strength(const string& handle, const string& strength_tag) {
+    STACK_TRACE();
+    double answer = 1.0;
+    auto atom = AtomDBSingleton::get_instance()->get_atom(handle);
+    if (atom == nullptr) {
+        RAISE_ERROR("Atom does not exist: " + handle);
+    } else {
+        answer = atom->custom_attributes.get_or<double>(strength_tag, 1.0);
+    }
+    return answer;
 }
 
 // -------------------------------------------------------------------------------------------------

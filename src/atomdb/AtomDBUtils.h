@@ -65,6 +65,23 @@ class AtomDBUtils {
     static string handle_to_metta(const string& handle,
                                   map<string, string>& mapping,
                                   shared_ptr<Keychain> keychain = nullptr);
+
+    /**
+     * Return a node's name or "" if it doesn't exist.
+     *
+     * @param handle Handle of the node whose name is to be returned.
+     * @return a node's name or "" if it doesn't exist.
+     */
+    static string get_node_name(const string& handle);
+
+    /**
+     * Return an atom's strength or raises if it doesn't exist.
+     *
+     * @param handle Handle of the atom whose strength is to be returned.
+     * @return an atom's strength or raises if it doesn't exist.
+     */
+    static double get_strength(const string& handle, const string& strength_tag = "strength");
+
 };
 
 }  // namespace atomdb

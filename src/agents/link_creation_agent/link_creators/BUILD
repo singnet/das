@@ -12,6 +12,7 @@ cc_library(
         "//agents/query_engine:pattern_matching_query_proxy",
         "//agents/query_engine:query_answer",
         "//atomdb:atomdb_singleton",
+        "//atomdb:atomdbutils",
         "//attention_broker:attention_broker_lib",
         "//commons:commons_lib",
         "//hasher:hasher_lib",

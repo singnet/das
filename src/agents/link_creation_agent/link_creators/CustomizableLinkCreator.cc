@@ -240,7 +240,7 @@ void CustomizableLinkCreator::compute_counts(shared_ptr<QueryAnswer> base_query_
             } else {
                 d = 1;
                 for (string& h : query_answer->get_handles_vector()) {
-                    d *= get_strength(h);
+                    d *= AtomDBUtils::get_strength(h);
                 }
                 handle = query_answer->get(spec.strength_elements[i]);
                 insert_or_update(count_map[i], handle, d);
@@ -293,7 +293,7 @@ double CustomizableLinkCreator::compute_strength(shared_ptr<QueryAnswer> query_a
         case PRODUCT:
             answer = 1.0;
             for (QueryAnswerElement& element : spec.strength_elements) {
-                answer *= get_strength(query_answer->get(element));
+                answer *= AtomDBUtils::get_strength(query_answer->get(element));
             }
             break;
         case INTERSECTION_OVER_UNION:

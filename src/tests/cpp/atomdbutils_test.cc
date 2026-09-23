@@ -160,6 +160,20 @@ TEST(AtomDBTest, handle_to_metta) {
     db->delete_links({L1->handle(), L2->handle(), L3->handle(), L4->handle(), L5->handle()}, true);
 }
 
+TEST(AtomDBTest, atom_getters) {
+    auto db = AtomDBSingleton::get_instance();
+    auto A = new Node("Symbol", "A");
+    auto B = new Node("Symbol", "B");
+    auto L1 = new Link("Expression", {A->handle(), B->handle()}, true, {{"strength", 0.3}});
+    db->add_nodes({A, B});
+    db->add_link(L1);
+    EXPECT_EQ(AtomDBUtils::get_node_name(A->handle()), "A");
+    EXPECT_EQ(AtomDBUtils::get_node_name(B->handle()), "B");
+    EXPECT_TRUE(Utils::epsilon_equals(AtomDBUtils::get_strength(L1->handle()), 0.3));
+    db->delete_links({L1->handle()}, true);
+}
+
+
 int main(int argc, char** argv) {
     ::testing::InitGoogleTest(&argc, argv);
     Utils::init_random(0);

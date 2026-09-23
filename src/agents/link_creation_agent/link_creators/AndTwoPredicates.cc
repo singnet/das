@@ -1,4 +1,5 @@
 #include "AndTwoPredicates.h"
+#include "AtomDBUtils.h"
 
 #include "tags.h"
 
@@ -42,7 +43,7 @@ LinkCreationStats AndTwoPredicates::create(shared_ptr<QueryAnswer> query_answer)
                 }
                 double strength = 1;
                 for (string& h : query_answer->get_handles_vector()) {
-                    strength *= get_strength(h);
+                    strength *= AtomDBUtils::get_strength(h);
                 }
                 string new_predicate_handle = Hasher::link_handle(EXPRESSION, targets);
                 AddLinkStatus add_status =
