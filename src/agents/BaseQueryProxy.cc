@@ -88,6 +88,11 @@ bool BaseQueryProxy::finished_cycle() {
     return (this->is_aborting() || (BaseProxy::finished_cycle() && this->answer_queue.empty()));
 }
 
+bool BaseQueryProxy::finished_cycle(bool disregard_answer_queue) {
+    lock_guard<recursive_mutex> semaphore(this->api_mutex);
+    return (this->is_aborting() || (BaseProxy::finished_cycle() && (disregard_answer_queue || this->answer_queue.empty())));
+}
+
 vector<string> BaseQueryProxy::get_built_atoms() {
     lock_guard<recursive_mutex> semaphore(this->api_mutex);
     return this->built_atoms;
@@ -270,9 +275,10 @@ void BaseQueryProxy::built_atoms_bundle(const vector<string>& args) {
     lock_guard<recursive_mutex> semaphore(this->api_mutex);
     if (!this->is_aborting()) {
         if (args.size() == 0) {
-            LOG_INFO("Disregarding empty built atoms answer bundle");
+            LOG_DEBUG("Disregarding empty built atoms answer bundle");
         } else {
             for (auto handle : args) {
+                LOG_INFO("NEW LINK: [" << std::fixed << std::setprecision(2) << AtomDBUtils::get_strength(handle) << "] " << AtomDBUtils::handle_to_metta(handle));
                 this->built_atoms.push_back(handle);
             }
         }

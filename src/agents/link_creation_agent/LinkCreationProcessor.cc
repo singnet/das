@@ -68,7 +68,7 @@ void LinkCreationProcessor::thread_process_one_query(shared_ptr<StoppableThread>
         proxy->untokenize(proxy->args);
         string command = proxy->get_command();
         if (command == ServiceBus::LINK_CREATION) {
-            LOG_INFO("Proxy: " << proxy->to_string());
+            LOG_INFO("(Thread: " + std::to_string(gettid()) + ") Proxy: " << proxy->to_string());
             this->link_creation(monitor, proxy);
         } else {
             RAISE_ERROR("Invalid command " + command + " in LinkCreationProcessor");
@@ -182,7 +182,7 @@ void LinkCreationProcessor::link_creation(shared_ptr<StoppableThread> monitor,
                     count_created += stats.created;
                     count_used_query_answers++;
                     count_query_answers_in_cycle++;
-                    LOG_DEBUG("Created links: " + std::to_string(count_query_answers_in_cycle));
+                    LOG_DEBUG("Answers used to create links: " + std::to_string(count_query_answers_in_cycle));
                     unproductive_visit = 0;
                     visit_attempts = 0;
                     proxy->push(query_answer);

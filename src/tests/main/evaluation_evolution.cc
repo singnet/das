@@ -144,13 +144,14 @@ static shared_ptr<LinkCreationProxy> issue_lca_query(
     LinkCreator& link_creator,
     BaseProxy::ORCHESTRATION_SCHEMA_TYPE orchestration) {
 
+    // orchestration = BaseProxy::NONE; // XXXXX
     auto proxy = make_shared<LinkCreationProxy>(query_tokens, context, link_creator_tag, orchestration);
     proxy->parameters[LinkCreationProxy::LINK_CREATOR_EXTRA_PARAMETERS] = (string) link_creator.extra_parameters();
     proxy->parameters[LinkCreationProxy::MAX_SUCCESSFUL_CREATION_PER_ROUND] = (unsigned int) 10;
     proxy->parameters[LinkCreationProxy::MAX_UNPRODUCTIVE_VISITS_PER_ROUND] = (unsigned int) 500;
     proxy->parameters[LinkCreationProxy::MAX_VISIT_ATTEMPTS_PER_ROUND] = (unsigned int) 10;
     proxy->parameters[LinkCreationProxy::MAX_ROUNDS] = (unsigned int) 0;
-    proxy->parameters[LinkCreationProxy::LINK_CREATION_STRENGTH_THRESHOLD] = (double) 0.1;
+    proxy->parameters[LinkCreationProxy::LINK_CREATION_STRENGTH_THRESHOLD] = (double) 0.2; // 0.1;
     proxy->parameters[LinkCreationProxy::LINK_CREATION_LOG_FILE_NAME] = (string) "_new_links.txt";
     proxy->parameters[LinkCreationProxy::LOG_NEW_LINKS] = (bool) true;
     proxy->parameters[PatternMatchingQueryProxy::MAX_ANSWERS] = (unsigned int) 0;
@@ -222,8 +223,8 @@ static void query_evolution(
     proxy->parameters[PatternMatchingQueryProxy::UNIQUE_VALUE_FLAG] = false;
     proxy->parameters[PatternMatchingQueryProxy::COUNT_FLAG] = false;
     proxy->parameters[QueryEvolutionProxy::POPULATION_SIZE] = (unsigned int) POPULATION_SIZE;
-    proxy->parameters[QueryEvolutionProxy::MAX_GENERATIONS] = (unsigned int) MAX_GENERATIONS;
-    proxy->parameters[QueryEvolutionProxy::ELITISM_RATE] = (double) ELITISM_RATE;
+    proxy->parameters[QueryEvolutionProxy::MAX_GENERATIONS] = (unsigned int) MAX_GENERATIONS; // XXXXX
+    proxy->parameters[QueryEvolutionProxy::ELITISM_RATE] = (double) ELITISM_RATE; // XXXXX
     proxy->parameters[QueryEvolutionProxy::SELECTION_RATE] = (double) SELECTION_RATE;
 
     bus->issue_bus_command(proxy);
@@ -474,31 +475,41 @@ static void run(const string& context_tag) {
                                                     CustomizableLinkCreator::INTERSECTION_OVER_UNION,
                                                     {make_equivalence_count_query("QueryAnswerElement($Concept1)"), make_equivalence_count_query("QueryAnswerElement($Concept2)")});
     evaluation_link_creator.add_link_specification({QueryAnswerElement(PREDICATE), QueryAnswerElement(CONCEPT)},
-                                                   {QueryAnswerElement(1), QueryAnswerElement(2)},
+                                                   {QueryAnswerElement(0), QueryAnswerElement(1)},
                                                    EVALUATION_TAG,
                                                    CustomizableLinkCreator::PRODUCT,
                                                    {});
 
-    auto proxy_and_two_predicates = issue_lca_query(make_implication_query(), context, LinkCreatorRegistry::AND_TWO_PREDICATES, and_two_predicates, BaseProxy::SYNC_ON_CYCLE_START);
-    auto proxy_implication = issue_lca_query(make_implication_query(), context, LinkCreatorRegistry::CUSTOMIZABLE, implication_link_creator, BaseProxy::SYNC_ON_CYCLE_START);
-    auto proxy_equivalence = issue_lca_query(make_equivalence_query(), context, LinkCreatorRegistry::CUSTOMIZABLE, equivalence_link_creator, BaseProxy::SYNC_ON_CYCLE_START);
-    auto proxy_evaluation_predicate = issue_lca_query(make_evaluation_predicate_query(), context, LinkCreatorRegistry::CUSTOMIZABLE, evaluation_link_creator, BaseProxy::SYNC_ON_CYCLE_START);
-    auto proxy_evaluation_concept = issue_lca_query(make_evaluation_concept_query(), context, LinkCreatorRegistry::CUSTOMIZABLE, evaluation_link_creator, BaseProxy::SYNC_ON_CYCLE_START);
+    vector<shared_ptr<LinkCreationProxy>> lca_proxy = {
+        issue_lca_query(make_implication_query(), context, LinkCreatorRegistry::AND_TWO_PREDICATES, and_two_predicates, BaseProxy::SYNC_ON_CYCLE_START),
+        issue_lca_query(make_implication_query(), context, LinkCreatorRegistry::CUSTOMIZABLE, implication_link_creator, BaseProxy::SYNC_ON_CYCLE_START),
+        issue_lca_query(make_equivalence_query(), context, LinkCreatorRegistry::CUSTOMIZABLE, equivalence_link_creator, BaseProxy::SYNC_ON_CYCLE_START),
+        issue_lca_query(make_evaluation_predicate_query(), context, LinkCreatorRegistry::CUSTOMIZABLE, evaluation_link_creator, BaseProxy::SYNC_ON_CYCLE_START),
+        issue_lca_query(make_evaluation_concept_query(), context, LinkCreatorRegistry::CUSTOMIZABLE, evaluation_link_creator, BaseProxy::SYNC_ON_CYCLE_START)
+    };
 
+    //NUM_ITERATIONS = 10; // XXXXX
     for (unsigned int iteration = 1; iteration <= NUM_ITERATIONS; iteration++) {
         LOG_INFO("--------------------------------------------------------------------------------");
         LOG_INFO("Iteration " + to_string(iteration));
         LOG_INFO("--------------------------------------------------------------------------------");
         LOG_INFO("----- Building links");
-        AttentionBrokerClient::stimulate({{TARGET_PREDICATE_HANDLE, 1}, {TARGET_CONCEPT_HANDLE, 1}},
-                                         context);
-        proxy_and_two_predicates->allow_cycle_start();
-        proxy_implication->allow_cycle_start();
-        proxy_equivalence->allow_cycle_start();
-        proxy_evaluation_predicate->allow_cycle_start();
-        proxy_evaluation_concept->allow_cycle_start();
-        while (!proxy_implication->finished_cycle() || !proxy_equivalence->finished_cycle() || !proxy_evaluation_predicate->finished_cycle() || ! proxy_evaluation_concept->finished_cycle()) {
-            Utils::sleep();
+        AttentionBrokerClient::stimulate({{TARGET_PREDICATE_HANDLE, 1}, {TARGET_CONCEPT_HANDLE, 1}}, context);
+        for (auto proxy : lca_proxy) {
+            proxy->allow_cycle_start();
+        }
+        bool finished_flag = false;
+        while (!finished_flag) {
+            finished_flag = true;
+            for (auto proxy : lca_proxy) {
+                if (! proxy->finished_cycle(true)) {
+                    finished_flag = false;
+                    break;
+                }
+            }
+            if (!finished_flag) {
+                Utils::sleep();
+            }
         }
         LOG_INFO("----- Evolving query");
         query_evolution(query_to_evolve, correlation_query_template, iteration, context);

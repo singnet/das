@@ -180,8 +180,6 @@ class LinkCreator {
     inline void add_determiners(vector<string>& entry) { this->_buffer_determiners.push_back(entry); }
 
     AddLinkStatus add_or_update_link(const vector<string>& targets, double strength);
-    double get_strength(const string& handle);
-    string get_node_name(const string& handle);
     void save_link_metta(shared_ptr<Link> link);
 
     // ----------------------------------------------------------------------------------
