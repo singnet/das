@@ -56,6 +56,7 @@ jobs:
     runs-on:
       - self-hosted-withcache
       - ${{ matrix.platforms }}
+      - ${{ github.actor }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -92,6 +93,7 @@ jobs:
     runs-on:
       - self-hosted-withcache
       - ${{ matrix.platforms }}
+      - ${{ github.actor }}
     if: needs.determine-version.outputs.version_exists != 'true'
     steps:
       - name: Checkout code

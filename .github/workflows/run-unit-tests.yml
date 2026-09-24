@@ -19,6 +19,7 @@ jobs:
       - self-hosted
       - amd64
       - ${{ inputs.runner }}
+      - ${{ github.actor }}
     env:
       DAS_REDIS_HOSTNAME: localhost
       DAS_REDIS_PORT: 40020
