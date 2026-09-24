@@ -52,6 +52,7 @@ bool AuthorizationManifest::ensure_profile_loaded(const string& public_key) {
 
     string access_key = access_document->get_access_key();
     if (access_key != public_key) {
+        LOG_ERROR("Corrupted or misplaced access document for key: " + public_key);
         return false;
     }
 
@@ -68,17 +69,13 @@ bool AuthorizationManifest::is_granted(const string& public_key,
                                        AuthorizationOperation operation,
                                        shared_ptr<Atom> atom,
                                        const string& handle) {
-    shared_ptr<AuthorizationProfile> profile;
-    {
-        lock_guard<mutex> lock(this->profiles_mutex);
-        auto it = this->profiles.find(public_key);
-        if (it == this->profiles.end() || it->second == nullptr) return false;
-        profile = it->second;
-    }
+    lock_guard<mutex> lock(this->profiles_mutex);
+    auto it = this->profiles.find(public_key);
+    if (it == this->profiles.end() || it->second == nullptr) return false;
 
     if (atom == nullptr) {
         atom = this->atomdb->get_atom(handle);
         if (atom == nullptr) return false;
     }
-    return profile->is_granted(atom, operation);
+    return it->second->is_granted(atom, operation);
 }
