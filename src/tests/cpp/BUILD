@@ -884,18 +884,33 @@ cc_test(
 
 cc_test(
     name = "protected_atomdb_test",
-    size = "small",
+    size = "medium",
     srcs = ["protected_atomdb_test.cc"],
     copts = [
         "-Iexternal/gtest/googletest/include",
         "-Iexternal/gtest/googletest",
     ],
+    linkopts = [
+        "-L/usr/local/lib",
+        "-lhiredis_cluster",
+        "-lhiredis",
+        "-lmongocxx",
+        "-lbsoncxx",
+    ],
     linkstatic = 1,
     deps = [
         "//atomdb:protected_atomdb",
+        "//atomdb/auth:auth_lib",
+        "//atomdb/auth:keychain",
         "//atomdb/inmemorydb:inmemorydb_lib",
+        "//atomdb/redis_mongodb:redis_mongodb_lib",
         "//commons/atoms:atoms_lib",
+        "//hasher:hasher_lib",
+        "//tests/cpp/test_commons:in_memory_access_permission_types",
+        "//tests/cpp/test_commons:mock_animals_data_lib",
+        "//tests/cpp/test_commons:test_atomdb_json_config",
         "@com_github_google_googletest//:gtest_main",
+        "@mbedtls",
     ],
 )
 

@@ -5,6 +5,7 @@
 
 using namespace std;
 using namespace atomdb;
+using namespace atoms;
 
 void load_animals_data() {
     // Drop Redis and MongoDB databases
@@ -483,4 +484,133 @@ void load_animals_data() {
 
     LOG_INFO("Adding odd links to db...");
     db->add_links(links);
+}
+
+namespace {
+
+bool shares_concept_target(const Link& left, const Link& right) {
+    // targets[0] is Similarity or Inheritance. The rest are the concepts.
+    for (size_t i = 1; i < left.targets.size(); ++i) {
+        for (size_t j = 1; j < right.targets.size(); ++j) {
+            if (left.targets[i] == right.targets[j]) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+}  // namespace
+
+void load_animals_related_data(AtomDB& db) {
+    auto* redis_mongodb = dynamic_cast<RedisMongoDB*>(&db);
+
+    if (redis_mongodb == nullptr) {
+        return;
+    }
+
+    vector<vector<string>> index_entries = {{"_", "*", "*"}, {"_", "v1", "*"}, {"_", "*", "v2"}};
+    redis_mongodb->add_pattern_index_schema(
+        "LINK_TEMPLATE Expression 3 NODE Symbol Similarity VARIABLE v1 VARIABLE v2", index_entries);
+    redis_mongodb->add_pattern_index_schema(
+        "LINK_TEMPLATE Expression 3 NODE Symbol Inheritance VARIABLE v1 VARIABLE v2", index_entries);
+    redis_mongodb->add_pattern_index_schema(
+        "LINK_TEMPLATE Expression 3 NODE Symbol Related VARIABLE v1 VARIABLE v2", index_entries);
+
+    auto similarity = new Node("Symbol", "Similarity");
+    auto inheritance = new Node("Symbol", "Inheritance");
+    auto related = new Node("Symbol", "Related");
+
+    auto human = new Node("Symbol", "\"human\"");
+    auto monkey = new Node("Symbol", "\"monkey\"");
+    auto chimp = new Node("Symbol", "\"chimp\"");
+    auto ent = new Node("Symbol", "\"ent\"");
+    auto mammal = new Node("Symbol", "\"mammal\"");
+    auto animal = new Node("Symbol", "\"animal\"");
+    auto reptile = new Node("Symbol", "\"reptile\"");
+    auto snake = new Node("Symbol", "\"snake\"");
+    auto dinosaur = new Node("Symbol", "\"dinosaur\"");
+    auto triceratops = new Node("Symbol", "\"triceratops\"");
+    auto rhino = new Node("Symbol", "\"rhino\"");
+    auto earthworm = new Node("Symbol", "\"earthworm\"");
+    auto vine = new Node("Symbol", "\"vine\"");
+    auto plant = new Node("Symbol", "\"plant\"");
+
+    vector<Node*> nodes = {similarity,
+                           inheritance,
+                           related,
+                           human,
+                           monkey,
+                           chimp,
+                           snake,
+                           mammal,
+                           animal,
+                           reptile,
+                           earthworm,
+                           vine,
+                           dinosaur,
+                           triceratops,
+                           rhino,
+                           ent,
+                           plant};
+    LOG_INFO("Adding animal nodes to db...");
+    db.add_nodes(nodes);
+
+    vector<Link*> links;
+
+    links.push_back(new Link("Expression", {similarity->handle(), human->handle(), monkey->handle()}));
+    links.push_back(new Link("Expression", {similarity->handle(), human->handle(), chimp->handle()}));
+    links.push_back(new Link("Expression", {similarity->handle(), chimp->handle(), monkey->handle()}));
+    links.push_back(
+        new Link("Expression", {similarity->handle(), snake->handle(), earthworm->handle()}));
+    links.push_back(
+        new Link("Expression", {similarity->handle(), rhino->handle(), triceratops->handle()}));
+    links.push_back(new Link("Expression", {similarity->handle(), snake->handle(), vine->handle()}));
+    links.push_back(new Link("Expression", {similarity->handle(), human->handle(), ent->handle()}));
+    links.push_back(new Link("Expression", {similarity->handle(), monkey->handle(), human->handle()}));
+    links.push_back(new Link("Expression", {similarity->handle(), chimp->handle(), human->handle()}));
+    links.push_back(new Link("Expression", {similarity->handle(), monkey->handle(), chimp->handle()}));
+    links.push_back(
+        new Link("Expression", {similarity->handle(), earthworm->handle(), snake->handle()}));
+    links.push_back(
+        new Link("Expression", {similarity->handle(), triceratops->handle(), rhino->handle()}));
+    links.push_back(new Link("Expression", {similarity->handle(), vine->handle(), snake->handle()}));
+    links.push_back(new Link("Expression", {similarity->handle(), ent->handle(), human->handle()}));
+
+    // Same Inheritance links as load_animals_data().
+    links.push_back(new Link("Expression", {inheritance->handle(), human->handle(), mammal->handle()}));
+    links.push_back(new Link("Expression", {inheritance->handle(), monkey->handle(), mammal->handle()}));
+    links.push_back(new Link("Expression", {inheritance->handle(), chimp->handle(), mammal->handle()}));
+    links.push_back(new Link("Expression", {inheritance->handle(), mammal->handle(), animal->handle()}));
+    links.push_back(
+        new Link("Expression", {inheritance->handle(), reptile->handle(), animal->handle()}));
+    links.push_back(new Link("Expression", {inheritance->handle(), snake->handle(), reptile->handle()}));
+    links.push_back(
+        new Link("Expression", {inheritance->handle(), dinosaur->handle(), reptile->handle()}));
+    links.push_back(
+        new Link("Expression", {inheritance->handle(), triceratops->handle(), dinosaur->handle()}));
+    links.push_back(
+        new Link("Expression", {inheritance->handle(), earthworm->handle(), animal->handle()}));
+    links.push_back(new Link("Expression", {inheritance->handle(), rhino->handle(), mammal->handle()}));
+    links.push_back(new Link("Expression", {inheritance->handle(), vine->handle(), plant->handle()}));
+    links.push_back(new Link("Expression", {inheritance->handle(), ent->handle(), plant->handle()}));
+
+    LOG_INFO("Adding similarity and inheritance links to db...");
+    db.add_links(links);
+
+    // Related(link_i, link_j) when the two links share a concept. Predicate is
+    // skipped. Pairs are unordered: Related(A, B) is created, Related(B, A) is not.
+    vector<Link*> related_links;
+    for (size_t i = 0; i < links.size(); ++i) {
+        for (size_t j = i + 1; j < links.size(); ++j) {
+            if (!shares_concept_target(*links[i], *links[j])) {
+                continue;
+            }
+            related_links.push_back(
+                new Link("Expression", {related->handle(), links[i]->handle(), links[j]->handle()}));
+        }
+    }
+
+    LOG_INFO("Adding related links to db...");
+    db.add_links(related_links);
 }

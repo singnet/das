@@ -203,9 +203,7 @@ void LinkTemplate::processor_method(shared_ptr<StoppableThread> monitor) {
     shared_ptr<atomdb_api_types::HandleSet> handles;
     LOG_INFO("Fetching " + link_schema_handle + " from AtomDB");
     if (protected_atomdb != nullptr) {
-        handles = atomdb->query_for_pattern(this->link_schema);
-        // TODO __AUTH__ delete the line above and uncomment line below
-        // handles = protected_atomdb->query_for_pattern(this->link_schema, this->keychain);
+        handles = protected_atomdb->query_for_pattern(this->link_schema, this->keychain);
     } else {
         handles = atomdb->query_for_pattern(this->link_schema);
     }
