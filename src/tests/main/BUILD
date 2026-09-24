@@ -83,3 +83,14 @@ cc_library(
         "//commons:commons_lib",
     ],
 )
+
+cc_library(
+    name = "link_template_seed_check_lib",
+    srcs = ["link_template_seed_check.cc"],
+    deps = [
+        "//agents/query_engine:query_engine_lib",
+        "//atomdb:atomdb_singleton",
+        "//atomdb/inmemorydb:inmemorydb_lib",
+        "//commons:commons_lib",
+    ],
+)

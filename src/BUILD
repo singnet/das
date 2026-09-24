@@ -164,6 +164,25 @@ cc_binary(
 )
 
 cc_binary(
+    name = "link_template_seed_check",
+    srcs = [],
+    defines = ["BAZEL_BUILD"],
+    linkopts = [
+        "-L/usr/local/lib",
+        "-lhiredis_cluster",
+        "-lhiredis",
+        "-lmongocxx",
+        "-lbsoncxx",
+    ],
+    linkstatic = 1,
+    deps = [
+        "//commons:commons_lib",
+        "//tests/main:link_template_seed_check_lib",
+        "@mbedtls",
+    ],
+)
+
+cc_binary(
     name = "inference_toy_kb_generator",
     srcs = [],
     defines = ["BAZEL_BUILD"],
