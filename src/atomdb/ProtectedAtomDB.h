@@ -183,7 +183,7 @@ class ProtectedAtomDB : public AtomDB, public KeySensitiveAtomDB {
      * @return The caller's public key if the caller is identified and has READ
      *         permission for the handle; otherwise, nullopt.
      */
-    optional<string> authorize_read(const shared_ptr<Keychain>& keychain, const string& handle);
+    optional<string> authorize_read(const string& handle, const shared_ptr<Keychain>& keychain);
 
     /**
      * @brief Authorizes READ access to an atom and returns the caller's public key.
@@ -191,12 +191,12 @@ class ProtectedAtomDB : public AtomDB, public KeySensitiveAtomDB {
      * @return The caller's public key if the caller is identified and has READ
      *         permission for the atom; otherwise, nullopt.
      */
-    optional<string> authorize_read(const shared_ptr<Keychain>& keychain, const shared_ptr<Atom>& atom);
+    optional<string> authorize_read(const shared_ptr<Atom>& atom, const shared_ptr<Keychain>& keychain);
 
     /**
      * @brief Returns whether the caller may READ the specified handle.
      */
-    inline bool can_read(const string& public_key, const string& handle) {
+    inline bool can_read(const string& handle, const string& public_key) {
         if (public_key.empty()) return false;
         return this->manifest->is_granted(public_key, handle, AuthorizationOperation::READ);
     }
@@ -204,20 +204,10 @@ class ProtectedAtomDB : public AtomDB, public KeySensitiveAtomDB {
     /**
      * @brief Returns whether the caller may READ the specified atom.
      */
-    inline bool can_read(const string& public_key, const shared_ptr<Atom>& atom) {
+    inline bool can_read(const shared_ptr<Atom>& atom, const string& public_key) {
         if (public_key.empty() || atom == nullptr) return false;
         return this->manifest->is_granted(public_key, atom, AuthorizationOperation::READ);
     }
-
-    /**
-     * @brief Checks whether a handle exists and is readable by the caller.
-     *
-     * @return true if the handle exists in the backend and the caller is authorized
-     *         to read it; otherwise, false.
-     */
-    bool check_handle(shared_ptr<Keychain> keychain,
-                      const string& handle,
-                      const function<bool(const string&)>& exists);
 
     /**
      * @brief Returns the handles that exist and are readable by the caller.
@@ -226,9 +216,7 @@ class ProtectedAtomDB : public AtomDB, public KeySensitiveAtomDB {
      *         is authorized to read. Returns an empty set if the caller cannot be
      *         identified or its authorization profile cannot be loaded.
      */
-    set<string> check_handles(shared_ptr<Keychain> keychain,
-                              const vector<string>& handles,
-                              const function<set<string>(const vector<string>&)>& exists_many);
+    set<string> check_handles(shared_ptr<Keychain> keychain, const function<set<string>()>& exists_many);
     /**
      * @brief Filters a backend handle set to include only handles readable by the caller.
      *

@@ -25,7 +25,7 @@ bool AuthorizationManifest::is_granted(const string& public_key,
                                        shared_ptr<Atom> atom,
                                        AuthorizationOperation operation) {
     if (atom == nullptr) {
-        RAISE_ERROR("AuthorizationManifest::is_granted() requires a non-null atom");
+        RAISE_ERROR("AuthorizationManifest::is_granted() requires a non-null atom or a valid handle");
     }
     return this->is_granted(public_key, operation, atom, "");
 }
@@ -39,11 +39,10 @@ bool AuthorizationManifest::is_granted(const string& public_key,
 bool AuthorizationManifest::ensure_profile_loaded(const string& public_key) {
     if (public_key.empty()) return false;
 
-    {
-        lock_guard<mutex> lock(this->profiles_mutex);
-        if (this->profiles.find(public_key) != this->profiles.end()) {
-            return true;
-        }
+    lock_guard<mutex> lock(this->profiles_mutex);
+
+    if (this->profiles.find(public_key) != this->profiles.end()) {
+        return true;
     }
 
     auto access_document = this->atomdb->get_access_permissions(public_key);
@@ -56,13 +55,9 @@ bool AuthorizationManifest::ensure_profile_loaded(const string& public_key) {
         return false;
     }
 
-    auto profile = AuthorizationProfile::from_document(this->atomdb, access_document);
+    this->profiles.emplace(access_key,
+                           AuthorizationProfile::from_document(this->atomdb, access_document));
 
-    lock_guard<mutex> lock(this->profiles_mutex);
-    bool inserted = this->profiles.emplace(access_key, profile).second;
-    if (!inserted) {
-        RAISE_ERROR(string("Duplicate access_key in authorization manifest: ") + access_key);
-    }
     return true;
 }
 
