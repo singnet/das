@@ -322,7 +322,7 @@ void ProtectedAtomDB::raise_keychain_required(const string& method_name) {
 
 optional<string> ProtectedAtomDB::try_get_public_key(const shared_ptr<Keychain>& keychain) {
     string public_key = keychain ? keychain->get_public_key(this->uid_) : "";
-    if (!this->manifest->ensure_profile_loaded(public_key)) return nullopt;
+    if (public_key == "" || !this->manifest->ensure_profile_loaded(public_key)) return nullopt;
     return public_key;
 }
 
