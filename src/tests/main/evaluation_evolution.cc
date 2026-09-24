@@ -495,6 +495,7 @@ static void run(const string& context_tag) {
         LOG_INFO("--------------------------------------------------------------------------------");
         LOG_INFO("----- Building links");
         AttentionBrokerClient::stimulate({{TARGET_PREDICATE_HANDLE, 1}, {TARGET_CONCEPT_HANDLE, 1}}, context);
+        /*
         for (auto proxy : lca_proxy) {
             proxy->allow_cycle_start();
         }
@@ -508,6 +509,13 @@ static void run(const string& context_tag) {
                 }
             }
             if (!finished_flag) {
+                Utils::sleep();
+            }
+        }
+        */
+        for (auto proxy : lca_proxy) {
+            proxy->allow_cycle_start();
+            while (! proxy->finished_cycle(true)) {
                 Utils::sleep();
             }
         }
