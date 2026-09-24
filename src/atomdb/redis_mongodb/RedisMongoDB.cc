@@ -1301,9 +1301,7 @@ void RedisMongoDB::load_protection_mode() {
 }
 
 string RedisMongoDB::protection_config_document_id() const {
-    auto _id = Hasher::plain_string_hash(MONGODB_CONFIG_COLLECTION_NAME);
-    LOG_INFO("------> CONFIG_ID: " + _id);
-    return _id;
+    return Hasher::plain_string_hash(MONGODB_CONFIG_COLLECTION_NAME);
 }
 
 void RedisMongoDB::load_pattern_index_schema() {
