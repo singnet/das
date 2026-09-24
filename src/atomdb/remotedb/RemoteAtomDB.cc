@@ -414,49 +414,22 @@ void RemoteAtomDB::release_caches(const LinkSchema& link_schema, bool persist, b
     }
 }
 
-// AtomDBKeySensitive API
+// -------- KeySensitiveAtomDB API
 
 shared_ptr<Atom> RemoteAtomDB::get_atom(const string& handle, shared_ptr<Keychain> keychain) {
-    for (auto& [uid, peer] : writable_peers_) {
-        auto protected_atomdb = dynamic_pointer_cast<AtomDBKeySensitive>(peer->get_remote_atomdb());
-
-        shared_ptr<Atom> atom;
-        if (protected_atomdb) {
-            atom = protected_atomdb->get_atom(handle, keychain);
-        } else {
-            atom = peer->get_atom(handle);
-        }
-
-        if (atom) {
-            LOG_DEBUG("get_atom(" << handle << ") fetched from writable peer [" << uid << "]");
-            return atom;
-        }
-    }
+    auto atom = this->find_atom_in_peers(writable_peers_, handle, keychain);
+    if (atom) return atom;
 
     for (auto& [uid, peer] : readonly_peers_) {
-        // Skip protected peers. A cache hit could expose data fetched under another caller's Keychain.
-        // Authorization must be evaluated per request.
-        if (dynamic_pointer_cast<AtomDBKeySensitive>(peer->get_remote_atomdb())) continue;
-
+        // get_cached_atom is an unauthenticated in-memory probe (RemoteAtomDBPeer only).
+        // Protected backends go through get_atom(handle, keychain) in the loop below.
+        if (dynamic_pointer_cast<KeySensitiveAtomDB>(peer->get_remote_atomdb())) continue;
         auto atom = peer->get_cached_atom(handle);
         if (atom) return atom;
     }
 
-    for (auto& [uid, peer] : readonly_peers_) {
-        auto protected_atomdb = dynamic_pointer_cast<AtomDBKeySensitive>(peer->get_remote_atomdb());
-
-        shared_ptr<Atom> atom;
-        if (protected_atomdb) {
-            atom = protected_atomdb->get_atom(handle, keychain);
-        } else {
-            atom = peer->get_atom(handle);
-        }
-
-        if (atom) {
-            LOG_DEBUG("get_atom(" << handle << ") fetched from [" << uid << "]");
-            return atom;
-        }
-    }
+    auto atom = this->find_atom_in_peers(readonly_peers_, handle, keychain);
+    if (atom) return atom;
 
     LOG_DEBUG("get_atom(" << handle << ") not found in any peer");
 
@@ -464,11 +437,11 @@ shared_ptr<Atom> RemoteAtomDB::get_atom(const string& handle, shared_ptr<Keychai
 }
 
 shared_ptr<Node> RemoteAtomDB::get_node(const string& handle, shared_ptr<Keychain> keychain) {
-    return nullptr;
+    return dynamic_pointer_cast<Node>(this->get_atom(handle, keychain));
 }
 
 shared_ptr<Link> RemoteAtomDB::get_link(const string& handle, shared_ptr<Keychain> keychain) {
-    return nullptr;
+    return dynamic_pointer_cast<Link>(this->get_atom(handle, keychain));
 }
 
 vector<shared_ptr<Atom>> RemoteAtomDB::get_matching_atoms(bool is_toplevel,
@@ -485,7 +458,7 @@ shared_ptr<atomdb_api_types::HandleSet> RemoteAtomDB::query_for_pattern(const Li
     LOG_DEBUG("query_for_pattern(" << link_schema.handle() << ") fan-out to " << remote_db_.size() << " peers");
 
     for (auto& [uid, peer] : remote_db_) {
-        auto protected_atomdb = dynamic_pointer_cast<AtomDBKeySensitive>(peer->get_remote_atomdb());
+        auto protected_atomdb = dynamic_pointer_cast<KeySensitiveAtomDB>(peer->get_remote_atomdb());
 
         shared_ptr<atomdb_api_types::HandleSet> handle_set;
         if (protected_atomdb) {
@@ -493,7 +466,7 @@ shared_ptr<atomdb_api_types::HandleSet> RemoteAtomDB::query_for_pattern(const Li
         } else {
             handle_set = peer->query_for_pattern(handle);
         }
-        
+
         if (!handle_set) continue;
 
         // Preserve per-handle assignments / metta expressions for peers so the
@@ -506,7 +479,9 @@ shared_ptr<atomdb_api_types::HandleSet> RemoteAtomDB::query_for_pattern(const Li
         while (char* h = it->next()) {
             string handle(h);
             if (seen.insert(handle).second) {
-                result->add_handle(handle, handle_set->get_metta_expressions_by_handle(handle), handle_set->get_assignments_by_handle(handle));
+                result->add_handle(handle,
+                                   handle_set->get_metta_expressions_by_handle(handle),
+                                   handle_set->get_assignments_by_handle(handle));
             }
         }
     }
@@ -624,3 +599,24 @@ size_t RemoteAtomDB::node_count(shared_ptr<Keychain> keychain) const { return 0;
 size_t RemoteAtomDB::link_count(shared_ptr<Keychain> keychain) const { return 0; }
 
 size_t RemoteAtomDB::atom_count(shared_ptr<Keychain> keychain) const { return 0; }
+
+shared_ptr<Atom> RemoteAtomDB::find_atom_in_peers(
+    vector<pair<string, shared_ptr<RemoteAtomDBPeer>>> peers,
+    const string& handle,
+    shared_ptr<Keychain> keychain) {
+    for (auto& [uid, peer] : peers) {
+        auto protected_atomdb = dynamic_pointer_cast<KeySensitiveAtomDB>(peer->get_remote_atomdb());
+
+        shared_ptr<Atom> atom;
+        if (protected_atomdb) {
+            atom = protected_atomdb->get_atom(handle, keychain);
+        } else {
+            atom = peer->get_atom(handle);
+        }
+
+        if (atom) {
+            LOG_DEBUG("get_atom(" << handle << ") fetched from peer [" << uid << "]");
+            return atom;
+        }
+    }
+}
