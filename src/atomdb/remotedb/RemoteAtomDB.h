@@ -165,10 +165,6 @@ class RemoteAtomDB : public AtomDB, public KeySensitiveAtomDB {
     // Shared by both constructors so the config and DI paths stay consistent.
     void finalize_peer_lists();
 
-    shared_ptr<Atom> find_atom_in_peers(vector<pair<string, shared_ptr<RemoteAtomDBPeer>>> peers,
-                                        const string& handle,
-                                        shared_ptr<Keychain> keychain);
-
     map<string, shared_ptr<RemoteAtomDBPeer>> remote_db_;
     // Immutable after construction (peer map never changes).
     vector<pair<string, shared_ptr<RemoteAtomDBPeer>>> writable_peers_;

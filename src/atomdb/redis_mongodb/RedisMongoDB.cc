@@ -81,6 +81,7 @@ shared_ptr<atomdb_api_types::AccessPermissionDocument> RedisMongoDB::get_access_
     auto access_permission_doc = this->get_document(handle, MONGODB_ACCESS_PERMISSIONS_COLLECTION_NAME);
 
     if (access_permission_doc == nullptr) {
+        LOG_DEBUG("AccessPermissionDocument not found for key: " + public_key);
         return nullptr;
     }
 
@@ -1300,7 +1301,9 @@ void RedisMongoDB::load_protection_mode() {
 }
 
 string RedisMongoDB::protection_config_document_id() const {
-    return Hasher::plain_string_hash(MONGODB_CONFIG_COLLECTION_NAME);
+    auto _id = Hasher::plain_string_hash(MONGODB_CONFIG_COLLECTION_NAME);
+    LOG_INFO("------> CONFIG_ID: " + _id);
+    return _id;
 }
 
 void RedisMongoDB::load_pattern_index_schema() {
