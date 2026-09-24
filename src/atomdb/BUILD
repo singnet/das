@@ -49,8 +49,8 @@ cc_library(
 )
 
 cc_library(
-    name = "atomdb_key_sensitive",
-    hdrs = ["AtomDBKeySensitive.h"],
+    name = "key_sensitive_atomdb",
+    hdrs = ["KeySensitiveAtomDB.h"],
     includes = ["."],
     deps = [
         ":atomdb_api_types",
@@ -102,7 +102,7 @@ cc_library(
     deps = [
         ":atomdb",
         ":atomdb_api_types",
-        ":atomdb_key_sensitive",
+        ":key_sensitive_atomdb",
         "//atomdb/auth:auth_lib",
         "//atomdb/inmemorydb:inmemorydb_api_types",
         "//commons:commons_lib",

@@ -120,7 +120,7 @@ shared_ptr<AtomDB> AtomDBFactory::wrap_if_protected(shared_ptr<AtomDB> atomdb) {
 
     if (mode == atomdb_api_types::ProtectionMode::UNPROTECTED ||
         mode == atomdb_api_types::ProtectionMode::FORWARD ||
-        dynamic_pointer_cast<AtomDBKeySensitive>(atomdb)) {
+        dynamic_pointer_cast<KeySensitiveAtomDB>(atomdb)) {
         return atomdb;
     } else if (mode == atomdb_api_types::ProtectionMode::PROTECTED) {
         return make_shared<ProtectedAtomDB>(atomdb);

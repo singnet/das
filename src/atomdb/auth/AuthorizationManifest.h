@@ -37,26 +37,26 @@ class AuthorizationManifest {
     bool is_granted(const string& public_key, const string& handle, AuthorizationOperation operation);
 
     /**
-     * @brief Returns whether public_key has an authorization document.
-     */
-    inline bool is_registered(const string& public_key) const {
-        lock_guard<mutex> lock(this->profiles_mutex);
-        return this->profiles.find(public_key) != this->profiles.end();
-    }
-
-    /**
-     * @brief Adds an authorization document to the manifest.
+     * @brief Loads public_key's profile into memory if it is not already cached.
      *
-     * If access_key is already registered, this is a no-op. Otherwise builds
-     * an AuthorizationProfile from the document and stores it keyed by
-     * access_key. The registered-check and the insertion are atomic.
+     * @return true if a matching access-permission document exists (cached or newly loaded).
      */
-    void add_document(const shared_ptr<atomdb_api_types::AccessPermissionDocument>& document);
+    bool ensure_profile_loaded(const string& public_key);
 
    private:
     shared_ptr<AtomDB> atomdb;
     map<string, shared_ptr<AuthorizationProfile>> profiles;
-    mutable mutex profiles_mutex;
+    mutex profiles_mutex;
+
+    /**
+     * @brief Shared core behind both public is_granted overloads (atom vs handle).
+     *
+     * Looks up the profile and resolving the atom (if needed) and running the check.
+     */
+    bool is_granted(const string& public_key,
+                    AuthorizationOperation operation,
+                    shared_ptr<Atom> atom,
+                    const string& handle);
 };
 
 }  // namespace atomdb

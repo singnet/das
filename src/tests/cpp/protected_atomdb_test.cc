@@ -267,6 +267,17 @@ TEST(ProtectedAtomDBTest, UnknownPublicKeyDeniesAccess) {
     EXPECT_EQ(protected_atomdb->db->query_for_incoming_set(animals.human, unknown_keys)->size(), 0u);
 }
 
+TEST(ProtectedAtomDBTest, CachedAuthorizationSurvivesBackendRevoke) {
+    shared_ptr<ProtectedRedisMongo> protected_atomdb = make_shared<ProtectedRedisMongo>(true);
+    protected_atomdb->grant_full_access(PKAdmin);
+    auto admin_keys = protected_atomdb->keys(PKAdmin);
+    Animals animals;
+
+    ASSERT_NE(protected_atomdb->db->get_atom(animals.similarity_human_monkey, admin_keys), nullptr);
+    protected_atomdb->persistence->revoke(PKAdmin);
+    EXPECT_NE(protected_atomdb->db->get_atom(animals.similarity_human_monkey, admin_keys), nullptr);
+}
+
 TEST(ProtectedAtomDBTest, LoadedPermissionDocumentMustMatchRequestedKey) {
     Node node("Symbol", "\"human\"");
 
@@ -346,6 +357,31 @@ TEST(ProtectedAtomDBTest, ReadOperationsReturnOnlyAuthorizedAtoms) {
                     .empty());
     EXPECT_EQ(protected_atomdb->db->nodes_exist({animals.human}, admin_keys),
               set<string>({animals.human}));
+}
+
+TEST(ProtectedAtomDBTest, ExistenceChecksPreserveNodeAndLinkTypes) {
+    shared_ptr<ProtectedRedisMongo> protected_atomdb = make_shared<ProtectedRedisMongo>(true);
+    protected_atomdb->grant_full_access(PKAdmin);
+    auto admin_keys = protected_atomdb->keys(PKAdmin);
+    Animals animals;
+
+    ASSERT_TRUE(protected_atomdb->db->atom_exists(animals.human, admin_keys));
+    ASSERT_TRUE(protected_atomdb->db->atom_exists(animals.similarity_human_monkey, admin_keys));
+
+    EXPECT_TRUE(protected_atomdb->db->node_exists(animals.human, admin_keys));
+    EXPECT_FALSE(protected_atomdb->db->node_exists(animals.similarity_human_monkey, admin_keys));
+    EXPECT_TRUE(protected_atomdb->db->link_exists(animals.similarity_human_monkey, admin_keys));
+    EXPECT_FALSE(protected_atomdb->db->link_exists(animals.human, admin_keys));
+
+    EXPECT_EQ(
+        protected_atomdb->db->nodes_exist({animals.human, animals.similarity_human_monkey}, admin_keys),
+        set<string>({animals.human}));
+    EXPECT_EQ(
+        protected_atomdb->db->links_exist({animals.human, animals.similarity_human_monkey}, admin_keys),
+        set<string>({animals.similarity_human_monkey}));
+    EXPECT_EQ(
+        protected_atomdb->db->atoms_exist({animals.human, animals.similarity_human_monkey}, admin_keys),
+        set<string>({animals.human, animals.similarity_human_monkey}));
 }
 
 TEST(ProtectedAtomDBTest, QueryForPatternReturnsOnlyAuthorizedHandles) {
