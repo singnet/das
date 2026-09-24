@@ -1,13 +1,13 @@
 #include "LinkTemplate.h"
 
 #include <algorithm>
-#include <chrono>
-#include <random>
+#include <cstring>
 
 #include "AtomDBSingleton.h"
 #include "AttentionBrokerClient.h"
 #include "ProtectedAtomDB.h"
 #include "Terminal.h"
+#include "Utils.h"
 
 #define LOG_LEVEL INFO_LEVEL
 #include "Logger.h"
@@ -153,14 +153,25 @@ void LinkTemplate::compute_importance(vector<pair<char*, float>>& handles) {
     for (unsigned int i = 0; i < importance_list.size(); i++) {
         handles[i].second = importance_list[i];
     }
-    // Sort decreasing by importance value
-
-    Utils::shuffle(handles.begin(), handles.end());
-    std::sort(handles.begin(),
-              handles.end(),
-              [](const std::pair<char*, float>& left, const std::pair<char*, float>& right) {
-                  return left.second > right.second;
-              });
+    if (Utils::reproducible_seed()) {
+        // Importance descending, then handle. A shared shuffle would follow
+        // whichever LinkTemplate thread draws next, so a fixed seed would not repeat.
+        std::sort(handles.begin(),
+                  handles.end(),
+                  [](const std::pair<char*, float>& left, const std::pair<char*, float>& right) {
+                      if (left.second != right.second) {
+                          return left.second > right.second;
+                      }
+                      return std::strcmp(left.first, right.first) < 0;
+                  });
+    } else {
+        Utils::shuffle(handles.begin(), handles.end());
+        std::sort(handles.begin(),
+                  handles.end(),
+                  [](const std::pair<char*, float>& left, const std::pair<char*, float>& right) {
+                      return left.second > right.second;
+                  });
+    }
 }
 
 unsigned int LinkTemplate::report_attention_focus_by_percentage(
@@ -225,6 +236,12 @@ void LinkTemplate::processor_method(shared_ptr<StoppableThread> monitor) {
         }
         if (!this->disregard_importance_flag) {
             compute_importance(tagged_handles);
+        } else if (Utils::reproducible_seed()) {
+            std::sort(tagged_handles.begin(),
+                      tagged_handles.end(),
+                      [](const std::pair<char*, float>& left, const std::pair<char*, float>& right) {
+                          return std::strcmp(left.first, right.first) < 0;
+                      });
         }
     }
     vector<AttentionFocusRecord> attention_focus_candidates;

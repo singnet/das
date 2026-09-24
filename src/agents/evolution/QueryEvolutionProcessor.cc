@@ -216,7 +216,13 @@ void QueryEvolutionProcessor::sample_population(
               population.end(),
               [](const std::pair<shared_ptr<QueryAnswer>, float>& left,
                  const std::pair<shared_ptr<QueryAnswer>, float>& right) {
-                  return left.second > right.second;
+                  if (left.second != right.second) {
+                      return left.second > right.second;
+                  }
+                  if (!Utils::reproducible_seed()) {
+                      return false;
+                  }
+                  return left.first->compute_hash() < right.first->compute_hash();
               });
 }
 

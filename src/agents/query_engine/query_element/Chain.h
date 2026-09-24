@@ -4,11 +4,13 @@
 #include "Link.h"
 #include "LinkTemplate.h"
 #include "Operator.h"
+#include "QueryAnswer.h"
 #include "ThreadSafeHeap.h"
 #include "ThreadSafeQueue.h"
 #include "map"
 #include "mutex"
 #include "set"
+#include "vector"
 
 using namespace std;
 using namespace atoms;
@@ -260,6 +262,7 @@ class Chain : public Operator<1>, public ThreadMethod {
      * (complete or incomplete).
      */
     void set_all_paths_explored(bool flag);
+    void set_direction_finished(bool forward);
 
     /**
      * Chain Operator AND Path Finder threads.
@@ -316,6 +319,8 @@ class Chain : public Operator<1>, public ThreadMethod {
     };
 
     void initialize(const array<shared_ptr<QueryElement>, 1>& clauses);
+    void flush_pending_answers();
+    void discard_pending_answers();
     inline bool forward_active() { return (search_direction == FORWARD) || (search_direction == BOTH); }
     inline bool backward_active() {
         return (search_direction == BACKWARD) || (search_direction == BOTH);
@@ -331,6 +336,9 @@ class Chain : public Operator<1>, public ThreadMethod {
     PathFinder* forward_path_finder;
     PathFinder* backward_path_finder;
     bool path_finders_stopped;
+    bool forward_finished_flag;
+    bool backward_finished_flag;
+    vector<QueryAnswer*> pending_answers;
     shared_ptr<DedicatedThread> operator_thread;
     shared_ptr<DedicatedThread> forward_thread;
     shared_ptr<DedicatedThread> backward_thread;

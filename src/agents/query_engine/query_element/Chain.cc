@@ -1,9 +1,12 @@
 #include "Chain.h"
 
+#include <algorithm>
+
 #include "AtomDBSingleton.h"
 #include "Hasher.h"
 #include "Logger.h"
 #include "ThreadSafeHeap.h"
+#include "Utils.h"
 
 using namespace query_element;
 using namespace atomdb;
@@ -131,6 +134,7 @@ void Chain::graceful_shutdown() {
     if (!this->operator_thread->is_finished()) {
         this->operator_thread->stop();
     }
+    discard_pending_answers();
     Operator<1>::graceful_shutdown();
     LOG_DEBUG("Chain::graceful_shutdown() END");
 }
@@ -179,6 +183,11 @@ bool Chain::PathFinder::thread_one_step() {
     if (this->chain_operator->all_paths_explored()) {
         return false;
     }
+    // A fixed seed searches only after every edge is loaded. Exploring a prefix
+    // races the input thread, so the same links would not yield the same paths.
+    if (Utils::reproducible_seed() && !this->chain_operator->all_input_acknowledged()) {
+        return false;
+    }
     LOG_DEBUG("[PATH_FINDER] " << (this->forward_flag ? "FORWARD" : "BACKWARD") << " PathFinder STEP");
     shared_ptr<HeapType> base_heap = this->forward_flag
                                          ? this->chain_operator->get_source_index(this->origin)
@@ -197,7 +206,11 @@ bool Chain::PathFinder::thread_one_step() {
                     this->forward_flag ? this->chain_operator->get_source_index(this->origin)
                                        : this->chain_operator->get_target_index(this->origin);
                 if (check_heap == nullptr || check_heap->empty()) {
-                    this->chain_operator->set_all_paths_explored(true);
+                    if (Utils::reproducible_seed()) {
+                        this->chain_operator->set_direction_finished(this->forward_flag);
+                    } else {
+                        this->chain_operator->set_all_paths_explored(true);
+                    }
                     LOG_DEBUG("[PATH_FINDER] "
                               << "All paths has been explored");
                 }
@@ -313,6 +326,7 @@ bool Chain::thread_one_step() {
                       << "All paths explored. Stopping path finders. DONE");
             LOG_DEBUG("[CHAIN OPERATOR] "
                       << "All paths explored. Notifying output buffer...");
+            this->flush_pending_answers();
             this->output_buffer->query_answers_finished();
             LOG_DEBUG("[CHAIN OPERATOR] "
                       << "All paths explored. Notifying output buffer. DONE");
@@ -431,7 +445,11 @@ void Chain::report_path(Path& path) {
             }
             string tag = (complete_flag ? "complete" : "incomplete");
             LOG_INFO("Reporting " << tag << " path: " << path.to_string());
-            this->output_buffer->add_query_answer(query_answer);
+            if (Utils::reproducible_seed()) {
+                this->pending_answers.push_back(query_answer);
+            } else {
+                this->output_buffer->add_query_answer(query_answer);
+            }
         } else {
             delete query_answer;
         }
@@ -453,11 +471,48 @@ bool Chain::all_input_acknowledged() {
 void Chain::set_all_paths_explored(bool flag) {
     lock_guard<mutex> semaphore(this->all_paths_explored_mutex);
     this->all_paths_explored_flag = flag;
+    this->forward_finished_flag = flag;
+    this->backward_finished_flag = flag;
+}
+
+void Chain::set_direction_finished(bool forward) {
+    lock_guard<mutex> semaphore(this->all_paths_explored_mutex);
+    if (forward) {
+        this->forward_finished_flag = true;
+    } else {
+        this->backward_finished_flag = true;
+    }
+    this->all_paths_explored_flag = (this->forward_path_finder == NULL || this->forward_finished_flag) &&
+                                    (this->backward_path_finder == NULL || this->backward_finished_flag);
 }
 
 bool Chain::all_paths_explored() {
     lock_guard<mutex> semaphore(this->all_paths_explored_mutex);
     return this->all_paths_explored_flag;
+}
+
+void Chain::flush_pending_answers() {
+    lock_guard<mutex> semaphore(this->reported_answers_mutex);
+    std::sort(this->pending_answers.begin(),
+              this->pending_answers.end(),
+              [](QueryAnswer* left, QueryAnswer* right) {
+                  if (left->importance != right->importance) {
+                      return left->importance > right->importance;
+                  }
+                  return left->compute_hash() < right->compute_hash();
+              });
+    for (QueryAnswer* answer : this->pending_answers) {
+        this->output_buffer->add_query_answer(answer);
+    }
+    this->pending_answers.clear();
+}
+
+void Chain::discard_pending_answers() {
+    lock_guard<mutex> semaphore(this->reported_answers_mutex);
+    for (QueryAnswer* answer : this->pending_answers) {
+        delete answer;
+    }
+    this->pending_answers.clear();
 }
 
 // --------------------------------------------------------------------------------------------
@@ -476,6 +531,8 @@ void Chain::initialize(const array<shared_ptr<QueryElement>, 1>& clauses) {
         "CHAIN(" + clauses[0]->id + ", " + this->source_reference + ", " + this->target_reference + ")";
     this->all_input_acknowledged_flag = false;
     this->all_paths_explored_flag = false;
+    this->forward_finished_flag = false;
+    this->backward_finished_flag = false;
     if (forward_active()) {
         this->forward_path_finder = new PathFinder(this, true);
     } else {

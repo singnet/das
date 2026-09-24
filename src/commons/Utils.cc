@@ -40,6 +40,8 @@ void Utils::error(string msg, bool throw_flag, bool log_flag) {
 
 void Utils::init_random(unsigned int seed) { Random::init(seed); }
 
+bool Utils::reproducible_seed() { return Random::reproducible_seed(); }
+
 bool Utils::flip_coin(double true_probability) {
     bool answer = false;
     if ((true_probability > 1.0) || (true_probability < 0.0)) {
@@ -529,11 +531,13 @@ string MemoryFootprint::to_string() {
 // Random
 
 std::mt19937* Utils::Random::random_generator = NULL;
+unsigned int Utils::Random::random_seed = 0;
 mutex Utils::Random::random_generator_mutex;
 
 void Utils::Random::init(unsigned int seed) {
     random_generator_mutex.lock();
     if (Random::random_generator == NULL) {
+        Random::random_seed = seed;
         if (seed == 0) {
             random_generator =
                 new std::mt19937(std::chrono::system_clock::now().time_since_epoch().count());
@@ -575,6 +579,15 @@ std::mt19937* Utils::Random::get_random_generator() {
             "numbers.");
     }
     return random_generator;
+}
+
+bool Utils::Random::reproducible_seed() {
+    // No init_random() call means no fixed seed. Callers keep the unseeded
+    // tie-break instead of aborting. Drawing a number still requires init.
+    if (Random::random_generator == NULL) {
+        return false;
+    }
+    return Random::random_seed != 0;
 }
 
 // --------------------------------------------------------------------------------

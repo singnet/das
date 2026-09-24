@@ -1250,3 +1250,18 @@ cc_test(
         "@com_github_google_googletest//:gtest",
     ],
 )
+
+cc_test(
+    name = "expression_hasher_test",
+    size = "small",
+    srcs = ["expression_hasher_test.cc"],
+    copts = [
+        "-Iexternal/gtest/googletest/include",
+        "-Iexternal/gtest/googletest",
+    ],
+    linkstatic = 1,
+    deps = [
+        "//hasher:hasher_lib",
+        "@com_github_google_googletest//:gtest_main",
+    ],
+)
