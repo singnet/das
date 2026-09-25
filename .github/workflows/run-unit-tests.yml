@@ -17,7 +17,6 @@ jobs:
   unit-tests:
     runs-on:
       - self-hosted
-      - amd64
       - ${{ inputs.runner }}
       - ${{ github.actor }}
     env:
@@ -48,10 +47,6 @@ jobs:
       - name: Setting das-cli configuration
         run: |-
           das-cli config set services.database.atomdb_backend=redis_mongodb
-          das-cli config set atomdb.mongodb.image=mongodb/mongodb-community-server:8.0.4-ubuntu2204
-
-      - name: Pre-pull MongoDB image
-        run: docker pull mongodb/mongodb-community-server:8.0.4-ubuntu2204
 
       - name: Starting Redis and MongoDB
         run: das-cli db restart
@@ -116,7 +111,7 @@ jobs:
 
       - name: Execute Unit Test Suite
         working-directory: ./src
-        run: ./scripts/bazel_exec.sh test --noshow_progress //tests/cpp/...
+        run: ./scripts/bazel_exec.sh test --noshow_progress --cache_test_results=yes //tests/cpp/...
 
       - name: Build production binaries
         working-directory: ./src
