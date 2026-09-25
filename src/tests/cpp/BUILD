@@ -1044,6 +1044,27 @@ cc_test(
 )
 
 cc_test(
+    name = "remote_atomdb_key_sensitive_test",
+    size = "small",
+    srcs = ["remote_atomdb_key_sensitive_test.cc"],
+    copts = [
+        "-Iexternal/gtest/googletest/include",
+        "-Iexternal/gtest/googletest",
+    ],
+    linkstatic = 1,
+    deps = [
+        "//atomdb:protected_atomdb",
+        "//atomdb/auth:keychain",
+        "//atomdb/inmemorydb:inmemorydb_lib",
+        "//atomdb/remotedb:remotedb_lib",
+        "//commons/atoms:atoms_lib",
+        "//tests/cpp/test_commons:in_memory_access_permission_types",
+        "//tests/cpp/test_commons:test_atomdb_json_config",
+        "@com_github_google_googletest//:gtest",
+    ],
+)
+
+cc_test(
     name = "profiling_test",
     size = "small",
     srcs = [
