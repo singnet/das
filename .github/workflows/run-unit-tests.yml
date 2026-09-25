@@ -48,6 +48,10 @@ jobs:
       - name: Setting das-cli configuration
         run: |-
           das-cli config set services.database.atomdb_backend=redis_mongodb
+          das-cli config set atomdb.mongodb.image=mongodb/mongodb-community-server:8.0.4-ubuntu2204
+
+      - name: Pre-pull MongoDB image
+        run: docker pull mongodb/mongodb-community-server:8.0.4-ubuntu2204
 
       - name: Starting Redis and MongoDB
         run: das-cli db restart
