@@ -1,5 +1,9 @@
 #include "CommandRouterHttpAPI.h"
 
+#include <chrono>
+#include <cmath>
+#include <limits>
+
 #include "BusCommandRouterProcessor.h"
 #include "BusCommandRouterProxy.h"
 #include "BusCommandRouterProxyStreamPoller.h"
@@ -17,7 +21,72 @@ using namespace agents;
 
 using json = nlohmann::json;
 
-const unordered_set<string> CommandRouterHttpAPI::VALID_COMMAND = {HttpCommandProxyFactory::QUERY};
+const unordered_set<string> CommandRouterHttpAPI::VALID_COMMAND = {HttpCommandProxyFactory::QUERY,
+                                                                   HttpCommandProxyFactory::EVOLUTION};
+
+namespace {
+
+bool parse_eval_fitness_response(const json& event, int& seq, vector<float>& fitness) {
+    if (!event.is_object() || !event.contains("command") || !event["command"].is_string()) {
+        return false;
+    }
+    if (event["command"].get_ref<const string&>() != CommandExecution::COMMAND_EVAL_FITNESS_RESPONSE) {
+        return false;
+    }
+    if (!event.contains("params") || !event["params"].is_object()) {
+        return false;
+    }
+    const json& params = event["params"];
+    if (!params.contains("seq") || !params["seq"].is_number_integer() || !params.contains("fitness") ||
+        !params["fitness"].is_array()) {
+        return false;
+    }
+
+    vector<float> parsed;
+    parsed.reserve(params["fitness"].size());
+    for (const auto& value : params["fitness"]) {
+        if (!value.is_number()) {
+            return false;
+        }
+        const double number = value.get<double>();
+        if (!std::isfinite(number) || number > static_cast<double>(numeric_limits<float>::max()) ||
+            number < -static_cast<double>(numeric_limits<float>::max())) {
+            return false;
+        }
+        parsed.push_back(static_cast<float>(number));
+    }
+
+    seq = params["seq"].get<int>();
+    fitness = std::move(parsed);
+    return true;
+}
+
+bool read_and_submit_fitness_response(httplib::ws::WebSocket& ws,
+                                      const shared_ptr<CommandExecution>& exec,
+                                      int expected_seq) {
+    string msg;
+    while (ws.is_open()) {
+        if (ws.read(msg) == httplib::ws::ReadResult::Fail) {
+            return false;
+        }
+        try {
+            int seq = -1;
+            vector<float> fitness;
+            if (!parse_eval_fitness_response(json::parse(msg), seq, fitness)) {
+                continue;
+            }
+            if (seq != expected_seq) {
+                continue;
+            }
+            return exec->submit_fitness_response(seq, fitness);
+        } catch (const exception& e) {
+            LOG_INFO("CommandRouter HTTP API WebSocket inbound parse failed: " << e.what());
+        }
+    }
+    return false;
+}
+
+}  // namespace
 
 // -------------------------------------------------------------------------------------------------
 // Constructors, destructors
@@ -129,7 +198,7 @@ void CommandRouterHttpAPI::setup_routes() {
 
             if (!this->is_valid_command(command)) {
                 this->set_json_response(
-                    response, 400, {{"error", "Invalid command. Allowed values: query"}});
+                    response, 400, {{"error", "Invalid command. Allowed values: query, evolution"}});
                 return;
             }
 
@@ -185,6 +254,11 @@ void CommandRouterHttpAPI::setup_routes() {
 
             LOG_INFO("CommandRouter HTTP API WebSocket open id=" << execution_id);
 
+            exec->ws_session_opened();
+
+            // Send, inbound fitness reads, and close stay on this thread so they
+            // never race on httplib's stream (close() itself reads the handshake
+            // with a 5s timeout).
             size_t next_index = 0;
             bool stream_finished = false;
 
@@ -194,15 +268,28 @@ void CommandRouterHttpAPI::setup_routes() {
                     continue;
                 }
 
-                bool send_ok = ws.send(*payload);
-
-                if (!send_ok) {
+                if (!ws.send(*payload)) {
                     LOG_INFO("CommandRouter HTTP API WebSocket send failed id=" << execution_id);
-                    return;
+                    break;
+                }
+
+                try {
+                    const json event = json::parse(*payload);
+                    if (event.value("command", "") == CommandExecution::COMMAND_EVAL_FITNESS) {
+                        const int seq = event.at("params").at("seq").get<int>();
+                        if (!read_and_submit_fitness_response(ws, exec, seq)) {
+                            LOG_INFO("CommandRouter HTTP API WebSocket fitness read failed id="
+                                     << execution_id);
+                            break;
+                        }
+                    }
+                } catch (const exception& e) {
+                    LOG_INFO("CommandRouter HTTP API WebSocket outbound parse failed: " << e.what());
                 }
             }
 
             ws.close(httplib::ws::CloseStatus::Normal, "stream complete");
+            exec->ws_session_closed();
 
             LOG_INFO("CommandRouter HTTP API WebSocket closed id=" << execution_id);
         });
@@ -273,6 +360,7 @@ void CommandRouterHttpAPI::run_execution_inner(const shared_ptr<CommandExecution
     timer.start();
 
     int seq = 0;
+    int fitness_seq = 0;
 
     auto should_abort = [&]() { return exec->is_cancel_requested() || this->shutting_down.load(); };
     auto on_chunk = [&](const json& chunk) { exec->publish_chunk(++seq, chunk); };
@@ -281,14 +369,33 @@ void CommandRouterHttpAPI::run_execution_inner(const shared_ptr<CommandExecution
         exec->mark_aborted();
         LOG_INFO("CommandRouter HTTP API execution aborted id=" << exec->execution_id);
     };
-    auto on_complete = [&](unsigned long duration_ms, int total_items) {
-        exec->mark_completed(duration_ms, total_items);
-        LOG_INFO("CommandRouter HTTP API execution completed id="
-                 << exec->execution_id << " duration_ms=" << duration_ms << " items=" << total_items);
+    auto on_eval_fitness = [&](const json& answers, vector<string>& fitness_out) -> bool {
+        const int request_seq = ++fitness_seq;
+        exec->publish_eval_fitness(request_seq, answers);
+        vector<float> fitness;
+        // Allow long remote fitness evaluations (client-side InferenceToy, MeTTa, etc.).
+        if (!exec->wait_fitness_response(request_seq, chrono::minutes(30), should_abort, fitness)) {
+            return false;
+        }
+        fitness_out.clear();
+        fitness_out.reserve(fitness.size());
+        for (float value : fitness) {
+            // Round-trip serialization; std::to_string() truncates to 6 decimals and
+            // collapses small fitness values to "0.000000".
+            fitness_out.push_back(json(value).dump());
+        }
+        return true;
     };
 
     const PollStreamResult poll_result = this->execute_router_command(
-        exec->command, exec->params, should_abort, on_chunk, on_error, on_aborted);
+        exec->command,
+        exec->params,
+        should_abort,
+        on_chunk,
+        on_error,
+        on_aborted,
+        exec->command == HttpCommandProxyFactory::EVOLUTION ? EvalFitnessHandler(on_eval_fitness)
+                                                            : nullptr);
     if (!poll_result.ok) {
         return;
     }
@@ -297,7 +404,10 @@ void CommandRouterHttpAPI::run_execution_inner(const shared_ptr<CommandExecution
 
     const int total_items =
         poll_result.is_count_only ? poll_result.count_only_total : exec->received_count();
-    on_complete(timer.milliseconds(), total_items);
+    exec->mark_completed(timer.milliseconds(), total_items);
+    LOG_INFO("CommandRouter HTTP API execution completed id=" << exec->execution_id
+                                                              << " duration_ms=" << timer.milliseconds()
+                                                              << " items=" << total_items);
 }
 
 PollStreamResult CommandRouterHttpAPI::execute_router_command(
@@ -306,7 +416,8 @@ PollStreamResult CommandRouterHttpAPI::execute_router_command(
     const function<bool()>& should_abort,
     const function<void(const json& chunk)>& on_chunk,
     const function<void(const string& error)>& on_error,
-    const function<void()>& on_aborted) {
+    const function<void()>& on_aborted,
+    const EvalFitnessHandler& on_eval_fitness) {
     if (this->router_processor == nullptr) {
         if (on_error) {
             on_error("Command router processor is not configured for HTTP execution");
@@ -332,7 +443,8 @@ PollStreamResult CommandRouterHttpAPI::execute_router_command(
                                                               should_abort,
                                                               on_chunk,
                                                               on_error,
-                                                              on_aborted);
+                                                              on_aborted,
+                                                              on_eval_fitness);
 
     } catch (const exception& e) {
         if (on_error) {
