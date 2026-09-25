@@ -1,25 +1,15 @@
-name: Unit Tests
+name: Unit Tests (No Cache)
 
 on:
   workflow_dispatch:
-    inputs:
-      runner:
-        description: Choose a runner tag to run this workflow (e.g self-hosted, ubuntu-latest)
-        required: true
-        type: string
   workflow_call:
-    inputs:
-      runner:
-        required: true
-        type: string
 
 jobs:
   unit-tests:
     runs-on:
       - self-hosted
       - amd64
-      - ${{ inputs.runner }}
-      - ${{ github.actor }}
+      - self-hosted-nocache
     env:
       DAS_REDIS_HOSTNAME: localhost
       DAS_REDIS_PORT: 40020
@@ -87,7 +77,7 @@ jobs:
                 docker ps -a --filter "name=das-mork-server-${port}" >&2 || true
                 exit 1
               fi
-              echo "Waiting for MORK on port ${port}…"
+              echo "Waiting for MORK on port ${port}..."
               sleep 1
             done
           done
@@ -104,7 +94,7 @@ jobs:
             echo "Waiting for Postgres..."
             sleep 1
           done
-          
+
           docker exec -i pg_test psql -U postgres -d postgres_wrapper_test < src/scripts/postgres_setup.sql
 
       - name: Setup bazel
@@ -112,7 +102,7 @@ jobs:
 
       - name: Execute Unit Test Suite
         working-directory: ./src
-        run: ./scripts/bazel_exec.sh test --noshow_progress //tests/cpp/...
+        run: ./scripts/bazel_exec.sh test --noshow_progress --cache_test_results=no //tests/cpp/...
 
       - name: Build production binaries
         working-directory: ./src

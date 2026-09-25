@@ -11,13 +11,11 @@ on:
 
 jobs:
   format-check:
-    uses: ./.github/workflows/run-format-check.yaml
+    uses: ./.github/workflows/run-format-check-no-cache.yml
 
   unit-tests:
     needs: format-check
-    uses: ./.github/workflows/run-unit-tests.yml
-    with:
-      runner: self-hosted-nocache
+    uses: ./.github/workflows/run-unit-tests-no-cache.yml
 
   report:
     needs: [format-check, unit-tests]
