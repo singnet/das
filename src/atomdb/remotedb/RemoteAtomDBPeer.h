@@ -9,7 +9,9 @@
 #include "AtomDB.h"
 #include "DedicatedThread.h"
 #include "InMemoryDB.h"
+#include "KeySensitiveAtomDB.h"
 #include "LinkSchema.h"
+#include "ProtectedAtomDB.h"
 
 using namespace std;
 using namespace commons;
@@ -34,7 +36,7 @@ namespace atomdb {
  * swaps (write_buffer_ / read_cache_) and fetched_link_templates_. Never held across
  * InMemoryDB calls or backend I/O.
  */
-class RemoteAtomDBPeer : public AtomDB, public processor::ThreadMethod {
+class RemoteAtomDBPeer : public AtomDB, public processor::ThreadMethod, public KeySensitiveAtomDB {
    public:
     RemoteAtomDBPeer(const string& uid,
                      shared_ptr<AtomDB> remote_atomdb,
@@ -45,8 +47,13 @@ class RemoteAtomDBPeer : public AtomDB, public processor::ThreadMethod {
     atomdb_api_types::ProtectionMode get_protection_mode() const override;
 
     shared_ptr<Atom> get_atom(const string& handle) override;
+    shared_ptr<Atom> get_atom(const string& handle, shared_ptr<Keychain> keychain) override;
+
     shared_ptr<Node> get_node(const string& handle) override;
+    shared_ptr<Node> get_node(const string& handle, shared_ptr<Keychain> keychain) override;
+
     shared_ptr<Link> get_link(const string& handle) override;
+    shared_ptr<Link> get_link(const string& handle, shared_ptr<Keychain> keychain) override;
 
     // In-memory lookups only (write_buffer + read_cache). Used by the RemoteAtomDB facade
     // to probe every peer's cache before escalating any peer to its backend.
@@ -55,47 +62,121 @@ class RemoteAtomDBPeer : public AtomDB, public processor::ThreadMethod {
     shared_ptr<Link> get_cached_link(const string& handle);
 
     vector<shared_ptr<Atom>> get_matching_atoms(bool is_toplevel, Atom& key) override;
+    vector<shared_ptr<Atom>> get_matching_atoms(bool is_toplevel,
+                                                Atom& key,
+                                                shared_ptr<Keychain> keychain) override;
     vector<shared_ptr<Atom>> get_matching_atoms(bool is_toplevel, Atom& key, bool local_only);
 
     shared_ptr<atomdb_api_types::HandleSet> query_for_pattern(const LinkSchema& link_schema) override;
+    shared_ptr<atomdb_api_types::HandleSet> query_for_pattern(const LinkSchema& link_schema,
+                                                              shared_ptr<Keychain> keychain) override;
+
     shared_ptr<atomdb_api_types::HandleList> query_for_targets(const string& handle) override;
+    shared_ptr<atomdb_api_types::HandleList> query_for_targets(const string& handle,
+                                                               shared_ptr<Keychain> keychain) override;
+
     shared_ptr<atomdb_api_types::HandleSet> query_for_incoming_set(const string& handle) override;
+    shared_ptr<atomdb_api_types::HandleSet> query_for_incoming_set(
+        const string& handle, shared_ptr<Keychain> keychain) override;
 
     bool atom_exists(const string& handle) override;
+    bool atom_exists(const string& handle, shared_ptr<Keychain> keychain) override;
+
     bool node_exists(const string& handle) override;
+    bool node_exists(const string& handle, shared_ptr<Keychain> keychain) override;
+
     bool link_exists(const string& handle) override;
+    bool link_exists(const string& handle, shared_ptr<Keychain> keychain) override;
 
     set<string> atoms_exist(const vector<string>& handles) override;
+    set<string> atoms_exist(const vector<string>& handles, shared_ptr<Keychain> keychain) override;
+
     set<string> nodes_exist(const vector<string>& handles) override;
+    set<string> nodes_exist(const vector<string>& handles, shared_ptr<Keychain> keychain) override;
+
     set<string> links_exist(const vector<string>& handles) override;
+    set<string> links_exist(const vector<string>& handles, shared_ptr<Keychain> keychain) override;
 
     string add_atom(const atoms::Atom* atom, const atoms::Merger* merger = NULL) override;
+    string add_atom(const atoms::Atom* atom,
+                    shared_ptr<Keychain> keychain,
+                    const atoms::Merger* merger = NULL) override;
+
     string add_node(const atoms::Node* node, const atoms::Merger* merger = NULL) override;
+    string add_node(const atoms::Node* node,
+                    shared_ptr<Keychain> keychain,
+                    const atoms::Merger* merger = NULL) override;
+
     string add_link(const atoms::Link* link, const atoms::Merger* merger = NULL) override;
+    string add_link(const atoms::Link* link,
+                    shared_ptr<Keychain> keychain,
+                    const atoms::Merger* merger = NULL) override;
 
     vector<string> add_atoms(const vector<atoms::Atom*>& atoms,
                              bool is_transactional = false,
                              const atoms::Merger* merger = NULL) override;
+    vector<string> add_atoms(const vector<atoms::Atom*>& atoms,
+                             shared_ptr<Keychain> keychain,
+                             bool is_transactional = false,
+                             const atoms::Merger* merger = NULL) override;
+
     vector<string> add_nodes(const vector<atoms::Node*>& nodes,
                              bool is_transactional = false,
                              const atoms::Merger* merger = NULL) override;
+    vector<string> add_nodes(const vector<atoms::Node*>& nodes,
+                             shared_ptr<Keychain> keychain,
+                             bool is_transactional = false,
+                             const atoms::Merger* merger = NULL) override;
+
     vector<string> add_links(const vector<atoms::Link*>& links,
+                             bool is_transactional = false,
+                             const atoms::Merger* merger = NULL) override;
+    vector<string> add_links(const vector<atoms::Link*>& links,
+                             shared_ptr<Keychain> keychain,
                              bool is_transactional = false,
                              const atoms::Merger* merger = NULL) override;
 
     bool delete_atom(const string& handle, bool delete_link_targets = false) override;
+    bool delete_atom(const string& handle,
+                     shared_ptr<Keychain> keychain,
+                     bool delete_link_targets = false) override;
+
     bool delete_node(const string& handle, bool delete_link_targets = false) override;
+    bool delete_node(const string& handle,
+                     shared_ptr<Keychain> keychain,
+                     bool delete_link_targets = false) override;
+
     bool delete_link(const string& handle, bool delete_link_targets = false) override;
+    bool delete_link(const string& handle,
+                     shared_ptr<Keychain> keychain,
+                     bool delete_link_targets = false) override;
 
     uint delete_atoms(const vector<string>& handles, bool delete_link_targets = false) override;
+    uint delete_atoms(const vector<string>& handles,
+                      shared_ptr<Keychain> keychain,
+                      bool delete_link_targets = false) override;
+
     uint delete_nodes(const vector<string>& handles, bool delete_link_targets = false) override;
+    uint delete_nodes(const vector<string>& handles,
+                      shared_ptr<Keychain> keychain,
+                      bool delete_link_targets = false) override;
+
     uint delete_links(const vector<string>& handles, bool delete_link_targets = false) override;
+    uint delete_links(const vector<string>& handles,
+                      shared_ptr<Keychain> keychain,
+                      bool delete_link_targets = false) override;
 
     void re_index_patterns(bool flush_patterns = true) override;
+    void re_index_patterns(shared_ptr<Keychain> keychain, bool flush_patterns = true) override;
 
     size_t node_count() const override;
+    size_t node_count(shared_ptr<Keychain> keychain) const override;
+
     size_t link_count() const override;
+    size_t link_count(shared_ptr<Keychain> keychain) const override;
+
     size_t atom_count() const override;
+    size_t atom_count(shared_ptr<Keychain> keychain) const override;
 
     // Cache policy API
     void fetch(const LinkSchema& link_schema);
@@ -122,8 +203,8 @@ class RemoteAtomDBPeer : public AtomDB, public processor::ThreadMethod {
         const string& public_key) const override;
 
    private:
-    shared_ptr<InMemoryDB> write_buffer() const;
-    shared_ptr<InMemoryDB> read_cache() const;
+    shared_ptr<AtomDB> write_buffer() const;
+    shared_ptr<AtomDB> read_cache() const;
     void invalidate_fetched_templates();
 
     void feed_cache_from_handle_set(shared_ptr<atomdb_api_types::HandleSet> handle_set);
@@ -136,7 +217,9 @@ class RemoteAtomDBPeer : public AtomDB, public processor::ThreadMethod {
     void restage_atoms(const vector<shared_ptr<atoms::Atom>>& atoms);
 
     shared_ptr<InMemoryDB> write_buffer_;
+    shared_ptr<ProtectedAtomDB> protected_write_buffer_;
     shared_ptr<InMemoryDB> read_cache_;
+    shared_ptr<ProtectedAtomDB> protected_read_cache_;
     shared_ptr<AtomDB> atomdb_;
     shared_ptr<AtomDB> local_persistence_;
     unordered_set<string> fetched_link_templates_;

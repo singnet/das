@@ -370,13 +370,7 @@ shared_ptr<Atom> RemoteAtomDB::get_atom(const string& handle, shared_ptr<Keychai
     // Writable peers first: their write buffer / local_persistence are the source of truth
     // for updated custom attributes (strength) that share a content-addressed handle.
     for (auto& [uid, peer] : writable_peers_) {
-        auto protected_atomdb = dynamic_pointer_cast<KeySensitiveAtomDB>(peer->get_remote_atomdb());
-        if (protected_atomdb) {
-            atom = protected_atomdb->get_atom(handle, keychain);
-        } else {
-            atom = peer->get_atom(handle);
-        }
-
+        atom = peer->get_atom(handle, keychain);
         if (atom) {
             LOG_DEBUG("get_atom(" << handle << ") fetched from peer [" << uid << "]");
             return atom;
@@ -394,13 +388,7 @@ shared_ptr<Atom> RemoteAtomDB::get_atom(const string& handle, shared_ptr<Keychai
     }
 
     for (auto& [uid, peer] : readonly_peers_) {
-        auto protected_atomdb = dynamic_pointer_cast<KeySensitiveAtomDB>(peer->get_remote_atomdb());
-        if (protected_atomdb) {
-            atom = protected_atomdb->get_atom(handle, keychain);
-        } else {
-            atom = peer->get_atom(handle);
-        }
-
+        atom = peer->get_atom(handle, keychain);
         if (atom) {
             LOG_DEBUG("get_atom(" << handle << ") fetched from peer [" << uid << "]");
             return atom;
@@ -435,14 +423,7 @@ shared_ptr<atomdb_api_types::HandleSet> RemoteAtomDB::query_for_pattern(const Li
                                    << " peers");
 
     for (auto& [uid, peer] : remote_db_) {
-        shared_ptr<atomdb_api_types::HandleSet> handle_set;
-        auto protected_atomdb = dynamic_pointer_cast<KeySensitiveAtomDB>(peer->get_remote_atomdb());
-        if (protected_atomdb) {
-            handle_set = protected_atomdb->query_for_pattern(link_schema, keychain);
-        } else {
-            handle_set = peer->query_for_pattern(link_schema);
-        }
-
+        auto handle_set = peer->query_for_pattern(link_schema, keychain);
         if (!handle_set) continue;
 
         LOG_DEBUG("  [" << uid << "] returned " << handle_set->size() << " handles");

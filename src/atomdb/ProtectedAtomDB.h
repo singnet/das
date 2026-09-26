@@ -34,6 +34,13 @@ class ProtectedAtomDB : public AtomDB, public KeySensitiveAtomDB {
      */
     explicit ProtectedAtomDB(shared_ptr<AtomDB> backend);
 
+    /**
+     * @brief
+     */
+    ProtectedAtomDB(shared_ptr<AtomDB> backend, shared_ptr<AuthorizationManifest> manifest);
+
+    shared_ptr<ProtectedAtomDB> wrap(shared_ptr<AtomDB> atomdb);
+
     bool composite_type_enabled() const override;
     atomdb_api_types::ProtectionMode get_protection_mode() const override;
 
