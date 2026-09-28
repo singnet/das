@@ -278,7 +278,7 @@ void BaseQueryProxy::built_atoms_bundle(const vector<string>& args) {
             LOG_DEBUG("Disregarding empty built atoms answer bundle");
         } else {
             for (auto handle : args) {
-                LOG_INFO("NEW LINK: [" << std::fixed << std::setprecision(2) << AtomDBUtils::get_strength(handle) << "] " << AtomDBUtils::handle_to_metta(handle));
+                /* XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX */ LOG_INFO("NEW LINK: [" << std::fixed << std::setprecision(2) << AtomDBUtils::get_strength(handle) << "] " << AtomDBUtils::handle_to_metta(handle));
                 this->built_atoms.push_back(handle);
             }
         }

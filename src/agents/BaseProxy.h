@@ -79,6 +79,13 @@ class BaseProxy : public BusCommandProxy {
      */
     virtual void tokenize(vector<string>& output);
 
+    /**
+     * Return the count for completed cycles.
+     *
+     * @return the count for completed cycles.
+     */
+    unsigned int get_cycle_count();
+
     // ---------------------------------------------------------------------------------------------
     // Server-side API
 
@@ -183,6 +190,7 @@ class BaseProxy : public BusCommandProxy {
     bool cycle_start_allowed_flag;
     bool waiting_log_flag;
     bool waiting_to_start_new_cycle;  // disregarded if orchestration_schema is NONE.
+    unsigned int cycle_count;
 };
 
 }  // namespace agents
