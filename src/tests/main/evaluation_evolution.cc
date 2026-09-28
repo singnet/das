@@ -484,8 +484,8 @@ static void run(const string& context_tag) {
         issue_lca_query(make_implication_query(), context, LinkCreatorRegistry::AND_TWO_PREDICATES, and_two_predicates, BaseProxy::SYNC_ON_CYCLE_START),
         issue_lca_query(make_implication_query(), context, LinkCreatorRegistry::CUSTOMIZABLE, implication_link_creator, BaseProxy::SYNC_ON_CYCLE_START),
         issue_lca_query(make_equivalence_query(), context, LinkCreatorRegistry::CUSTOMIZABLE, equivalence_link_creator, BaseProxy::SYNC_ON_CYCLE_START),
-        issue_lca_query(make_evaluation_predicate_query(), context, LinkCreatorRegistry::CUSTOMIZABLE, evaluation_link_creator, BaseProxy::SYNC_ON_CYCLE_START),
-        issue_lca_query(make_evaluation_concept_query(), context, LinkCreatorRegistry::CUSTOMIZABLE, evaluation_link_creator, BaseProxy::SYNC_ON_CYCLE_START)
+        //issue_lca_query(make_evaluation_predicate_query(), context, LinkCreatorRegistry::CUSTOMIZABLE, evaluation_link_creator, BaseProxy::SYNC_ON_CYCLE_START),
+        //issue_lca_query(make_evaluation_concept_query(), context, LinkCreatorRegistry::CUSTOMIZABLE, evaluation_link_creator, BaseProxy::SYNC_ON_CYCLE_START)
     };
 
     //NUM_ITERATIONS = 10; // XXXXX
@@ -495,7 +495,6 @@ static void run(const string& context_tag) {
         LOG_INFO("--------------------------------------------------------------------------------");
         LOG_INFO("----- Building links");
         AttentionBrokerClient::stimulate({{TARGET_PREDICATE_HANDLE, 1}, {TARGET_CONCEPT_HANDLE, 1}}, context);
-        /*
         for (auto proxy : lca_proxy) {
             proxy->allow_cycle_start();
         }
@@ -512,13 +511,15 @@ static void run(const string& context_tag) {
                 Utils::sleep();
             }
         }
-        */
+        /*
+        // Sequential LC
         for (auto proxy : lca_proxy) {
             proxy->allow_cycle_start();
             while (! proxy->finished_cycle(true)) {
                 Utils::sleep();
             }
         }
+        */
         LOG_INFO("----- Evolving query");
         query_evolution(query_to_evolve, correlation_query_template, iteration, context);
     }

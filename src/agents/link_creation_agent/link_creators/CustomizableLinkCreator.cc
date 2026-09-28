@@ -62,11 +62,20 @@ LinkCreationStats CustomizableLinkCreator::create(shared_ptr<QueryAnswer> query_
         if (!visited(key)) {
             visit(key);
             stats.visited = true;
-            AddLinkStatus add_status = add_or_update_link(handles, compute_strength(query_answer, spec));
+            vector<double> strengths = compute_strength(query_answer, spec);
+            AddLinkStatus add_status = add_or_update_link(handles, strengths[0]);
             if (add_status == CREATED) {
                 stats.created++;
             } else if (add_status == UPDATED) {
                 stats.updated++;
+            }
+            if (spec.create_reverse() && (strengths.size() == 2)) {
+                add_status = add_or_update_link({handles[0], handles[2], handles[1]}, strengths[1]);
+                if (add_status == CREATED) {
+                    stats.created++;
+                } else if (add_status == UPDATED) {
+                    stats.updated++;
+                }
             }
         }
     }
@@ -274,42 +283,48 @@ void CustomizableLinkCreator::compute_counts(shared_ptr<QueryAnswer> base_query_
               to_string(count_intersection) + " " + to_string(count_union));
 }
 
-double CustomizableLinkCreator::compute_strength(shared_ptr<QueryAnswer> query_answer,
-                                                 LinkSpecification& spec) {
+vector<double> CustomizableLinkCreator::compute_strength(shared_ptr<QueryAnswer> query_answer,
+                                                         LinkSpecification& spec) {
     STACK_TRACE();
-    double answer = 0.0;
+    vector<double> answer;
+    double strength;
     double count_A = 0.0;
     double count_B = 0.0;
     double count_intersection = 0.0;
     double count_union = 0.0;
 
     if ((spec.strength_composition == INTERSECTION_OVER_UNION) ||
-        (spec.strength_composition == INTERSECTION_OVER_A) ||
-        (spec.strength_composition == INTERSECTION_OVER_B)) {
+        (spec.strength_composition == INTERSECTION_OVER_A)) {
         compute_counts(query_answer, spec, count_A, count_B, count_intersection, count_union);
     }
 
     switch (spec.strength_composition) {
         case PRODUCT:
-            answer = 1.0;
+            strength = 1.0;
             for (QueryAnswerElement& element : spec.strength_elements) {
-                answer *= AtomDBUtils::get_strength(query_answer->get(element));
+                strength *= AtomDBUtils::get_strength(query_answer->get(element));
             }
+            answer.push_back(strength);
             break;
         case INTERSECTION_OVER_UNION:
+            strength = 0.0;
             if (!Utils::is_zero(count_union)) {
-                answer = count_intersection / count_union;
+                strength = count_intersection / count_union;
             }
+            answer.push_back(strength);
+            answer.push_back(strength);
             break;
         case INTERSECTION_OVER_A:
+            strength = 0.0;
             if (!Utils::is_zero(count_A)) {
-                answer = count_intersection / count_A;
+                strength = count_intersection / count_A;
             }
-            break;
-        case INTERSECTION_OVER_B:
+            answer.push_back(strength);
+            strength = 0.0;
             if (!Utils::is_zero(count_B)) {
-                answer = count_intersection / count_B;
+                strength = count_intersection / count_B;
             }
+            answer.push_back(strength);
             break;
         default:
             RAISE_ERROR("Invalid strength composition: " + std::to_string(spec.strength_composition));

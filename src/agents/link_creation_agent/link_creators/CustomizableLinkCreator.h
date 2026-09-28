@@ -19,7 +19,6 @@ class CustomizableLinkCreator : public LinkCreator {
         PRODUCT,
         INTERSECTION_OVER_UNION,
         INTERSECTION_OVER_A,
-        INTERSECTION_OVER_B
     };
     static char EXTRA_PARAMETERS_SPLIT_CHAR;
 
@@ -43,6 +42,7 @@ class CustomizableLinkCreator : public LinkCreator {
         string link_type;
         StrengthComposition strength_composition;
         vector<string> queries;
+        bool create_reverse() { return (this->strength_composition == INTERSECTION_OVER_UNION) || (this->strength_composition == INTERSECTION_OVER_A); }
 
        private:
         void check();
@@ -58,7 +58,7 @@ class CustomizableLinkCreator : public LinkCreator {
                         double& count_B,
                         double& count_intersection,
                         double& count_union);
-    double compute_strength(shared_ptr<QueryAnswer> query_answer, LinkSpecification& spec);
+    vector<double> compute_strength(shared_ptr<QueryAnswer> query_answer, LinkSpecification& spec);
 
    public:
     void tokenize(vector<string>& tokens);

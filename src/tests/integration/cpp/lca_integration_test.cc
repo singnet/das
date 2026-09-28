@@ -198,8 +198,6 @@ static double compute_expected_strength(const string& handle1,
                                                        : ((double) _intersection.size() / _union.size());
                 case CustomizableLinkCreator::INTERSECTION_OVER_A:
                     return (set1.size() == 0) ? 0 : ((double) _intersection.size() / set1.size());
-                case CustomizableLinkCreator::INTERSECTION_OVER_B:
-                    return (set2.size() == 0) ? 0 : ((double) _intersection.size() / set2.size());
                 default:
                     RAISE_ERROR("Invalid composition: " + std::to_string((unsigned int) composition));
             }
@@ -356,7 +354,7 @@ static bool test_customizable_counts() {
     // clang-format on
     vector<string> queries = {Utils::join(count_query_tokens_A), Utils::join(count_query_tokens_B)};
 
-    CustomizableLinkCreator link_creator[3];
+    CustomizableLinkCreator link_creator[2];
     link_creator[0].add_link_specification({QueryAnswerElement("v1"), QueryAnswerElement("v2")},
                                            {QueryAnswerElement("Node"), QueryAnswerElement("Node")},
                                            "FunctionalTest0",
@@ -367,20 +365,14 @@ static bool test_customizable_counts() {
                                            "FunctionalTest1",
                                            CustomizableLinkCreator::INTERSECTION_OVER_A,
                                            queries);
-    link_creator[2].add_link_specification({QueryAnswerElement("v1"), QueryAnswerElement("v2")},
-                                           {QueryAnswerElement("Node"), QueryAnswerElement("Node")},
-                                           "FunctionalTest2",
-                                           CustomizableLinkCreator::INTERSECTION_OVER_B,
-                                           queries);
 
-    CustomizableLinkCreator::StrengthComposition composition[3] = {
+    CustomizableLinkCreator::StrengthComposition composition[2] = {
         CustomizableLinkCreator::INTERSECTION_OVER_UNION,
-        CustomizableLinkCreator::INTERSECTION_OVER_A,
-        CustomizableLinkCreator::INTERSECTION_OVER_B};
+        CustomizableLinkCreator::INTERSECTION_OVER_A};
 
     vector<string> tokens;
-    shared_ptr<LinkCreationProxy> proxy[3];
-    for (unsigned int i = 0; i < 3; i++) {
+    shared_ptr<LinkCreationProxy> proxy[2];
+    for (unsigned int i = 0; i < 2; i++) {
         tokens.clear();
         link_creator[i].tokenize(tokens);
         proxy[i] = make_proxy(query_tokens, LinkCreatorRegistry::CUSTOMIZABLE);
@@ -391,7 +383,7 @@ static bool test_customizable_counts() {
         ServiceBusSingleton::get_instance()->issue_bus_command(proxy[i]);
     }
 
-    for (unsigned int i = 0; i < 3; i++) {
+    for (unsigned int i = 0; i < 2; i++) {
         unsigned int count_answers = 0;
         while (true) {
             if (proxy[i]->finished()) {
