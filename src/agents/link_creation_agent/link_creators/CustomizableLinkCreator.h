@@ -19,7 +19,12 @@ class CustomizableLinkCreator : public LinkCreator {
         PRODUCT,
         INTERSECTION_OVER_UNION,
         INTERSECTION_OVER_A,
-        INTERSECTION_OVER_B
+        INTERSECTION_OVER_B,
+        // Implication from the smaller counted set toward the larger one.
+        // Strength is intersection / min(count_A, count_B). Target order follows that direction.
+        STRONGER_CONDITIONAL,
+        // One intersection/union count, then the link in both target orders.
+        INTERSECTION_OVER_UNION_BOTH_DIRECTIONS
     };
     static char EXTRA_PARAMETERS_SPLIT_CHAR;
 

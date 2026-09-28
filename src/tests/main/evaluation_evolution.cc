@@ -1,17 +1,16 @@
 #include <fstream>
 
+#include "AndTwoPredicates.h"
 #include "AtomDBSingleton.h"
 #include "AttentionBrokerClient.h"
+#include "CustomizableLinkCreator.h"
 #include "FitnessFunctionRegistry.h"
 #include "Hasher.h"
 #include "JsonConfigParser.h"
-#include "Logger.h"
-#include "MettaParser.h"
 #include "LinkCreationProxy.h"
 #include "LinkCreatorRegistry.h"
-#include "CustomizableLinkCreator.h"
-#include "AndTwoPredicates.h"
-#include "tags.h"
+#include "Logger.h"
+#include "MettaParser.h"
 #include "QueryAnswer.h"
 #include "QueryEvolutionProxy.h"
 #include "RemoteAtomDB.h"
@@ -19,6 +18,7 @@
 #include "SystemParametersSingleton.h"
 #include "Utils.h"
 #include "commons/atoms/MettaParserActions.h"
+#include "tags.h"
 
 // Variables
 #define V1 "V1"
@@ -148,10 +148,11 @@ static shared_ptr<LinkCreationProxy> issue_lca_query(
     auto proxy = make_shared<LinkCreationProxy>(query_tokens, context, link_creator_tag, orchestration);
     proxy->parameters[LinkCreationProxy::LINK_CREATOR_EXTRA_PARAMETERS] = (string) link_creator.extra_parameters();
     proxy->parameters[LinkCreationProxy::MAX_SUCCESSFUL_CREATION_PER_ROUND] = (unsigned int) 10;
-    proxy->parameters[LinkCreationProxy::MAX_UNPRODUCTIVE_VISITS_PER_ROUND] = (unsigned int) 500;
-    proxy->parameters[LinkCreationProxy::MAX_VISIT_ATTEMPTS_PER_ROUND] = (unsigned int) 10;
+    // Same stop rules as master: 10 failed visits, 500 skips, strength floor 0.1.
+    proxy->parameters[LinkCreationProxy::MAX_UNPRODUCTIVE_VISITS_PER_ROUND] = (unsigned int) 10;
+    proxy->parameters[LinkCreationProxy::MAX_VISIT_ATTEMPTS_PER_ROUND] = (unsigned int) 500;
     proxy->parameters[LinkCreationProxy::MAX_ROUNDS] = (unsigned int) 0;
-    proxy->parameters[LinkCreationProxy::LINK_CREATION_STRENGTH_THRESHOLD] = (double) 0.2; // 0.1;
+    proxy->parameters[LinkCreationProxy::LINK_CREATION_STRENGTH_THRESHOLD] = (double) 0.1;
     proxy->parameters[LinkCreationProxy::LINK_CREATION_LOG_FILE_NAME] = (string) "_new_links.txt";
     proxy->parameters[LinkCreationProxy::LOG_NEW_LINKS] = (bool) true;
     proxy->parameters[PatternMatchingQueryProxy::MAX_ANSWERS] = (unsigned int) 0;
@@ -250,8 +251,9 @@ static void query_evolution(
 }
 
 static vector<string> make_implication_query() {
+    // ANDNOT drops pairs that already have this implication.
     return {
-        AND_OPERATOR, "2",
+        ANDNOT_OPERATOR, "3",
             LINK_TEMPLATE, EXPRESSION, "3",
                 NODE, SYMBOL, EVALUATION_TAG,
                 VARIABLE, PREDICATE1,
@@ -259,7 +261,11 @@ static vector<string> make_implication_query() {
             LINK_TEMPLATE, EXPRESSION, "3",
                 NODE, SYMBOL, EVALUATION_TAG,
                 VARIABLE, PREDICATE2,
-                VARIABLE, CONCEPT
+                VARIABLE, CONCEPT,
+            LINK_TEMPLATE, EXPRESSION, "3",
+                NODE, SYMBOL, IMPLICATION_TAG,
+                VARIABLE, PREDICATE1,
+                VARIABLE, PREDICATE2
     };
 }
 
@@ -283,8 +289,9 @@ static string make_implication_count_query(const string& _predicate) {
 }
 
 static vector<string> make_equivalence_query() {
+    // ANDNOT drops pairs that already have this equivalence.
     return {
-        AND_OPERATOR, "2",
+        ANDNOT_OPERATOR, "3",
             LINK_TEMPLATE, EXPRESSION, "3",
                 NODE, SYMBOL, EVALUATION_TAG,
                 VARIABLE, PREDICATE,
@@ -292,6 +299,10 @@ static vector<string> make_equivalence_query() {
             LINK_TEMPLATE, EXPRESSION, "3",
                 NODE, SYMBOL, EVALUATION_TAG,
                 VARIABLE, PREDICATE,
+                VARIABLE, CONCEPT2,
+            LINK_TEMPLATE, EXPRESSION, "3",
+                NODE, SYMBOL, EQUIVALENCE_TAG,
+                VARIABLE, CONCEPT1,
                 VARIABLE, CONCEPT2
     };
 }
@@ -316,8 +327,9 @@ static string make_equivalence_count_query(const string& _concept) {
 }
 
 static vector<string> make_evaluation_predicate_query() {
+    // ANDNOT so an existing evaluation is not overwritten.
     return {
-        AND_OPERATOR, "2",
+        ANDNOT_OPERATOR, "3",
             LINK_TEMPLATE, EXPRESSION, "3",
                 NODE, SYMBOL, EVALUATION_TAG,
                 VARIABLE, PREDICATE,
@@ -325,13 +337,18 @@ static vector<string> make_evaluation_predicate_query() {
             LINK_TEMPLATE, EXPRESSION, "3",
                 NODE, SYMBOL, EQUIVALENCE_TAG,
                 VARIABLE, CONCEPT1,
+                VARIABLE, CONCEPT,
+            LINK_TEMPLATE, EXPRESSION, "3",
+                NODE, SYMBOL, EVALUATION_TAG,
+                VARIABLE, PREDICATE,
                 VARIABLE, CONCEPT
     };
 }
 
 static vector<string> make_evaluation_concept_query() {
+    // ANDNOT so an existing evaluation is not overwritten.
     return {
-        AND_OPERATOR, "2",
+        ANDNOT_OPERATOR, "3",
             LINK_TEMPLATE, EXPRESSION, "3",
                 NODE, SYMBOL, EVALUATION_TAG,
                 VARIABLE, PREDICATE1,
@@ -340,6 +357,10 @@ static vector<string> make_evaluation_concept_query() {
                 NODE, SYMBOL, IMPLICATION_TAG,
                 VARIABLE, PREDICATE1,
                 VARIABLE, PREDICATE,
+            LINK_TEMPLATE, EXPRESSION, "3",
+                NODE, SYMBOL, EVALUATION_TAG,
+                VARIABLE, PREDICATE,
+                VARIABLE, CONCEPT
     };
 }
 // clang-format on
@@ -467,12 +488,14 @@ static void run(const string& context_tag) {
     implication_link_creator.add_link_specification({QueryAnswerElement(PREDICATE1), QueryAnswerElement(PREDICATE2)},
                                                     {QueryAnswerElement(CONCEPT1), QueryAnswerElement(CONCEPT1)},
                                                     IMPLICATION_TAG,
-                                                    CustomizableLinkCreator::INTERSECTION_OVER_A,
+                                                    // Skip (P AND sort) -> sort. Those links are strength 1 and cap fitness at 0.5.
+                                                    CustomizableLinkCreator::STRONGER_CONDITIONAL,
                                                     {make_implication_count_query("QueryAnswerElement($Predicate1)"), make_implication_count_query("QueryAnswerElement($Predicate2)")});
     equivalence_link_creator.add_link_specification({QueryAnswerElement(CONCEPT1), QueryAnswerElement(CONCEPT2)},
                                                     {QueryAnswerElement(PREDICATE1), QueryAnswerElement(PREDICATE1)},
                                                     EQUIVALENCE_TAG,
-                                                    CustomizableLinkCreator::INTERSECTION_OVER_UNION,
+                                                    // One count, both directions.
+                                                    CustomizableLinkCreator::INTERSECTION_OVER_UNION_BOTH_DIRECTIONS,
                                                     {make_equivalence_count_query("QueryAnswerElement($Concept1)"), make_equivalence_count_query("QueryAnswerElement($Concept2)")});
     evaluation_link_creator.add_link_specification({QueryAnswerElement(PREDICATE), QueryAnswerElement(CONCEPT)},
                                                    {QueryAnswerElement(0), QueryAnswerElement(1)},
@@ -519,6 +542,9 @@ static void run(const string& context_tag) {
                 Utils::sleep();
             }
         }
+        // Restimulate only the two targets before evolution, same as master.
+        AttentionBrokerClient::stimulate({{TARGET_PREDICATE_HANDLE, 1}, {TARGET_CONCEPT_HANDLE, 1}},
+                                         context);
         LOG_INFO("----- Evolving query");
         query_evolution(query_to_evolve, correlation_query_template, iteration, context);
     }

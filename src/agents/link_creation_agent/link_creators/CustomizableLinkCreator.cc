@@ -5,6 +5,32 @@
 #include "ServiceBusSingleton.h"
 #include "tags.h"
 
+// Predicate names inside a LogicalAnd. Used to skip implications whose atoms overlap.
+static void extract_mentioned_predicates(set<string>& mentioned, const string& handle) {
+    STACK_TRACE();
+    auto db = AtomDBSingleton::get_instance();
+    shared_ptr<Node> node;
+    shared_ptr<Link> link = db->get_link(handle);
+    if (link != nullptr) {
+        for (string& target_handle : link->targets) {
+            if ((node = db->get_node(target_handle)) != nullptr) {
+                if ((node->name != PREDICATE_TAG) && (node->name != LOGICAL_AND_TAG)) {
+                    mentioned.insert(node->name);
+                }
+            } else {
+                extract_mentioned_predicates(mentioned, target_handle);
+            }
+        }
+    }
+}
+
+static bool mentioned_predicates_intersect(const string& handle1, const string& handle2) {
+    set<string> mentioned1, mentioned2;
+    extract_mentioned_predicates(mentioned1, handle1);
+    extract_mentioned_predicates(mentioned2, handle2);
+    return Utils::intersects(mentioned1, mentioned2);
+}
+
 using namespace link_creators;
 using namespace atomdb;
 
@@ -53,20 +79,57 @@ LinkCreationStats CustomizableLinkCreator::create(shared_ptr<QueryAnswer> query_
             RAISE_ERROR("Invalid empty target elements or link_type");
             break;
         }
-        vector<string> handles;
-        handles.push_back(Hasher::node_handle(SYMBOL, spec.link_type));
+        vector<string> target_handles;
         for (QueryAnswerElement& element : spec.target_elements) {
-            handles.push_back(query_answer->get(element));
+            target_handles.push_back(query_answer->get(element));
         }
-        string key = Utils::join(handles, ' ');
-        if (!visited(key)) {
-            visit(key);
-            stats.visited = true;
-            AddLinkStatus add_status = add_or_update_link(handles, compute_strength(query_answer, spec));
-            if (add_status == CREATED) {
-                stats.created++;
-            } else if (add_status == UPDATED) {
-                stats.updated++;
+        double strength = 0.0;
+        bool skip = false;
+        if (spec.strength_composition == STRONGER_CONDITIONAL) {
+            // Smaller set implies the larger one. Skip identical or overlapping predicates.
+            if ((target_handles.size() != 2) || (target_handles[0] == target_handles[1]) ||
+                mentioned_predicates_intersect(target_handles[0], target_handles[1])) {
+                skip = true;
+            } else {
+                double count_A = 0.0;
+                double count_B = 0.0;
+                double count_intersection = 0.0;
+                double count_union = 0.0;
+                compute_counts(query_answer, spec, count_A, count_B, count_intersection, count_union);
+                if ((count_intersection > 0) && (count_A > 0) &&
+                    ((count_B == 0) || (count_A < count_B))) {
+                    strength = count_intersection / count_A;
+                } else if ((count_intersection > 0) && (count_B > 0)) {
+                    strength = count_intersection / count_B;
+                    std::swap(target_handles[0], target_handles[1]);
+                }
+            }
+        } else {
+            strength = compute_strength(query_answer, spec);
+        }
+        if (skip) {
+            continue;
+        }
+        vector<vector<string>> directions = {target_handles};
+        // Equivalence: one count, both directions. Same strength either way.
+        if ((spec.strength_composition == INTERSECTION_OVER_UNION_BOTH_DIRECTIONS) &&
+            (target_handles.size() == 2) && (target_handles[0] != target_handles[1])) {
+            directions.push_back({target_handles[1], target_handles[0]});
+        }
+        for (vector<string>& direction : directions) {
+            vector<string> handles;
+            handles.push_back(Hasher::node_handle(SYMBOL, spec.link_type));
+            handles.insert(handles.end(), direction.begin(), direction.end());
+            string key = Utils::join(handles, ' ');
+            if (!visited(key)) {
+                visit(key);
+                stats.visited = true;
+                AddLinkStatus add_status = add_or_update_link(handles, strength);
+                if (add_status == CREATED) {
+                    stats.created++;
+                } else if (add_status == UPDATED) {
+                    stats.updated++;
+                }
             }
         }
     }
@@ -284,6 +347,7 @@ double CustomizableLinkCreator::compute_strength(shared_ptr<QueryAnswer> query_a
     double count_union = 0.0;
 
     if ((spec.strength_composition == INTERSECTION_OVER_UNION) ||
+        (spec.strength_composition == INTERSECTION_OVER_UNION_BOTH_DIRECTIONS) ||
         (spec.strength_composition == INTERSECTION_OVER_A) ||
         (spec.strength_composition == INTERSECTION_OVER_B)) {
         compute_counts(query_answer, spec, count_A, count_B, count_intersection, count_union);
@@ -297,6 +361,7 @@ double CustomizableLinkCreator::compute_strength(shared_ptr<QueryAnswer> query_a
             }
             break;
         case INTERSECTION_OVER_UNION:
+        case INTERSECTION_OVER_UNION_BOTH_DIRECTIONS:
             if (!Utils::is_zero(count_union)) {
                 answer = count_intersection / count_union;
             }

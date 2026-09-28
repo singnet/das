@@ -138,7 +138,18 @@ void AttentionBrokerClient::get_importance(const vector<string>& handles,
         auto stub = dasproto::AttentionBroker::NewStub(
             grpc::CreateChannel(SERVER_ADDRESS, grpc::InsecureChannelCredentials()));
         LOG_DEBUG("Querying AttentionBroker for importance of " << handle_list.list_size() << " atoms.");
-        stub->get_importance(new grpc::ClientContext(), handle_list, &importance_list);
+        // Do not index the reply until we know it has one value per requested handle.
+        grpc::ClientContext grpc_context;
+        grpc::Status status = stub->get_importance(&grpc_context, handle_list, &importance_list);
+        if (!status.ok()) {
+            RAISE_ERROR("Failed GRPC command: AttentionBroker::get_importance(): " +
+                        status.error_message());
+        }
+        if (importance_list.list_size() != (int) bundle_count) {
+            RAISE_ERROR("AttentionBroker::get_importance() returned " +
+                        std::to_string(importance_list.list_size()) + " values for " +
+                        std::to_string(bundle_count) + " handles");
+        }
         for (unsigned int i = 0; i < bundle_count; i++) {
             importances.push_back(importance_list.list(i));
         }

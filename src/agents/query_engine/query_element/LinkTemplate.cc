@@ -210,6 +210,10 @@ void LinkTemplate::processor_method(shared_ptr<StoppableThread> monitor) {
     } else {
         handles = atomdb->query_for_pattern(this->link_schema);
     }
+    // A missing pattern index used to be dereferenced here.
+    if (handles == nullptr) {
+        RAISE_ERROR("query_for_pattern returned no handle set for " + link_schema_handle);
+    }
     LOG_DEBUG("Attention Focus Strictness: " + std::to_string(this->attention_focus_strictness));
     LOG_DEBUG("Positive importance flag: " + string(this->positive_importance_flag ? "true" : "false"));
     LOG_DEBUG("Disregard importance flag: " +

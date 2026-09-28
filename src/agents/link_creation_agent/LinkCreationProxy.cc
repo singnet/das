@@ -102,6 +102,8 @@ LinkCreationStats LinkCreationProxy::link_creation(shared_ptr<QueryAnswer> answe
             RAISE_ERROR("Link creation function is not set up");
         }
     } else {
+        // Count queries and correlations must use this proxy's attention context.
+        this->link_creation_function_object->set_context(get_context());
         stats = this->link_creation_function_object->create(answer);
         for (string& handle : this->link_creation_function_object->newly_created_links) {
             push_built_atom(handle);
@@ -147,6 +149,8 @@ void LinkCreationProxy::set_link_creator_function_tag(const string& tag) {
                 this->parameters.get<bool>(LOG_NEW_LINKS));
             this->link_creation_function_object->extra_parameters(
                 this->parameters.get_or<string>(LINK_CREATOR_EXTRA_PARAMETERS, ""));
+            // Same context hand-off for creators built when the command is unpacked.
+            this->link_creation_function_object->set_context(get_context());
         }
     }
 }
