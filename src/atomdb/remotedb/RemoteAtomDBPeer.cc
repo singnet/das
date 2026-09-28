@@ -850,7 +850,7 @@ shared_ptr<atomdb_api_types::HandleSet> RemoteAtomDBPeer::query_for_pattern(
         cache_hit = fetched_link_templates_.count(link_schema.handle()) > 0;
     }
 
-    if (cache_hit&&) {
+    if (cache_hit) {
         LOG_DEBUG("[RemoteDB(" << uid_ << ")] query_for_pattern(" << link_schema.handle()
                                << ") cache-hit");
         merge_memory();
