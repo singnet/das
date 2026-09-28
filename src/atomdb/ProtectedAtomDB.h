@@ -35,10 +35,13 @@ class ProtectedAtomDB : public AtomDB, public KeySensitiveAtomDB {
     explicit ProtectedAtomDB(shared_ptr<AtomDB> backend);
 
     /**
-     * @brief
+     * @brief Wraps backend using an existing AuthorizationManifest (shared, not rebuilt).
      */
     ProtectedAtomDB(shared_ptr<AtomDB> backend, shared_ptr<AuthorizationManifest> manifest);
 
+    /**
+     * @brief Returns a ProtectedAtomDB over atomdb that authorizes with this instance's manifest
+     */
     shared_ptr<ProtectedAtomDB> wrap(shared_ptr<AtomDB> atomdb);
 
     bool composite_type_enabled() const override;

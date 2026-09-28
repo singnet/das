@@ -203,11 +203,14 @@ class RemoteAtomDBPeer : public AtomDB, public processor::ThreadMethod, public K
         const string& public_key) const override;
 
    private:
-    shared_ptr<AtomDB> write_buffer() const;
-    shared_ptr<AtomDB> read_cache() const;
+    shared_ptr<InMemoryDB> write_buffer() const;
+    shared_ptr<InMemoryDB> read_cache() const;
+    shared_ptr<ProtectedAtomDB> protected_write_buffer() const;
+    shared_ptr<ProtectedAtomDB> protected_read_cache() const;
     void invalidate_fetched_templates();
 
-    void feed_cache_from_handle_set(shared_ptr<atomdb_api_types::HandleSet> handle_set);
+    void feed_cache_from_handle_set(shared_ptr<atomdb_api_types::HandleSet> handle_set,
+                                    shared_ptr<Keychain> keychain);
     void merge_handle_set(shared_ptr<atomdb_api_types::HandleSet> source,
                           shared_ptr<atomdb_api_types::HandleSetInMemory> dest,
                           set<string>& seen);
@@ -217,8 +220,8 @@ class RemoteAtomDBPeer : public AtomDB, public processor::ThreadMethod, public K
     void restage_atoms(const vector<shared_ptr<atoms::Atom>>& atoms);
 
     shared_ptr<InMemoryDB> write_buffer_;
-    shared_ptr<ProtectedAtomDB> protected_write_buffer_;
     shared_ptr<InMemoryDB> read_cache_;
+    shared_ptr<ProtectedAtomDB> protected_write_buffer_;
     shared_ptr<ProtectedAtomDB> protected_read_cache_;
     shared_ptr<AtomDB> atomdb_;
     shared_ptr<AtomDB> local_persistence_;
