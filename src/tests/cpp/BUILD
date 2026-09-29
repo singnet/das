@@ -1093,6 +1093,23 @@ cc_test(
 )
 
 cc_test(
+    name = "link_schema_decoder_probe_test",
+    size = "small",
+    srcs = ["link_schema_decoder_probe_test.cc"],
+    copts = [
+        "-Iexternal/gtest/googletest/include",
+        "-Iexternal/gtest/googletest",
+    ],
+    linkstatic = 1,
+    deps = [
+        "//atomdb/inmemorydb:inmemorydb_lib",
+        "//commons:commons_lib",
+        "//commons/atoms:atoms_lib",
+        "@com_github_google_googletest//:gtest",
+    ],
+)
+
+cc_test(
     name = "metta_parser_test",
     size = "small",
     srcs = [
