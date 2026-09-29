@@ -290,6 +290,31 @@ TEST_F(RemoteAtomDBKeySensitiveTest, UnknownEmptyAndForeignKeysDoNotReadProtecte
         set<string>({this->similarity_human_chimp_handle}));
 }
 
+TEST_F(RemoteAtomDBKeySensitiveTest, ReleaseCacheDoesNotReturnStaleKeychainReads) {
+    auto keychain = this->similarity_keychain();
+
+    EXPECT_EQ(this->db->get_link(this->similarity_human_monkey_handle, keychain)->handle(),
+              this->similarity_human_monkey_handle);
+    EXPECT_EQ(
+        handles_from_handle_set(this->db->query_for_pattern(this->similarity_human_schema, keychain)),
+        set<string>({this->similarity_human_monkey_handle, this->similarity_human_chimp_handle}));
+
+    this->db->get_peer("similarity_peer")->release_cache();
+    this->db->get_peer("full_access_peer")->release_cache();
+    this->db->get_peer("unprotected_peer")->release_cache();
+
+    EXPECT_EQ(this->db->get_atom(this->similarity_human_monkey_handle, nullptr), nullptr);
+    EXPECT_EQ(this->db->get_atom(this->inheritance_human_mammal_handle, keychain), nullptr);
+    EXPECT_EQ(this->db->get_link(this->similarity_human_monkey_handle, keychain)->handle(),
+              this->similarity_human_monkey_handle);
+    EXPECT_EQ(
+        handles_from_handle_set(this->db->query_for_pattern(this->similarity_human_schema, nullptr)),
+        set<string>({this->similarity_human_chimp_handle}));
+    EXPECT_EQ(
+        handles_from_handle_set(this->db->query_for_pattern(this->similarity_human_schema, keychain)),
+        set<string>({this->similarity_human_monkey_handle, this->similarity_human_chimp_handle}));
+}
+
 int main(int argc, char** argv) {
     ::testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();

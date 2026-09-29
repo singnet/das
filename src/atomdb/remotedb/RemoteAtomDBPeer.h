@@ -179,7 +179,7 @@ class RemoteAtomDBPeer : public AtomDB, public processor::ThreadMethod, public K
     size_t atom_count(shared_ptr<Keychain> keychain) const override;
 
     // Cache policy API
-    void fetch(const LinkSchema& link_schema);
+    void fetch(const LinkSchema& link_schema, shared_ptr<Keychain> Keychain = nullptr);
     void release(const LinkSchema& link_schema, bool persist = true, bool force = false);
     // Flushes write_buffer_ to local_persistence (when present) and drops both in-memory layers.
     // Legacy bool args are ignored and kept only for call-site compatibility.
@@ -207,6 +207,7 @@ class RemoteAtomDBPeer : public AtomDB, public processor::ThreadMethod, public K
     shared_ptr<InMemoryDB> read_cache() const;
     shared_ptr<ProtectedAtomDB> protected_write_buffer() const;
     shared_ptr<ProtectedAtomDB> protected_read_cache() const;
+    void initialize_protected_cache();
     void invalidate_fetched_templates();
 
     void feed_cache_from_handle_set(shared_ptr<atomdb_api_types::HandleSet> handle_set,

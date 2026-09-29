@@ -34,11 +34,7 @@ RemoteAtomDBPeer::RemoteAtomDBPeer(const string& uid,
         local_persistence_->get_protection_mode() != atomdb_api_types::ProtectionMode::UNPROTECTED) {
         RAISE_ERROR("RemoteAtomDBPeer supports only UNPROTECTED local persistence");
     }
-    if (auto p = dynamic_pointer_cast<ProtectedAtomDB>(atomdb_)) {
-        protected_write_buffer_ = p->wrap(write_buffer_);
-        protected_read_cache_ = p->wrap(read_cache_);
-    }
-
+    initialize_protected_cache();
     start_cleanup_thread();
 }
 
@@ -71,6 +67,13 @@ shared_ptr<ProtectedAtomDB> RemoteAtomDBPeer::protected_write_buffer() const {
 shared_ptr<ProtectedAtomDB> RemoteAtomDBPeer::protected_read_cache() const {
     lock_guard<mutex> lock(peer_mutex_);
     return protected_read_cache_;
+}
+
+void RemoteAtomDBPeer::initialize_protected_cache() {
+    if (auto p = dynamic_pointer_cast<ProtectedAtomDB>(atomdb_)) {
+        protected_write_buffer_ = p->wrap(write_buffer_);
+        protected_read_cache_ = p->wrap(read_cache_);
+    }
 }
 
 void RemoteAtomDBPeer::invalidate_fetched_templates() {
@@ -471,7 +474,7 @@ size_t RemoteAtomDBPeer::atom_count() const {
     return count;
 }
 
-void RemoteAtomDBPeer::fetch(const LinkSchema& link_schema) {
+void RemoteAtomDBPeer::fetch(const LinkSchema& link_schema, shared_ptr<Keychain> keychain) {
     {
         lock_guard<mutex> lock(peer_mutex_);
         if (fetched_link_templates_.count(link_schema.handle()) > 0) {
@@ -481,12 +484,18 @@ void RemoteAtomDBPeer::fetch(const LinkSchema& link_schema) {
 
     LOG_DEBUG("[RemoteDB(" << uid_ << ")] fetch(" << link_schema.handle()
                            << ") prefetching from remote atomdb");
-    auto result = atomdb_->query_for_pattern(link_schema);
+    auto protected_atomdb = dynamic_pointer_cast<KeySensitiveAtomDB>(this->atomdb_);
+    shared_ptr<atomdb_api_types::HandleSet> result;
+    if (keychain && protected_atomdb) {
+        result = protected_atomdb->query_for_pattern(link_schema, keychain);
+    } else {
+        result = this->atomdb_->query_for_pattern(link_schema);
+    }
     if (!result) {
         return;
     }
 
-    feed_cache_from_handle_set(result, nullptr);
+    feed_cache_from_handle_set(result, keychain);
 
     lock_guard<mutex> lock(peer_mutex_);
     fetched_link_templates_.insert(link_schema.handle());
@@ -633,6 +642,7 @@ void RemoteAtomDBPeer::release_cache(bool /*persist_to_local*/, bool /*persist_e
         old_read_cache = read_cache_;
         write_buffer_ = make_shared<InMemoryDB>();
         read_cache_ = make_shared<InMemoryDB>();
+        initialize_protected_cache();
         fetched_link_templates_.clear();
     }
 
@@ -878,7 +888,7 @@ shared_ptr<atomdb_api_types::HandleSet> RemoteAtomDBPeer::query_for_pattern(
     merge_memory();
     merge_local_persistence();
 
-    {
+    if (!protected_atomdb || keychain) {
         lock_guard<mutex> lock(peer_mutex_);
         fetched_link_templates_.insert(link_schema.handle());
     }

@@ -381,7 +381,7 @@ shared_ptr<Atom> RemoteAtomDB::get_atom(const string& handle, shared_ptr<Keychai
     for (auto& [uid, peer] : readonly_peers_) {
         // get_cached_atom is an unauthenticated in-memory probe (RemoteAtomDBPeer only).
         // Protected backends go through get_atom(handle, keychain) in the loop below.
-        if (dynamic_pointer_cast<KeySensitiveAtomDB>(peer->get_remote_atomdb()) == nullptr) {
+        if (!dynamic_pointer_cast<KeySensitiveAtomDB>(peer->get_remote_atomdb())) {
             atom = peer->get_cached_atom(handle);
         }
         if (atom) return atom;
