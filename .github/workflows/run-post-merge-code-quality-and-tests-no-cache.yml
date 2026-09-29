@@ -1,0 +1,11 @@
+name: Post-Merge Code Quality & Tests Without Cache
+
+on:
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+
+jobs:
+  code-quality-and-tests-no-cache:
+    uses: ./.github/workflows/run-code-quality-and-tests-no-cache.yml
