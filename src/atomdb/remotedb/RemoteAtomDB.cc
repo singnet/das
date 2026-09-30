@@ -79,19 +79,7 @@ shared_ptr<Link> RemoteAtomDB::get_link(const string& handle) {
 }
 
 vector<shared_ptr<Atom>> RemoteAtomDB::get_matching_atoms(bool is_toplevel, Atom& key) {
-    vector<shared_ptr<Atom>> result;
-    set<string> seen;
-
-    for (auto& [uid, peer] : remote_db_) {
-        auto atoms = peer->get_matching_atoms(is_toplevel, key);
-        for (const auto& atom : atoms) {
-            string h = atom->handle();
-            if (seen.insert(h).second) {
-                result.push_back(atom);
-            }
-        }
-    }
-    return result;
+    return this->get_matching_atoms(is_toplevel, key, nullptr);
 }
 
 shared_ptr<atomdb_api_types::HandleSet> RemoteAtomDB::query_for_pattern(const LinkSchema& link_schema) {
@@ -99,41 +87,11 @@ shared_ptr<atomdb_api_types::HandleSet> RemoteAtomDB::query_for_pattern(const Li
 }
 
 shared_ptr<atomdb_api_types::HandleList> RemoteAtomDB::query_for_targets(const string& handle) {
-    for (auto& [uid, peer] : remote_db_) {
-        auto list = peer->query_for_targets(handle);
-        if (list) {
-            LOG_DEBUG("query_for_targets(" << handle << ") served by peer [" << uid << "]");
-            return list;
-        }
-    }
-    LOG_DEBUG("query_for_targets(" << handle << ") not found in any peer");
-    return nullptr;
+    return this->query_for_targets(handle, nullptr);
 }
 
 shared_ptr<atomdb_api_types::HandleSet> RemoteAtomDB::query_for_incoming_set(const string& handle) {
-    auto result = make_shared<atomdb_api_types::HandleSetInMemory>();
-    set<string> seen;
-
-    LOG_DEBUG("query_for_incoming_set(" << handle << ") fan-out to " << remote_db_.size() << " peers");
-    for (auto& [uid, peer] : remote_db_) {
-        auto handle_set = peer->query_for_incoming_set(handle);
-        if (!handle_set) continue;
-
-        auto it = handle_set->get_iterator();
-        if (!it) continue;
-
-        while (true) {
-            char* h = it->next();
-            if (!h) break;
-            string member(h);
-            if (seen.insert(member).second) {
-                result->add_handle(member);
-            }
-        }
-    }
-    LOG_DEBUG("query_for_incoming_set(" << handle << ") aggregated " << result->size()
-                                        << " unique handles");
-    return result;
+    return this->query_for_incoming_set(handle, nullptr);
 }
 
 bool RemoteAtomDB::atom_exists(const string& handle) {
@@ -411,7 +369,19 @@ shared_ptr<Link> RemoteAtomDB::get_link(const string& handle, shared_ptr<Keychai
 vector<shared_ptr<Atom>> RemoteAtomDB::get_matching_atoms(bool is_toplevel,
                                                           Atom& key,
                                                           shared_ptr<Keychain> keychain) {
-    RAISE_ERROR("RemoteAtomDB::get_matching_atoms(keychain) is not implemented");
+    vector<shared_ptr<Atom>> result;
+    set<string> seen;
+
+    for (auto& [uid, peer] : remote_db_) {
+        auto atoms = peer->get_matching_atoms(is_toplevel, key, keychain);
+        for (const auto& atom : atoms) {
+            string h = atom->handle();
+            if (seen.insert(h).second) {
+                result.push_back(atom);
+            }
+        }
+    }
+    return result;
 }
 
 shared_ptr<atomdb_api_types::HandleSet> RemoteAtomDB::query_for_pattern(const LinkSchema& link_schema,
@@ -447,12 +417,42 @@ shared_ptr<atomdb_api_types::HandleSet> RemoteAtomDB::query_for_pattern(const Li
 
 shared_ptr<atomdb_api_types::HandleList> RemoteAtomDB::query_for_targets(const string& handle,
                                                                          shared_ptr<Keychain> keychain) {
-    RAISE_ERROR("RemoteAtomDB::query_for_targets(keychain) is not implemented");
+    for (auto& [uid, peer] : remote_db_) {
+        auto list = peer->query_for_targets(handle, keychain);
+        if (list) {
+            LOG_DEBUG("query_for_targets(" << handle << ") served by peer [" << uid << "]");
+            return list;
+        }
+    }
+    LOG_DEBUG("query_for_targets(" << handle << ") not found in any peer");
+    return nullptr;
 }
 
 shared_ptr<atomdb_api_types::HandleSet> RemoteAtomDB::query_for_incoming_set(
     const string& handle, shared_ptr<Keychain> keychain) {
-    RAISE_ERROR("RemoteAtomDB::query_for_incoming_set(keychain) is not implemented");
+    auto result = make_shared<atomdb_api_types::HandleSetInMemory>();
+    set<string> seen;
+
+    LOG_DEBUG("query_for_incoming_set(" << handle << ") fan-out to " << remote_db_.size() << " peers");
+    for (auto& [uid, peer] : remote_db_) {
+        auto handle_set = peer->query_for_incoming_set(handle, keychain);
+        if (!handle_set) continue;
+
+        auto it = handle_set->get_iterator();
+        if (!it) continue;
+
+        while (true) {
+            char* h = it->next();
+            if (!h) break;
+            string member(h);
+            if (seen.insert(member).second) {
+                result->add_handle(member);
+            }
+        }
+    }
+    LOG_DEBUG("query_for_incoming_set(" << handle << ") aggregated " << result->size()
+                                        << " unique handles");
+    return result;
 }
 
 bool RemoteAtomDB::atom_exists(const string& handle, shared_ptr<Keychain> keychain) {
