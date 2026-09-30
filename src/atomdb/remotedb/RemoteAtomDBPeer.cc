@@ -788,9 +788,7 @@ shared_ptr<Atom> RemoteAtomDBPeer::get_atom(const string& handle, shared_ptr<Key
             LOG_DEBUG("[RemoteDB(" << uid_ << ")] get_atom(" << handle
                                    << ") <- local_persistence (warmed into read_cache)");
             // Deliberately re-warm on EVERY hit, not just the first one.
-            // Change the line below when ProtectedAtomDB::add_atom() is implemented.
             rc->add_atom(atom.get());
-            // prc ? prc->add_atom(atom.get(), keychain) : rc->add_atom(atom.get());
             return atom;
         }
     }
@@ -805,9 +803,7 @@ shared_ptr<Atom> RemoteAtomDBPeer::get_atom(const string& handle, shared_ptr<Key
 
     if (atom) {
         LOG_DEBUG("[RemoteDB(" << uid_ << ")] get_atom(" << handle << ") <- remote atomdb (warmed)");
-        // Change the line below when ProtectedAtomDB::add_atom() is implemented.
         rc->add_atom(atom.get());
-        // prc ? prc->add_atom(atom.get(), keychain) : rc->add_atom(atom.get());
         return atom;
     }
 
