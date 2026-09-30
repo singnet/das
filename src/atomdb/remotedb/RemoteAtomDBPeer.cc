@@ -73,6 +73,9 @@ void RemoteAtomDBPeer::initialize_protected_cache() {
     if (auto p = dynamic_pointer_cast<ProtectedAtomDB>(atomdb_)) {
         protected_write_buffer_ = p->wrap(write_buffer_);
         protected_read_cache_ = p->wrap(read_cache_);
+    } else {
+        protected_write_buffer_ = nullptr;
+        protected_read_cache_ = nullptr;
     }
 }
 
