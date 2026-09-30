@@ -484,7 +484,7 @@ void RemoteAtomDBPeer::fetch(const LinkSchema& link_schema, shared_ptr<Keychain>
 
     LOG_DEBUG("[RemoteDB(" << uid_ << ")] fetch(" << link_schema.handle()
                            << ") prefetching from remote atomdb");
-    auto protected_atomdb = dynamic_pointer_cast<KeySensitiveAtomDB>(this->atomdb_);
+    auto protected_atomdb = dynamic_pointer_cast<ProtectedAtomDB>(this->atomdb_);
     shared_ptr<atomdb_api_types::HandleSet> result;
     if (keychain && protected_atomdb) {
         result = protected_atomdb->query_for_pattern(link_schema, keychain);
@@ -869,7 +869,7 @@ shared_ptr<atomdb_api_types::HandleSet> RemoteAtomDBPeer::query_for_pattern(
     LOG_DEBUG("[RemoteDB(" << uid_ << ")] query_for_pattern(" << link_schema.handle()
                            << ") cache-miss, fetching from remote atomdb");
 
-    auto protected_atomdb = dynamic_pointer_cast<KeySensitiveAtomDB>(this->atomdb_);
+    auto protected_atomdb = dynamic_pointer_cast<ProtectedAtomDB>(this->atomdb_);
     auto remote_handle_set = protected_atomdb
                                  ? protected_atomdb->query_for_pattern(link_schema, keychain)
                                  : this->atomdb_->query_for_pattern(link_schema);
