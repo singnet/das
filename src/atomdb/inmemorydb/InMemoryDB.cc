@@ -149,6 +149,8 @@ shared_ptr<InMemoryDB::Tries> InMemoryDB::make_tries() {
 
 InMemoryDB::InMemoryDB() : tries_(make_tries()) {}
 
+InMemoryDB::InMemoryDB(const string& uid) : AtomDB(uid), tries_(make_tries()) {}
+
 InMemoryDB::InMemoryDB(const JsonConfig& config)
     : AtomDB(config.at_path("uid").get_or<string>("")), tries_(make_tries()) {}
 

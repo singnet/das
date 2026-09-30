@@ -315,6 +315,122 @@ TEST_F(RemoteAtomDBKeySensitiveTest, ReleaseCacheDoesNotReturnStaleKeychainReads
         set<string>({this->similarity_human_monkey_handle, this->similarity_human_chimp_handle}));
 }
 
+TEST_F(RemoteAtomDBKeySensitiveTest, NestedSchemaDoesNotMatchWhenTheTargetLinkIsNotStored) {
+    Node evaluation("Symbol", "Evaluation");
+    Node predicate("Symbol", "Predicate");
+    Node is_animal("Symbol", "\"is_animal\"");
+    Node human("Symbol", "\"human\"");
+    Link predicate_is_animal("Expression", {predicate.handle(), is_animal.handle()});
+    Link evaluation_is_animal_human("Expression",
+                                    {evaluation.handle(), predicate_is_animal.handle(), human.handle()});
+
+    // (Evaluation (Predicate "is_animal") $C)
+    vector<string> nested_link_tokens = {"LINK_TEMPLATE",
+                                         "Expression",
+                                         "3",
+                                         "NODE",
+                                         "Symbol",
+                                         "Evaluation",
+                                         "LINK",
+                                         "Expression",
+                                         "2",
+                                         "NODE",
+                                         "Symbol",
+                                         "Predicate",
+                                         "NODE",
+                                         "Symbol",
+                                         "\"is_animal\"",
+                                         "VARIABLE",
+                                         "C"};
+
+    // (Evaluation (Predicate $P) $C)
+    vector<string> nested_template_tokens = {"LINK_TEMPLATE",
+                                             "Expression",
+                                             "3",
+                                             "NODE",
+                                             "Symbol",
+                                             "Evaluation",
+                                             "LINK_TEMPLATE",
+                                             "Expression",
+                                             "2",
+                                             "NODE",
+                                             "Symbol",
+                                             "Predicate",
+                                             "VARIABLE",
+                                             "P",
+                                             "VARIABLE",
+                                             "C"};
+    LinkSchema nested_link_schema{nested_link_tokens};
+    LinkSchema nested_template_schema{nested_template_tokens};
+
+    auto nested_link_backend = make_shared<InMemoryDBWithAccessDocuments>("nested_link_database");
+    nested_link_backend->grant_link_template("nested_reader", nested_link_tokens);
+    nested_link_backend->add_link(&evaluation_is_animal_human);
+
+    auto nested_template_backend =
+        make_shared<InMemoryDBWithAccessDocuments>("nested_template_database");
+    nested_template_backend->grant_link_template("nested_reader", nested_template_tokens);
+    nested_template_backend->add_link(&evaluation_is_animal_human);
+
+    map<string, shared_ptr<RemoteAtomDBPeer>> peers;
+    peers["nested_link_peer"] = make_shared<RemoteAtomDBPeer>(
+        "nested_link_peer", make_shared<ProtectedAtomDB>(nested_link_backend), nullptr);
+    peers["nested_template_peer"] = make_shared<RemoteAtomDBPeer>(
+        "nested_template_peer", make_shared<ProtectedAtomDB>(nested_template_backend), nullptr);
+    auto db = make_shared<RemoteAtomDB>("remote_nested", peers);
+    auto keys = this->keychain(
+        {{"nested_link_database", "nested_reader"}, {"nested_template_database", "nested_reader"}});
+
+    EXPECT_EQ(db->get_atom(evaluation_is_animal_human.handle(), keys), nullptr);
+    EXPECT_TRUE(handles_from_handle_set(db->query_for_pattern(nested_link_schema, keys)).empty());
+    EXPECT_TRUE(handles_from_handle_set(db->query_for_pattern(nested_template_schema, keys)).empty());
+}
+
+// First read loads H from the protected backend and stores it in the read cache.
+// H is then deleted from the backend. The second read must still return H from the cache.
+// With the cache uid left empty, the keychain does not match and this returns nullptr.
+TEST_F(RemoteAtomDBKeySensitiveTest, SecondGetAtomReadsTheCachedAtomAfterTheBackendLosesIt) {
+    Node similarity("Symbol", "Similarity");
+    Node human("Symbol", "\"human\"");
+    Node monkey("Symbol", "\"monkey\"");
+    Link similarity_human_monkey("Expression", {similarity.handle(), human.handle(), monkey.handle()});
+    vector<string> tokens = {"LINK_TEMPLATE",
+                             "Expression",
+                             "3",
+                             "NODE",
+                             "Symbol",
+                             "Similarity",
+                             "NODE",
+                             "Symbol",
+                             "\"human\"",
+                             "VARIABLE",
+                             "V"};
+
+    auto remote_atomdb = make_shared<InMemoryDBWithAccessDocuments>("cache_database");
+    remote_atomdb->grant_link_template("cache_reader", tokens);
+    remote_atomdb->add_node(&similarity);
+    remote_atomdb->add_node(&human);
+    remote_atomdb->add_node(&monkey);
+    remote_atomdb->add_link(&similarity_human_monkey);
+
+    map<string, shared_ptr<RemoteAtomDBPeer>> peers;
+    peers["cache_peer"] = make_shared<RemoteAtomDBPeer>(
+        "cache_peer", make_shared<ProtectedAtomDB>(remote_atomdb), nullptr);
+
+    auto db = make_shared<RemoteAtomDB>("remote_cache", peers);
+    auto keys = this->keychain({{"cache_database", "cache_reader"}});
+
+    auto first = db->get_atom(similarity_human_monkey.handle(), keys);
+    ASSERT_NE(first, nullptr);
+    EXPECT_EQ(first->handle(), similarity_human_monkey.handle());
+
+    remote_atomdb->delete_atom(similarity_human_monkey.handle());
+
+    auto second = db->get_atom(similarity_human_monkey.handle(), keys);
+    ASSERT_NE(second, nullptr);
+    EXPECT_EQ(second->handle(), similarity_human_monkey.handle());
+}
+
 int main(int argc, char** argv) {
     ::testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();
