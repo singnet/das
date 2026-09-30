@@ -57,9 +57,9 @@ class RemoteAtomDBPeer : public AtomDB, public processor::ThreadMethod, public K
 
     // In-memory lookups only (write_buffer + read_cache). Used by the RemoteAtomDB facade
     // to probe every peer's cache before escalating any peer to its backend.
-    shared_ptr<Atom> get_cached_atom(const string& handle);
-    shared_ptr<Node> get_cached_node(const string& handle);
-    shared_ptr<Link> get_cached_link(const string& handle);
+    shared_ptr<Atom> get_cached_atom(const string& handle, shared_ptr<Keychain> keychain = nullptr);
+    shared_ptr<Node> get_cached_node(const string& handle, shared_ptr<Keychain> keychain = nullptr);
+    shared_ptr<Link> get_cached_link(const string& handle, shared_ptr<Keychain> keychain = nullptr);
 
     vector<shared_ptr<Atom>> get_matching_atoms(bool is_toplevel, Atom& key) override;
     vector<shared_ptr<Atom>> get_matching_atoms(bool is_toplevel,

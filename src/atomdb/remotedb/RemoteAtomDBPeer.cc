@@ -100,20 +100,22 @@ shared_ptr<Link> RemoteAtomDBPeer::get_link(const string& handle) {
     return dynamic_pointer_cast<Link>(atom);
 }
 
-shared_ptr<Atom> RemoteAtomDBPeer::get_cached_atom(const string& handle) {
-    if (auto atom = write_buffer()->get_atom(handle)) {
+shared_ptr<Atom> RemoteAtomDBPeer::get_cached_atom(const string& handle, shared_ptr<Keychain> keychain) {
+    auto pwb = protected_write_buffer();
+    if (auto atom = pwb ? pwb->get_atom(handle, keychain) : write_buffer()->get_atom(handle)) {
         return atom;
     }
-    return read_cache()->get_atom(handle);
+    auto prc = protected_read_cache();
+    return prc ? prc->get_atom(handle, keychain) : read_cache()->get_atom(handle);
 }
 
-shared_ptr<Node> RemoteAtomDBPeer::get_cached_node(const string& handle) {
-    auto atom = get_cached_atom(handle);
+shared_ptr<Node> RemoteAtomDBPeer::get_cached_node(const string& handle, shared_ptr<Keychain> keychain) {
+    auto atom = get_cached_atom(handle, keychain);
     return dynamic_pointer_cast<Node>(atom);
 }
 
-shared_ptr<Link> RemoteAtomDBPeer::get_cached_link(const string& handle) {
-    auto atom = get_cached_atom(handle);
+shared_ptr<Link> RemoteAtomDBPeer::get_cached_link(const string& handle, shared_ptr<Keychain> keychain) {
+    auto atom = get_cached_atom(handle, keychain);
     return dynamic_pointer_cast<Link>(atom);
 }
 
@@ -772,16 +774,13 @@ void RemoteAtomDBPeer::stop_cleanup_thread() {
 
 shared_ptr<Atom> RemoteAtomDBPeer::get_atom(const string& handle, shared_ptr<Keychain> keychain) {
     // Snapshot the two in-memory layers without holding the mutex across I/O.
-    auto wb = write_buffer();
-    auto rc = read_cache();
     auto pwb = protected_write_buffer();
-    auto prc = protected_read_cache();
-
     // Dirty writes always win over durable / warmed copies.
-    if (auto atom = pwb ? pwb->get_atom(handle, keychain) : wb->get_atom(handle)) {
+    if (auto atom = pwb ? pwb->get_atom(handle, keychain) : write_buffer()->get_atom(handle)) {
         return atom;
     }
 
+    auto rc = read_cache();
     if (local_persistence_) {
         auto atom = local_persistence_->get_atom(handle);
         if (atom) {
@@ -793,6 +792,7 @@ shared_ptr<Atom> RemoteAtomDBPeer::get_atom(const string& handle, shared_ptr<Key
         }
     }
 
+    auto prc = protected_read_cache();
     if (auto atom = prc ? prc->get_atom(handle, keychain) : rc->get_atom(handle)) {
         return atom;
     }

@@ -14,6 +14,7 @@
 #include "Logger.h"
 #include "MorkDB.h"
 #include "Node.h"
+#include "ProtectedAtomDB.h"
 #include "RedisMongoDB.h"
 #include "Utils.h"
 
@@ -380,10 +381,7 @@ shared_ptr<Atom> RemoteAtomDB::get_atom(const string& handle, shared_ptr<Keychai
     // Readonly peers: cache probe then escalate to remote backends (base KB hot path).
     for (auto& [uid, peer] : readonly_peers_) {
         // get_cached_atom is an unauthenticated in-memory probe (RemoteAtomDBPeer only).
-        // Protected backends go through get_atom(handle, keychain) in the loop below.
-        if (!dynamic_pointer_cast<KeySensitiveAtomDB>(peer->get_remote_atomdb())) {
-            atom = peer->get_cached_atom(handle);
-        }
+        atom = peer->get_cached_atom(handle, keychain);
         if (atom) return atom;
     }
 
