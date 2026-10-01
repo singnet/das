@@ -6,7 +6,7 @@
 
 #include "AtomDBSingleton.h"
 #include "AttentionBrokerClient.h"
-#include "ProtectedAtomDB.h"
+#include "KeySensitiveAtomDB.h"
 #include "Terminal.h"
 
 #define LOG_LEVEL INFO_LEVEL
@@ -198,7 +198,7 @@ void LinkTemplate::processor_method(shared_ptr<StoppableThread> monitor) {
         return;
     }
     shared_ptr<AtomDB> atomdb = AtomDBSingleton::get_instance();
-    shared_ptr<ProtectedAtomDB> protected_atomdb = dynamic_pointer_cast<ProtectedAtomDB>(atomdb);
+    shared_ptr<KeySensitiveAtomDB> protected_atomdb = dynamic_pointer_cast<KeySensitiveAtomDB>(atomdb);
     string link_schema_handle = this->link_schema.handle();
     shared_ptr<atomdb_api_types::HandleSet> handles;
     LOG_INFO("Fetching " + link_schema_handle + " from AtomDB");
