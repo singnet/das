@@ -213,7 +213,7 @@ float QueryEvolutionProxy::compute_fitness(shared_ptr<QueryAnswer> answer) {
         }
         return 0;
     } else {
-        return this->fitness_function_object->eval(answer);
+        return this->fitness_function_object->eval(answer, this->keychain());
     }
 }
 

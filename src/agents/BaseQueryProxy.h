@@ -4,6 +4,7 @@
 
 #include "AtomDBSingleton.h"
 #include "BaseProxy.h"
+#include "Keychain.h"
 #include "Message.h"
 #include "QueryAnswer.h"
 #include "SharedQueue.h"
@@ -211,6 +212,13 @@ class BaseQueryProxy : public BaseProxy {
      * @return a string representation with all command parameter values.
      */
     virtual string to_string();
+
+    /**
+     * Returns the keychain associated with this proxy.
+     *
+     * @return the keychain associated with this proxy.
+     */
+    shared_ptr<Keychain> get_keychain();
 
     /**
      * Populates QueryAnswer's table top map from handle --> MeTTa expressions.

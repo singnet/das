@@ -17,7 +17,8 @@ class FitnessFunction {
     FitnessFunction(){};
     virtual ~FitnessFunction(){};
 
-    virtual float eval(shared_ptr<QueryAnswer> query_answer) = 0;
+    virtual float eval(shared_ptr<QueryAnswer> query_answer,
+                       shared_ptr<Keychain> keychain = nullptr) = 0;
 };
 
 }  // namespace fitness_functions

@@ -1,6 +1,7 @@
 #include "CountLetterFunction.h"
 
 #include "AtomDBSingleton.h"
+#include "KeySensitiveAtomDB.h"
 #include "Utils.h"
 
 using namespace fitness_functions;
@@ -10,7 +11,7 @@ char CountLetterFunction::LETTER_TO_COUNT = 'c';
 
 CountLetterFunction::CountLetterFunction() { this->db = AtomDBSingleton::get_instance(); }
 
-float CountLetterFunction::eval(shared_ptr<QueryAnswer> query_answer) {
+float CountLetterFunction::eval(shared_ptr<QueryAnswer> query_answer, shared_ptr<Keychain> keychain) {
     if (query_answer->get_handles_size() != 1) {
         RAISE_ERROR("Invalid answer in CountLetterFunction");
         return 0;
@@ -18,9 +19,22 @@ float CountLetterFunction::eval(shared_ptr<QueryAnswer> query_answer) {
         shared_ptr<Link> sentence_link;
         shared_ptr<Node> sentence_name_node;
         string handle = query_answer->assignment.get(VARIABLE_NAME);
-        sentence_link = this->db->get_link(handle);
+
+        auto protected_db = dynamic_pointer_cast<KeySensitiveAtomDB>(this->db);
+
+        if (protected_db) {
+            sentence_link = protected_db->get_link(handle, keychain);
+        } else {
+            sentence_link = this->db->get_link(handle);
+        }
         handle = sentence_link->targets[1];
-        sentence_name_node = this->db->get_node(handle);
+
+        if (protected_db) {
+            sentence_name_node = protected_db->get_node(handle, keychain);
+        } else {
+            sentence_name_node = this->db->get_node(handle);
+        }
+
         string sentence_name = sentence_name_node->name;
         unsigned int count = 0;
         unsigned int sentence_length = 0;

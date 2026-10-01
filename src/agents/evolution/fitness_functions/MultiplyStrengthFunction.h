@@ -14,7 +14,7 @@ class MultiplyStrengthFunction : public FitnessFunction {
     MultiplyStrengthFunction();
     ~MultiplyStrengthFunction() {}
 
-    float eval(shared_ptr<QueryAnswer> query_answer) override;
+    float eval(shared_ptr<QueryAnswer> query_answer, shared_ptr<Keychain> keychain = nullptr) override;
 
    private:
     shared_ptr<AtomDB> db;

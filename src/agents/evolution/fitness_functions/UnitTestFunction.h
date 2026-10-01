@@ -11,7 +11,7 @@ class UnitTestFunction : public FitnessFunction {
     UnitTestFunction() {}
     ~UnitTestFunction() {}
 
-    float eval(shared_ptr<QueryAnswer> query_answer) override;
+    float eval(shared_ptr<QueryAnswer> query_answer, shared_ptr<Keychain> keychain = nullptr) override;
 
    private:
 };

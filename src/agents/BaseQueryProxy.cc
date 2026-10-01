@@ -4,6 +4,7 @@
 #include "Logger.h"
 #include "ServiceBus.h"
 #include "SystemParametersSingleton.h"
+#include "Utils.h"
 
 using namespace agents;
 
@@ -174,13 +175,24 @@ string BaseQueryProxy::to_string() {
     return answer;
 }
 
+shared_ptr<Keychain> BaseQueryProxy::get_keychain() {
+    lock_guard<recursive_mutex> semaphore(this->api_mutex);
+    string public_key_tokens = this->parameters.get_or<string>(PUBLIC_KEY_TOKENS, "");
+    if (public_key_tokens == "") {
+        return nullptr;
+    }
+    // Keychain takes uid/key pairs, the same token list LinkTemplate uses.
+    return make_shared<Keychain>(Utils::split(public_key_tokens));
+}
+
 void BaseQueryProxy::populate_metta_mapping(QueryAnswer* answer) {
+    auto keychain = this->get_keychain();
     for (string& handle : answer->get_handles_vector()) {
-        AtomDBUtils::handle_to_metta(handle, answer->metta_expression);
+        AtomDBUtils::handle_to_metta(handle, answer->metta_expression, keychain);
     }
     for (unsigned int i = 0; i < answer->get_paths_size(); i++) {
         for (string& handle : answer->get_path_vector(i)) {
-            AtomDBUtils::handle_to_metta(handle, answer->metta_expression);
+            AtomDBUtils::handle_to_metta(handle, answer->metta_expression, keychain);
         }
     }
 }

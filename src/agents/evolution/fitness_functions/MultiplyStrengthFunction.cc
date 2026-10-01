@@ -12,7 +12,8 @@ string MultiplyStrengthFunction::VARIABLE_NAME = "strength";
 
 MultiplyStrengthFunction::MultiplyStrengthFunction() { db = AtomDBSingleton::get_instance(); }
 
-float MultiplyStrengthFunction::eval(shared_ptr<QueryAnswer> query_answer) {
+float MultiplyStrengthFunction::eval(shared_ptr<QueryAnswer> query_answer,
+                                     shared_ptr<Keychain> keychain) {
     float strength = 1.0;
 
     LOG_DEBUG("Evaluating strength for " << query_answer->to_string());
