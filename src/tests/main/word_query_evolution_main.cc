@@ -9,9 +9,11 @@
 #include "ContextBrokerProxy.h"
 #include "CountLetterFunction.h"
 #include "FitnessFunctionRegistry.h"
+#include "JsonConfigParser.h"
 #include "QueryAnswer.h"
 #include "QueryEvolutionProxy.h"
 #include "ServiceBusSingleton.h"
+#include "SystemParametersSingleton.h"
 #include "TestAtomDBJsonConfig.h"
 #include "Utils.h"
 
@@ -350,7 +352,7 @@ void run(const string& client_id,
 int main(int argc, char* argv[]) {
     if (argc < 7) {
         cerr << "Usage: " << argv[0]
-             << "    <client id> <server id> <start_port:end_port> --use-mork|--use-redismongo "
+             << "    <client id> <server id> <start_port:end_port> <config_file> "
                 "<context_tag> <word tag 1> <word tag "
                 "2> [RENT_RATE] [SPREADING_RATE_LOWERBOUND] [SPREADING_RATE_UPPERBOUND] [ELITISM_RATE]"
              << endl;
@@ -363,8 +365,13 @@ int main(int argc, char* argv[]) {
     string client_id = argv[1];
     string server_id = argv[2];
     auto ports_range = Utils::parse_ports_range(argv[3]);
-    string atomdb_type_str = argv[4];
+
     Utils::init_random(0);
+
+    auto json_config = JsonConfigParser::load(argv[4]);
+    SystemParametersSingleton::init(json_config);
+
+    string atomdb_type_str = json_config.at_path("atomdb.type").get_or<string>("redismongodb");
     AtomDBSingleton::init(test_atomdb_json_config(atomdb_type_str));
 
     string context_tag = argv[5];
