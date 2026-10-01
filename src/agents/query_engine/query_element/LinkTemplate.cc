@@ -54,7 +54,8 @@ LinkTemplate::LinkTemplate(const string& type,
     }
     this->reverse_nesting_level = max_reverse_nesting + 1;
     if (public_key_tokens != "") {
-        this->keychain = make_shared<Keychain>(Utils::split(public_key_tokens));
+        this->keychain = make_shared<Keychain>();
+        this->keychain->untokenize(Utils::split(public_key_tokens));
     } else {
         this->keychain = nullptr;
     }

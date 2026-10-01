@@ -197,7 +197,8 @@ void QueryEvolutionProxy::untokenize(vector<string>& tokens) {
     }
     string keychain_tokens = this->parameters.get_or<string>(BaseQueryProxy::PUBLIC_KEY_TOKENS, "");
     if (keychain_tokens != "") {
-        this->_keychain = make_shared<Keychain>(Utils::split(keychain_tokens));
+        this->_keychain = make_shared<Keychain>();
+        this->_keychain->untokenize(Utils::split(keychain_tokens));
     }
 }
 

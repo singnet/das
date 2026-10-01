@@ -18,7 +18,7 @@ namespace atomdb {
 class Keychain {
    public:
     explicit Keychain(const map<string, string>& keys);
-    explicit Keychain(const vector<string>& tokens);
+    explicit Keychain() {}
     ~Keychain() = default;
 
     /**
@@ -31,6 +31,9 @@ class Keychain {
      * @return The stored public key, or empty string.
      */
     string get_public_key(const string& uid) const;
+
+    void tokenize(vector<string>& tokens);
+    void untokenize(const vector<string>& tokens);
 
    private:
     map<string, string> keys_;

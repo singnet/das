@@ -11,7 +11,14 @@ using namespace commons;
 
 Keychain::Keychain(const map<string, string>& keys) { this->keys_ = keys; }
 
-Keychain::Keychain(const vector<string>& tokens) {
+void Keychain::tokenize(vector<string>& tokens) {
+    for (auto& pair : this->keys_) {
+        tokens.push_back(pair.first);
+        tokens.push_back(pair.second);
+    }
+}
+
+void Keychain::untokenize(const vector<string>& tokens) {
     if (tokens.size() > 0) {
         bool parse_error = false;
         if ((tokens.size() % 2) == 0) {
