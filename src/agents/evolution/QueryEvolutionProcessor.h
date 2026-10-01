@@ -5,12 +5,12 @@
 #include <set>
 #include <thread>
 
+#include "AtomDB.h"
 #include "BusCommandProcessor.h"
+#include "Keychain.h"
 #include "PatternMatchingQueryProxy.h"
 #include "QueryEvolutionProxy.h"
 #include "StoppableThread.h"
-#include "AtomDB.h"
-#include "Keychain.h"
 
 using namespace std;
 using namespace service_bus;

@@ -6,9 +6,8 @@
 #include <vector>
 
 #include "Assignment.h"
-#include "HandleDecoder.h"
-#include "Utils.h"
 #include "AtomDB.h"
+#include "HandleDecoder.h"
 #include "Keychain.h"
 #include "Utils.h"
 #include "expression_hasher.h"
@@ -498,7 +497,9 @@ class QueryAnswer {
      * @param Optional keychain to be passed to the atom DB in case it's protected.
      * $return The element indicated by the passed QueryAnswerElement key.
      */
-    vector<string> get_all(const QueryAnswerElement& element_key, shared_ptr<AtomDB> atomdb = nullptr, shared_ptr<Keychain> keychain = nullptr);
+    vector<string> get_all(const QueryAnswerElement& element_key,
+                           shared_ptr<AtomDB> atomdb = nullptr,
+                           shared_ptr<Keychain> keychain = nullptr);
 
     /**
      * Rewrites the passed query (tokens only, no MeTTa expression allowed) replacing variables

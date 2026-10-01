@@ -4,8 +4,8 @@
 #include <unordered_set>
 
 #include "Hasher.h"
-#include "Link.h"
 #include "InMemoryDB.h"
+#include "Link.h"
 #include "QueryAnswer.h"
 #include "Utils.h"
 #include "gtest/gtest.h"
@@ -19,7 +19,7 @@ using namespace atomdb;
 static map<string, string> atom_table;
 static string add_link(shared_ptr<InMemoryDB> db, const string& s) {
     if (atom_table.find(s) == atom_table.end()) {
-        string prefix = s.substr(1,1);
+        string prefix = s.substr(1, 1);
         Node* node1 = new Node("blah", prefix + "a");
         Node* node2 = new Node("blah", prefix + "b");
         Link* link = new Link("blah", vector<string>({node1->handle(), node2->handle()}));
@@ -31,9 +31,7 @@ static string add_link(shared_ptr<InMemoryDB> db, const string& s) {
     return atom_table[s];
 }
 
-static string node_handle(const string& n) {
-    return Hasher::node_handle("blah", n);
-}
+static string node_handle(const string& n) { return Hasher::node_handle("blah", n); }
 
 TEST(QueryAnswer, assignments_basics) {
     Assignment mapping0;

@@ -4,9 +4,9 @@
 #include <set>
 #include <vector>
 
-#include "Keychain.h"
 #include "BaseQueryProxy.h"
 #include "FitnessFunction.h"
+#include "Keychain.h"
 
 using namespace std;
 using namespace service_bus;

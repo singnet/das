@@ -7,9 +7,9 @@
 #include <set>
 
 #include "Hasher.h"
+#include "KeySensitiveAtomDB.h"
 #include "LinkSchema.h"
 #include "Utils.h"
-#include "KeySensitiveAtomDB.h"
 
 using namespace query_engine;
 
@@ -530,7 +530,9 @@ string QueryAnswer::get(unsigned int key_path,
     return answer;
 }
 
-vector<string> QueryAnswer::get_all(const QueryAnswerElement& key, shared_ptr<AtomDB> atomdb, shared_ptr<Keychain> keychain) {
+vector<string> QueryAnswer::get_all(const QueryAnswerElement& key,
+                                    shared_ptr<AtomDB> atomdb,
+                                    shared_ptr<Keychain> keychain) {
     vector<string> answer;
     switch (key.type) {
         case QueryAnswerElement::ALL_HANDLES:
@@ -566,7 +568,9 @@ vector<string> QueryAnswer::get_all(const QueryAnswerElement& key, shared_ptr<At
                     if (key_sensitive_atomdb != nullptr) {
                         atom = key_sensitive_atomdb->get_atom(handle, keychain);
                     } else {
-                        RAISE_ERROR("Non-null keychain implies a KeySensitiveAtomDB but the passed atomdb object is not key sensitive.");
+                        RAISE_ERROR(
+                            "Non-null keychain implies a KeySensitiveAtomDB but the passed atomdb "
+                            "object is not key sensitive.");
                     }
                 }
                 if (atom == nullptr) {
