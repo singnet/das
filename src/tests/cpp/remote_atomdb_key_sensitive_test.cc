@@ -357,7 +357,7 @@ TEST_F(RemoteAtomDBKeySensitiveTest, NestedSchemaDoesNotMatchWhenTheTargetLinkIs
     auto key = this->keychain({{"nested_link_database", "nested_reader"}});
 
     // The first call will fetch the atom from the remote database and add the result to the cache.
-    auto handles = handles_from_handle_set(db->query_for_pattern(nested_link_schema, keys));
+    auto handles = handles_from_handle_set(db->query_for_pattern(nested_link_schema, key));
     EXPECT_EQ(handles.size(), 1);
     EXPECT_EQ(*handles.begin(), evaluation_is_animal_human.handle());
 
