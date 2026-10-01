@@ -95,7 +95,7 @@ shared_ptr<PatternMatchingQueryProxy> QueryEvolutionProcessor::issue_sampling_qu
     shared_ptr<QueryEvolutionProxy> proxy) {
     auto pm_proxy =
         make_shared<PatternMatchingQueryProxy>(proxy->get_query_tokens(), proxy->get_context());
-    pm_proxy->parameters = proxy->parameters;
+    pm_proxy->parameters += proxy->parameters;
     pm_proxy->parameters[BaseQueryProxy::ATTENTION_CORRELATION] = (unsigned int) BaseQueryProxy::NONE;
     pm_proxy->parameters[BaseQueryProxy::ATTENTION_UPDATE] = (unsigned int) BaseQueryProxy::NONE;
     pm_proxy->parameters[BaseQueryProxy::POPULATE_METTA_MAPPING] =
@@ -111,7 +111,7 @@ shared_ptr<PatternMatchingQueryProxy> QueryEvolutionProcessor::issue_sampling_qu
 shared_ptr<PatternMatchingQueryProxy> QueryEvolutionProcessor::issue_correlation_query(
     shared_ptr<QueryEvolutionProxy> proxy, vector<string> query_tokens) {
     auto pm_proxy = make_shared<PatternMatchingQueryProxy>(query_tokens, proxy->get_context());
-    pm_proxy->parameters = proxy->parameters;
+    pm_proxy->parameters += proxy->parameters;
     pm_proxy->parameters[BaseQueryProxy::UNIQUE_ASSIGNMENT_FLAG] = true;
     pm_proxy->parameters[BaseQueryProxy::ATTENTION_CORRELATION] = (unsigned int) BaseQueryProxy::NONE;
     pm_proxy->parameters[BaseQueryProxy::ATTENTION_UPDATE] = (unsigned int) BaseQueryProxy::NONE;
