@@ -504,6 +504,7 @@ shared_ptr<Link> QueryEvolutionProcessor::get_link(const string& handle,
                 "Non-null Keychain implies a KeySensitiveAtomDB but the AtomDB is not key sensitive");
         }
     }
+    return link;
 }
 
 string QueryEvolutionProcessor::answer_to_string_2(shared_ptr<QueryAnswer> answer,
@@ -549,7 +550,7 @@ string QueryEvolutionProcessor::answer_to_string_1(shared_ptr<QueryAnswer> answe
     bool first = true;
     for (string& handle : answer->get_path_vector(0)) {
         shared_ptr<Link> link = get_link(handle, proxy);
-        if (link != nullptr) {
+        if ((link != nullptr) || (link->targets.size() < 3)) {
             if (first) {
                 first = false;
                 path = AtomDBUtils::handle_to_metta(link->targets[1]) + path_link;
