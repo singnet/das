@@ -204,91 +204,22 @@ shared_ptr<HandleSet> RemoteAtomDBPeer::query_for_incoming_set(const string& han
     return this->query_for_incoming_set(handle, nullptr);
 }
 
-bool RemoteAtomDBPeer::atom_exists(const string& handle) {
-    if (write_buffer()->atom_exists(handle)) return true;
-    if (read_cache()->atom_exists(handle)) return true;
-    if (local_persistence_ && local_persistence_->atom_exists(handle)) return true;
-    if (atomdb_ && atomdb_->atom_exists(handle)) return true;
-    return false;
-}
+bool RemoteAtomDBPeer::atom_exists(const string& handle) { return this->atom_exists(handle, nullptr); }
 
-bool RemoteAtomDBPeer::node_exists(const string& handle) {
-    if (write_buffer()->node_exists(handle)) return true;
-    if (read_cache()->node_exists(handle)) return true;
-    if (local_persistence_ && local_persistence_->node_exists(handle)) return true;
-    if (atomdb_ && atomdb_->node_exists(handle)) return true;
-    return false;
-}
+bool RemoteAtomDBPeer::node_exists(const string& handle) { return this->node_exists(handle, nullptr); }
 
-bool RemoteAtomDBPeer::link_exists(const string& handle) {
-    if (write_buffer()->link_exists(handle)) return true;
-    if (read_cache()->link_exists(handle)) return true;
-    if (local_persistence_ && local_persistence_->link_exists(handle)) return true;
-    if (atomdb_ && atomdb_->link_exists(handle)) return true;
-    return false;
-}
+bool RemoteAtomDBPeer::link_exists(const string& handle) { return this->link_exists(handle, nullptr); }
 
 set<string> RemoteAtomDBPeer::atoms_exist(const vector<string>& handles) {
-    set<string> result;
-    set<string> remaining(handles.begin(), handles.end());
-
-    auto from_source = [&](AtomDB& db) {
-        vector<string> to_check(remaining.begin(), remaining.end());
-        if (to_check.empty()) return;
-        for (const auto& h : db.atoms_exist(to_check)) {
-            result.insert(h);
-            remaining.erase(h);
-        }
-    };
-
-    from_source(*write_buffer());
-    if (!remaining.empty()) from_source(*read_cache());
-    if (local_persistence_ && !remaining.empty()) from_source(*local_persistence_);
-    if (atomdb_ && !remaining.empty()) from_source(*atomdb_);
-
-    return result;
+    return this->atoms_exist(handles, nullptr);
 }
 
 set<string> RemoteAtomDBPeer::nodes_exist(const vector<string>& handles) {
-    set<string> result;
-    set<string> remaining(handles.begin(), handles.end());
-
-    auto from_source = [&](AtomDB& db) {
-        vector<string> to_check(remaining.begin(), remaining.end());
-        if (to_check.empty()) return;
-        for (const auto& h : db.nodes_exist(to_check)) {
-            result.insert(h);
-            remaining.erase(h);
-        }
-    };
-
-    from_source(*write_buffer());
-    if (!remaining.empty()) from_source(*read_cache());
-    if (local_persistence_ && !remaining.empty()) from_source(*local_persistence_);
-    if (atomdb_ && !remaining.empty()) from_source(*atomdb_);
-
-    return result;
+    return this->nodes_exist(handles, nullptr);
 }
 
 set<string> RemoteAtomDBPeer::links_exist(const vector<string>& handles) {
-    set<string> result;
-    set<string> remaining(handles.begin(), handles.end());
-
-    auto from_source = [&](AtomDB& db) {
-        vector<string> to_check(remaining.begin(), remaining.end());
-        if (to_check.empty()) return;
-        for (const auto& h : db.links_exist(to_check)) {
-            result.insert(h);
-            remaining.erase(h);
-        }
-    };
-
-    from_source(*write_buffer());
-    if (!remaining.empty()) from_source(*read_cache());
-    if (local_persistence_ && !remaining.empty()) from_source(*local_persistence_);
-    if (atomdb_ && !remaining.empty()) from_source(*atomdb_);
-
-    return result;
+    return this->links_exist(handles, nullptr);
 }
 
 string RemoteAtomDBPeer::add_atom(const atoms::Atom* atom, const atoms::Merger* merger) {
@@ -935,27 +866,156 @@ shared_ptr<atomdb_api_types::HandleSet> RemoteAtomDBPeer::query_for_incoming_set
 }
 
 bool RemoteAtomDBPeer::atom_exists(const string& handle, shared_ptr<Keychain> keychain) {
-    RAISE_ERROR("RemoteAtomDBPeer::atom_exists(keychain) is not implemented");
+    auto pwb = protected_write_buffer();
+    if (pwb ? pwb->atom_exists(handle, keychain) : write_buffer()->atom_exists(handle)) return true;
+
+    auto prc = protected_read_cache();
+    if (prc ? prc->atom_exists(handle, keychain) : read_cache()->atom_exists(handle)) return true;
+
+    if (local_persistence_ && local_persistence_->atom_exists(handle)) return true;
+
+    auto protected_atomdb = dynamic_pointer_cast<ProtectedAtomDB>(this->atomdb_);
+    if (protected_atomdb && protected_atomdb->atom_exists(handle, keychain)) {
+        return true;
+    } else if (this->atomdb_ && this->atomdb_->atom_exists(handle)) {
+        return true;
+    } else {
+        return false;
+    }
 }
 
 bool RemoteAtomDBPeer::node_exists(const string& handle, shared_ptr<Keychain> keychain) {
-    RAISE_ERROR("RemoteAtomDBPeer::node_exists(keychain) is not implemented");
+    auto pwb = protected_write_buffer();
+    if (pwb ? pwb->node_exists(handle, keychain) : write_buffer()->node_exists(handle)) return true;
+
+    auto prc = protected_read_cache();
+    if (prc ? prc->node_exists(handle, keychain) : read_cache()->node_exists(handle)) return true;
+
+    if (local_persistence_ && local_persistence_->node_exists(handle)) return true;
+
+    auto protected_atomdb = dynamic_pointer_cast<ProtectedAtomDB>(this->atomdb_);
+    if (protected_atomdb && protected_atomdb->node_exists(handle, keychain)) {
+        return true;
+    } else if (this->atomdb_ && this->atomdb_->node_exists(handle)) {
+        return true;
+    } else {
+        return false;
+    }
 }
 
 bool RemoteAtomDBPeer::link_exists(const string& handle, shared_ptr<Keychain> keychain) {
-    RAISE_ERROR("RemoteAtomDBPeer::link_exists(keychain) is not implemented");
+    auto pwb = protected_write_buffer();
+    if (pwb ? pwb->link_exists(handle, keychain) : write_buffer()->link_exists(handle)) return true;
+
+    auto prc = protected_read_cache();
+    if (prc ? prc->link_exists(handle, keychain) : read_cache()->link_exists(handle)) return true;
+
+    if (local_persistence_ && local_persistence_->link_exists(handle)) return true;
+
+    auto protected_atomdb = dynamic_pointer_cast<ProtectedAtomDB>(this->atomdb_);
+    if (protected_atomdb && protected_atomdb->link_exists(handle, keychain)) {
+        return true;
+    } else if (this->atomdb_ && this->atomdb_->link_exists(handle)) {
+        return true;
+    } else {
+        return false;
+    }
 }
 
 set<string> RemoteAtomDBPeer::atoms_exist(const vector<string>& handles, shared_ptr<Keychain> keychain) {
-    RAISE_ERROR("RemoteAtomDBPeer::atoms_exist(keychain) is not implemented");
+    set<string> result;
+    set<string> remaining(handles.begin(), handles.end());
+
+    auto from_source = [&](set<string> handles) {
+        vector<string> to_check(remaining.begin(), remaining.end());
+        if (to_check.empty()) return;
+        for (const auto& h : handles) {
+            result.insert(h);
+            remaining.erase(h);
+        }
+    };
+
+    auto pwb = protected_write_buffer();
+    from_source(pwb ? pwb->atoms_exist(handles, keychain) : write_buffer()->atoms_exist(handles));
+
+    if (!remaining.empty()) {
+        auto prc = protected_read_cache();
+        from_source(prc ? prc->atoms_exist(handles, keychain) : read_cache()->atoms_exist(handles));
+    }
+
+    if (local_persistence_ && !remaining.empty()) from_source(*local_persistence_);
+
+    if (atomdb_ && !remaining.empty()) {
+        auto protected_atomdb = dynamic_pointer_cast<ProtectedAtomDB>(this->atomdb_);
+        from_source(protected_atomdb ? protected_atomdb->atoms_exist(handles, keychain)
+                                     : atomdb_->atoms_exist(handles));
+    }
+
+    return result;
 }
 
 set<string> RemoteAtomDBPeer::nodes_exist(const vector<string>& handles, shared_ptr<Keychain> keychain) {
-    RAISE_ERROR("RemoteAtomDBPeer::nodes_exist(keychain) is not implemented");
+    set<string> result;
+    set<string> remaining(handles.begin(), handles.end());
+
+    auto from_source = [&](set<string> handles) {
+        vector<string> to_check(remaining.begin(), remaining.end());
+        if (to_check.empty()) return;
+        for (const auto& h : handles) {
+            result.insert(h);
+            remaining.erase(h);
+        }
+    };
+
+    auto pwb = protected_write_buffer();
+    from_source(pwb ? pwb->nodes_exist(handles, keychain) : write_buffer()->nodes_exist(handles));
+
+    if (!remaining.empty()) {
+        auto prc = protected_read_cache();
+        from_source(prc ? prc->nodes_exist(handles, keychain) : read_cache()->nodes_exist(handles));
+    }
+
+    if (local_persistence_ && !remaining.empty()) from_source(*local_persistence_);
+
+    if (atomdb_ && !remaining.empty()) {
+        auto protected_atomdb = dynamic_pointer_cast<ProtectedAtomDB>(this->atomdb_);
+        from_source(protected_atomdb ? protected_atomdb->nodes_exist(handles, keychain)
+                                     : atomdb_->nodes_exist(handles));
+    }
+
+    return result;
 }
 
 set<string> RemoteAtomDBPeer::links_exist(const vector<string>& handles, shared_ptr<Keychain> keychain) {
-    RAISE_ERROR("RemoteAtomDBPeer::links_exist(keychain) is not implemented");
+    set<string> result;
+    set<string> remaining(handles.begin(), handles.end());
+
+    auto from_source = [&](set<string> handles) {
+        vector<string> to_check(remaining.begin(), remaining.end());
+        if (to_check.empty()) return;
+        for (const auto& h : handles) {
+            result.insert(h);
+            remaining.erase(h);
+        }
+    };
+
+    auto pwb = protected_write_buffer();
+    from_source(pwb ? pwb->links_exist(handles, keychain) : write_buffer()->links_exist(handles));
+
+    if (!remaining.empty()) {
+        auto prc = protected_read_cache();
+        from_source(prc ? prc->links_exist(handles, keychain) : read_cache()->links_exist(handles));
+    }
+
+    if (local_persistence_ && !remaining.empty()) from_source(*local_persistence_);
+
+    if (atomdb_ && !remaining.empty()) {
+        auto protected_atomdb = dynamic_pointer_cast<ProtectedAtomDB>(this->atomdb_);
+        from_source(protected_atomdb ? protected_atomdb->links_exist(handles, keychain)
+                                     : atomdb_->links_exist(handles));
+    }
+
+    return result;
 }
 
 string RemoteAtomDBPeer::add_atom(const atoms::Atom* atom,
