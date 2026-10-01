@@ -15,6 +15,33 @@ THIRD_PARTY="${BASE_DIR}/3rd-party"
 
 ASSETS_DIR="${REPO_ROOT}/src/assets"
 
+TOOLCHAIN_CACHE_DIR=""
+TOOLCHAIN_VERSION=1
+TOOLCHAIN_ASSETS=(
+  "hiredis-cluster.tgz"
+  "mongo-cxx-driver-r4.1.0.tar.gz"
+  "cpp-httplib-0.47.0.zip"
+  "utfcpp-4.1.1.zip"
+  "libpqxx-7.10.5.tar.gz"
+)
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --toolchain-cache-dir)
+      TOOLCHAIN_CACHE_DIR="${2:-}"
+      if [[ -z "${TOOLCHAIN_CACHE_DIR}" ]]; then
+        echo "[ERROR] --toolchain-cache-dir requires a directory."
+        exit 1
+      fi
+      shift 2
+      ;;
+    *)
+      echo "[ERROR] Unknown argument: $1"
+      exit 1
+      ;;
+  esac
+done
+
 echo "[INFO] Creating base directories under ${BASE_DIR}..."
 sudo mkdir -p \
     "${DAS_DIR}" \
@@ -59,104 +86,138 @@ sudo mv "bazelisk-${ARCH}" "${BAZEL_DIR}/bazelisk"
 sudo mv "buildifier-${ARCH}" "${BAZEL_DIR}/buildifier"
 sudo chmod +x "${BAZEL_DIR}/"*
 
-echo "[INFO] Installing hiredis-cluster (Redis client)..."
+TOOLCHAIN_ARCHIVE=""
+if [[ -n "${TOOLCHAIN_CACHE_DIR}" ]]; then
+  for asset in "${TOOLCHAIN_ASSETS[@]}"; do
+    if [[ ! -f "${ASSETS_DIR}/${asset}" ]]; then
+      echo "[ERROR] ${ASSETS_DIR}/${asset} not found."
+      exit 1
+    fi
+  done
 
-if [[ ! -f "${ASSETS_DIR}/hiredis-cluster.tgz" ]]; then
-  echo "[ERROR] ${ASSETS_DIR}/hiredis-cluster.tgz not found."
-  exit 1
+  mkdir -p "${TOOLCHAIN_CACHE_DIR}"
+  TOOLCHAIN_KEY="$(
+    {
+      echo "v${TOOLCHAIN_VERSION} ${ARCH}"
+      (cd "${ASSETS_DIR}" && sha256sum "${TOOLCHAIN_ASSETS[@]}")
+    } | sha256sum | cut -d ' ' -f 1
+  )"
+  TOOLCHAIN_ARCHIVE="${TOOLCHAIN_CACHE_DIR}/toolchain-${ARCH}-${TOOLCHAIN_KEY}.tar.gz"
 fi
 
-sudo cp "${ASSETS_DIR}/hiredis-cluster.tgz" "${TMP_DIR}/"
-cd "${TMP_DIR}"
-tar xzf hiredis-cluster.tgz
-cd hiredis-cluster
+if [[ -n "${TOOLCHAIN_ARCHIVE}" && -f "${TOOLCHAIN_ARCHIVE}" ]]; then
+  echo "[INFO] Restoring prebuilt libraries from ${TOOLCHAIN_ARCHIVE}..."
+  sudo tar xzf "${TOOLCHAIN_ARCHIVE}" -C /usr/local
 
-mkdir -p build
-cd build
+  echo "/usr/local/lib" | sudo tee /etc/ld.so.conf.d/local.conf >/dev/null
+  sudo ldconfig
+else
+  echo "[INFO] Installing hiredis-cluster (Redis client)..."
 
-cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo -DENABLE_SSL=ON ..
-make -j"$(nproc)"
-sudo make install
+  if [[ ! -f "${ASSETS_DIR}/hiredis-cluster.tgz" ]]; then
+    echo "[ERROR] ${ASSETS_DIR}/hiredis-cluster.tgz not found."
+    exit 1
+  fi
 
-echo "/usr/local/lib" | sudo tee /etc/ld.so.conf.d/local.conf >/dev/null
-sudo ldconfig
+  sudo cp "${ASSETS_DIR}/hiredis-cluster.tgz" "${TMP_DIR}/"
+  cd "${TMP_DIR}"
+  tar xzf hiredis-cluster.tgz
+  cd hiredis-cluster
 
-echo "[INFO] Installing MongoDB C++ driver (mongo-cxx-driver-r4.1.0)..."
+  mkdir -p build
+  cd build
 
-if [[ ! -f "${ASSETS_DIR}/mongo-cxx-driver-r4.1.0.tar.gz" ]]; then
-  echo "[ERROR] ${ASSETS_DIR}/mongo-cxx-driver-r4.1.0.tar.gz not found."
-  exit 1
+  cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo -DENABLE_SSL=ON ..
+  make -j"$(nproc)"
+  sudo make install
+
+  echo "/usr/local/lib" | sudo tee /etc/ld.so.conf.d/local.conf >/dev/null
+  sudo ldconfig
+
+  echo "[INFO] Installing MongoDB C++ driver (mongo-cxx-driver-r4.1.0)..."
+
+  if [[ ! -f "${ASSETS_DIR}/mongo-cxx-driver-r4.1.0.tar.gz" ]]; then
+    echo "[ERROR] ${ASSETS_DIR}/mongo-cxx-driver-r4.1.0.tar.gz not found."
+    exit 1
+  fi
+
+  sudo cp "${ASSETS_DIR}/mongo-cxx-driver-r4.1.0.tar.gz" "${TMP_DIR}/"
+  cd "${TMP_DIR}"
+  tar xzvf mongo-cxx-driver-r4.1.0.tar.gz
+
+  cd "${TMP_DIR}/mongo-cxx-driver-r4.1.0/build/"
+  cmake .. -DCMAKE_BUILD_TYPE=Release -DMONGOCXX_OVERRIDE_DEFAULT_INSTALL_PREFIX=OFF
+  cmake --build . -j"$(nproc)"
+  sudo cmake --build . --target install
+
+  sudo ln -sf /usr/local/include/bsoncxx/v_noabi/bsoncxx/* /usr/local/include/bsoncxx
+  sudo ln -sf /usr/local/include/bsoncxx/v_noabi/bsoncxx/third_party/mnmlstc/core/ /usr/local/include/core
+  sudo ln -sf /usr/local/include/mongocxx/v_noabi/mongocxx/* /usr/local/include/mongocxx/
+  sudo ldconfig
+
+  echo "[INFO] Installing cpp-httplib..."
+
+  if [[ ! -f "${ASSETS_DIR}/cpp-httplib-0.47.0.zip" ]]; then
+    echo "[ERROR] ${ASSETS_DIR}/cpp-httplib-0.47.0.zip not found."
+    exit 1
+  fi
+
+  cp "${ASSETS_DIR}/cpp-httplib-0.47.0.zip" "${TMP_DIR}/"
+  cd "${TMP_DIR}"
+  unzip -q cpp-httplib-0.47.0.zip
+  sudo cp cpp-httplib-0.47.0/httplib.h /usr/local/include/
+  rm -rf "${TMP_DIR}/cpp-httplib-0.47.0"*
+
+  echo "[INFO] Installing utfcpp..."
+
+  if [[ ! -f "${ASSETS_DIR}/utfcpp-4.1.1.zip" ]]; then
+    echo "[ERROR] ${ASSETS_DIR}/utfcpp-4.1.1.zip not found."
+    exit 1
+  fi
+
+  cp "${ASSETS_DIR}/utfcpp-4.1.1.zip" "${TMP_DIR}/"
+  cd "${TMP_DIR}"
+  unzip -q utfcpp-4.1.1.zip
+  sudo cp -r utfcpp-4.1.1/source/utf8 /usr/local/include/
+  sudo cp utfcpp-4.1.1/source/utf8.h /usr/local/include/
+  rm -rf "${TMP_DIR}/utfcpp-4.1.1"*
+
+  echo "[INFO] Installing libpqxx (PostgreSQL C++ client)..."
+
+  if [[ ! -f "${ASSETS_DIR}/libpqxx-7.10.5.tar.gz" ]]; then
+    echo "[ERROR] ${ASSETS_DIR}/libpqxx-7.10.5.tar.gz not found."
+    exit 1
+  fi
+
+  cp "${ASSETS_DIR}/libpqxx-7.10.5.tar.gz" "${TMP_DIR}/"
+  cd "${TMP_DIR}"
+  tar xzvf libpqxx-7.10.5.tar.gz
+  cd libpqxx-7.10.5
+
+  cmake -S . -B build \
+      -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+      -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
+      -DBUILD_TESTING=OFF \
+      -DCMAKE_INSTALL_PREFIX=/usr/local
+
+  cmake --build build -j"$(nproc)"
+
+  sudo cmake --install build
+  sudo ldconfig
+
+  if [[ -n "${TOOLCHAIN_ARCHIVE}" ]]; then
+    echo "[INFO] Saving compiled libraries to ${TOOLCHAIN_ARCHIVE}..."
+    sudo tar czf "${TOOLCHAIN_ARCHIVE}.tmp" -C /usr/local bin include lib
+    sudo chown "$(id -u):$(id -g)" "${TOOLCHAIN_ARCHIVE}.tmp"
+    mv "${TOOLCHAIN_ARCHIVE}.tmp" "${TOOLCHAIN_ARCHIVE}"
+  fi
 fi
-
-sudo cp "${ASSETS_DIR}/mongo-cxx-driver-r4.1.0.tar.gz" "${TMP_DIR}/"
-cd "${TMP_DIR}"
-tar xzvf mongo-cxx-driver-r4.1.0.tar.gz
-
-cd "${TMP_DIR}/mongo-cxx-driver-r4.1.0/build/"
-cmake .. -DCMAKE_BUILD_TYPE=Release -DMONGOCXX_OVERRIDE_DEFAULT_INSTALL_PREFIX=OFF
-cmake --build . -j"$(nproc)"
-sudo cmake --build . --target install
-
-sudo ln -sf /usr/local/include/bsoncxx/v_noabi/bsoncxx/* /usr/local/include/bsoncxx
-sudo ln -sf /usr/local/include/bsoncxx/v_noabi/bsoncxx/third_party/mnmlstc/core/ /usr/local/include/core
-sudo ln -sf /usr/local/include/mongocxx/v_noabi/mongocxx/* /usr/local/include/mongocxx/
-sudo ldconfig
-
-echo "[INFO] Installing cpp-httplib..."
-
-if [[ ! -f "${ASSETS_DIR}/cpp-httplib-0.47.0.zip" ]]; then
-  echo "[ERROR] ${ASSETS_DIR}/cpp-httplib-0.47.0.zip not found."
-  exit 1
-fi
-
-cp "${ASSETS_DIR}/cpp-httplib-0.47.0.zip" "${TMP_DIR}/"
-cd "${TMP_DIR}"
-unzip -q cpp-httplib-0.47.0.zip
-sudo cp cpp-httplib-0.47.0/httplib.h /usr/local/include/
-rm -rf "${TMP_DIR}/cpp-httplib-0.47.0"*
-
-echo "[INFO] Installing utfcpp..."
-
-if [[ ! -f "${ASSETS_DIR}/utfcpp-4.1.1.zip" ]]; then
-  echo "[ERROR] ${ASSETS_DIR}/utfcpp-4.1.1.zip not found."
-  exit 1
-fi
-
-cp "${ASSETS_DIR}/utfcpp-4.1.1.zip" "${TMP_DIR}/"
-cd "${TMP_DIR}"
-unzip -q utfcpp-4.1.1.zip
-sudo cp -r utfcpp-4.1.1/source/utf8 /usr/local/include/
-sudo cp utfcpp-4.1.1/source/utf8.h /usr/local/include/
-rm -rf "${TMP_DIR}/utfcpp-4.1.1"*
 
 echo "[INFO] Creating user 'builder' (if not exists)..."
 
 if ! id "builder" &>/dev/null; then
   sudo useradd -ms /bin/bash builder
 fi
-
-echo "[INFO] Installing libpqxx (PostgreSQL C++ client)..."
-
-if [[ ! -f "${ASSETS_DIR}/libpqxx-7.10.5.tar.gz" ]]; then
-  echo "[ERROR] ${ASSETS_DIR}/libpqxx-7.10.5.tar.gz not found."
-  exit 1
-fi
-
-cp "${ASSETS_DIR}/libpqxx-7.10.5.tar.gz" "${TMP_DIR}/"
-cd "${TMP_DIR}"
-tar xzvf libpqxx-7.10.5.tar.gz
-cd libpqxx-7.10.5
-
-cmake -S . -B build \
-    -DCMAKE_BUILD_TYPE=RelWithDebInfo \
-    -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
-    -DBUILD_TESTING=OFF \
-    -DCMAKE_INSTALL_PREFIX=/usr/local
-
-cmake --build build -j"$(nproc)"
-
-sudo cmake --install build
-sudo ldconfig
 
 echo "[INFO] Configuring git safe.directory for ${DAS_DIR}..."
 sudo -u builder git config --global --add safe.directory "${DAS_DIR}"
