@@ -207,7 +207,7 @@ class RemoteAtomDBPeer : public AtomDB, public processor::ThreadMethod, public K
     shared_ptr<InMemoryDB> read_cache() const;
     shared_ptr<ProtectedAtomDB> protected_write_buffer() const;
     shared_ptr<ProtectedAtomDB> protected_read_cache() const;
-    void initialize_protected_cache();
+    void initialize_cache();
     void invalidate_fetched_templates();
 
     void feed_cache_from_handle_set(shared_ptr<atomdb_api_types::HandleSet> handle_set,

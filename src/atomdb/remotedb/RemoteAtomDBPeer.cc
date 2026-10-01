@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <deque>
 #include <fstream>
+#include <nlohmann/json.hpp>
 #include <sstream>
 #include <thread>
 #include <unordered_map>
@@ -21,20 +22,17 @@ using namespace atomdb;
 using namespace atomdb_api_types;
 using namespace atoms;
 using namespace commons;
+using nlohmann::json;
 
 RemoteAtomDBPeer::RemoteAtomDBPeer(const string& uid,
                                    shared_ptr<AtomDB> remote_atomdb,
                                    shared_ptr<AtomDB> local_persistence)
-    : AtomDB(uid),
-      write_buffer_(make_shared<InMemoryDB>(remote_atomdb->get_uid())),
-      read_cache_(make_shared<InMemoryDB>(remote_atomdb->get_uid())),
-      atomdb_(remote_atomdb),
-      local_persistence_(local_persistence) {
+    : AtomDB(uid), atomdb_(remote_atomdb), local_persistence_(local_persistence) {
     if (local_persistence_ &&
         local_persistence_->get_protection_mode() != atomdb_api_types::ProtectionMode::UNPROTECTED) {
         RAISE_ERROR("RemoteAtomDBPeer supports only UNPROTECTED local persistence");
     }
-    initialize_protected_cache();
+    initialize_cache();
     start_cleanup_thread();
 }
 
@@ -69,8 +67,12 @@ shared_ptr<ProtectedAtomDB> RemoteAtomDBPeer::protected_read_cache() const {
     return protected_read_cache_;
 }
 
-void RemoteAtomDBPeer::initialize_protected_cache() {
-    if (auto p = dynamic_pointer_cast<ProtectedAtomDB>(atomdb_)) {
+void RemoteAtomDBPeer::initialize_cache() {
+    auto config = JsonConfig(json{{"uid", this->atomdb_->get_uid()}});
+    write_buffer_ = make_shared<InMemoryDB>(config);
+    read_cache_ = make_shared<InMemoryDB>(config);
+
+    if (auto p = dynamic_pointer_cast<ProtectedAtomDB>(this->atomdb_)) {
         protected_write_buffer_ = p->wrap(write_buffer_);
         protected_read_cache_ = p->wrap(read_cache_);
     } else {
@@ -645,9 +647,7 @@ void RemoteAtomDBPeer::release_cache(bool /*persist_to_local*/, bool /*persist_e
         // to it) finish — see quiescence wait below.
         old_write_buffer = write_buffer_;
         old_read_cache = read_cache_;
-        write_buffer_ = make_shared<InMemoryDB>(atomdb_->get_uid());
-        read_cache_ = make_shared<InMemoryDB>(atomdb_->get_uid());
-        initialize_protected_cache();
+        initialize_cache();
         fetched_link_templates_.clear();
     }
 
