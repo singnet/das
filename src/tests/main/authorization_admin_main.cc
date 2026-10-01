@@ -6,7 +6,9 @@
 #include <string>
 
 #include "AuthorizationTypes.h"
+#include "Hasher.h"
 #include "JsonConfig.h"
+#include "JsonConfigParser.h"
 #include "LinkSchema.h"
 #include "MongodbAuthorizationPersistence.h"
 #include "Utils.h"
@@ -83,6 +85,23 @@ vector<pair<LinkSchema, unsigned int>> build_schemas(const vector<string>& link_
     return schemas;
 }
 
+void create_config_collection(shared_ptr<MongodbAuthorizationPersistence> persistence,
+                              const string& database,
+                              const string& config_collection) {
+    using bsoncxx::v_noabi::builder::basic::kvp;
+    using bsoncxx::v_noabi::builder::basic::make_document;
+
+    auto mongodb_pool = persistence->get_mongodb_pool();
+    auto conn = mongodb_pool->acquire();
+    auto collection = (*conn)[database][config_collection];
+
+    auto config_id = Hasher::plain_string_hash(config_collection);
+
+    if (!collection.find_one(make_document(kvp("_id", config_id)))) {
+        collection.insert_one(make_document(kvp("_id", config_id), kvp("protected", true)));
+    }
+}
+
 int main(int argc, char* argv[]) {
     signal(SIGINT, &ctrl_c_handler);
     signal(SIGTERM, &ctrl_c_handler);
@@ -139,25 +158,21 @@ int main(int argc, char* argv[]) {
 
     cout << "Starting Admin..." << endl;
 
-    ifstream config_file(config_path);
-    if (!config_file.good()) {
-        cerr << "\nError: Cannot open config file: " << config_path << "\n\n";
-        exit(1);
-    }
-    stringstream config_buffer;
-    config_buffer << config_file.rdbuf();
-    JsonConfig json_config = JsonConfig(nlohmann::json::parse(config_buffer.str()));
+    JsonConfig json_config = JsonConfigParser::load(config_path);
 
     Utils::init_random(0);
 
-    string endpoint = json_config.at_path("mongodb.endpoint").get_or<string>("");
-    string username = json_config.at_path("mongodb.username").get_or<string>("");
-    string password = json_config.at_path("mongodb.password").get_or<string>("");
-    string database = json_config.at_path("mongodb.database_name").get_or<string>("");
-    string collection = json_config.at_path("mongodb.collection_name").get_or<string>("");
+    string endpoint = json_config.at_path("atomdb.mongodb.endpoint").get_or<string>("");
+    string username = json_config.at_path("atomdb.mongodb.username").get_or<string>("");
+    string password = json_config.at_path("atomdb.mongodb.password").get_or<string>("");
 
-    auto persistence =
-        make_shared<MongodbAuthorizationPersistence>(endpoint, username, password, database, collection);
+    string prefix = json_config.at_path("prefix").get_or<string>("");
+    string database = prefix + "das";
+    string access_permissions_collection = prefix + "access_permissions";
+    string config_collection = prefix + "config";
+
+    auto persistence = make_shared<MongodbAuthorizationPersistence>(
+        endpoint, username, password, database, access_permissions_collection);
 
     if (action == "grant") {
         if (full_access) {
@@ -169,6 +184,8 @@ int main(int argc, char* argv[]) {
     } else if (action == "revoke") {
         persistence->revoke(public_key);
     }
+
+    create_config_collection(persistence, database, config_collection);
 
     cout << "Admin finished successfully." << endl;
 
