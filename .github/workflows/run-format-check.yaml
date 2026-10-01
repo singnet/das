@@ -17,4 +17,4 @@ jobs:
       - name: Run format check
         working-directory: ./src
         run: |
-          ./scripts/bazel_exec.sh run //:format.check
+          BAZELISK_HOME="$HOME/.cache/das/bazelisk" ./scripts/bazel_exec.sh --output_user_root="$HOME/.cache/das/bazel" run //:format.check
