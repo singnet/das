@@ -550,7 +550,7 @@ string QueryEvolutionProcessor::answer_to_string_1(shared_ptr<QueryAnswer> answe
     bool first = true;
     for (string& handle : answer->get_path_vector(0)) {
         shared_ptr<Link> link = get_link(handle, proxy);
-        if ((link != nullptr) || (link->targets.size() < 3)) {
+        if ((link != nullptr) && (link->targets.size() >= 3)) {
             if (first) {
                 first = false;
                 path = AtomDBUtils::handle_to_metta(link->targets[1]) + path_link;
