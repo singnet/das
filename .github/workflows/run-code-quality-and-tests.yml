@@ -14,7 +14,6 @@ on:
       - '**/*.cc'
       - '**/*.bazel'
       - '**/BUILD'
-      - 'README.md'
 
   workflow_dispatch:
 
