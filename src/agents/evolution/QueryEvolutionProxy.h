@@ -4,6 +4,7 @@
 #include <set>
 #include <vector>
 
+#include "Keychain.h"
 #include "BaseQueryProxy.h"
 #include "FitnessFunction.h"
 
@@ -12,6 +13,7 @@ using namespace service_bus;
 using namespace query_engine;
 using namespace agents;
 using namespace fitness_functions;
+using namespace atomdb;
 
 namespace evolution {
 
@@ -155,6 +157,13 @@ class QueryEvolutionProxy : public BaseQueryProxy {
      */
     unsigned int last_improving_generation();
 
+    /**
+     * Getter for the _keychain field.
+     *
+     * @return Keychain.
+     */
+    inline shared_ptr<Keychain> keychain() { return _keychain; }
+
     const vector<vector<string>>& get_correlation_queries();
     const vector<map<string, QueryAnswerElement>>& get_correlation_replacements();
     const vector<vector<pair<QueryAnswerElement, QueryAnswerElement>>>& get_correlation_mappings();
@@ -205,6 +214,7 @@ class QueryEvolutionProxy : public BaseQueryProxy {
     vector<float> remote_fitness_evaluation_result;
     bool no_selection_flag;
     unsigned int last_generation_with_answer_report;
+    shared_ptr<Keychain> _keychain;
 };
 
 }  // namespace evolution

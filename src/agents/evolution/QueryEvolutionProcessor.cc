@@ -11,11 +11,12 @@
 #include "QueryEvolutionProxy.h"
 #include "ServiceBus.h"
 #include "ServiceBusSingleton.h"
+#include "KeySensitiveAtomDB.h"
+#include "AtomDBUtils.h"
 
 using namespace evolution;
 using namespace query_engine;
 using namespace atoms;
-using namespace service_bus;
 using namespace attention_broker;
 
 // -------------------------------------------------------------------------------------------------
@@ -23,7 +24,7 @@ using namespace attention_broker;
 
 QueryEvolutionProcessor::QueryEvolutionProcessor() : BusCommandProcessor({ServiceBus::QUERY_EVOLUTION}) {
     AttentionBrokerClient::health_check(true);
-    this->decoder = static_pointer_cast<HandleDecoder>(AtomDBSingleton::get_instance()).get();
+    this->atomdb = AtomDBSingleton::get_instance();
 }
 
 QueryEvolutionProcessor::~QueryEvolutionProcessor() {}
@@ -375,7 +376,7 @@ void QueryEvolutionProcessor::correlate_similar(shared_ptr<QueryEvolutionProxy> 
                         handle_set.clear();
                         skip_correlation = false;
                         if (pair.first.is_wildcard()) {
-                            for (string handle : selected_answer->get_all(pair.first, this->decoder)) {
+                            for (string handle : selected_answer->get_all(pair.first, this->atomdb, proxy->keychain())) {
                                 handle_set.insert(handle);
                             }
                         } else {
@@ -390,7 +391,7 @@ void QueryEvolutionProcessor::correlate_similar(shared_ptr<QueryEvolutionProxy> 
                         }
                         if (pair.second.is_wildcard()) {
                             for (string handle :
-                                 correlated_answer->get_all(pair.second, this->decoder)) {
+                                 correlated_answer->get_all(pair.second, this->atomdb, proxy->keychain())) {
                                 handle_set.insert(handle);
                             }
                         } else {
@@ -449,7 +450,7 @@ void QueryEvolutionProcessor::stimulate(shared_ptr<QueryEvolutionProxy> proxy,
         for (auto& correlation : correlation_mappings) {
             for (auto& correlation_pair : correlation) {
                 if (correlation_pair.first.is_wildcard()) {
-                    for (string handle : pair.first->get_all(correlation_pair.first, this->decoder)) {
+                    for (string handle : pair.first->get_all(correlation_pair.first, this->atomdb, proxy->keychain())) {
                         handle_set.insert(handle);
                     }
                 } else {
@@ -463,9 +464,7 @@ void QueryEvolutionProcessor::stimulate(shared_ptr<QueryEvolutionProxy> proxy,
             }
         }
         for (string handle : handle_set) {
-            LOG_DEBUG("Picked to stimulate: " +
-                      AtomDBSingleton::get_instance()->get_atom(handle)->metta_representation(
-                          *AtomDBSingleton::get_instance().get()));
+            LOG_DEBUG("Picked to stimulate: " + AtomDBUtils::handle_to_metta(handle));
             unsigned int old_value = handle_count[handle];
             if (value > old_value) {
                 handle_count[handle] = value;
@@ -488,8 +487,22 @@ void QueryEvolutionProcessor::update_attention_allocation(
     stimulate(proxy, selected);
 }
 
-string QueryEvolutionProcessor::answer_to_string_2(shared_ptr<QueryAnswer> answer,
-                                                   shared_ptr<AtomDB> db) {
+shared_ptr<Link> QueryEvolutionProcessor::get_link(const string& handle, shared_ptr<QueryEvolutionProxy> proxy) {
+    shared_ptr<Link> link = nullptr;
+    shared_ptr<Keychain> keychain = proxy->keychain();
+    if (keychain == nullptr) {
+        link = this->atomdb->get_link(handle);
+    } else {
+        auto key_sensitive_atomdb = dynamic_pointer_cast<KeySensitiveAtomDB>(this->atomdb);
+        if (key_sensitive_atomdb != nullptr) {
+            link = key_sensitive_atomdb->get_link(handle, keychain);
+        } else {
+            RAISE_ERROR("Non-null Keychain implies a KeySensitiveAtomDB but the AtomDB is not key sensitive");
+        }
+    }
+}
+
+string QueryEvolutionProcessor::answer_to_string_2(shared_ptr<QueryAnswer> answer, shared_ptr<QueryEvolutionProxy> proxy) {
     vector<string> paths;
     for (unsigned int i = 0; i < 2; i++) {
         if (answer->get_paths_size() != 2) {
@@ -499,20 +512,15 @@ string QueryEvolutionProcessor::answer_to_string_2(shared_ptr<QueryAnswer> answe
         vector<string> path_link = {" -> ", " -> "};
         bool first = true;
         for (string& handle : answer->get_path_vector(i)) {
-            auto link = db->get_link(handle);
+            shared_ptr<Link> link = get_link(handle, proxy);
             if ((link == nullptr) || (link->arity() != 3)) {
                 return "Invalid link: " + handle;
             }
-            auto target1 = db->get_link(link->targets[1]);
-            auto target2 = db->get_link(link->targets[2]);
-            if ((target1 == nullptr) || (target2 == nullptr)) {
-                return "Invalid link: " + link->to_string();
-            }
             if (first) {
                 first = false;
-                path = target1->metta_representation(*(this->decoder)) + path_link[i];
+                path = AtomDBUtils::handle_to_metta(link->targets[1]) + path_link[i];
             }
-            path += target2->metta_representation(*(this->decoder));
+            path += AtomDBUtils::handle_to_metta(link->targets[2]);
             path += path_link[i];
         }
         if (answer->get_path_vector(i).size() > 0) {
@@ -526,8 +534,7 @@ string QueryEvolutionProcessor::answer_to_string_2(shared_ptr<QueryAnswer> answe
     return "[" + std::to_string(answer->strength) + "]: " + paths[0] + " | " + paths[1];
 }
 
-string QueryEvolutionProcessor::answer_to_string_1(shared_ptr<QueryAnswer> answer,
-                                                   shared_ptr<AtomDB> db) {
+string QueryEvolutionProcessor::answer_to_string_1(shared_ptr<QueryAnswer> answer, shared_ptr<QueryEvolutionProxy> proxy) {
     if (answer->get_paths_size() != 1) {
         RAISE_ERROR("Invalid answer: " + answer->to_string());
     }
@@ -535,15 +542,17 @@ string QueryEvolutionProcessor::answer_to_string_1(shared_ptr<QueryAnswer> answe
     string path_link = " -> ";
     bool first = true;
     for (string& handle : answer->get_path_vector(0)) {
-        auto link = db->get_link(handle);
-        auto target1 = db->get_link(link->targets[1]);
-        auto target2 = db->get_link(link->targets[2]);
-        if (first) {
-            first = false;
-            path = target1->metta_representation(*(this->decoder)) + path_link;
+        shared_ptr<Link> link = get_link(handle, proxy);
+        if (link != nullptr) {
+            if (first) {
+                first = false;
+                path = AtomDBUtils::handle_to_metta(link->targets[1]) + path_link;
+            }
+            path += AtomDBUtils::handle_to_metta(link->targets[2]);
+            path += path_link;
+        } else {
+            return "Invalid link: " + handle;
         }
-        path += target2->metta_representation(*(this->decoder));
-        path += path_link;
     }
     if (answer->get_path_vector(0).size() > 0) {
         path.pop_back();
@@ -554,11 +563,11 @@ string QueryEvolutionProcessor::answer_to_string_1(shared_ptr<QueryAnswer> answe
     return "[" + std::to_string(answer->strength) + "]: " + path;
 }
 
-string QueryEvolutionProcessor::answer_to_string(shared_ptr<QueryAnswer> answer) {
+string QueryEvolutionProcessor::answer_to_string(shared_ptr<QueryAnswer> answer, shared_ptr<QueryEvolutionProxy> proxy) {
     if (answer->get_paths_size() == 1) {
-        return answer_to_string_1(answer, AtomDBSingleton::get_instance());
+        return answer_to_string_1(answer, proxy);
     } else if (answer->get_paths_size() == 2) {
-        return answer_to_string_2(answer, AtomDBSingleton::get_instance());
+        return answer_to_string_2(answer, proxy);
     } else {
         return answer->to_string();
     }
@@ -595,7 +604,7 @@ void QueryEvolutionProcessor::evolve_query(shared_ptr<StoppableThread> monitor,
         LOG_INFO("Sampled " + std::to_string(population.size()) + " individuals.");
 #if LOG_LEVEL >= DEBUG_LEVEL
         for (auto& pair : population) {
-            LOG_DEBUG(std::to_string(pair.second) + " " + answer_to_string(pair.first));
+            LOG_DEBUG(std::to_string(pair.second) + " " + answer_to_string(pair.first, proxy));
         }
 #endif
         proxy->new_population_sampled(population);
@@ -606,7 +615,7 @@ void QueryEvolutionProcessor::evolve_query(shared_ptr<StoppableThread> monitor,
             LOG_INFO("Selected " + std::to_string(selected.size()) +
                      " individuals to update attention allocation.");
             for (auto& pair : selected) {
-                LOG_INFO(std::to_string(pair.second) + " " + answer_to_string(pair.first));
+                LOG_INFO(std::to_string(pair.second) + " " + answer_to_string(pair.first, proxy));
             }
             if (selected.size() > 0) {
                 STOP_WATCH_START(attention_broker);

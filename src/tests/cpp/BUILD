@@ -274,6 +274,7 @@ cc_test(
     linkstatic = 1,
     deps = [
         "//agents/query_engine:query_engine_lib",
+        "//atomdb/inmemorydb:inmemorydb_lib",
         "@com_github_google_googletest//:gtest_main",
     ],
 )

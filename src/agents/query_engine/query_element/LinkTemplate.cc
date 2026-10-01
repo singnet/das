@@ -54,32 +54,9 @@ LinkTemplate::LinkTemplate(const string& type,
     }
     this->reverse_nesting_level = max_reverse_nesting + 1;
     if (public_key_tokens != "") {
-        bool parse_error = false;
-        vector<string> tokens = Utils::split(public_key_tokens);
-        map<string, string> keymap;
-        if ((tokens.size() > 0) && ((tokens.size() % 2) == 0)) {
-            for (unsigned int i = 0; i < tokens.size(); i += 2) {
-                if ((tokens[i] != "") && (tokens[i + 1] != "")) {
-                    keymap[tokens[i]] = tokens[i + 1];
-                } else {
-                    parse_error = true;
-                    break;
-                }
-            }
-            if (!parse_error && (keymap.size() == (tokens.size() / 2))) {
-                this->keychain = make_shared<Keychain>(keymap);
-            } else {
-                parse_error = true;
-            }
-        } else {
-            parse_error = true;
-        }
-        if (parse_error) {
-            RAISE_ERROR(
-                "Invalid tokens for public key. Expected a list of (uid, key) pairs (each uid being "
-                "unique) in a string like 'uid1 key1 uid2 key2 ... uidn keyn' but got: <" +
-                public_key_tokens + ">");
-        }
+        this->keychain = make_shared<Keychain>(Utils::split(public_key_tokens));
+    } else {
+        this->keychain = nullptr;
     }
 }
 

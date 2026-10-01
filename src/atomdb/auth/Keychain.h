@@ -2,6 +2,7 @@
 
 #include <map>
 #include <string>
+#include <vector>
 
 using namespace std;
 
@@ -17,6 +18,7 @@ namespace atomdb {
 class Keychain {
    public:
     explicit Keychain(const map<string, string>& keys);
+    explicit Keychain(const vector<string>& tokens);
     ~Keychain() = default;
 
     /**

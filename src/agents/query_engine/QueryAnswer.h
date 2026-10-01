@@ -8,11 +8,15 @@
 #include "Assignment.h"
 #include "HandleDecoder.h"
 #include "Utils.h"
+#include "AtomDB.h"
+#include "Keychain.h"
+#include "Utils.h"
 #include "expression_hasher.h"
 
 using namespace std;
 using namespace atoms;
 using namespace commons;
+using namespace atomdb;
 
 using nlohmann::json;
 
@@ -490,10 +494,11 @@ class QueryAnswer {
      * "assignment" or all the handles in the path vectors.
      *
      * @param element_key A key indicating which element is to be returned.
-     * @param decoder A decoder capable of mapping handle -> atom (tipically, this is an AtomDB)
+     * @param AtomDB the atom DB to get atoms from.
+     * @param Optional keychain to be passed to the atom DB in case it's protected.
      * $return The element indicated by the passed QueryAnswerElement key.
      */
-    vector<string> get_all(const QueryAnswerElement& element_key, HandleDecoder* decoder = NULL);
+    vector<string> get_all(const QueryAnswerElement& element_key, shared_ptr<AtomDB> atomdb = nullptr, shared_ptr<Keychain> keychain = nullptr);
 
     /**
      * Rewrites the passed query (tokens only, no MeTTa expression allowed) replacing variables
