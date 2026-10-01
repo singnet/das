@@ -19,6 +19,9 @@ void Keychain::tokenize(vector<string>& tokens) {
 }
 
 void Keychain::untokenize(const vector<string>& tokens) {
+    if (this->keys_.size() != 0) {
+        RAISE_ERROR("untokenize() can't be called on a non-empty keychain");
+    }
     if (tokens.size() > 0) {
         bool parse_error = false;
         if ((tokens.size() % 2) == 0) {
