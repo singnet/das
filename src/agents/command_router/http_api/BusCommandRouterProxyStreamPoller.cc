@@ -1,11 +1,13 @@
 #include "BusCommandRouterProxyStreamPoller.h"
 
 #include "BaseQueryProxy.h"
+#include "QueryAnswer.h"
 #include "Utils.h"
 
 using namespace command_router;
 using namespace commons;
 using namespace agents;
+using namespace query_engine;
 
 namespace {
 
@@ -42,6 +44,45 @@ PollStreamResult poll_succeeded(bool is_count_only = false, int count_only_total
     return {true, is_count_only, count_only_total};
 }
 
+bool handle_pending_eval_fitness(const shared_ptr<BusCommandRouterProxy>& router_proxy,
+                                 const EvalFitnessHandler& on_eval_fitness,
+                                 const function<void(const string& error)>& on_error) {
+    vector<string> tokenized_answers;
+    if (!router_proxy->take_pending_eval_fitness(tokenized_answers)) {
+        return true;
+    }
+    if (!on_eval_fitness) {
+        if (on_error) {
+            on_error("Remote fitness evaluation requested but no HTTP fitness handler is configured");
+        }
+        return false;
+    }
+
+    json answers = json::array();
+    for (const string& tokens : tokenized_answers) {
+        QueryAnswer answer;
+        answer.untokenize(tokens);
+        answers.push_back(answer.to_json(true));
+    }
+
+    vector<string> fitness_out;
+    if (!on_eval_fitness(answers, fitness_out)) {
+        if (on_error) {
+            on_error("Remote fitness evaluation failed or was aborted");
+        }
+        return false;
+    }
+    if (fitness_out.size() != tokenized_answers.size()) {
+        if (on_error) {
+            on_error("Remote fitness response size does not match answer bundle");
+        }
+        return false;
+    }
+
+    router_proxy->send_eval_fitness_response(fitness_out);
+    return true;
+}
+
 }  // namespace
 
 PollStreamResult BusCommandRouterProxyStreamPoller::poll_stream(
@@ -51,7 +92,8 @@ PollStreamResult BusCommandRouterProxyStreamPoller::poll_stream(
     const function<bool()>& should_abort,
     const function<void(const json& chunk)>& on_chunk,
     const function<void(const string& error)>& on_error,
-    const function<void()>& on_aborted) {
+    const function<void()>& on_aborted,
+    const EvalFitnessHandler& on_eval_fitness) {
     if (items_per_chunk == 0) {
         if (on_error) {
             on_error("items_per_chunk must be at least 1");
@@ -166,9 +208,22 @@ PollStreamResult BusCommandRouterProxyStreamPoller::poll_stream(
                 return {};
             }
 
+            if (command_type == "evolution") {
+                if (!handle_pending_eval_fitness(router_proxy, on_eval_fitness, on_error)) {
+                    router_proxy->abort();
+                    return {};
+                }
+            }
+
             append_answer_chunk(
                 router_proxy, populate_metta_mapping, items_per_chunk, emit_answer_chunk, chunk_data);
             Utils::sleep(100);
+        }
+
+        if (command_type == "evolution") {
+            if (!handle_pending_eval_fitness(router_proxy, on_eval_fitness, on_error)) {
+                return {};
+            }
         }
 
         append_answer_chunk(

@@ -54,6 +54,22 @@ cc_library(
         "//hasher:hasher_lib",
         "//service_bus:service_bus_lib",
         "//tests/cpp/test_commons:test_atomdb_json_config",
+        "@nlohmann_json//:json",
+    ],
+)
+
+cc_library(
+    name = "sentence_evolution_main_lib",
+    srcs = ["sentence_evolution.cc"],
+    deps = [
+        "//agents/context_broker:context_broker_lib",
+        "//agents/evolution:evolution_lib",
+        "//agents/query_engine:query_engine_lib",
+        "//atomdb:atomdb_api_types",
+        "//atomdb:atomdb_singleton",
+        "//commons:commons_lib",
+        "//service_bus:service_bus_lib",
+        "@nlohmann_json//:json",
     ],
 )
 

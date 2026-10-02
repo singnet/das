@@ -2,6 +2,7 @@
 
 #include "BaseQueryProxy.h"
 #include "PatternMatchingQueryProxy.h"
+#include "QueryEvolutionProxy.h"
 #include "ServiceBus.h"
 #include "SystemParametersSingleton.h"
 
@@ -9,6 +10,7 @@
 #include "Logger.h"
 
 using namespace command_router;
+using namespace evolution;
 
 string BusCommandRouterProxy::PARAMS_RESPONSE = "params_response";
 string BusCommandRouterProxy::SET_PARAM_ACK = "set_param_ack";
@@ -41,6 +43,13 @@ void BusCommandRouterProxy::pack_command_line_args() {
 }
 
 bool BusCommandRouterProxy::from_remote_peer(const string& command, const vector<string>& args) {
+    if (command == QueryEvolutionProxy::EVAL_FITNESS) {
+        lock_guard<mutex> fitness_lock(this->fitness_mutex_);
+        this->pending_eval_fitness_args_ = args;
+        this->pending_eval_fitness_ = true;
+        return true;
+    }
+
     lock_guard<mutex> semaphore(this->api_mutex);
     if (command == PARAMS_RESPONSE) {
         if (!args.empty()) {
@@ -60,6 +69,21 @@ bool BusCommandRouterProxy::from_remote_peer(const string& command, const vector
         return true;
     }
     return BaseQueryProxy::from_remote_peer(command, args);
+}
+
+bool BusCommandRouterProxy::take_pending_eval_fitness(vector<string>& out) {
+    lock_guard<mutex> fitness_lock(this->fitness_mutex_);
+    if (!this->pending_eval_fitness_) {
+        return false;
+    }
+    out = std::move(this->pending_eval_fitness_args_);
+    this->pending_eval_fitness_args_.clear();
+    this->pending_eval_fitness_ = false;
+    return true;
+}
+
+void BusCommandRouterProxy::send_eval_fitness_response(const vector<string>& fitness_values) {
+    this->to_remote_peer(QueryEvolutionProxy::EVAL_FITNESS_RESPONSE, fitness_values);
 }
 
 void BusCommandRouterProxy::count_answer(const vector<string>& args) {

@@ -46,7 +46,6 @@ namespace atomdb {
 class InMemoryDB : public AtomDB {
    public:
     InMemoryDB();
-    explicit InMemoryDB(const string& uid);
     explicit InMemoryDB(const JsonConfig& config);
     ~InMemoryDB();
 

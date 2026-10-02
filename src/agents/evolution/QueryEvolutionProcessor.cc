@@ -196,12 +196,15 @@ void QueryEvolutionProcessor::sample_population(
         while (!proxy->remote_fitness_evaluation_finished()) {
             Utils::sleep();
         }
+        // Compare against the sampled bundle, not configured POPULATION_SIZE.
+        // Early generations often return fewer individuals (e.g. 4 vs 100).
         vector<float> fitness_bundle = proxy->get_remotely_evaluated_fitness();
-        if (fitness_bundle.size() != population_size) {
-            RAISE_ERROR("Invalid fitness bundle of size: " + std::to_string(fitness_bundle.size()));
+        if (fitness_bundle.size() != answer_bundle_vector.size()) {
+            RAISE_ERROR("Invalid fitness bundle of size: " + std::to_string(fitness_bundle.size()) +
+                        " (expected " + std::to_string(answer_bundle_vector.size()) + ")");
             return;
         }
-        for (unsigned int i = 0; i < population_size; i++) {
+        for (unsigned int i = 0; i < fitness_bundle.size(); i++) {
             float fitness = fitness_bundle[i];
             sum += fitness;
             population[i].first->strength = fitness;

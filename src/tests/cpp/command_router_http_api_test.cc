@@ -1,3 +1,4 @@
+#include <mutex>
 #include <nlohmann/json.hpp>
 #include <thread>
 
@@ -12,11 +13,13 @@
 #include "CommandRouterHttpAPIConfig.h"
 #include "CommandRouterHttpAPISingleton.h"
 #include "DedicatedThread.h"
+#include "FitnessFunctionRegistry.h"
 #include "HttpCommandProxyFactory.h"
 #include "JsonConfig.h"
 #include "PatternMatchingQueryProxy.h"
 #include "PortPool.h"
 #include "QueryAnswer.h"
+#include "QueryEvolutionProxy.h"
 #include "ServiceBus.h"
 #include "TestAtomDBJsonConfig.h"
 #include "TestSystemParams.h"
@@ -31,6 +34,8 @@ using namespace commons;
 using namespace atomdb;
 using namespace query_engine;
 using namespace service_bus;
+using namespace evolution;
+using namespace fitness_functions;
 using das_test::init_test_system_parameters_singleton;
 using json = nlohmann::json;
 
@@ -40,13 +45,16 @@ const string TEST_HOST = "localhost";
 const int TEST_PORT = 19001;
 const int TEST_PORT_THREAD_POOL = 19007;
 const int TEST_PORT_PARALLEL = 19008;
+const int TEST_PORT_EVOLUTION = 19009;
 const string UNKNOWN_EXECUTION_ID = "exec-00000000000000000000000000000000";
 const string SHORT_COMMAND_TEXT = "Blah";
 
 json make_execution_body(const string& command = "query",
                          const string& query_token = "(Similarity \"human\" %V)") {
-    return {{"command", command},
-            {"params", {{"query", {{"syntax", "metta"}, {"tokens", json::array({query_token})}}}}}};
+    return {
+        {"command", command},
+        {"params",
+         {{"query", {{"tokens", json::array({query_token})}}}, {"use_metta_as_query_tokens", true}}}};
 }
 
 string hash_string(const string& input) {
@@ -105,11 +113,82 @@ class EchoQueryProcessor : public BusCommandProcessor {
     }
 };
 
+/** Captures QueryEvolutionProxy parameters after HTTP/router forward. */
+class CaptureEvolutionProcessor : public BusCommandProcessor {
+   public:
+    mutex mutex_;
+    Properties last_parameters;
+    bool received = false;
+
+    CaptureEvolutionProcessor() : BusCommandProcessor({ServiceBus::QUERY_EVOLUTION}) {}
+
+    shared_ptr<BusCommandProxy> factory_empty_proxy() override {
+        return make_shared<QueryEvolutionProxy>();
+    }
+
+    void run_command(shared_ptr<BusCommandProxy> proxy) override {
+        auto evo = dynamic_pointer_cast<QueryEvolutionProxy>(proxy);
+        if (evo == nullptr) {
+            return;
+        }
+        evo->untokenize(evo->args);
+        {
+            lock_guard<mutex> lock(mutex_);
+            last_parameters = evo->parameters;
+            received = true;
+        }
+        evo->query_processing_finished();
+    }
+};
+
+/** Sends eval_fitness to the requestor, waits for response, then pushes one answer. */
+class RemoteFitnessEvolutionProcessor : public BusCommandProcessor {
+   public:
+    RemoteFitnessEvolutionProcessor() : BusCommandProcessor({ServiceBus::QUERY_EVOLUTION}) {}
+
+    shared_ptr<BusCommandProxy> factory_empty_proxy() override {
+        return make_shared<QueryEvolutionProxy>();
+    }
+
+    void run_command(shared_ptr<BusCommandProxy> proxy) override {
+        auto evo = dynamic_pointer_cast<QueryEvolutionProxy>(proxy);
+        if (evo == nullptr) {
+            return;
+        }
+        evo->untokenize(evo->args);
+        std::thread([evo]() {
+            Utils::sleep(20);
+            QueryAnswer sample(hash_string("evo-sample"), 0.0);
+            sample.assignment.assign("C", hash_string("concept"));
+            vector<string> bundle = {sample.tokenize()};
+
+            evo->remote_fitness_evaluation(bundle);
+            while (!evo->remote_fitness_evaluation_finished() && !evo->is_aborting()) {
+                Utils::sleep(10);
+            }
+            if (evo->is_aborting()) {
+                evo->query_processing_finished();
+                return;
+            }
+            auto fitness = evo->get_remotely_evaluated_fitness();
+            auto answer = make_shared<QueryAnswer>(hash_string("evo-best"), 0.0);
+            if (!fitness.empty()) {
+                answer->strength = fitness[0];
+            }
+            evo->push(answer);
+            evo->query_processing_finished();
+        }).detach();
+    }
+};
+
 void initialize_test_service_bus_statics_once() {
     static bool initialized = false;
     if (!initialized) {
-        ServiceBus::initialize_statics(
-            {ServiceBus::BUS_COMMAND_ROUTER, ServiceBus::PATTERN_MATCHING_QUERY}, 49400, 49999);
+        ServiceBus::initialize_statics({ServiceBus::BUS_COMMAND_ROUTER,
+                                        ServiceBus::PATTERN_MATCHING_QUERY,
+                                        ServiceBus::QUERY_EVOLUTION},
+                                       49400,
+                                       49999);
         initialized = true;
     }
 }
@@ -280,6 +359,21 @@ class CommandRouterHttpAPIParallelTest : public ::testing::Test {
 
 HttpAPIServerFixture CommandRouterHttpAPIParallelTest::server;
 
+class CommandRouterHttpAPIEvolutionTest : public ::testing::Test {
+   protected:
+    static HttpAPIServerFixture server;
+
+    static void SetUpTestSuite() {
+        server.start(TEST_PORT_EVOLUTION, {}, 4, make_shared<RemoteFitnessEvolutionProcessor>());
+    }
+
+    static void TearDownTestSuite() { server.stop(); }
+
+    httplib::Client client() { return server.make_client(TEST_PORT_EVOLUTION); }
+};
+
+HttpAPIServerFixture CommandRouterHttpAPIEvolutionTest::server;
+
 class CommandRouterHttpAPISingletonTest : public ::testing::Test {
     void TearDown() override { CommandRouterHttpAPISingleton::provide(nullptr); }
 };
@@ -295,9 +389,7 @@ TEST(CommandExecutionTest, status_and_terminal_flags) {
 
 TEST(CommandExecutionTest, terminal_marks_finished_at) {
     CommandExecution exec(
-        "exec-abc",
-        "query",
-        {{"query", {{"syntax", "metta"}, {"tokens", json::array({"(Similarity %V1 %V2)"})}}}});
+        "exec-abc", "query", {{"query", {{"tokens", json::array({"(Similarity %V1 %V2)"})}}}});
 
     exec.mark_completed(100, 5);
     EXPECT_GT(exec.finished_at_ms(), 0);
@@ -305,10 +397,7 @@ TEST(CommandExecutionTest, terminal_marks_finished_at) {
 
 TEST(CommandExecutionTest, event_buffer_overflow_raises) {
     CommandExecution exec(
-        "exec-abc",
-        "query",
-        {{"query", {{"syntax", "metta"}, {"tokens", json::array({"(Similarity %V1 %V2)"})}}}},
-        2);
+        "exec-abc", "query", {{"query", {{"tokens", json::array({"(Similarity %V1 %V2)"})}}}}, 2);
 
     exec.mark_running();
     exec.publish_chunk(1, json::array({json("a")}));
@@ -399,13 +488,62 @@ TEST(BusCommandRouterProcessorTest, dispatch_http_command_preserves_caller_param
     EXPECT_EQ(query_caller->parameters.get<unsigned int>(BaseQueryProxy::MAX_ANSWERS), 10u);
 }
 
-TEST(HttpCommandProxyFactoryTest, create_query_sets_params_onto_proxy_defaults) {
+TEST(BusCommandRouterProcessorTest, http_evolution_keeps_bus_parameter_set) {
+    initialize_test_service_bus_statics_once();
+
+    const string requestor_id = TEST_HOST + ":http-evo-params-test";
+    const unsigned int evo_port = PortPool::get_port();
+    const unsigned int router_port = PortPool::get_port();
+    const string evo_id = TEST_HOST + ":" + std::to_string(evo_port);
+    const string router_id = TEST_HOST + ":" + std::to_string(router_port);
+
+    auto evo_processor = make_shared<CaptureEvolutionProcessor>();
+    auto evo_bus = make_shared<ServiceBus>(evo_id);
+    evo_bus->register_processor(evo_processor);
+    Utils::sleep(300);
+
+    auto router_bus = make_shared<ServiceBus>(router_id, evo_id);
+    auto router_processor = make_shared<BusCommandRouterProcessor>(router_bus);
+    router_bus->register_processor(router_processor);
+    Utils::sleep(500);
+
     string error;
     const json params = {
-        {"query", {{"syntax", "metta"}, {"tokens", json::array({"(Similarity \"human\" %C)"})}}},
-        {"populate_metta_mapping", true},
-        {"use_metta_as_query_tokens", "true"},
-        {"max_answers", 7}};
+        {"evolution",
+         {{"query", {{"syntax", "metta"}, {"tokens", json::array({"(Similarity \"human\" %C)"})}}},
+          {"fitness_function_tag", FitnessFunctionRegistry::REMOTE_FUNCTION}}},
+        {"use_metta_as_query_tokens", true},
+        {"context", "test-ctx"},
+        {"population_size", 50},
+        {"positive_importance_flag", true},
+        {"use_cache", false},
+        {"initial_rent_rate", 0.1}};
+
+    auto caller = HttpCommandProxyFactory::create(HttpCommandProxyFactory::EVOLUTION, params, error);
+    ASSERT_NE(caller, nullptr) << error;
+    router_processor->dispatch_http_command(caller, requestor_id);
+    Utils::sleep(1500);
+
+    lock_guard<mutex> lock(evo_processor->mutex_);
+    ASSERT_TRUE(evo_processor->received);
+    EXPECT_EQ(evo_processor->last_parameters.get<unsigned int>(QueryEvolutionProxy::POPULATION_SIZE),
+              50u);
+    EXPECT_TRUE(
+        evo_processor->last_parameters.get<bool>(PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG));
+    EXPECT_EQ(evo_processor->last_parameters.find("use_cache"), evo_processor->last_parameters.end());
+    EXPECT_EQ(evo_processor->last_parameters.find("initial_rent_rate"),
+              evo_processor->last_parameters.end());
+    EXPECT_EQ(evo_processor->last_parameters.find("enforce_cache_recreation"),
+              evo_processor->last_parameters.end());
+    EXPECT_EQ(evo_processor->last_parameters.find("context"), evo_processor->last_parameters.end());
+}
+
+TEST(HttpCommandProxyFactoryTest, create_query_sets_params_onto_proxy_defaults) {
+    string error;
+    const json params = {{"query", {{"tokens", json::array({"(Similarity \"human\" %C)"})}}},
+                         {"populate_metta_mapping", true},
+                         {"use_metta_as_query_tokens", "true"},
+                         {"max_answers", 7}};
 
     auto proxy = HttpCommandProxyFactory::create(HttpCommandProxyFactory::QUERY, params, error);
     ASSERT_NE(proxy, nullptr) << error;
@@ -416,11 +554,40 @@ TEST(HttpCommandProxyFactoryTest, create_query_sets_params_onto_proxy_defaults) 
     EXPECT_EQ(proxy->parameters.get<unsigned int>(BaseQueryProxy::MAX_ANSWERS), 7u);
 }
 
-TEST(HttpCommandProxyFactoryTest, create_rejects_unknown_parameter) {
+TEST(HttpCommandProxyFactoryTest, create_query_preserves_percent_in_quoted_literals) {
+    string error;
+    const json params = {{"query", {{"tokens", json::array({"(Similarity \"50%\" %C)"})}}},
+                         {"use_metta_as_query_tokens", true}};
+
+    auto proxy = HttpCommandProxyFactory::create(HttpCommandProxyFactory::QUERY, params, error);
+    ASSERT_NE(proxy, nullptr) << error;
+    EXPECT_EQ(proxy->get_args()[1], "(Similarity \"50%\" $C)");
+}
+
+TEST(HttpCommandProxyFactoryTest, create_evolution_preserves_percent_in_query_and_correlation) {
     string error;
     const json params = {
-        {"query", {{"syntax", "metta"}, {"tokens", json::array({"(Similarity \"human\" %C)"})}}},
-        {"unknown_key", true}};
+        {"evolution",
+         {{"query", {{"syntax", "metta"}, {"tokens", json::array({"(Similarity \"50%\" %C)"})}}},
+          {"fitness_function_tag", "count_letter"},
+          {"correlation_queries",
+           json::array(
+               {json({{"syntax", "metta"}, {"tokens", json::array({"(Evaluation \"100%\" %V1)"})}})})},
+          {"correlation_replacements", json::array({json::array({json::array({"V1", "50%"})})})}}},
+        {"use_metta_as_query_tokens", true}};
+
+    auto proxy = HttpCommandProxyFactory::create(HttpCommandProxyFactory::EVOLUTION, params, error);
+    ASSERT_NE(proxy, nullptr) << error;
+    const string& arg = proxy->get_args()[1];
+    EXPECT_NE(arg.find("(query (Similarity \"50%\" $C))"), string::npos);
+    EXPECT_NE(arg.find("(Evaluation \"100%\" $V1)"), string::npos);
+    EXPECT_NE(arg.find("\"50%\""), string::npos);
+}
+
+TEST(HttpCommandProxyFactoryTest, create_rejects_unknown_parameter) {
+    string error;
+    const json params = {{"query", {{"tokens", json::array({"(Similarity \"human\" %C)"})}}},
+                         {"unknown_key", true}};
 
     auto proxy = HttpCommandProxyFactory::create(HttpCommandProxyFactory::QUERY, params, error);
     EXPECT_EQ(proxy, nullptr);
@@ -429,9 +596,142 @@ TEST(HttpCommandProxyFactoryTest, create_rejects_unknown_parameter) {
 
 TEST(HttpCommandProxyFactoryTest, create_rejects_unsupported_command) {
     string error;
-    auto proxy = HttpCommandProxyFactory::create("evolution", json::object(), error);
+    auto proxy = HttpCommandProxyFactory::create("nope", json::object(), error);
     EXPECT_EQ(proxy, nullptr);
     EXPECT_NE(error.find("Unsupported command"), string::npos);
+}
+
+TEST(HttpCommandProxyFactoryTest, create_evolution_builds_metta_arg_and_params) {
+    string error;
+    const json params = {
+        {"evolution",
+         {{"query", {{"syntax", "metta"}, {"tokens", json::array({"(Similarity \"human\" %C)"})}}},
+          {"fitness_function_tag", "remote_fitness_function"},
+          {"correlation_queries",
+           json::array(
+               {json({{"syntax", "metta"}, {"tokens", json::array({"(Evaluation %V1 %Concept)"})}})})},
+          {"correlation_replacements", json::array({json::array({json::array({"V1", "Predicate"})})})},
+          {"correlation_mappings",
+           json::array(
+               {json::array({json::array({"Concept", "Concept"}), json::array({">$0_1_2", "-"})})})}}},
+        {"population_size", 50},
+        {"max_generations", 3},
+        {"use_metta_as_query_tokens", true},
+        {"populate_metta_mapping", true}};
+
+    auto proxy = HttpCommandProxyFactory::create(HttpCommandProxyFactory::EVOLUTION, params, error);
+    ASSERT_NE(proxy, nullptr) << error;
+    EXPECT_EQ(proxy->get_args()[0], "evolution");
+    const string& arg = proxy->get_args()[1];
+    EXPECT_NE(arg.find("(query (Similarity \"human\" $C))"), string::npos);
+    EXPECT_NE(arg.find("(ff remote_fitness_function)"), string::npos);
+    EXPECT_NE(arg.find("(cq ("), string::npos);
+    EXPECT_NE(arg.find("(cr ("), string::npos);
+    EXPECT_NE(arg.find("(cm ("), string::npos);
+    EXPECT_EQ(proxy->parameters.get<unsigned int>("population_size"), 50u);
+    EXPECT_EQ(proxy->parameters.get<unsigned int>("max_generations"), 3u);
+    EXPECT_TRUE(proxy->parameters.get<bool>(BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS));
+}
+
+TEST(HttpCommandProxyFactoryTest, create_evolution_requires_query_and_fitness_tag) {
+    string error;
+    auto missing_query =
+        HttpCommandProxyFactory::create(HttpCommandProxyFactory::EVOLUTION,
+                                        {{"evolution", {{"fitness_function_tag", "inference_toy"}}}},
+                                        error);
+    EXPECT_EQ(missing_query, nullptr);
+    EXPECT_NE(error.find("params.evolution.query"), string::npos);
+
+    auto missing_ff = HttpCommandProxyFactory::create(
+        HttpCommandProxyFactory::EVOLUTION,
+        {{"evolution",
+          {{"query", {{"syntax", "metta"}, {"tokens", json::array({"(Similarity %A %B)"})}}}}}},
+        error);
+    EXPECT_EQ(missing_ff, nullptr);
+    EXPECT_NE(error.find("fitness_function_tag"), string::npos);
+}
+
+TEST(HttpCommandProxyFactoryTest, create_evolution_rejects_fitness_tag_with_delimiters) {
+    const json query = {{"syntax", "metta"}, {"tokens", json::array({"(Similarity %A %B)"})}};
+    for (const string bad_tag : {"count letter", "count\tletter", "(count_letter)", "a\"b"}) {
+        string error;
+        auto proxy = HttpCommandProxyFactory::create(
+            HttpCommandProxyFactory::EVOLUTION,
+            {{"evolution", {{"query", query}, {"fitness_function_tag", bad_tag}}}},
+            error);
+        EXPECT_EQ(proxy, nullptr) << "tag accepted: " << bad_tag;
+        EXPECT_NE(error.find("fitness_function_tag"), string::npos);
+    }
+}
+
+TEST(HttpCommandProxyFactoryTest, create_evolution_quotes_link_template_tokens) {
+    string error;
+    const json params = {{"evolution",
+                          {{"query",
+                            {{"syntax", "link_template"},
+                             {"tokens",
+                              json::array({"LINK_TEMPLATE",
+                                           "Expression",
+                                           "3",
+                                           "NODE",
+                                           "Symbol",
+                                           "Similarity",
+                                           "VARIABLE",
+                                           "v1",
+                                           "VARIABLE",
+                                           "v2"})}}},
+                           {"fitness_function_tag", "count_letter"},
+                           {"correlation_queries",
+                            json::array({json({{"syntax", "link_template"},
+                                               {"tokens",
+                                                json::array({"LINK_TEMPLATE",
+                                                             "Expression",
+                                                             "3",
+                                                             "NODE",
+                                                             "Symbol",
+                                                             "Inheritance",
+                                                             "VARIABLE",
+                                                             "v1",
+                                                             "VARIABLE",
+                                                             "v2"})}})})}}},
+                         {"use_metta_as_query_tokens", false}};
+
+    auto proxy = HttpCommandProxyFactory::create(HttpCommandProxyFactory::EVOLUTION, params, error);
+    ASSERT_NE(proxy, nullptr) << error;
+    const string& arg = proxy->get_args()[1];
+    EXPECT_NE(arg.find("(query \"LINK_TEMPLATE Expression 3 NODE Symbol Similarity VARIABLE v1 "
+                       "VARIABLE v2\")"),
+              string::npos);
+    EXPECT_NE(arg.find("(ff count_letter)"), string::npos);
+    EXPECT_NE(arg.find("\"LINK_TEMPLATE Expression 3 NODE Symbol Inheritance VARIABLE v1 VARIABLE v2\""),
+              string::npos);
+    EXPECT_FALSE(proxy->parameters.get<bool>(BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS));
+}
+
+TEST(HttpCommandProxyFactoryTest, create_evolution_requires_syntax) {
+    string error;
+    auto proxy =
+        HttpCommandProxyFactory::create(HttpCommandProxyFactory::EVOLUTION,
+                                        {{"evolution",
+                                          {{"query", {{"tokens", json::array({"(Similarity %A %B)"})}}},
+                                           {"fitness_function_tag", "count_letter"}}}},
+                                        error);
+    EXPECT_EQ(proxy, nullptr);
+    EXPECT_NE(error.find(".syntax"), string::npos);
+}
+
+TEST(HttpCommandProxyFactoryTest, create_evolution_rejects_syntax_flag_mismatch) {
+    string error;
+    auto proxy = HttpCommandProxyFactory::create(
+        HttpCommandProxyFactory::EVOLUTION,
+        {{"evolution",
+          {{"query",
+            {{"syntax", "link_template"}, {"tokens", json::array({"LINK_TEMPLATE", "Expression"})}}},
+           {"fitness_function_tag", "count_letter"}}},
+         {"use_metta_as_query_tokens", true}},
+        error);
+    EXPECT_EQ(proxy, nullptr);
+    EXPECT_NE(error.find("use_metta_as_query_tokens"), string::npos);
 }
 
 // -----------------------------------------------------------------------------
@@ -689,9 +989,7 @@ TEST_F(CommandRouterHttpAPITest, create_execution_rejects_invalid_requests) {
 
 TEST(CommandExecutionTest, stream_events_use_command_params_envelope) {
     CommandExecution exec(
-        "exec-abc",
-        "query",
-        {{"query", {{"syntax", "metta"}, {"tokens", json::array({"(Similarity %V1 %V2)"})}}}});
+        "exec-abc", "query", {{"query", {{"tokens", json::array({"(Similarity %V1 %V2)"})}}}});
 
     exec.mark_running();
     const json answer = {{"handles", json::array({json::array({"h1"})})}};
@@ -838,7 +1136,7 @@ TEST_F(CommandRouterHttpAPIParallelTest, parallel_queries_keep_params_and_answer
 
         json body = {{"command", "query"},
                      {"params",
-                      {{"query", {{"syntax", "metta"}, {"tokens", json::array({token})}}},
+                      {{"query", {{"tokens", json::array({token})}}},
                        {"use_metta_as_query_tokens", true},
                        {"populate_metta_mapping", false},
                        {"max_answers", max_answers}}}};
@@ -970,6 +1268,66 @@ TEST_F(CommandRouterHttpAPISingletonTest, init_after_provide_throws) {
     EXPECT_THROW(
         CommandRouterHttpAPISingleton::init(JsonConfig(raw), make_shared<BusCommandRouterProcessor>()),
         runtime_error);
+}
+
+TEST_F(CommandRouterHttpAPIEvolutionTest, evolution_remote_fitness_round_trip) {
+    const json body = {
+        {"command", "evolution"},
+        {"params",
+         {{"evolution",
+           {{"query", {{"syntax", "metta"}, {"tokens", json::array({"(Similarity \"human\" %C)"})}}},
+            {"fitness_function_tag", FitnessFunctionRegistry::REMOTE_FUNCTION}}},
+          {"use_metta_as_query_tokens", true},
+          {"populate_metta_mapping", false},
+          {"population_size", 1},
+          {"max_generations", 1},
+          {"max_bundle_size", 10}}}};
+
+    auto create = client().Post("/command-router/executions", body.dump(), "application/json");
+    ASSERT_TRUE(create);
+    ASSERT_EQ(create->status, 202) << create->body;
+    const string execution_id = json::parse(create->body)["execution_id"].get<string>();
+
+    httplib::ws::WebSocketClient ws("ws://" + TEST_HOST + ":" + std::to_string(TEST_PORT_EVOLUTION) +
+                                    "/command-router/ws/" + execution_id);
+    ASSERT_TRUE(ws.is_valid());
+    ASSERT_TRUE(ws.connect());
+    ws.set_read_timeout(30, 0);
+
+    bool saw_eval_fitness = false;
+    bool saw_answer = false;
+    string terminal_status;
+    string msg;
+    while (ws.read(msg)) {
+        auto event = json::parse(msg);
+        const string command = event.value("command", "");
+        if (command == CommandExecution::COMMAND_EVAL_FITNESS) {
+            saw_eval_fitness = true;
+            const int seq = event["params"]["seq"].get<int>();
+            ASSERT_TRUE(event["params"]["answers"].is_array());
+            ASSERT_FALSE(event["params"]["answers"].empty());
+            json response = {
+                {"command", CommandExecution::COMMAND_EVAL_FITNESS_RESPONSE},
+                {"params",
+                 {{"execution_id", execution_id}, {"seq", seq}, {"fitness", json::array({0.42})}}}};
+            ASSERT_TRUE(ws.send(response.dump()));
+        } else if (command == CommandExecution::COMMAND_QUERY_ANSWERS) {
+            saw_answer = true;
+            ASSERT_FALSE(event["params"]["answers"].empty());
+            EXPECT_NEAR(event["params"]["answers"][0]["strength"].get<double>(), 0.42, 1e-5);
+        } else if (command == CommandExecution::COMMAND_EXECUTION_STATUS) {
+            terminal_status = event["params"].value("status", "");
+            if (terminal_status == "completed" || terminal_status == "error" ||
+                terminal_status == "aborted") {
+                break;
+            }
+        }
+    }
+    ws.close();
+
+    EXPECT_TRUE(saw_eval_fitness);
+    EXPECT_TRUE(saw_answer);
+    EXPECT_EQ(terminal_status, "completed");
 }
 
 int main(int argc, char** argv) {
