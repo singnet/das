@@ -146,8 +146,9 @@ void BaseQueryProxy::untokenize(vector<string>& tokens) {
 
     string keychain_tokens = this->parameters.get_or<string>(PUBLIC_KEY_TOKENS, "");
     if (keychain_tokens != "") {
-        this->_keychain = make_shared<Keychain>();
-        this->_keychain->untokenize(Utils::split(keychain_tokens));
+        auto __keychain = make_shared<Keychain>();
+        __keychain->untokenize(Utils::split(keychain_tokens));
+        this->_keychain = __keychain;
     }
 }
 
