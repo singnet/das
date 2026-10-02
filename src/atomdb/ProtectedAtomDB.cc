@@ -22,7 +22,20 @@ ProtectedAtomDB::ProtectedAtomDB(shared_ptr<AtomDB> backend) : backend(backend) 
     }
     this->uid_ = this->backend->get_uid();
     this->manifest = make_shared<AuthorizationManifest>(backend);
-    LOG_INFO("ProtectedAtomDB initialized");
+    LOG_INFO("ProtectedAtomDB initialized (uid=" + this->uid_ + ")");
+}
+
+ProtectedAtomDB::ProtectedAtomDB(shared_ptr<AtomDB> backend, shared_ptr<AuthorizationManifest> manifest)
+    : backend(backend), manifest(manifest) {
+    if (this->backend == nullptr || manifest == nullptr) {
+        RAISE_ERROR("ProtectedAtomDB requires an AtomDB and a non-null AuthorizationManifest.");
+    }
+    this->uid_ = this->backend->get_uid();
+    LOG_INFO("ProtectedAtomDB initialized (uid=" + this->uid_ + ")");
+}
+
+shared_ptr<ProtectedAtomDB> ProtectedAtomDB::wrap(shared_ptr<AtomDB> atomdb) {
+    return make_shared<ProtectedAtomDB>(atomdb, this->manifest);
 }
 
 // --------------------------------------------------------------------------------
