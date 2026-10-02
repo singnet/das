@@ -6,7 +6,7 @@
 
 #include "AtomDB.h"
 #include "Keychain.h"
-#include "ProtectedAtomDB.h"
+#include "KeySensitiveAtomDB.h"
 
 using namespace std;
 
@@ -30,7 +30,7 @@ class AtomDBUtils {
                                             bool populate_mapping,
                                             shared_ptr<Keychain> keychain,
                                             shared_ptr<AtomDB> atomdb,
-                                            shared_ptr<ProtectedAtomDB> protected_atomdb);
+                                            shared_ptr<KeySensitiveAtomDB> protected_atomdb);
 
    public:
     /**

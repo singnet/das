@@ -41,9 +41,10 @@ BaseQueryProxy::BaseQueryProxy(const vector<string>& tokens, const string& conte
 }
 
 void BaseQueryProxy::init() {
-    this->atomdb = AtomDBSingleton::get_instance();
     this->answer_count = 0;
     this->parameters += SystemParametersSingleton::get_instance()->get_base_query_params();
+    this->_keychain = nullptr;
+    this->_atomdb = AtomDBSingleton::get_instance();
 }
 
 BaseQueryProxy::~BaseQueryProxy() {}
@@ -142,6 +143,12 @@ void BaseQueryProxy::untokenize(vector<string>& tokens) {
     this->query_tokens.insert(
         this->query_tokens.begin(), tokens.begin() + 2, tokens.begin() + 2 + num_query_tokens);
     tokens.erase(tokens.begin(), tokens.begin() + 2 + num_query_tokens);
+
+    string keychain_tokens = this->parameters.get_or<string>(PUBLIC_KEY_TOKENS, "");
+    if (keychain_tokens != "") {
+        this->_keychain = make_shared<Keychain>();
+        this->_keychain->untokenize(Utils::split(keychain_tokens));
+    }
 }
 
 const string& BaseQueryProxy::get_context() {
@@ -176,11 +183,11 @@ string BaseQueryProxy::to_string() {
 
 void BaseQueryProxy::populate_metta_mapping(QueryAnswer* answer) {
     for (string& handle : answer->get_handles_vector()) {
-        AtomDBUtils::handle_to_metta(handle, answer->metta_expression);
+        AtomDBUtils::handle_to_metta(handle, answer->metta_expression, _keychain);
     }
     for (unsigned int i = 0; i < answer->get_paths_size(); i++) {
         for (string& handle : answer->get_path_vector(i)) {
-            AtomDBUtils::handle_to_metta(handle, answer->metta_expression);
+            AtomDBUtils::handle_to_metta(handle, answer->metta_expression, _keychain);
         }
     }
 }

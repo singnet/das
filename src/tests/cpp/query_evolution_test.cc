@@ -10,6 +10,7 @@
 #include "TestAtomDBJsonConfig.h"
 #include "TestSystemParams.h"
 #include "Utils.h"
+#include "Keychain.h"
 #include "gtest/gtest.h"
 
 using das_test::init_test_system_parameters_singleton;
@@ -30,7 +31,7 @@ class TestProcessor : public QueryEvolutionProcessor {
 
 class TestFitnessFunction : public FitnessFunction {
    public:
-    float eval(shared_ptr<QueryAnswer> query_answer) override { return 1; }
+    float eval(shared_ptr<QueryAnswer> query_answer, shared_ptr<Keychain> keychain = nullptr) override { return 1; }
 };
 
 TEST(QueryEvolution, protected_methods) {

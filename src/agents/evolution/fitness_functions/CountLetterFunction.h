@@ -1,6 +1,5 @@
 #pragma once
 
-#include "AtomDB.h"
 #include "FitnessFunction.h"
 
 using namespace std;
@@ -13,13 +12,10 @@ class CountLetterFunction : public FitnessFunction {
     static string VARIABLE_NAME;
     static char LETTER_TO_COUNT;
 
-    CountLetterFunction();
+    CountLetterFunction() {}
     ~CountLetterFunction() {}
 
-    float eval(shared_ptr<QueryAnswer> query_answer) override;
-
-   private:
-    shared_ptr<AtomDB> db;
+    float eval(shared_ptr<QueryAnswer> query_answer, shared_ptr<Keychain> keychain = nullptr) override;
 };
 
 }  // namespace fitness_functions

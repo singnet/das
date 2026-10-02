@@ -14,8 +14,8 @@
 #include "QueryEvolutionProxy.h"
 #include "ServiceBusSingleton.h"
 #include "SystemParametersSingleton.h"
-#include "TestAtomDBJsonConfig.h"
 #include "Utils.h"
+#include "KeySensitiveAtomDB.h"
 
 #define LOG_LEVEL INFO_LEVEL
 #include "Logger.h"
@@ -64,7 +64,7 @@ class RemoteFitnessFunction : public FitnessFunction {
    public:
     shared_ptr<AtomDB> db;
     RemoteFitnessFunction() { this->db = AtomDBSingleton::get_instance(); }
-    float eval(shared_ptr<QueryAnswer> answer) override {
+    float eval(shared_ptr<QueryAnswer> answer, shared_ptr<Keychain> keychain = nullptr) override {
         string variable_name = "sentence1";
         LOG_DEBUG(variable_name + ": " +
                   answer->metta_expression[answer->assignment.get(variable_name)]);
@@ -110,6 +110,7 @@ void run(const string& client_id,
          const string& context_tag,
          const string& word_tag1,
          const string& word_tag2,
+         const string& keychain_tokens,
          double ELITISM_RATE,
          float RENT_RATE,
          float SPREADING_RATE_LOWERBOUND,
@@ -312,7 +313,7 @@ void run(const string& client_id,
     proxy->parameters[QueryEvolutionProxy::MAX_GENERATIONS] = (unsigned int) 10;
     proxy->parameters[QueryEvolutionProxy::ELITISM_RATE] = (double) ELITISM_RATE;
     proxy->parameters[QueryEvolutionProxy::SELECTION_RATE] = (double) 0.10;
-    proxy->parameters[BaseQueryProxy::PUBLIC_KEY_TOKENS] = "";
+    proxy->parameters[BaseQueryProxy::PUBLIC_KEY_TOKENS] = keychain_tokens;
     proxy->parameters[BaseQueryProxy::MAX_BUNDLE_SIZE] = (unsigned int) 10000;
     service_bus->issue_bus_command(proxy);
 
@@ -321,6 +322,9 @@ void run(const string& client_id,
     shared_ptr<QueryAnswer> query_answer;
     unsigned int count = 0;
 
+    auto keychain = make_shared<Keychain>();
+    keychain->untokenize(Utils::split(keychain_tokens));
+    auto protected_db = dynamic_pointer_cast<KeySensitiveAtomDB>(db);
     vector<string> sentences;
     while (!proxy->finished()) {
         if ((query_answer = proxy->pop()) == NULL) {
@@ -328,9 +332,17 @@ void run(const string& client_id,
         } else {
             string handle = query_answer->assignment.get(sentence1.c_str());
             float fitness = query_answer->strength;
-            shared_ptr<Link> sentence_link = db->get_link(handle);
-            handle = sentence_link->targets[1];
-            shared_ptr<Node> sentence_name_node = db->get_node(handle);
+            shared_ptr<Link> sentence_link;
+            shared_ptr<Node> sentence_name_node;
+            if (protected_db) {
+                sentence_link = protected_db->get_link(handle, keychain);
+                handle = sentence_link->targets[1];
+                sentence_name_node = protected_db->get_node(handle, keychain);
+            } else {
+                sentence_link = db->get_link(handle);
+                handle = sentence_link->targets[1];
+                sentence_name_node = db->get_node(handle);
+            }
             set<string> to_highlight = {word_tag1, word_tag2};
             string sentence_name = sentence_name_node->name;
             string highlighted_sentence_name = highlight(sentence_name, to_highlight);
@@ -353,8 +365,9 @@ int main(int argc, char* argv[]) {
     if (argc < 7) {
         cerr << "Usage: " << argv[0]
              << "    <client id> <server id> <start_port:end_port> <config_file> "
-                "<context_tag> <word tag 1> <word tag "
-                "2> [RENT_RATE] [SPREADING_RATE_LOWERBOUND] [SPREADING_RATE_UPPERBOUND] [ELITISM_RATE]"
+                "<context_tag> <word tag 1> <word tag 2> [PUBLIC_KEY] [RENT_RATE] "
+                "[SPREADING_RATE_LOWERBOUND] [SPREADING_RATE_UPPERBOUND] "
+                "[ELITISM_RATE] "
              << endl;
         exit(1);
     }
@@ -371,17 +384,19 @@ int main(int argc, char* argv[]) {
     auto json_config = JsonConfigParser::load(argv[4]);
     SystemParametersSingleton::init(json_config);
 
-    string atomdb_type_str = json_config.at_path("atomdb.type").get_or<string>("redismongodb");
-    AtomDBSingleton::init(test_atomdb_json_config(atomdb_type_str));
+    auto atomdb_config = json_config.at_path("atomdb").get_or<JsonConfig>(JsonConfig());
+    AtomDBSingleton::init(atomdb_config);
+    string atomdb_uid = atomdb_config.at_path("uid").get_or<string>("local");
 
     string context_tag = argv[5];
     string word_tag1 = argv[6];
     string word_tag2 = argv[7];
-    if (argc > 8) {
-        RENT_RATE = Utils::string_to_float(string(argv[8]));
-        SPREADING_RATE_LOWERBOUND = Utils::string_to_float(string(argv[9]));
-        SPREADING_RATE_UPPERBOUND = Utils::string_to_float(string(argv[10]));
-        ELITISM_RATE = (double) Utils::string_to_float(string(argv[11]));
+    string keychain_tokens = argv[8] != nullptr ? atomdb_uid + " " + argv[8] : "";
+    if (argc > 9) {
+        RENT_RATE = Utils::string_to_float(string(argv[9]));
+        SPREADING_RATE_LOWERBOUND = Utils::string_to_float(string(argv[10]));
+        SPREADING_RATE_UPPERBOUND = Utils::string_to_float(string(argv[11]));
+        ELITISM_RATE = (double) Utils::string_to_float(string(argv[12]));
     }
     LOG_INFO("ELITISM_RATE: " << ELITISM_RATE);
     run(client_id,
@@ -391,6 +406,7 @@ int main(int argc, char* argv[]) {
         context_tag,
         word_tag1,
         word_tag2,
+        keychain_tokens,
         ELITISM_RATE,
         RENT_RATE,
         SPREADING_RATE_LOWERBOUND,

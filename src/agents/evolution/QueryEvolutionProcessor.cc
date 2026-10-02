@@ -466,7 +466,7 @@ void QueryEvolutionProcessor::stimulate(shared_ptr<QueryEvolutionProxy> proxy,
             }
         }
         for (string handle : handle_set) {
-            LOG_DEBUG("Picked to stimulate: " + AtomDBUtils::handle_to_metta(handle));
+            LOG_DEBUG("Picked to stimulate: " + AtomDBUtils::handle_to_metta(handle, proxy->keychain()));
             unsigned int old_value = handle_count[handle];
             if (value > old_value) {
                 handle_count[handle] = value;
@@ -524,9 +524,9 @@ string QueryEvolutionProcessor::answer_to_string_2(shared_ptr<QueryAnswer> answe
             }
             if (first) {
                 first = false;
-                path = AtomDBUtils::handle_to_metta(link->targets[1]) + path_link[i];
+                path = AtomDBUtils::handle_to_metta(link->targets[1], proxy->keychain()) + path_link[i];
             }
-            path += AtomDBUtils::handle_to_metta(link->targets[2]);
+            path += AtomDBUtils::handle_to_metta(link->targets[2], proxy->keychain());
             path += path_link[i];
         }
         if (answer->get_path_vector(i).size() > 0) {
@@ -553,9 +553,9 @@ string QueryEvolutionProcessor::answer_to_string_1(shared_ptr<QueryAnswer> answe
         if ((link != nullptr) && (link->targets.size() >= 3)) {
             if (first) {
                 first = false;
-                path = AtomDBUtils::handle_to_metta(link->targets[1]) + path_link;
+                path = AtomDBUtils::handle_to_metta(link->targets[1], proxy->keychain()) + path_link;
             }
-            path += AtomDBUtils::handle_to_metta(link->targets[2]);
+            path += AtomDBUtils::handle_to_metta(link->targets[2], proxy->keychain());
             path += path_link;
         } else {
             return "Invalid link: " + handle;

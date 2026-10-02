@@ -2,10 +2,15 @@
 
 #include <memory>
 
+#include "AtomDBSingleton.h"
+#include "AtomDB.h"
+#include "KeySensitiveAtomDB.h"
 #include "QueryAnswer.h"
+#include "Keychain.h"
 
 using namespace std;
 using namespace query_engine;
+using namespace atomdb;
 
 namespace fitness_functions {
 
@@ -14,10 +19,16 @@ namespace fitness_functions {
  */
 class FitnessFunction {
    public:
-    FitnessFunction(){};
-    virtual ~FitnessFunction(){};
+    FitnessFunction() {
+        this->atomdb = AtomDBSingleton::get_instance();
+        this->key_sensitive_atomdb = dynamic_pointer_cast<KeySensitiveAtomDB>(atomdb);
+    }
+    virtual ~FitnessFunction() {}
 
-    virtual float eval(shared_ptr<QueryAnswer> query_answer) = 0;
+    virtual float eval(shared_ptr<QueryAnswer> query_answer, shared_ptr<Keychain> keychain = nullptr) = 0;
+   protected:
+    shared_ptr<AtomDB> atomdb;
+    shared_ptr<KeySensitiveAtomDB> key_sensitive_atomdb;
 };
 
 }  // namespace fitness_functions

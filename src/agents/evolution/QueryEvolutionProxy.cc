@@ -53,7 +53,6 @@ void QueryEvolutionProxy::init() {
     this->no_selection_flag = false;
     this->last_generation_with_answer_report = 0;
     this->parameters += SystemParametersSingleton::get_instance()->get_evolution_agent_params();
-    this->_keychain = nullptr;
 }
 
 string QueryEvolutionProxy::to_string() {
@@ -194,11 +193,6 @@ void QueryEvolutionProxy::untokenize(vector<string>& tokens) {
         }
         this->correlation_mappings.push_back(correlation);
         tokens.erase(tokens.begin(), tokens.begin() + 1 + (2 * correlation_size));
-    }
-    string keychain_tokens = this->parameters.get_or<string>(BaseQueryProxy::PUBLIC_KEY_TOKENS, "");
-    if (keychain_tokens != "") {
-        this->_keychain = make_shared<Keychain>();
-        this->_keychain->untokenize(Utils::split(keychain_tokens));
     }
 }
 
