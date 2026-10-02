@@ -455,22 +455,31 @@ bool RemoteAtomDB::link_exists(const string& handle, shared_ptr<Keychain> keycha
 }
 
 set<string> RemoteAtomDB::atoms_exist(const vector<string>& handles, shared_ptr<Keychain> keychain) {
-    return fanout_exist(remote_db_, handles, keychain, [](RemoteAtomDBPeer& p, const vector<string>& h) {
-        return p.atoms_exist(h, keychain);
-    });
+    return fanout_exist(remote_db_,
+                        handles,
+                        keychain,
+                        [](RemoteAtomDBPeer& p, const vector<string>& h, shared_ptr<Keychain> keychain) {
+                            return p.atoms_exist(h, keychain);
+                        });
 }
 
 set<string> RemoteAtomDB::nodes_exist(const vector<string>& handles, shared_ptr<Keychain> keychain) {
-    return fanout_exist(remote_db_, handles, keychain, [](RemoteAtomDBPeer& p, const vector<string>& h) {
-        return p.nodes_exist(h, keychain);
-    });
+    return fanout_exist(remote_db_,
+                        handles,
+                        keychain,
+                        [](RemoteAtomDBPeer& p, const vector<string>& h, shared_ptr<Keychain> keychain) {
+                            return p.nodes_exist(h, keychain);
+                        });
     ;
 }
 
 set<string> RemoteAtomDB::links_exist(const vector<string>& handles, shared_ptr<Keychain> keychain) {
-    return fanout_exist(remote_db_, handles, keychain, [](RemoteAtomDBPeer& p, const vector<string>& h) {
-        return p.links_exist(h, keychain);
-    });
+    return fanout_exist(remote_db_,
+                        handles,
+                        keychain,
+                        [](RemoteAtomDBPeer& p, const vector<string>& h, shared_ptr<Keychain> keychain) {
+                            return p.links_exist(h, keychain);
+                        });
 }
 
 string RemoteAtomDB::add_atom(const atoms::Atom* atom,

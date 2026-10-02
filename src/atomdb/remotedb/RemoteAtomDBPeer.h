@@ -227,6 +227,7 @@ class RemoteAtomDBPeer : public AtomDB, public processor::ThreadMethod, public K
     shared_ptr<InMemoryDB> read_cache_;
     shared_ptr<ProtectedAtomDB> protected_write_buffer_;
     shared_ptr<ProtectedAtomDB> protected_read_cache_;
+    shared_ptr<ProtectedAtomDB> protected_atomdb_;
     shared_ptr<AtomDB> atomdb_;
     shared_ptr<AtomDB> local_persistence_;
     unordered_set<string> fetched_link_templates_;
