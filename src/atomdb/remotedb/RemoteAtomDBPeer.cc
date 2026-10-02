@@ -73,6 +73,7 @@ void RemoteAtomDBPeer::initialize_cache() {
     this->read_cache_ = make_shared<InMemoryDB>(config);
 
     if (auto p = dynamic_pointer_cast<ProtectedAtomDB>(this->atomdb_)) {
+        this->protected_atomdb_ = p;
         this->protected_write_buffer_ = p->wrap(this->write_buffer_);
         this->protected_read_cache_ = p->wrap(this->read_cache_);
     } else {
@@ -809,23 +810,25 @@ shared_ptr<atomdb_api_types::HandleSet> RemoteAtomDBPeer::query_for_pattern(
 shared_ptr<atomdb_api_types::HandleList> RemoteAtomDBPeer::query_for_targets(
     const string& handle, shared_ptr<Keychain> keychain) {
     auto pwb = protected_write_buffer();
-    if (auto result =
-            pwb ? pwb->query_for_targets(handle, keychain) : write_buffer()->query_for_targets(handle)) {
-        return result;
+    auto buffer_result =
+        pwb ? pwb->query_for_targets(handle, keychain) : write_buffer()->query_for_targets(handle);
+    if (buffer_result && buffer_result->size() > 0) {
+        return buffer_result;
     }
 
     auto prc = protected_read_cache();
-    if (auto result =
-            prc ? prc->query_for_targets(handle, keychain) : read_cache()->query_for_targets(handle)) {
-        return result;
+    auto cache_result =
+        prc ? prc->query_for_targets(handle, keychain) : read_cache()->query_for_targets(handle);
+    if (cache_result && cache_result->size() > 0) {
+        return cache_result;
     }
 
     if (local_persistence_) {
-        auto result = local_persistence_->query_for_targets(handle);
-        if (result) {
+        auto local_result = local_persistence_->query_for_targets(handle);
+        if (local_result && local_result->size() > 0) {
             LOG_DEBUG("[RemoteDB(" << uid_ << ")] query_for_targets(" << handle
                                    << ") <- local_persistence");
-            return result;
+            return local_result;
         }
     }
 
