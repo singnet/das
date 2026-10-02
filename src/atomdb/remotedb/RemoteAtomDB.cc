@@ -266,27 +266,15 @@ void RemoteAtomDB::re_index_patterns(bool flush_patterns) {
 }
 
 size_t RemoteAtomDB::node_count() const {
-    size_t count = 0;
-    for (auto& [uid, peer] : remote_db_) {
-        count += peer->node_count();
-    }
-    return count;
+    return this->node_count(nullptr);
 }
 
 size_t RemoteAtomDB::link_count() const {
-    size_t count = 0;
-    for (auto& [uid, peer] : remote_db_) {
-        count += peer->link_count();
-    }
-    return count;
+    return this->link_count(nullptr);
 }
 
 size_t RemoteAtomDB::atom_count() const {
-    size_t count = 0;
-    for (auto& [uid, peer] : remote_db_) {
-        count += peer->atom_count();
-    }
-    return count;
+    return this->atom_count(nullptr);
 }
 
 RemoteAtomDBPeer* RemoteAtomDB::get_peer(const string& uid) {
@@ -562,13 +550,25 @@ void RemoteAtomDB::re_index_patterns(shared_ptr<Keychain> keychain, bool flush_p
 }
 
 size_t RemoteAtomDB::node_count(shared_ptr<Keychain> keychain) const {
-    RAISE_ERROR("RemoteAtomDB::node_count(keychain) is not implemented");
+    size_t count = 0;
+    for (auto& [uid, peer] : remote_db_) {
+        count += peer->node_count(keychain);
+    }
+    return count;
 }
 
 size_t RemoteAtomDB::link_count(shared_ptr<Keychain> keychain) const {
-    RAISE_ERROR("RemoteAtomDB::link_count(keychain) is not implemented");
+    size_t count = 0;
+    for (auto& [uid, peer] : remote_db_) {
+        count += peer->link_count(keychain);
+    }
+    return count;
 }
 
 size_t RemoteAtomDB::atom_count(shared_ptr<Keychain> keychain) const {
-    RAISE_ERROR("RemoteAtomDB::atom_count(keychain) is not implemented");
+    size_t count = 0;
+    for (auto& [uid, peer] : remote_db_) {
+        count += peer->atom_count(keychain);
+    }
+    return count;
 }
