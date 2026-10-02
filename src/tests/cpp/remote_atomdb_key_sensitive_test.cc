@@ -425,37 +425,36 @@ TEST_F(RemoteAtomDBKeySensitiveTest, SecondGetAtomReadsTheCachedAtomAfterTheBack
     EXPECT_EQ(second->handle(), similarity_human_monkey.handle());
 }
 
-// TEST_F(RemoteAtomDBKeySensitiveTest, QueryForTargetsReturnsTargetsOnlyFromPeersTheKeychainCanRead) {
-//     auto similarity_key = this->similarity_keychain();
-//     auto full_access_key = this->full_access_keychain();
+TEST_F(RemoteAtomDBKeySensitiveTest, QueryForTargetsReturnsTargetsOnlyFromPeersTheKeychainCanRead) {
+    auto similarity_key = this->similarity_keychain();
+    auto full_access_key = this->full_access_keychain();
 
-//     EXPECT_EQ(handles_from_handle_list(
-//                   this->db->query_for_targets(this->similarity_human_chimp_handle, nullptr)),
-//               vector<string>({this->similarity_handle, this->human_handle, this->chimp_handle}));
-//     EXPECT_EQ(this->db->query_for_targets(this->similarity_human_monkey_handle, nullptr), nullptr);
-//     EXPECT_EQ(this->db->query_for_targets(this->inheritance_human_mammal_handle, nullptr), nullptr);
+    EXPECT_EQ(handles_from_handle_list(
+                  this->db->query_for_targets(this->similarity_human_chimp_handle, nullptr)),
+              vector<string>({this->similarity_handle, this->human_handle, this->chimp_handle}));
+    EXPECT_EQ(this->db->query_for_targets(this->similarity_human_monkey_handle, nullptr), nullptr);
+    EXPECT_EQ(this->db->query_for_targets(this->inheritance_human_mammal_handle, nullptr), nullptr);
 
-//     EXPECT_EQ(handles_from_handle_list(
-//                   this->db->query_for_targets(this->similarity_human_monkey_handle, similarity_key)),
-//               vector<string>({this->similarity_handle, this->human_handle, this->monkey_handle}));
-//     EXPECT_EQ(this->db->query_for_targets(this->inheritance_human_mammal_handle, similarity_key),
-//               nullptr);
-//     EXPECT_EQ(handles_from_handle_list(
-//                   this->db->query_for_targets(this->inheritance_human_mammal_handle,
-//                   full_access_key)),
-//               vector<string>({this->inheritance_handle, this->human_handle, this->mammal_handle}));
-//     EXPECT_EQ(this->db->query_for_targets(this->similarity_human_monkey_handle, full_access_key),
-//               nullptr);
+    EXPECT_EQ(handles_from_handle_list(
+                  this->db->query_for_targets(this->similarity_human_monkey_handle, similarity_key)),
+              vector<string>({this->similarity_handle, this->human_handle, this->monkey_handle}));
+    EXPECT_EQ(this->db->query_for_targets(this->inheritance_human_mammal_handle, similarity_key),
+              nullptr);
+    EXPECT_EQ(handles_from_handle_list(
+                  this->db->query_for_targets(this->inheritance_human_mammal_handle, full_access_key)),
+              vector<string>({this->inheritance_handle, this->human_handle, this->mammal_handle}));
+    EXPECT_EQ(this->db->query_for_targets(this->similarity_human_monkey_handle, full_access_key),
+              nullptr);
 
-//     auto both_keys = this->both_keychains();
-//     EXPECT_EQ(handles_from_handle_list(
-//                   this->db->query_for_targets(this->similarity_human_monkey_handle, both_keys)),
-//               vector<string>({this->similarity_handle, this->human_handle, this->monkey_handle}));
-//     EXPECT_EQ(handles_from_handle_list(
-//                   this->db->query_for_targets(this->inheritance_human_mammal_handle, both_keys)),
-//               vector<string>({this->inheritance_handle, this->human_handle, this->mammal_handle}));
-//     EXPECT_EQ(this->db->query_for_targets("ffffffffffffffffffffffffffffffff", both_keys), nullptr);
-// }
+    auto both_keys = this->both_keychains();
+    EXPECT_EQ(handles_from_handle_list(
+                  this->db->query_for_targets(this->similarity_human_monkey_handle, both_keys)),
+              vector<string>({this->similarity_handle, this->human_handle, this->monkey_handle}));
+    EXPECT_EQ(handles_from_handle_list(
+                  this->db->query_for_targets(this->inheritance_human_mammal_handle, both_keys)),
+              vector<string>({this->inheritance_handle, this->human_handle, this->mammal_handle}));
+    EXPECT_EQ(this->db->query_for_targets("ffffffffffffffffffffffffffffffff", both_keys), nullptr);
+}
 
 TEST_F(RemoteAtomDBKeySensitiveTest, QueryForIncomingSetAggregatesOnlyWhatTheKeychainCanRead) {
     auto similarity_key = this->similarity_keychain();
