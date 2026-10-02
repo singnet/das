@@ -81,6 +81,7 @@ shared_ptr<atomdb_api_types::AccessPermissionDocument> RedisMongoDB::get_access_
     auto access_permission_doc = this->get_document(handle, MONGODB_ACCESS_PERMISSIONS_COLLECTION_NAME);
 
     if (access_permission_doc == nullptr) {
+        LOG_ERROR("AccessPermissionDocument not found for key handle: " + handle);
         return nullptr;
     }
 
