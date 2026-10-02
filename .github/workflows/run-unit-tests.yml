@@ -107,12 +107,12 @@ jobs:
           docker exec -i pg_test psql -U postgres -d postgres_wrapper_test < src/scripts/postgres_setup.sql
 
       - name: Setup bazel
-        run: .github/scripts/setup_bazel.sh
+        run: .github/scripts/setup_bazel.sh --toolchain-cache-dir "$HOME/.cache/das/toolchain"
 
       - name: Execute Unit Test Suite
         working-directory: ./src
-        run: ./scripts/bazel_exec.sh test --noshow_progress --cache_test_results=yes //tests/cpp/...
+        run: BAZELISK_HOME="$HOME/.cache/das/bazelisk" ./scripts/bazel_exec.sh --output_user_root="$HOME/.cache/das/bazel" test --noshow_progress --cache_test_results=yes //tests/cpp/...
 
       - name: Build production binaries
         working-directory: ./src
-        run: ./scripts/bazel_exec.sh build --noshow_progress //:ci_binaries
+        run: BAZELISK_HOME="$HOME/.cache/das/bazelisk" ./scripts/bazel_exec.sh --output_user_root="$HOME/.cache/das/bazel" build --noshow_progress //:ci_binaries
