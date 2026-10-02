@@ -39,7 +39,6 @@ set<string> handles_from_handle_set(const shared_ptr<HandleSet>& handle_set) {
 
 vector<string> handles_from_handle_list(const shared_ptr<HandleList>& handle_list) {
     vector<string> handles;
-    cout << "handles_from_handle_list: handle_list = " << std::to_string(handle_list->size()) << endl;
     if (handle_list == nullptr) return handles;
     for (size_t i = 0; i < handle_list->size(); i++) handles.push_back(handle_list->get_handle(i));
     return handles;

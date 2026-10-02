@@ -834,8 +834,11 @@ shared_ptr<atomdb_api_types::HandleList> RemoteAtomDBPeer::query_for_targets(
 
     LOG_DEBUG("[RemoteDB(" << uid_ << ")] query_for_targets(" << handle << ") <- remote atomdb");
 
-    return this->protected_atomdb_ ? this->protected_atomdb_->query_for_targets(handle, keychain)
-                                   : this->atomdb_->query_for_targets(handle);
+    auto remote_result = this->protected_atomdb_
+                             ? this->protected_atomdb_->query_for_targets(handle, keychain)
+                             : this->atomdb_->query_for_targets(handle);
+    if (remote_result && remote_result->size() > 0) return remote_result;
+    return nullptr;
 }
 
 shared_ptr<atomdb_api_types::HandleSet> RemoteAtomDBPeer::query_for_incoming_set(
