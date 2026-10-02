@@ -36,6 +36,8 @@ class MongodbAuthorizationPersistence : public AuthorizationPersistence {
     void grant_unrestricted(const string& public_key) override;
     void revoke(const string& public_key) override;
 
+    mongocxx::pool* get_mongodb_pool() const { return mongodb_pool; }
+
    private:
     mongocxx::pool* mongodb_pool;
     string database_name;
