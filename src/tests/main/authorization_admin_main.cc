@@ -97,9 +97,13 @@ void create_config_collection(shared_ptr<MongodbAuthorizationPersistence> persis
 
     auto config_id = Hasher::plain_string_hash(config_collection);
 
-    collection.update_one(make_document(kvp("_id", config_id)),
-                          make_document(kvp("protected", true)),
-                          mongocxx::options::update().upsert(true));
+    auto filter = make_document(kvp("_id", config_id));
+    auto document = make_document(kvp("_id", config_id), kvp("protected", true));
+
+    mongocxx::options::replace options;
+    options.upsert(true);
+
+    collection.replace_one(filter.view(), document.view(), options);
 }
 
 int main(int argc, char* argv[]) {
