@@ -176,7 +176,8 @@ void LinkTemplate::processor_method(shared_ptr<StoppableThread> monitor) {
         return;
     }
     shared_ptr<AtomDB> atomdb = AtomDBSingleton::get_instance();
-    shared_ptr<KeySensitiveAtomDB> key_sensitive_atomdb = dynamic_pointer_cast<KeySensitiveAtomDB>(atomdb);
+    shared_ptr<KeySensitiveAtomDB> key_sensitive_atomdb =
+        dynamic_pointer_cast<KeySensitiveAtomDB>(atomdb);
     string link_schema_handle = this->link_schema.handle();
     shared_ptr<atomdb_api_types::HandleSet> handles;
     LOG_INFO("Fetching " + link_schema_handle + " from AtomDB");

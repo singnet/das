@@ -5,8 +5,8 @@
 #include <string>
 
 #include "AtomDB.h"
-#include "Keychain.h"
 #include "KeySensitiveAtomDB.h"
+#include "Keychain.h"
 
 using namespace std;
 

@@ -1,4 +1,5 @@
 #include "InferenceToyFunction.h"
+
 #include "Logger.h"
 #include "Utils.h"
 

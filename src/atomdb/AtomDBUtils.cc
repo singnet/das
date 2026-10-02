@@ -28,7 +28,8 @@ void AtomDBUtils::reachable_terminal_set(set<string>& output, const string& hand
 string AtomDBUtils::handle_to_metta(const string& handle, shared_ptr<Keychain> keychain) {
     map<string, string> not_used;
     shared_ptr<AtomDB> atomdb = AtomDBSingleton::get_instance();
-    shared_ptr<KeySensitiveAtomDB> key_sensitive_atomdb = dynamic_pointer_cast<KeySensitiveAtomDB>(atomdb);
+    shared_ptr<KeySensitiveAtomDB> key_sensitive_atomdb =
+        dynamic_pointer_cast<KeySensitiveAtomDB>(atomdb);
     return handle_to_metta_recursion(handle, not_used, false, keychain, atomdb, key_sensitive_atomdb);
 }
 
@@ -36,7 +37,8 @@ string AtomDBUtils::handle_to_metta(const string& handle,
                                     map<string, string>& mapping,
                                     shared_ptr<Keychain> keychain) {
     shared_ptr<AtomDB> atomdb = AtomDBSingleton::get_instance();
-    shared_ptr<KeySensitiveAtomDB> key_sensitive_atomdb = dynamic_pointer_cast<KeySensitiveAtomDB>(atomdb);
+    shared_ptr<KeySensitiveAtomDB> key_sensitive_atomdb =
+        dynamic_pointer_cast<KeySensitiveAtomDB>(atomdb);
     return handle_to_metta_recursion(handle, mapping, true, keychain, atomdb, key_sensitive_atomdb);
 }
 

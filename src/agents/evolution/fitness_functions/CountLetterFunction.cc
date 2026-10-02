@@ -1,4 +1,5 @@
 #include "CountLetterFunction.h"
+
 #include "Utils.h"
 
 using namespace fitness_functions;

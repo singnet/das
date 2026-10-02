@@ -2,11 +2,11 @@
 
 #include <memory>
 
-#include "AtomDBSingleton.h"
 #include "AtomDB.h"
+#include "AtomDBSingleton.h"
 #include "KeySensitiveAtomDB.h"
-#include "QueryAnswer.h"
 #include "Keychain.h"
+#include "QueryAnswer.h"
 
 using namespace std;
 using namespace query_engine;
@@ -25,7 +25,9 @@ class FitnessFunction {
     }
     virtual ~FitnessFunction() {}
 
-    virtual float eval(shared_ptr<QueryAnswer> query_answer, shared_ptr<Keychain> keychain = nullptr) = 0;
+    virtual float eval(shared_ptr<QueryAnswer> query_answer,
+                       shared_ptr<Keychain> keychain = nullptr) = 0;
+
    protected:
     shared_ptr<AtomDB> atomdb;
     shared_ptr<KeySensitiveAtomDB> key_sensitive_atomdb;

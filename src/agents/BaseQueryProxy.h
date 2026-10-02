@@ -4,10 +4,10 @@
 
 #include "AtomDBSingleton.h"
 #include "BaseProxy.h"
+#include "Keychain.h"
 #include "Message.h"
 #include "QueryAnswer.h"
 #include "SharedQueue.h"
-#include "Keychain.h"
 
 using namespace std;
 using namespace service_bus;

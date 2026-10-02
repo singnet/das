@@ -10,12 +10,12 @@
 #include "CountLetterFunction.h"
 #include "FitnessFunctionRegistry.h"
 #include "JsonConfigParser.h"
+#include "KeySensitiveAtomDB.h"
 #include "QueryAnswer.h"
 #include "QueryEvolutionProxy.h"
 #include "ServiceBusSingleton.h"
 #include "SystemParametersSingleton.h"
 #include "Utils.h"
-#include "KeySensitiveAtomDB.h"
 
 #define LOG_LEVEL INFO_LEVEL
 #include "Logger.h"

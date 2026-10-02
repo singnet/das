@@ -1,4 +1,5 @@
 #include "MultiplyStrengthFunction.h"
+
 #include "AtomDBUtils.h"
 #include "Logger.h"
 #include "Utils.h"
@@ -8,7 +9,8 @@ using namespace fitness_functions;
 
 string MultiplyStrengthFunction::VARIABLE_NAME = "strength";
 
-float MultiplyStrengthFunction::eval(shared_ptr<QueryAnswer> query_answer, shared_ptr<Keychain> keychain) {
+float MultiplyStrengthFunction::eval(shared_ptr<QueryAnswer> query_answer,
+                                     shared_ptr<Keychain> keychain) {
     float strength = 1.0;
 
     LOG_DEBUG("Evaluating strength for " << query_answer->to_string());
