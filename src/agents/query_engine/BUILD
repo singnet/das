@@ -35,6 +35,7 @@ cc_library(
     hdrs = ["QueryAnswer.h"],
     includes = ["."],
     deps = [
+        "//atomdb:atomdb_lib",
         "//commons:commons_lib",
         "//commons/atoms:atoms_lib",
         "//hasher:hasher_lib",

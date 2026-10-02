@@ -17,7 +17,7 @@ using namespace std;
 using namespace service_bus;
 using namespace query_element;
 
-namespace atomdb {
+namespace query_engine {
 
 /**
  * Bus element responsible for processing PATTERN_MATCHING_QUERY commands.
@@ -98,4 +98,4 @@ class PatternMatchingQueryProcessor : public BusCommandProcessor {
     static string CHAIN;
 };
 
-}  // namespace atomdb
+}  // namespace query_engine

@@ -70,4 +70,7 @@ cc_library(
     srcs = ["Keychain.cc"],
     hdrs = ["Keychain.h"],
     includes = ["."],
+    deps = [
+        "//commons:commons_lib",
+    ],
 )

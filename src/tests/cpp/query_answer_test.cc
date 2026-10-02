@@ -3,6 +3,8 @@
 #include <set>
 #include <unordered_set>
 
+#include "Hasher.h"
+#include "InMemoryDB.h"
 #include "Link.h"
 #include "QueryAnswer.h"
 #include "Utils.h"
@@ -12,16 +14,24 @@
 using namespace query_engine;
 using namespace commons;
 using namespace atoms;
+using namespace atomdb;
 
-class TestDecoder : public HandleDecoder {
-   public:
-    map<string, shared_ptr<Atom>> atoms;
-    shared_ptr<Atom> get_atom(const string& handle) { return this->atoms[handle]; }
-    void add_atom(const string& handle, const string& target1, const string& target2) {
-        shared_ptr<Link> link = make_shared<Link>("blah", vector<string>({target1, target2}));
-        this->atoms[handle] = static_pointer_cast<Atom>(link);
+static map<string, string> atom_table;
+static string add_link(shared_ptr<InMemoryDB> db, const string& s) {
+    if (atom_table.find(s) == atom_table.end()) {
+        string prefix = s.substr(1, 1);
+        Node* node1 = new Node("blah", prefix + "a");
+        Node* node2 = new Node("blah", prefix + "b");
+        Link* link = new Link("blah", vector<string>({node1->handle(), node2->handle()}));
+        atom_table[s] = link->handle();
+        db->add_node(node1);
+        db->add_node(node2);
+        db->add_link(link);
     }
-};
+    return atom_table[s];
+}
+
+static string node_handle(const string& n) { return Hasher::node_handle("blah", n); }
 
 TEST(QueryAnswer, assignments_basics) {
     Assignment mapping0;
@@ -622,45 +632,53 @@ TEST(QueryAnswer, get_query_answer_element) {
     EXPECT_EQ(v.size(), 7);
     EXPECT_EQ(s1, s2);
 
-    TestDecoder decoder;
-    decoder.add_atom("h5", "5a", "5b");
-    decoder.add_atom("h6", "6a", "6b");
-    decoder.add_atom("h7", "7a", "7b");
-    EXPECT_THROW(answer.get_all(element17), runtime_error);
-    v = answer.get_all(element17, &decoder);
-    EXPECT_EQ(v, vector<string>({"5a", "5b", "6b"}));
-    v = answer.get_all(element18, &decoder);
-    EXPECT_EQ(v, vector<string>({"7a", "7b"}));
-    v = answer.get_all(element19, &decoder);
-    EXPECT_EQ(v, vector<string>({"5b", "5a", "6a"}));
-    v = answer.get_all(element20, &decoder);
-    EXPECT_EQ(v, vector<string>({"7b", "7a"}));
+    shared_ptr<InMemoryDB> db = make_shared<InMemoryDB>();
+    QueryAnswer answer2;
+    answer2.get_handles_vector().push_back(add_link(db, "h1"));
+    answer2.get_handles_vector().push_back(add_link(db, "h2"));
+    answer2.get_handles_vector().push_back(add_link(db, "h3"));
+    answer2.assignment.assign("v1", add_link(db, "h3"));
+    answer2.assignment.assign("v2", add_link(db, "h4"));
+    answer2.add_path();
+    answer2.add_path_element(0, add_link(db, "h5"));
+    answer2.add_path();
+    answer2.add_path_element(0, add_link(db, "h6"));
+    answer2.add_path_element(1, add_link(db, "h7"));
+    EXPECT_THROW(answer2.get_all(element17), runtime_error);
+    v = answer2.get_all(element17, db);
+    EXPECT_EQ(v, vector<string>({node_handle("5a"), node_handle("5b"), node_handle("6b")}));
+    v = answer2.get_all(element18, db);
+    EXPECT_EQ(v, vector<string>({node_handle("7a"), node_handle("7b")}));
+    v = answer2.get_all(element19, db);
+    EXPECT_EQ(v, vector<string>({node_handle("5b"), node_handle("5a"), node_handle("6a")}));
+    v = answer2.get_all(element20, db);
+    EXPECT_EQ(v, vector<string>({node_handle("7b"), node_handle("7a")}));
 
-    v = answer.get_all(element21, &decoder);
-    EXPECT_EQ(v, vector<string>({"5b", "6b"}));
-    v = answer.get_all(element22, &decoder);
-    EXPECT_EQ(v, vector<string>({"7b"}));
-    v = answer.get_all(element23, &decoder);
-    EXPECT_EQ(v, vector<string>({"5a", "6a"}));
-    v = answer.get_all(element24, &decoder);
-    EXPECT_EQ(v, vector<string>({"7a"}));
+    v = answer2.get_all(element21, db);
+    EXPECT_EQ(v, vector<string>({node_handle("5b"), node_handle("6b")}));
+    v = answer2.get_all(element22, db);
+    EXPECT_EQ(v, vector<string>({node_handle("7b")}));
+    v = answer2.get_all(element23, db);
+    EXPECT_EQ(v, vector<string>({node_handle("5a"), node_handle("6a")}));
+    v = answer2.get_all(element24, db);
+    EXPECT_EQ(v, vector<string>({node_handle("7a")}));
 
-    v = answer.get_all(element25, &decoder);
-    EXPECT_EQ(v, vector<string>({"5a", "5b"}));
-    v = answer.get_all(element26, &decoder);
-    EXPECT_EQ(v, vector<string>({"7a"}));
-    v = answer.get_all(element27, &decoder);
-    EXPECT_EQ(v, vector<string>({"5b", "5a"}));
-    v = answer.get_all(element28, &decoder);
-    EXPECT_EQ(v, vector<string>({"7b"}));
+    v = answer2.get_all(element25, db);
+    EXPECT_EQ(v, vector<string>({node_handle("5a"), node_handle("5b")}));
+    v = answer2.get_all(element26, db);
+    EXPECT_EQ(v, vector<string>({node_handle("7a")}));
+    v = answer2.get_all(element27, db);
+    EXPECT_EQ(v, vector<string>({node_handle("5b"), node_handle("5a")}));
+    v = answer2.get_all(element28, db);
+    EXPECT_EQ(v, vector<string>({node_handle("7b")}));
 
-    v = answer.get_all(element29, &decoder);
-    EXPECT_EQ(v, vector<string>({"5b"}));
-    v = answer.get_all(element30, &decoder);
+    v = answer2.get_all(element29, db);
+    EXPECT_EQ(v, vector<string>({node_handle("5b")}));
+    v = answer2.get_all(element30, db);
     EXPECT_EQ(v, vector<string>({}));
-    v = answer.get_all(element31, &decoder);
-    EXPECT_EQ(v, vector<string>({"5a"}));
-    v = answer.get_all(element32, &decoder);
+    v = answer2.get_all(element31, db);
+    EXPECT_EQ(v, vector<string>({node_handle("5a")}));
+    v = answer2.get_all(element32, db);
     EXPECT_EQ(v, vector<string>({}));
 }
 

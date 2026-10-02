@@ -1054,6 +1054,7 @@ static void query_evolution(
     proxy->parameters[BaseQueryProxy::ALLOW_INCOMPLETE_CHAIN_PATH] = true;
     proxy->parameters[BaseQueryProxy::MAX_BUNDLE_SIZE] = (unsigned int) 1000;
     proxy->parameters[BaseQueryProxy::ATTENTION_FOCUS_STRICTNESS] = (double) ATTENTION_FOCUS_STRICTNESS;
+    proxy->parameters[BaseQueryProxy::PUBLIC_KEY_TOKENS] = "";
     proxy->parameters[PatternMatchingQueryProxy::DISREGARD_IMPORTANCE_FLAG] = false;
     proxy->parameters[PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG] = true;
     proxy->parameters[PatternMatchingQueryProxy::UNIQUE_VALUE_FLAG] = false;
