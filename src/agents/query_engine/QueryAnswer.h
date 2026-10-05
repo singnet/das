@@ -93,12 +93,12 @@ class QueryAnswerElement {
           reverse_path(false),
           pop_first(false),
           pop_last(false) {
-              if (is_constant_handle) {
-                  this->type = CONSTANT_HANDLE;
-              } else {
-                  this->type = VARIABLE;
-              }
-          }
+        if (is_constant_handle) {
+            this->type = CONSTANT_HANDLE;
+        } else {
+            this->type = VARIABLE;
+        }
+    }
     QueryAnswerElement(unsigned int key_path, unsigned int hop_peek_start, unsigned int hop_peek_end)
         : type(PATH_HOPS),
           path_index(key_path),
