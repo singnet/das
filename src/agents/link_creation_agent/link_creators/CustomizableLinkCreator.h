@@ -22,7 +22,7 @@ class CustomizableLinkCreator : public LinkCreator {
     };
     static char EXTRA_PARAMETERS_SPLIT_CHAR;
 
-    CustomizableLinkCreator();
+    CustomizableLinkCreator(bool check_nested_target_reference = false);
     ~CustomizableLinkCreator();
 
     LinkCreationStats create(shared_ptr<QueryAnswer> query_answer);
@@ -49,6 +49,7 @@ class CustomizableLinkCreator : public LinkCreator {
     };
 
     vector<LinkSpecification> link_specification;
+    bool check_nested_target_reference;
 
     void insert_or_update(map<string, double>& count_map, const string& key, double value);
     shared_ptr<PatternMatchingQueryProxy> issue_link_count_query(const string& query_str);
@@ -59,6 +60,9 @@ class CustomizableLinkCreator : public LinkCreator {
                         double& count_intersection,
                         double& count_union);
     vector<double> compute_strength(shared_ptr<QueryAnswer> query_answer, LinkSpecification& spec);
+
+   protected:
+    virtual bool check_targets(vector<string>& targets);
 
    public:
     void tokenize(vector<string>& tokens);

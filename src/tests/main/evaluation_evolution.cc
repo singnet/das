@@ -42,7 +42,7 @@ static string TARGET_PREDICATE = "undefined";
 static string TARGET_CONCEPT_HANDLE = "undefined";
 static string TARGET_PREDICATE_HANDLE = "undefined";
 
-static double ATTENTION_FOCUS_STRICTNESS = 0.30;
+static double ATTENTION_FOCUS_STRICTNESS = 0.10;
 static unsigned int RANDOM_SEED = 1236;
 
 static string PRESET_LINKS_FILE_PREFIX = "/opt/das/_PRESET_LINKS_";
@@ -137,23 +137,23 @@ static string answer_to_string(shared_ptr<QueryAnswer> answer) {
     }
 }
 
-static shared_ptr<LinkCreationProxy> issue_lca_query(
+static shared_ptr<LinkCreationProxy> create_lca_proxy(
     const vector<string>& query_tokens,
     const string& context,
     const string& link_creator_tag,
     LinkCreator& link_creator,
     BaseProxy::ORCHESTRATION_SCHEMA_TYPE orchestration) {
 
-    // orchestration = BaseProxy::NONE; // XXXXX
     auto proxy = make_shared<LinkCreationProxy>(query_tokens, context, link_creator_tag, orchestration);
     proxy->parameters[LinkCreationProxy::LINK_CREATOR_EXTRA_PARAMETERS] = (string) link_creator.extra_parameters();
     proxy->parameters[LinkCreationProxy::MAX_SUCCESSFUL_CREATION_PER_ROUND] = (unsigned int) 10;
     proxy->parameters[LinkCreationProxy::MAX_UNPRODUCTIVE_VISITS_PER_ROUND] = (unsigned int) 500;
     proxy->parameters[LinkCreationProxy::MAX_VISIT_ATTEMPTS_PER_ROUND] = (unsigned int) 10;
     proxy->parameters[LinkCreationProxy::MAX_ROUNDS] = (unsigned int) 0;
-    proxy->parameters[LinkCreationProxy::LINK_CREATION_STRENGTH_THRESHOLD] = (double) 0.2; // 0.1;
+    proxy->parameters[LinkCreationProxy::LINK_CREATION_STRENGTH_THRESHOLD] = (double) 0.1;
     proxy->parameters[LinkCreationProxy::LINK_CREATION_LOG_FILE_NAME] = (string) "_new_links.txt";
     proxy->parameters[LinkCreationProxy::LOG_NEW_LINKS] = (bool) true;
+    proxy->parameters[LinkCreationProxy::LINK_CREATION_SPREAD_ACTIVATION] = (bool) true;
     proxy->parameters[PatternMatchingQueryProxy::MAX_ANSWERS] = (unsigned int) 0;
     proxy->parameters[PatternMatchingQueryProxy::DISREGARD_IMPORTANCE_FLAG] = (bool) false;
     proxy->parameters[PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG] = (bool) true;
@@ -165,8 +165,6 @@ static shared_ptr<LinkCreationProxy> issue_lca_query(
     proxy->parameters[BaseQueryProxy::ATTENTION_CORRELATION] = (unsigned int) BaseQueryProxy::NONE;
     proxy->parameters[BaseQueryProxy::ATTENTION_UPDATE] = (unsigned int) BaseQueryProxy::NONE;
     proxy->parameters[BaseQueryProxy::ATTENTION_FOCUS_STRICTNESS] = (double) ATTENTION_FOCUS_STRICTNESS;
-
-    ServiceBusSingleton::get_instance()->issue_bus_command(proxy);
     return proxy;
 }
 
@@ -344,45 +342,6 @@ static vector<string> make_evaluation_concept_query() {
 }
 // clang-format on
 
-
-static void add_preset_links(const string& context) {
-    STACK_TRACE();
-    vector<vector<string>> buffer_determiners; 
-    ifstream file(PRESET_LINKS_FILE);
-    if (file.is_open()) {
-        LOG_INFO("Reading preset links from file: " + PRESET_LINKS_FILE);
-        vector<string> line;
-        unsigned int count = 0;
-        while (Utils::read_and_split(line, file, ',')) {
-            shared_ptr<atoms::MettaParserActions> parser_handler =
-                make_shared<atoms::MettaParserActions>();
-            MettaParser parser(line[1], parser_handler);
-            parser.parse();
-            auto link = std::dynamic_pointer_cast<Link>(parser_handler->element_stack.top());
-            link->custom_attributes["strength"] = (double) Utils::string_to_float(line[0]);
-            LOG_DEBUG("Adding Link: [" + line[0] + "] " + line[1]);
-            vector<Atom*> atoms_to_add;
-            atoms_to_add.reserve(parser_handler->handle_to_atom.size());
-            for (const auto& [_, atom] : parser_handler->handle_to_atom) {
-                atoms_to_add.push_back(atom.get());
-            }
-            db->add_atoms(atoms_to_add, true);
-            count++;
-            line.clear();
-            buffer_determiners.push_back({link->handle(), link->targets[1], link->targets[2]});
-            AttentionBrokerClient::correlate({link->targets[1], link->targets[2]}, context);
-        }
-        LOG_INFO(std::to_string(count) + " preset links read.");
-    } else {
-        RAISE_ERROR("Couldn't open file: " + PRESET_LINKS_FILE);
-    }
-    file.close();
-    LOG_INFO("Updating determiners in AttentionBroker");
-    AttentionBrokerClient::set_determiners(buffer_determiners, context);
-    buffer_determiners.clear();
-    flush_remote_link_template_cache();
-}
-
 static void run(const string& context_tag) {
     STACK_TRACE();
 
@@ -397,8 +356,6 @@ static void run(const string& context_tag) {
     AttentionBrokerClient::drop_and_load_context(context, string(context_file_name));
     AttentionBrokerClient::stimulate({{TARGET_PREDICATE_HANDLE, 1}, {TARGET_CONCEPT_HANDLE, 1}}, context);
     LOG_INFO("Context " + context + " is ready");
-    add_preset_links(context);
-
     // clang-format off
     vector<string> query_to_evolve = {
         OR_OPERATOR, "3",
@@ -460,10 +417,20 @@ static void run(const string& context_tag) {
     // clang-format on
 
     AndTwoPredicates and_two_predicates;
-    CustomizableLinkCreator implication_link_creator;
-    CustomizableLinkCreator equivalence_link_creator;
+    CustomizableLinkCreator implication_link_creator(true), implication_to_target_link_creator(true);
+    CustomizableLinkCreator equivalence_link_creator, equivalence_to_target_link_creator;
     CustomizableLinkCreator evaluation_link_creator;
 
+    implication_to_target_link_creator.add_link_specification({QueryAnswerElement(PREDICATE1), QueryAnswerElement(TARGET_PREDICATE_HANDLE, true)},
+                                                    {QueryAnswerElement(CONCEPT1), QueryAnswerElement(CONCEPT1)},
+                                                    IMPLICATION_TAG,
+                                                    CustomizableLinkCreator::INTERSECTION_OVER_A,
+                                                    {make_implication_count_query("QueryAnswerElement($Predicate1)"), make_implication_count_query("QueryAnswerElement($Predicate2)")});
+    equivalence_to_target_link_creator.add_link_specification({QueryAnswerElement(CONCEPT1), QueryAnswerElement(TARGET_CONCEPT_HANDLE, true)},
+                                                    {QueryAnswerElement(PREDICATE1), QueryAnswerElement(PREDICATE1)},
+                                                    EQUIVALENCE_TAG,
+                                                    CustomizableLinkCreator::INTERSECTION_OVER_UNION,
+                                                    {make_equivalence_count_query("QueryAnswerElement($Concept1)"), make_equivalence_count_query("QueryAnswerElement($Concept2)")});
     implication_link_creator.add_link_specification({QueryAnswerElement(PREDICATE1), QueryAnswerElement(PREDICATE2)},
                                                     {QueryAnswerElement(CONCEPT1), QueryAnswerElement(CONCEPT1)},
                                                     IMPLICATION_TAG,
@@ -480,15 +447,60 @@ static void run(const string& context_tag) {
                                                    CustomizableLinkCreator::PRODUCT,
                                                    {});
 
+    LOG_INFO("----- Adding initial links");
+    shared_ptr<LinkCreationProxy> implication_to_target = create_lca_proxy(make_implication_query(), context, LinkCreatorRegistry::CUSTOMIZABLE, implication_to_target_link_creator, BaseProxy::SYNC_ON_CYCLE_START);
+    implication_to_target->parameters[LinkCreationProxy::MAX_ROUNDS] = (unsigned int) 1;
+    shared_ptr<LinkCreationProxy> equivalence_to_target = create_lca_proxy(make_equivalence_query(), context, LinkCreatorRegistry::CUSTOMIZABLE, equivalence_to_target_link_creator, BaseProxy::SYNC_ON_CYCLE_START);
+    equivalence_to_target->parameters[LinkCreationProxy::MAX_ROUNDS] = (unsigned int) 1;
+    ServiceBusSingleton::get_instance()->issue_bus_command(implication_to_target);
+    Utils::sleep(2000); // XXXXX
+    implication_to_target->allow_cycle_start();
+    ServiceBusSingleton::get_instance()->issue_bus_command(equivalence_to_target);
+    Utils::sleep(2000); // XXXXX
+    equivalence_to_target->allow_cycle_start();
+    while (!implication_to_target->finished_cycle(true) || !equivalence_to_target->finished_cycle(true)) {
+        Utils::sleep();
+    }
+
+    shared_ptr<LinkCreationProxy> and2predicates = create_lca_proxy(make_implication_query(), context, LinkCreatorRegistry::AND_TWO_PREDICATES, and_two_predicates, BaseProxy::SYNC_ON_CYCLE_START);
+    shared_ptr<LinkCreationProxy> implication = create_lca_proxy(make_implication_query(), context, LinkCreatorRegistry::CUSTOMIZABLE, implication_link_creator, BaseProxy::SYNC_ON_CYCLE_START);
+    shared_ptr<LinkCreationProxy> equivalence = create_lca_proxy(make_equivalence_query(), context, LinkCreatorRegistry::CUSTOMIZABLE, equivalence_link_creator, BaseProxy::SYNC_ON_CYCLE_START);
+    shared_ptr<LinkCreationProxy> evaluation_predicate = create_lca_proxy(make_evaluation_predicate_query(), context, LinkCreatorRegistry::CUSTOMIZABLE, evaluation_link_creator, BaseProxy::SYNC_ON_CYCLE_START);
+    shared_ptr<LinkCreationProxy> evaluation_concept = create_lca_proxy(make_evaluation_concept_query(), context, LinkCreatorRegistry::CUSTOMIZABLE, evaluation_link_creator, BaseProxy::SYNC_ON_CYCLE_START);
     vector<shared_ptr<LinkCreationProxy>> lca_proxy = {
-        issue_lca_query(make_implication_query(), context, LinkCreatorRegistry::AND_TWO_PREDICATES, and_two_predicates, BaseProxy::SYNC_ON_CYCLE_START),
-        issue_lca_query(make_implication_query(), context, LinkCreatorRegistry::CUSTOMIZABLE, implication_link_creator, BaseProxy::SYNC_ON_CYCLE_START),
-        issue_lca_query(make_equivalence_query(), context, LinkCreatorRegistry::CUSTOMIZABLE, equivalence_link_creator, BaseProxy::SYNC_ON_CYCLE_START),
-        //issue_lca_query(make_evaluation_predicate_query(), context, LinkCreatorRegistry::CUSTOMIZABLE, evaluation_link_creator, BaseProxy::SYNC_ON_CYCLE_START),
-        //issue_lca_query(make_evaluation_concept_query(), context, LinkCreatorRegistry::CUSTOMIZABLE, evaluation_link_creator, BaseProxy::SYNC_ON_CYCLE_START)
+        evaluation_predicate,
+        evaluation_concept,
+        and2predicates,
+        //implication,
+        //equivalence,
+        //evaluation_predicate,
+        //evaluation_concept
     };
 
-    //NUM_ITERATIONS = 10; // XXXXX
+    and2predicates->parameters[LinkCreationProxy::MAX_SUCCESSFUL_CREATION_PER_ROUND] = (unsigned int) 50;
+    and2predicates->parameters[LinkCreationProxy::MAX_UNPRODUCTIVE_VISITS_PER_ROUND] = (unsigned int) 500;
+    and2predicates->parameters[LinkCreationProxy::MAX_VISIT_ATTEMPTS_PER_ROUND] = (unsigned int) 10;
+
+    evaluation_predicate->parameters[LinkCreationProxy::MAX_SUCCESSFUL_CREATION_PER_ROUND] = (unsigned int) 50;
+    evaluation_predicate->parameters[LinkCreationProxy::MAX_UNPRODUCTIVE_VISITS_PER_ROUND] = (unsigned int) 500;
+    evaluation_predicate->parameters[LinkCreationProxy::MAX_VISIT_ATTEMPTS_PER_ROUND] = (unsigned int) 20;
+    evaluation_predicate->parameters[LinkCreationProxy::LINK_CREATION_STRENGTH_THRESHOLD] = (double) 0.05;
+    evaluation_predicate->parameters[LinkCreationProxy::LINK_CREATION_LOG_FILE_NAME] = (string) "_new_path_links.txt";
+    evaluation_predicate->parameters[LinkCreationProxy::LINK_CREATION_SPREAD_ACTIVATION] = (bool) false;
+
+    evaluation_concept->parameters[LinkCreationProxy::MAX_SUCCESSFUL_CREATION_PER_ROUND] = (unsigned int) 50;
+    evaluation_concept->parameters[LinkCreationProxy::MAX_UNPRODUCTIVE_VISITS_PER_ROUND] = (unsigned int) 500;
+    evaluation_concept->parameters[LinkCreationProxy::MAX_VISIT_ATTEMPTS_PER_ROUND] = (unsigned int) 20;
+    evaluation_concept->parameters[LinkCreationProxy::LINK_CREATION_STRENGTH_THRESHOLD] = (double) 0.05;
+    evaluation_concept->parameters[LinkCreationProxy::LINK_CREATION_LOG_FILE_NAME] = (string) "_new_path_links.txt";
+    evaluation_concept->parameters[LinkCreationProxy::LINK_CREATION_SPREAD_ACTIVATION] = (bool) false;
+
+    for (auto proxy : lca_proxy) {
+        ServiceBusSingleton::get_instance()->issue_bus_command(proxy);
+        Utils::sleep(2000); // XXXXX
+    }
+    Utils::sleep(5000); // XXXXX
+
     for (unsigned int iteration = 1; iteration <= NUM_ITERATIONS; iteration++) {
         LOG_INFO("--------------------------------------------------------------------------------");
         LOG_INFO("Iteration " + to_string(iteration));
@@ -497,6 +509,7 @@ static void run(const string& context_tag) {
         AttentionBrokerClient::stimulate({{TARGET_PREDICATE_HANDLE, 1}, {TARGET_CONCEPT_HANDLE, 1}}, context);
         for (auto proxy : lca_proxy) {
             proxy->allow_cycle_start();
+            Utils::sleep(40000);
         }
         bool finished_flag = false;
         while (!finished_flag) {
@@ -522,6 +535,7 @@ static void run(const string& context_tag) {
         */
         LOG_INFO("----- Evolving query");
         query_evolution(query_to_evolve, correlation_query_template, iteration, context);
+        flush_remote_link_template_cache();
     }
 
     LOG_INFO("--------------------------------------------------------------------------------");

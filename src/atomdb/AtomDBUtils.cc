@@ -14,15 +14,16 @@ AtomDBUtils::~AtomDBUtils() {}
 // -------------------------------------------------------------------------------------------------
 // Public methods
 
-void AtomDBUtils::reachable_terminal_set(set<string>& output, const string& handle, bool metta_mapping) {
+void AtomDBUtils::reachable_terminal_set(set<string>& output, const string& handle, bool name_flag, bool metta_mapping) {
     STACK_TRACE();
     auto atom = AtomDBSingleton::get_instance()->get_atom(handle);
     if (atom != nullptr) {
-        if (Atom::is_node(atom)) {
-            output.insert(handle);
+        auto node = dynamic_pointer_cast<Node>(atom);
+        if (node != nullptr) {
+            output.insert(name_flag ? node->name : handle);
         } else {
             AtomDBUtils::reachable_terminal_set_recursive(
-                output, dynamic_pointer_cast<Link>(atom), metta_mapping);
+                output, dynamic_pointer_cast<Link>(atom), name_flag, metta_mapping);
         }
     }
 }
@@ -67,17 +68,19 @@ double AtomDBUtils::get_strength(const string& handle, const string& strength_ta
 
 void AtomDBUtils::reachable_terminal_set_recursive(set<string>& output,
                                                    shared_ptr<Link> link,
+                                                   bool name_flag,
                                                    bool metta_mapping) {
     bool first_target = true;
     for (string& target_handle : link->targets) {
         auto atom = AtomDBSingleton::get_instance()->get_atom(target_handle);
-        if (Atom::is_node(atom)) {
+        auto node = dynamic_pointer_cast<Node>(atom);
+        if (node != nullptr) {
             if (!(metta_mapping && first_target)) {
-                output.insert(atom->handle());
+                output.insert(name_flag ? node->name : node->handle());
             }
         } else {
             AtomDBUtils::reachable_terminal_set_recursive(
-                output, dynamic_pointer_cast<Link>(atom), metta_mapping);
+                output, dynamic_pointer_cast<Link>(atom), name_flag, metta_mapping);
         }
         first_target = false;
     }

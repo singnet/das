@@ -242,7 +242,7 @@ class BaseQueryProxy : public BaseProxy {
     /**
      * Notifies remote proxy that a cycle just ended.
      */
-    void cycle_ended() override;
+    virtual void cycle_ended() override;
 
     /**
      * Piggyback method called by ANSWER_BUNDLE command

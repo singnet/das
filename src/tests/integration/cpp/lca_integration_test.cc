@@ -153,12 +153,13 @@ static double get_strength(const string& handle) {
     return answer;
 }
 
-static double compute_expected_strength(const string& handle1,
+static vector<double> compute_expected_strength(const string& handle1,
                                         const string& handle2,
                                         CustomizableLinkCreator::StrengthComposition composition) {
     auto db = AtomDBSingleton::get_instance();
     auto concept_link1 = db->get_link(handle1);
     auto concept_link2 = db->get_link(handle2);
+    vector<double> answer;
     if ((concept_link1 != nullptr) && (concept_link2 != nullptr)) {
         auto terminal1 = db->get_node(concept_link1->targets[1]);
         auto terminal2 = db->get_node(concept_link2->targets[1]);
@@ -192,18 +193,25 @@ static double compute_expected_strength(const string& handle1,
             LOG_DEBUG("Counts: " << set1.size() << " " << set2.size() << " " << _intersection.size()
                                  << " " << _union.size());
 
+            double s;
             switch (composition) {
                 case CustomizableLinkCreator::INTERSECTION_OVER_UNION:
-                    return (_intersection.size() == 0) ? 0
-                                                       : ((double) _intersection.size() / _union.size());
+                    s = (_intersection.size() == 0) ? 0 : ((double) _intersection.size() / _union.size());
+                    answer.push_back(s);
+                    answer.push_back(s);
+                    break;
                 case CustomizableLinkCreator::INTERSECTION_OVER_A:
-                    return (set1.size() == 0) ? 0 : ((double) _intersection.size() / set1.size());
+                    s = (set1.size() == 0) ? 0 : ((double) _intersection.size() / set1.size());
+                    answer.push_back(s);
+                    s = (set2.size() == 0) ? 0 : ((double) _intersection.size() / set2.size());
+                    answer.push_back(s);
+                    break;
                 default:
                     RAISE_ERROR("Invalid composition: " + std::to_string((unsigned int) composition));
             }
         }
     }
-    return 0;
+    return answer;
 }
 
 static bool test_customizable() {
@@ -391,13 +399,18 @@ static bool test_customizable_counts() {
             }
             shared_ptr<QueryAnswer> answer = proxy[i]->pop();
             if (answer != nullptr) {
+                vector<double> expected_strength = compute_expected_strength(answer->get("v1"), answer->get("v2"), composition[i]);
                 string handle = proxy[i]->get_built_atoms()[count_answers++];
                 double strength = get_strength(handle);
-                double expected_strength =
-                    compute_expected_strength(answer->get("v1"), answer->get("v2"), composition[i]);
-                LOG_DEBUG("[" << strength << ", " << expected_strength << "] "
+                LOG_DEBUG("[" << strength << ", " << expected_strength[0] << "] "
                               << AtomDBUtils::handle_to_metta(handle));
-                success &= assert_true(Utils::is_zero(strength - expected_strength),
+                success &= assert_true(Utils::is_zero(strength - expected_strength[0]),
+                                       "link strength composition: " + std::to_string(i));
+                handle = proxy[i]->get_built_atoms()[count_answers++];
+                strength = get_strength(handle);
+                LOG_DEBUG("[" << strength << ", " << expected_strength[1] << "] "
+                              << AtomDBUtils::handle_to_metta(handle));
+                success &= assert_true(Utils::is_zero(strength - expected_strength[1]),
                                        "link strength composition: " + std::to_string(i));
             } else {
                 Utils::sleep();

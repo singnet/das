@@ -93,20 +93,36 @@ TEST(AtomDBTest, reachable_terminal_set) {
     EXPECT_EQ(handles, set({a, b, c, d, e, f, g, h, i, j, k}));
 
     handles.clear();
-    AtomDBUtils::reachable_terminal_set(handles, L6->handle(), true);
+    AtomDBUtils::reachable_terminal_set(handles, L6->handle(), false, true);
     EXPECT_EQ(handles, set({j, k}));
 
     handles.clear();
-    AtomDBUtils::reachable_terminal_set(handles, L2->handle(), true);
+    AtomDBUtils::reachable_terminal_set(handles, L2->handle(), false, true);
     EXPECT_EQ(handles, set({h, j, k}));
 
     handles.clear();
-    AtomDBUtils::reachable_terminal_set(handles, L4->handle(), true);
+    AtomDBUtils::reachable_terminal_set(handles, L4->handle(), false, true);
     EXPECT_EQ(handles, set({d, e}));
 
     handles.clear();
-    AtomDBUtils::reachable_terminal_set(handles, L1->handle(), true);
+    AtomDBUtils::reachable_terminal_set(handles, L1->handle(), false, true);
     EXPECT_EQ(handles, set({b, d, e, f}));
+
+    handles.clear();
+    AtomDBUtils::reachable_terminal_set(handles, L6->handle(), true, true);
+    EXPECT_EQ(handles, set({string("J"), string("K")}));
+
+    handles.clear();
+    AtomDBUtils::reachable_terminal_set(handles, L2->handle(), true, true);
+    EXPECT_EQ(handles, set({string("H"), string("J"), string("K")}));
+
+    handles.clear();
+    AtomDBUtils::reachable_terminal_set(handles, L4->handle(), true, true);
+    EXPECT_EQ(handles, set({string("D"), string("E")}));
+
+    handles.clear();
+    AtomDBUtils::reachable_terminal_set(handles, L1->handle(), true, true);
+    EXPECT_EQ(handles, set({string("B"), string("D"), string("E"), string("F")}));
 
     db->delete_links({L0->handle(),
                       L1->handle(),

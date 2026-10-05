@@ -17,6 +17,15 @@ AndTwoPredicates::~AndTwoPredicates() {}
 
 LinkCreationStats AndTwoPredicates::create(shared_ptr<QueryAnswer> query_answer) {
     STACK_TRACE();
+    LinkCreationStats stats;
+    double strength = 1;
+    for (string& h : query_answer->get_handles_vector()) {
+        strength *= AtomDBUtils::get_strength(h);
+    }
+    if (!Utils::epsilon_equals(strength, 1.0)) {
+        LOG_DEBUG("AndTwoPredicates discarding low strength (" + std::to_string(strength) + ") link. QueryAnswer: " + query_answer->to_string(true));
+        return stats;
+    }
     string concept_ = query_answer->get(CONCEPT);
     string predicates[2];
     predicates[0] = query_answer->get(PREDICATE1);
@@ -26,24 +35,23 @@ LinkCreationStats AndTwoPredicates::create(shared_ptr<QueryAnswer> query_answer)
         predicates[0] = predicates[1];
         predicates[1] = aux;
     }
-    string key = predicates[0] + " " + predicates[1] + concept_;
+    string key = predicates[0] + " " + predicates[1] + " " + concept_;
 
-    LinkCreationStats stats;
     if (predicates[0] != predicates[1]) {
         if (!visited(key)) {
             visit(key);
             stats.visited = true;
+            AddLinkStatus add_status;
             set<string> mentioned_predicates0, mentioned_predicates1;
-            extract_mentioned_predicates(mentioned_predicates0, predicates[0]);
-            extract_mentioned_predicates(mentioned_predicates1, predicates[1]);
+            AtomDBUtils::reachable_terminal_set(mentioned_predicates0, predicates[0], true, true);
+            AtomDBUtils::reachable_terminal_set(mentioned_predicates1, predicates[1], true, true);
             if (!Utils::intersects(mentioned_predicates0, mentioned_predicates1)) {
                 vector<string> targets = {LOGICAL_AND_HANDLE, predicates[0], predicates[1]};
-                if (add_or_update_link(targets, 1.0) == CREATED) {
+                add_status = add_or_update_link(targets, 1.0);
+                if (add_status == CREATED) {
                     stats.created++;
-                }
-                double strength = 1;
-                for (string& h : query_answer->get_handles_vector()) {
-                    strength *= AtomDBUtils::get_strength(h);
+                } else if (add_status == UPDATED) {
+                    stats.updated++;
                 }
                 string new_predicate_handle = Hasher::link_handle(EXPRESSION, targets);
                 AddLinkStatus add_status =
@@ -73,21 +81,4 @@ LinkCreationStats AndTwoPredicates::create(shared_ptr<QueryAnswer> query_answer)
                   "Skipping link building because predicates are the same.");
     }
     return stats;
-}
-
-void AndTwoPredicates::extract_mentioned_predicates(set<string>& mentioned, const string& handle) {
-    STACK_TRACE();
-    shared_ptr<Node> node;
-    shared_ptr<Link> link = atomdb()->get_link(handle);
-    if (link != nullptr) {
-        for (string& target_handle : link->targets) {
-            if ((node = atomdb()->get_node(target_handle)) != nullptr) {
-                if ((node->name != PREDICATE_TAG) && (node->name != LOGICAL_AND_TAG)) {
-                    mentioned.insert(node->name);
-                }
-            } else {
-                extract_mentioned_predicates(mentioned, target_handle);
-            }
-        }
-    }
 }

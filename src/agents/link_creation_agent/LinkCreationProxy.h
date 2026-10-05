@@ -33,6 +33,11 @@ class LinkCreationProxy : public BaseQueryProxy {
 
     // Optional parameter which are not part of the configuration file
     static string LOG_NEW_LINKS;
+
+    static string LINK_CREATION_SPREAD_ACTIVATION; // Flag to indicate if activation spreading is
+                                                   // supposed to be performed at the end of each
+                                                   // link creation cycle.
+
     static string LINK_CREATOR_EXTRA_PARAMETERS;  // LINK_CREATOR_EXTRA_PARAMETERS is tipically
                                                   // parsed as a list of tokens separated by a
                                                   // character defined in
@@ -102,6 +107,12 @@ class LinkCreationProxy : public BaseQueryProxy {
      */
     void flush_determiners();
 
+    /**
+     * Call Attention Broker to spread activation according to a state buffer with accumulated
+     * stimuli from one entire link creation round. This buffer is emptied as a side effect.
+     */
+    void flush_stimuli();
+
     // ---------------------------------------------------------------------------------------------
     // Virtual superclass API and the piggyback methods called by it
 
@@ -124,6 +135,12 @@ class LinkCreationProxy : public BaseQueryProxy {
      * Add LCA proxy tokens to output.
      */
     void tokenize(vector<string>& output) override;
+
+    /**
+     * Notifies remote proxy that a cycle just ended.
+     */
+    virtual void cycle_ended() override;
+
 
    private:
     void set_link_creator_function_tag(const string& tag);

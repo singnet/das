@@ -166,7 +166,7 @@ void QueryEvolutionProcessor::sample_population(
             Utils::sleep();
         }
     }
-    double renew_rate = ((double) this->visited_individuals.size() - visited_count) / population.size();
+    double renew_rate = ((population.size() == 0) ? 0.0 : (((double) this->visited_individuals.size() - visited_count) / population.size()));
     LOG_INFO("Individuals with non-zero importance: " + std::to_string(positive_importance_count));
     LOG_INFO("Renew rate: " + std::to_string(std::lround(100 * renew_rate)) + "%");
     if (!pm_query->finished()) {
@@ -612,6 +612,8 @@ void QueryEvolutionProcessor::evolve_query(shared_ptr<StoppableThread> monitor,
             }
             population.clear();
             selected.clear();
+        } else {
+            proxy->set_no_selection_flag(true);
         }
         RAM_FOOTPRINT_CHECK(evolution, "Generation " + std::to_string(this->generation_count));
         STOP_WATCH_FINISH(generation, "OneGeneration");

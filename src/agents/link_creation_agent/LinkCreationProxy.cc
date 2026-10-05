@@ -18,6 +18,7 @@ string LinkCreationProxy::MAX_VISIT_ATTEMPTS_PER_ROUND = "max_visit_attempts_per
 string LinkCreationProxy::MAX_ROUNDS = "max_rounds";
 string LinkCreationProxy::LINK_CREATION_STRENGTH_THRESHOLD = "link_creation_strength_threshold";
 string LinkCreationProxy::LINK_CREATION_LOG_FILE_NAME = "link_creation_log_file_name";
+string LinkCreationProxy::LINK_CREATION_SPREAD_ACTIVATION = "link_creation_spread_activation";
 string LinkCreationProxy::LOG_NEW_LINKS = "log_new_links";
 string LinkCreationProxy::LINK_CREATOR_EXTRA_PARAMETERS = "link_creator_extra_parameters";
 
@@ -147,6 +148,8 @@ void LinkCreationProxy::set_link_creator_function_tag(const string& tag) {
                 this->parameters.get<bool>(LOG_NEW_LINKS));
             this->link_creation_function_object->extra_parameters(
                 this->parameters.get_or<string>(LINK_CREATOR_EXTRA_PARAMETERS, ""));
+            this->link_creation_function_object->set_stimuli(this->parameters.get_or<bool>(LINK_CREATION_SPREAD_ACTIVATION, false));
+            this->link_creation_function_object->set_context(get_context());
         }
     }
 }
@@ -171,6 +174,21 @@ void LinkCreationProxy::flush_determiners() {
                                                get_context());
         this->link_creation_function_object->clear_determiners();
     }
+}
+
+void LinkCreationProxy::flush_stimuli() {
+    STACK_TRACE();
+    if ((this->link_creation_function_object != nullptr) && (this->link_creation_function_object->buffer_stimuli().size() > 0)) {
+        AttentionBrokerClient::stimulate(this->link_creation_function_object->buffer_stimuli(), get_context());
+        this->link_creation_function_object->clear_stimuli();
+    }
+}
+
+void LinkCreationProxy::cycle_ended() {
+    if (this->link_creation_function_object != nullptr) {
+        this->link_creation_function_object->reset_visited();
+    }
+    BaseQueryProxy::cycle_ended();
 }
 
 // ---------------------------------------------------------------------------------------------

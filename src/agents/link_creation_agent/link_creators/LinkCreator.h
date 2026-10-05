@@ -85,7 +85,7 @@ class LinkCreator {
      *
      * @param value New value for sytrength threshold
      */
-    inline void strength_threshold(double value) { this->_strength_threshold = value; }
+    void strength_threshold(double value);
 
     /**
      * Getter for the buffer for Attention Broker's importance determiners.
@@ -95,9 +95,21 @@ class LinkCreator {
     inline const vector<vector<string>>& buffer_determiners() { return this->_buffer_determiners; }
 
     /**
+     * Getter for the buffer for Attention Broker's stimuli.
+     *
+     * @return The buffer for Attention Broker's stimuli.
+     */
+    inline const map<string, unsigned int>& buffer_stimuli() { return this->_buffer_stimuli; }
+
+    /**
      * Clear the buffer for Attention Broker's importance determiners
      */
     inline void clear_determiners() { this->_buffer_determiners.clear(); }
+
+    /**
+     * Clear the buffer for Attention Broker's stimuli
+     */
+    inline void clear_stimuli() { this->_buffer_stimuli.clear(); }
 
     /**
      * Sets the name of the link creation log file. Un empty name means that no logging of
@@ -123,12 +135,20 @@ class LinkCreator {
     inline bool log_new_links() { return this->_log_new_links; }
 
     /**
-     * Sets the flag which indicates is newly created links are supposed to be logged in the
+     * Sets the flag which indicates if newly created links are supposed to be logged in the
      *
-     * @param flag which indicates is newly created links are supposed to be logged in the default
+     * @param flag which indicates if newly created links are supposed to be logged in the default
      * logger.
      */
     inline void set_log_new_links(bool value) { this->_log_new_links = value; }
+
+    /**
+     * Sets the flag which indicates if stimuli is supposed to be spread at the end of each cycle.
+     *
+     * @param flag which indicates if stimuli is supposed to be spread at the end of each cycle.
+     * logger.
+     */
+    inline void set_stimuli(bool value) { this->_activation_spreading_flag = value; }
 
     // ----------------------------------------------------------------------------------
     // Concrete sub-classes API
@@ -181,6 +201,7 @@ class LinkCreator {
 
     AddLinkStatus add_or_update_link(const vector<string>& targets, double strength);
     void save_link_metta(shared_ptr<Link> link);
+    void add_stimulus(const string& handle, double strength);
 
     // ----------------------------------------------------------------------------------
     // Private stuff
@@ -190,6 +211,8 @@ class LinkCreator {
     string _context;
     double _strength_threshold;
     vector<vector<string>> _buffer_determiners;
+    map<string, unsigned int> _buffer_stimuli;
+    bool _activation_spreading_flag;
     string _link_creation_log_file_name;
     bool _log_new_links;
 };

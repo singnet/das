@@ -210,6 +210,7 @@ void LinkCreationProcessor::link_creation(shared_ptr<StoppableThread> monitor,
             }
         }
         proxy->flush_determiners();
+        proxy->flush_stimuli();
         proxy->cycle_ended();
         if (!pm_proxy->finished()) {
             // stopping pattern matching query

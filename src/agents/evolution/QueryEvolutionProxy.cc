@@ -220,8 +220,8 @@ bool QueryEvolutionProxy::stop_criteria_met() {
 void QueryEvolutionProxy::new_population_sampled(
     vector<std::pair<shared_ptr<QueryAnswer>, float>>& population) {
     lock_guard<mutex> semaphore(this->api_mutex);
+    this->num_generations++;
     if (population.size() > 0) {
-        this->num_generations++;
         if (population[0].second > this->best_reported_fitness) {
             for (int i = population.size() - 1; i >= 0; i--) {
                 if (population[i].second >= this->best_reported_fitness) {

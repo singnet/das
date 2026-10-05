@@ -1,9 +1,8 @@
 #include "LinkCreator.h"
-
-#include <fstream>
-
 #include "AttentionBrokerClient.h"
 #include "Link.h"
+
+#include <fstream>
 
 using namespace link_creators;
 using namespace attention_broker;
@@ -13,6 +12,7 @@ LinkCreator::LinkCreator() {
     this->_strength_threshold = 0;
     this->_link_creation_log_file_name = "";
     this->_log_new_links = false;
+    this->_activation_spreading_flag = false;
 }
 
 LinkCreator::AddLinkStatus LinkCreator::add_or_update_link(const vector<string>& targets,
@@ -25,18 +25,20 @@ LinkCreator::AddLinkStatus LinkCreator::add_or_update_link(const vector<string>&
     string handle = new_link->handle();
     if (db->link_exists(handle)) {
         auto old_link = db->get_atom(handle);
-        LOG_DEBUG("Link already exists: " + old_link->to_string() + ". Updating");
+        LOG_DEBUG("Link already exists: " + old_link->to_string() + ". Updating it.");
         if (Utils::epsilon_equals(strength, old_link->custom_attributes.get_or<double>(STRENGTH_TAG, 1))) {
             // No change in strength. No need to update.
             return REJECTED;
         } else {
             // Default merger (NULL) upserts/replaces the existing atom.
             db->add_link(new_link.get());
+            add_stimulus(handle, strength);
             return UPDATED;
         }
     } else if (strength >= this->_strength_threshold) {
         LOG_DEBUG("Adding new Link to AtomDB");
         db->add_link(new_link.get());
+        add_stimulus(handle, strength);
         this->newly_created_links.push_back(handle);
         if (log_new_links()) {
             LOG_INFO("ADD LINK: [" + std::to_string(strength) + "] " +
@@ -53,6 +55,21 @@ LinkCreator::AddLinkStatus LinkCreator::add_or_update_link(const vector<string>&
     } else {
         LOG_DEBUG("Rejecting low stregnth link " << strength << " < " << this->_strength_threshold);
         return REJECTED;
+    }
+}
+
+void LinkCreator::strength_threshold(double value) {
+    if ((value < 0.0) || (value > 1.0)) {
+        RAISE_ERROR("strength_threashold is expected to be in [0..1]");
+    } else {
+        this->_strength_threshold = value;
+    }
+}
+
+void LinkCreator::add_stimulus(const string& handle, double strength) {
+    if (this->_activation_spreading_flag && (strength > _strength_threshold)) {
+        double rescaled = (strength - _strength_threshold) / (1.0 - _strength_threshold);
+        this->_buffer_stimuli[handle] = (unsigned int) std::lround(rescaled * 1000);
     }
 }
 

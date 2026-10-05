@@ -41,9 +41,22 @@ void CustomizableLinkCreator::LinkSpecification::check() {
     }
 }
 
-CustomizableLinkCreator::CustomizableLinkCreator() {}
+CustomizableLinkCreator::CustomizableLinkCreator(bool check_nested_target_reference) : check_nested_target_reference(check_nested_target_reference) {}
 
 CustomizableLinkCreator::~CustomizableLinkCreator() {}
+
+bool CustomizableLinkCreator::check_targets(vector<string>& targets) {
+    if (this->check_nested_target_reference) {
+        if (targets.size() != 2) {
+            RAISE_ERROR("Nested target references check is only available for links of arity 2");
+        }
+        set<string> mentioned0, mentioned1;
+        AtomDBUtils::reachable_terminal_set(mentioned0, targets[0], true, true);
+        AtomDBUtils::reachable_terminal_set(mentioned1, targets[1], true, true);
+        return !Utils::intersects(mentioned0, mentioned1);
+    }
+    return true;
+}
 
 LinkCreationStats CustomizableLinkCreator::create(shared_ptr<QueryAnswer> query_answer) {
     STACK_TRACE();
@@ -53,13 +66,15 @@ LinkCreationStats CustomizableLinkCreator::create(shared_ptr<QueryAnswer> query_
             RAISE_ERROR("Invalid empty target elements or link_type");
             break;
         }
-        vector<string> handles;
+        vector<string> targets, handles;
         handles.push_back(Hasher::node_handle(SYMBOL, spec.link_type));
         for (QueryAnswerElement& element : spec.target_elements) {
-            handles.push_back(query_answer->get(element));
+            string handle = query_answer->get(element);
+            targets.push_back(handle);
+            handles.push_back(handle);
         }
-        string key = Utils::join(handles, ' ');
-        if (!visited(key)) {
+        string key = Utils::join(targets, ' ');
+        if (check_targets(targets) && !visited(key)) {
             visit(key);
             stats.visited = true;
             vector<double> strengths = compute_strength(query_answer, spec);
@@ -113,6 +128,7 @@ void CustomizableLinkCreator::add_link_specification(const vector<QueryAnswerEle
 
 void CustomizableLinkCreator::tokenize(vector<string>& tokens) {
     STACK_TRACE();
+    tokens.push_back(this->check_nested_target_reference ? "1" : "0");
     tokens.push_back(std::to_string(this->link_specification.size()));
     for (LinkSpecification& spec : this->link_specification) {
         tokens.push_back(std::to_string(spec.target_elements.size()));
@@ -143,6 +159,8 @@ static inline string& safe_get_next_token(vector<string>& tokens, unsigned int& 
 void CustomizableLinkCreator::untokenize(vector<string>& tokens) {
     STACK_TRACE();
     unsigned int cursor = 0;
+    unsigned int flag = Utils::string_to_uint(safe_get_next_token(tokens, cursor));
+    this->check_nested_target_reference = (flag > 0);
     unsigned int num_specs = Utils::string_to_uint(safe_get_next_token(tokens, cursor));
     for (unsigned int i = 0; i < num_specs; i++) {
         vector<QueryAnswerElement> _target_elements;

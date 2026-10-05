@@ -22,6 +22,7 @@ class AtomDBUtils {
    private:
     static void reachable_terminal_set_recursive(set<string>& output,
                                                  shared_ptr<Link> link,
+                                                 bool name_flag,
                                                  bool metta_mapping);
 
     static string handle_to_metta_recursion(const string& handle,
@@ -43,6 +44,7 @@ class AtomDBUtils {
      */
     static void reachable_terminal_set(set<string>& output,
                                        const string& handle,
+                                       bool name_flag = false,
                                        bool metta_mapping = false);
 
     /**
