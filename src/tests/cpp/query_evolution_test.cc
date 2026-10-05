@@ -108,6 +108,8 @@ TEST(QueryEvolution, proxy_object) {
     QueryAnswerElement e17(0, 0, 1, true, false, true);
     QueryAnswerElement e18(0, 0, 1, true, true, false);
     QueryAnswerElement e19(0, 0, 1, true, true, true);
+    QueryAnswerElement e20("h1", true);
+    QueryAnswerElement e21("h1", false);
     QueryEvolutionProxy proxy({"t0", "t1"},
                               {{"tc00"}, {}, {"tc10", "tc11"}},
                               {{{"h1", e1}}, {}, {{"h2", e2}, {"h3", e3}}},
@@ -122,7 +124,8 @@ TEST(QueryEvolution, proxy_object) {
                                 {e12, e13},
                                 {e14, e15},
                                 {e16, e17},
-                                {e18, e19}}},
+                                {e18, e19},
+                                {e20, e21}}},
                               "query_evolution_test",
                               "unit_test");
     proxy.parameters[BaseQueryProxy::PUBLIC_KEY_TOKENS] = (string) "db_uid public_key";
@@ -141,7 +144,7 @@ TEST(QueryEvolution, proxy_object) {
         "[[tc00], [], [tc10, tc11]], correlation_replacements: [{{h1, _0}}, {}, {{h2, _1}, {h3, $s1}}], "
         "correlation_mappings: [[(_1, _0), (_0, _1), (_0, $s1), (^0_1, _*), ($*, ^*), (^*, *), (>0_1_2, "
         "<1_0_1), (>0_1_2, <2_0_2), (>0_0_1, >$0_0_1), (>^0_0_1, >^$0_0_1), (<0_0_1, <$0_0_1), "
-        "(<^0_0_1, <^$0_0_1)]]}");
+        "(<^0_0_1, <^$0_0_1), (#h1, $h1)]]}");
     vector<string> tokens1, tokens2, tokens3;
     proxy.tokenize(tokens1);
     tokens2 = tokens1;
