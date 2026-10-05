@@ -619,7 +619,7 @@ TEST(QueryAnswer, get_query_answer_element) {
     EXPECT_EQ(answer.get(element11, true), "");
     EXPECT_THROW(answer.get(element33), runtime_error);
     EXPECT_THROW(answer.get(element34), runtime_error);
-    EXPECT_EQ(answer.get(element35), "fixed_handle1");
+    EXPECT_EQ(answer.get(element35), "fixed_handle");
 
     EXPECT_EQ(answer.get_all(element13), vector<string>({"h1", "h2", "h3"}));
     EXPECT_EQ(answer.get_all(element14), vector<string>({"h5", "h6", "h7"}));
