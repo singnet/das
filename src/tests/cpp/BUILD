@@ -274,6 +274,7 @@ cc_test(
     linkstatic = 1,
     deps = [
         "//agents/query_engine:query_engine_lib",
+        "//atomdb/inmemorydb:inmemorydb_lib",
         "@com_github_google_googletest//:gtest_main",
     ],
 )
@@ -884,18 +885,33 @@ cc_test(
 
 cc_test(
     name = "protected_atomdb_test",
-    size = "small",
+    size = "medium",
     srcs = ["protected_atomdb_test.cc"],
     copts = [
         "-Iexternal/gtest/googletest/include",
         "-Iexternal/gtest/googletest",
     ],
+    linkopts = [
+        "-L/usr/local/lib",
+        "-lhiredis_cluster",
+        "-lhiredis",
+        "-lmongocxx",
+        "-lbsoncxx",
+    ],
     linkstatic = 1,
     deps = [
         "//atomdb:protected_atomdb",
+        "//atomdb/auth:auth_lib",
+        "//atomdb/auth:keychain",
         "//atomdb/inmemorydb:inmemorydb_lib",
+        "//atomdb/redis_mongodb:redis_mongodb_lib",
         "//commons/atoms:atoms_lib",
+        "//hasher:hasher_lib",
+        "//tests/cpp/test_commons:in_memory_access_permission_types",
+        "//tests/cpp/test_commons:mock_animals_data_lib",
+        "//tests/cpp/test_commons:test_atomdb_json_config",
         "@com_github_google_googletest//:gtest_main",
+        "@mbedtls",
     ],
 )
 
@@ -991,6 +1007,7 @@ cc_test(
         "//atomdb:atomdb_lib",
         "//atomdb/redis_mongodb:redis_mongodb_lib",
         "//commons/atoms:atoms_lib",
+        "//metta:metta_mapping",
         "//tests/cpp/test_commons:test_atomdb_json_config",
         "@com_github_google_googletest//:gtest_main",
     ],
@@ -1051,6 +1068,27 @@ cc_test(
         "//atomdb/redis_mongodb:redis_mongodb_lib",
         "//atomdb/remotedb:remotedb_lib",
         "//commons/atoms:atoms_lib",
+        "//tests/cpp/test_commons:test_atomdb_json_config",
+        "@com_github_google_googletest//:gtest",
+    ],
+)
+
+cc_test(
+    name = "remote_atomdb_key_sensitive_test",
+    size = "small",
+    srcs = ["remote_atomdb_key_sensitive_test.cc"],
+    copts = [
+        "-Iexternal/gtest/googletest/include",
+        "-Iexternal/gtest/googletest",
+    ],
+    linkstatic = 1,
+    deps = [
+        "//atomdb:protected_atomdb",
+        "//atomdb/auth:keychain",
+        "//atomdb/inmemorydb:inmemorydb_lib",
+        "//atomdb/remotedb:remotedb_lib",
+        "//commons/atoms:atoms_lib",
+        "//tests/cpp/test_commons:in_memory_access_permission_types",
         "//tests/cpp/test_commons:test_atomdb_json_config",
         "@com_github_google_googletest//:gtest",
     ],
@@ -1215,6 +1253,8 @@ cc_test(
         "//agents/command_router/http_api:command_router_http_api_config",
         "//agents/command_router/http_api:command_router_http_api_singleton",
         "//agents/command_router/http_api:http_command_proxy_factory",
+        "//agents/evolution:query_evolution_proxy",
+        "//agents/evolution/fitness_functions:fitness_functions_lib",
         "//agents/query_engine:query_answer",
         "//atomdb:atomdb_singleton",
         "//commons/processor:processor_lib",

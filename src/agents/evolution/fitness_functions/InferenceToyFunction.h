@@ -1,23 +1,18 @@
 #pragma once
 
-#include "AtomDB.h"
 #include "FitnessFunction.h"
 
 using namespace std;
-using namespace atomdb;
 
 namespace fitness_functions {
 class InferenceToyFunction : public FitnessFunction {
    public:
     static string STRENGTH_TAG;
 
-    InferenceToyFunction();
+    InferenceToyFunction() {}
     ~InferenceToyFunction() {}
 
-    float eval(shared_ptr<QueryAnswer> query_answer) override;
-
-   private:
-    shared_ptr<AtomDB> db;
+    float eval(shared_ptr<QueryAnswer> query_answer, shared_ptr<Keychain> keychain = nullptr) override;
 };
 
 }  // namespace fitness_functions

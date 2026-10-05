@@ -1437,8 +1437,8 @@ TEST(InMemoryDBConfigTest, AllowsEmptyUid) {
 }
 
 TEST_F(InMemoryDBTest, GetAccessPermissionsReturnsEmpty) {
-    auto permissions = db->get_access_permissions(PublicKey("any_key"));
-    EXPECT_TRUE(permissions.empty());
+    auto permissions = db->get_access_permissions("any_key");
+    EXPECT_EQ(permissions, nullptr);
 }
 
 TEST_F(InMemoryDBTest, IsUnprotected) {

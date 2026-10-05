@@ -1,5 +1,7 @@
 #include "CommandExecution.h"
 
+#include <algorithm>
+
 using namespace std;
 using namespace commons;
 using namespace command_router;
@@ -154,6 +156,80 @@ void CommandExecution::publish_chunk(int seq, const json& data) {
                    {"answers", data},
                    {"received_count", this->received_count_}};
     this->publish_event_locked(this->make_envelope_locked(COMMAND_QUERY_ANSWERS, std::move(params)));
+}
+
+void CommandExecution::publish_eval_fitness(int seq, const json& answers) {
+    lock_guard<mutex> lock(this->mtx_);
+    if (!answers.is_array()) {
+        RAISE_ERROR("eval_fitness answers must be a JSON array");
+    }
+    this->pending_fitness_seq_ = seq;
+    this->fitness_response_ready_ = false;
+    this->fitness_response_.clear();
+    json params = {{"execution_id", this->execution_id}, {"seq", seq}, {"answers", answers}};
+    this->publish_event_locked(this->make_envelope_locked(COMMAND_EVAL_FITNESS, std::move(params)));
+}
+
+bool CommandExecution::submit_fitness_response(int seq, const vector<float>& fitness) {
+    lock_guard<mutex> lock(this->mtx_);
+    if (this->pending_fitness_seq_ != seq) {
+        return false;
+    }
+    this->fitness_response_ = fitness;
+    this->fitness_response_ready_ = true;
+    this->cv_.notify_all();
+    return true;
+}
+
+bool CommandExecution::wait_fitness_response(int seq,
+                                             chrono::milliseconds timeout,
+                                             const function<bool()>& should_abort,
+                                             vector<float>& fitness) {
+    unique_lock<mutex> lock(this->mtx_);
+    const auto deadline = chrono::steady_clock::now() + timeout;
+    while (true) {
+        if (this->fitness_response_ready_ && this->pending_fitness_seq_ == seq) {
+            fitness = this->fitness_response_;
+            this->fitness_response_ready_ = false;
+            this->pending_fitness_seq_ = -1;
+            this->fitness_response_.clear();
+            return true;
+        }
+        if (this->is_terminal(this->status_) || this->cancel_requested_ || this->ws_closed_) {
+            return false;
+        }
+        lock.unlock();
+        const bool aborted = (should_abort && should_abort());
+        lock.lock();
+        if (aborted) {
+            return false;
+        }
+        const auto now = chrono::steady_clock::now();
+        if (now >= deadline) {
+            return false;
+        }
+        // Bounded slice so external abort conditions (e.g. server shutdown) are
+        // rechecked even when nothing notifies cv_.
+        const auto wake_at = std::min(deadline, now + chrono::milliseconds(100));
+        this->cv_.wait_until(lock, wake_at);
+    }
+}
+
+void CommandExecution::ws_session_opened() {
+    lock_guard<mutex> lock(this->mtx_);
+    this->active_ws_sessions_++;
+    this->ws_closed_ = false;
+}
+
+void CommandExecution::ws_session_closed() {
+    lock_guard<mutex> lock(this->mtx_);
+    if (this->active_ws_sessions_ > 0) {
+        this->active_ws_sessions_--;
+    }
+    if (this->active_ws_sessions_ == 0) {
+        this->ws_closed_ = true;
+        this->cv_.notify_all();
+    }
 }
 
 void CommandExecution::mark_completed(unsigned long duration_ms, int total_items) {

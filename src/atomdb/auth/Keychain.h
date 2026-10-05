@@ -2,6 +2,7 @@
 
 #include <map>
 #include <string>
+#include <vector>
 
 using namespace std;
 
@@ -16,10 +17,8 @@ namespace atomdb {
  */
 class Keychain {
    public:
-    using AtomDB_UID = string;
-    using PublicKey = string;
-
-    explicit Keychain(const map<AtomDB_UID, PublicKey>& keys);
+    explicit Keychain(const map<string, string>& keys);
+    explicit Keychain() {}
     ~Keychain() = default;
 
     /**
@@ -31,10 +30,13 @@ class Keychain {
      * @param uid AtomDB UID to look up.
      * @return The stored public key, or empty string.
      */
-    PublicKey get_public_key(const AtomDB_UID& uid) const;
+    string get_public_key(const string& uid) const;
+
+    void tokenize(vector<string>& tokens);
+    void untokenize(const vector<string>& tokens);
 
    private:
-    map<AtomDB_UID, PublicKey> keys_;
+    map<string, string> keys_;
 };
 
 }  // namespace atomdb

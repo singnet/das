@@ -223,6 +223,139 @@ TEST(EvolutionMettaParser, plain_query_arg_is_not_labeled_form) {
     EXPECT_FALSE(try_parse_evolution_metta_arg("(Similarity $a $b)", args));
 }
 
+TEST(EvolutionMettaParser, correlation_mappings_accept_element_encodings) {
+    vector<vector<pair<string, string>>> groups = {
+        {{"Concept", "Concept"}, {">$0_1_2", "-"}, {"*", "*"}}};
+
+    auto mappings = metta_correlation_mappings(groups);
+    ASSERT_EQ(mappings.size(), 1u);
+    ASSERT_EQ(mappings[0].size(), 3u);
+    EXPECT_EQ(mappings[0][0].first.to_string(), "$Concept");
+    EXPECT_EQ(mappings[0][0].second.to_string(), "$Concept");
+    EXPECT_EQ(mappings[0][1].first.to_string(), ">$0_1_2");
+    EXPECT_EQ(mappings[0][1].second.to_string(), "-");
+    EXPECT_EQ(mappings[0][2].first.to_string(), "*");
+    EXPECT_EQ(mappings[0][2].second.to_string(), "*");
+
+    auto replacements = metta_correlation_replacements({{{"V1", "Predicate"}, {"V2", ">$1_0_1"}}});
+    ASSERT_EQ(replacements.size(), 1u);
+    EXPECT_EQ(replacements[0].at("V1").to_string(), "$Predicate");
+    EXPECT_EQ(replacements[0].at("V2").to_string(), ">$1_0_1");
+}
+
+TEST(EvolutionMettaParser, percent_variables_outside_quotes_become_dollar) {
+    EXPECT_EQ(normalize_metta_percent_variables("%C"), "$C");
+    EXPECT_EQ(normalize_metta_percent_variables("%sentence1"), "$sentence1");
+    EXPECT_EQ(normalize_metta_percent_variables("(Contains %sentence1 (Word \"bbb\"))"),
+              "(Contains $sentence1 (Word \"bbb\"))");
+    EXPECT_EQ(normalize_metta_percent_variables("(Similarity \"50%\" %C)"), "(Similarity \"50%\" $C)");
+    EXPECT_EQ(normalize_metta_percent_variables("(Word \"100% off\")"), "(Word \"100% off\")");
+    EXPECT_EQ(normalize_metta_percent_variables("100%"), "100%");
+    EXPECT_EQ(normalize_metta_percent_variables("foo%bar"), "foo%bar");
+    EXPECT_EQ(normalize_metta_percent_variables("%name-extra"), "%name-extra");
+    EXPECT_EQ(normalize_metta_percent_variables("(Contains %name-extra (Word \"bbb\"))"),
+              "(Contains %name-extra (Word \"bbb\"))");
+}
+
+TEST(EvolutionMettaParser, query_expression_preserves_incomplete_percent_token) {
+    auto queries = metta_correlation_queries({"(Contains %name-extra %word1)"});
+    ASSERT_EQ(queries.size(), 1u);
+    ASSERT_EQ(queries[0].size(), 1u);
+    EXPECT_EQ(queries[0][0], "(Contains %name-extra $word1)");
+}
+
+TEST(EvolutionMettaParser, correlation_values_preserve_non_variable_percent) {
+    auto replacements = metta_correlation_replacements({{{"%V1", "50%"}, {"V2", "%Predicate"}}});
+    ASSERT_EQ(replacements.size(), 1u);
+    ASSERT_EQ(replacements[0].count("V1"), 1u);
+    EXPECT_EQ(replacements[0].at("V1").to_string(), "$50%");
+    EXPECT_EQ(replacements[0].at("V2").to_string(), "$Predicate");
+
+    auto mappings = metta_correlation_mappings({{{"Concept", "50%"}}});
+    ASSERT_EQ(mappings.size(), 1u);
+    ASSERT_EQ(mappings[0].size(), 1u);
+    EXPECT_EQ(mappings[0][0].first.to_string(), "$Concept");
+    EXPECT_EQ(mappings[0][0].second.to_string(), "$50%");
+}
+
+TEST(EvolutionMettaParser, percent_variable_tokens_must_match_identifier_grammar) {
+    auto replacements = metta_correlation_replacements({{{"V1", "%C"}, {"V2", "%sentence1"}}});
+    ASSERT_EQ(replacements.size(), 1u);
+    EXPECT_EQ(replacements[0].at("V1").to_string(), "$C");
+    EXPECT_EQ(replacements[0].at("V2").to_string(), "$sentence1");
+
+    EXPECT_THROW(metta_correlation_replacements({{{"V1", "%9"}}}), runtime_error);
+    EXPECT_THROW(metta_correlation_replacements({{{"V1", "%"}}}), runtime_error);
+    EXPECT_THROW(metta_correlation_replacements({{{"V1", "%name-extra"}}}), runtime_error);
+    EXPECT_THROW(metta_correlation_mappings({{{"%9", "Concept"}}}), runtime_error);
+    EXPECT_THROW(metta_correlation_mappings({{{"Concept", "%name-extra"}}}), runtime_error);
+}
+
+TEST(EvolutionMettaParser, quoted_query_preserves_unsupported_escapes) {
+    EvolutionMettaArgs args;
+    string metta_arg =
+        "((query \"LINK_TEMPLATE Expression 3 NODE Symbol Similarity VARIABLE v1 50\\% off\") "
+        "(ff count_letter))";
+    ASSERT_TRUE(try_parse_evolution_metta_arg(metta_arg, args));
+    EXPECT_EQ(args.query, "LINK_TEMPLATE Expression 3 NODE Symbol Similarity VARIABLE v1 50\\% off");
+}
+
+TEST(EvolutionMettaParser, quoted_correlation_values_preserve_unsupported_escapes) {
+    EvolutionMettaArgs args;
+    string metta_arg =
+        "((query (Similarity $A $B)) "
+        "(ff count_letter) "
+        "(cr (((\"V1\" \"a\\nb\")))) "
+        "(cm (((\"Concept\" \"x\\%y\")))))";
+    ASSERT_TRUE(try_parse_evolution_metta_arg(metta_arg, args));
+    ASSERT_EQ(args.correlation_replacement_groups.size(), 1u);
+    EXPECT_EQ(args.correlation_replacement_groups[0][0].second, "a\\nb");
+    ASSERT_EQ(args.correlation_mapping_groups.size(), 1u);
+    EXPECT_EQ(args.correlation_mapping_groups[0][0].second, "x\\%y");
+}
+
+// The HTTP factory quotes cr/cm pair tokens; the parser must strip the quotes (and
+// decode escapes) so keys match variable names and element encodings still parse.
+TEST(EvolutionMettaParser, quoted_pair_tokens_are_unquoted) {
+    EvolutionMettaArgs args;
+    string metta_arg =
+        "((query (Similarity \"human\" $C)) "
+        "(ff remote_fitness_function) "
+        "(cr (((\"V1\" \"Predicate\")))) "
+        "(cm (((\"Concept\" \"Concept\") (\">$0_1_2\" \"-\")))))";
+    ASSERT_TRUE(try_parse_evolution_metta_arg(metta_arg, args));
+
+    ASSERT_EQ(args.correlation_replacement_groups.size(), 1u);
+    EXPECT_EQ(args.correlation_replacement_groups[0][0].first, "V1");
+    EXPECT_EQ(args.correlation_replacement_groups[0][0].second, "Predicate");
+
+    auto replacements = metta_correlation_replacements(args.correlation_replacement_groups);
+    ASSERT_EQ(replacements.size(), 1u);
+    ASSERT_EQ(replacements[0].count("V1"), 1u);
+    EXPECT_EQ(replacements[0].at("V1").to_string(), "$Predicate");
+
+    auto mappings = metta_correlation_mappings(args.correlation_mapping_groups);
+    ASSERT_EQ(mappings.size(), 1u);
+    ASSERT_EQ(mappings[0].size(), 2u);
+    EXPECT_EQ(mappings[0][0].first.to_string(), "$Concept");
+    EXPECT_EQ(mappings[0][0].second.to_string(), "$Concept");
+    EXPECT_EQ(mappings[0][1].first.to_string(), ">$0_1_2");
+    EXPECT_EQ(mappings[0][1].second.to_string(), "-");
+}
+
+TEST(EvolutionMettaParser, quoted_link_template_query_is_unquoted) {
+    EvolutionMettaArgs args;
+    string metta_arg =
+        "((query \"LINK_TEMPLATE Expression 3 NODE Symbol Similarity VARIABLE v1 VARIABLE v2\") "
+        "(ff count_letter) "
+        "(cq (\"LINK_TEMPLATE Expression 3 NODE Symbol Inheritance VARIABLE v1 VARIABLE v2\")))";
+    ASSERT_TRUE(try_parse_evolution_metta_arg(metta_arg, args));
+    EXPECT_EQ(args.query, "LINK_TEMPLATE Expression 3 NODE Symbol Similarity VARIABLE v1 VARIABLE v2");
+    ASSERT_EQ(args.correlation_query_expressions.size(), 1u);
+    EXPECT_EQ(args.correlation_query_expressions[0],
+              "LINK_TEMPLATE Expression 3 NODE Symbol Inheritance VARIABLE v1 VARIABLE v2");
+}
+
 TEST(BusCommandRouter, get_and_set_params) {
     set<string> commands = {ServiceBus::BUS_COMMAND_ROUTER};
     ServiceBus::initialize_statics(commands, 40500, 40599);

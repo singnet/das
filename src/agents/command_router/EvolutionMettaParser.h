@@ -55,7 +55,7 @@ string canonical_evolution_param_key(const string& key_or_alias);
  */
 bool try_parse_evolution_metta_arg(const string& arg, EvolutionMettaArgs& out);
 
-/** Replace MeTTa `%` variable prefix with the canonical `$` form. */
+/** Rewrite unquoted `%name` variable tokens to `$name`. Quoted percents are left unchanged. */
 string normalize_metta_percent_variables(const string& expression);
 
 vector<vector<string>> metta_correlation_queries(const vector<string>& expressions);

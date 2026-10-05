@@ -41,9 +41,10 @@ BaseQueryProxy::BaseQueryProxy(const vector<string>& tokens, const string& conte
 }
 
 void BaseQueryProxy::init() {
-    this->atomdb = AtomDBSingleton::get_instance();
     this->answer_count = 0;
     this->parameters += SystemParametersSingleton::get_instance()->get_base_query_params();
+    this->_keychain = nullptr;
+    this->_atomdb = AtomDBSingleton::get_instance();
 }
 
 BaseQueryProxy::~BaseQueryProxy() {}
@@ -147,6 +148,13 @@ void BaseQueryProxy::untokenize(vector<string>& tokens) {
     this->query_tokens.insert(
         this->query_tokens.begin(), tokens.begin() + 2, tokens.begin() + 2 + num_query_tokens);
     tokens.erase(tokens.begin(), tokens.begin() + 2 + num_query_tokens);
+
+    string keychain_tokens = this->parameters.get_or<string>(PUBLIC_KEY_TOKENS, "");
+    if (keychain_tokens != "") {
+        auto __keychain = make_shared<Keychain>();
+        __keychain->untokenize(Utils::split(keychain_tokens));
+        this->_keychain = __keychain;
+    }
 }
 
 const string& BaseQueryProxy::get_context() {
@@ -179,53 +187,13 @@ string BaseQueryProxy::to_string() {
     return answer;
 }
 
-void BaseQueryProxy::recursive_metta_mapping(string handle, map<string, string>& table) {
-    if (table.find(handle) == table.end()) {
-        auto atom = this->atomdb->get_atom(handle);
-        if (atom->arity() > 0) {
-            // is link
-            auto link = dynamic_cast<Link*>(atom.get());
-            if (link->type != "Expression") {
-                RAISE_ERROR("Link type \"" + link->type + "\" can't be mapped to MeTTa");
-                table[handle] = "";
-                return;
-            }
-            unsigned int arity = link->arity();
-            for (unsigned int i = 0; i < arity; i++) {
-                recursive_metta_mapping(link->targets[i], table);
-            }
-            string expression = "(";
-            bool empty_flag = true;
-            for (unsigned int i = 0; i < arity; i++) {
-                expression += table[link->targets[i]];
-                expression += " ";
-                empty_flag = false;
-            }
-            if (!empty_flag) {
-                expression.pop_back();
-            }
-            expression += ")";
-            table[handle] = expression;
-        } else {
-            // is node
-            auto node = dynamic_cast<Node*>(atom.get());
-            if (node->type != "Symbol") {
-                RAISE_ERROR("Node type \"" + node->type + "\" can't be mapped to MeTTa");
-                table[handle] = "";
-                return;
-            }
-            table[handle] = node->name;
-        }
-    }
-}
-
 void BaseQueryProxy::populate_metta_mapping(QueryAnswer* answer) {
     for (string& handle : answer->get_handles_vector()) {
-        AtomDBUtils::handle_to_metta(handle, answer->metta_expression);
+        AtomDBUtils::handle_to_metta(handle, answer->metta_expression, _keychain);
     }
     for (unsigned int i = 0; i < answer->get_paths_size(); i++) {
         for (string& handle : answer->get_path_vector(i)) {
-            AtomDBUtils::handle_to_metta(handle, answer->metta_expression);
+            AtomDBUtils::handle_to_metta(handle, answer->metta_expression, _keychain);
         }
     }
 }

@@ -4,6 +4,7 @@
 
 #include "AtomDBSingleton.h"
 #include "BaseProxy.h"
+#include "Keychain.h"
 #include "Message.h"
 #include "QueryAnswer.h"
 #include "SharedQueue.h"
@@ -89,7 +90,7 @@ class BaseQueryProxy : public BaseProxy {
                                                 // as well as complete ones.
 
     static string PUBLIC_KEY_TOKENS;  // A string with a list of tokens which can be used to build a
-                                      // AtomDBAPITypes::PublicKey object. This is required to use
+                                      // Keychain object. This is required to use
                                       // public keys(s) when querying a ProtectedAtomDB. The list is
                                       // supposed to be a space separated string with all the pairs
                                       // (uid, key). E.g. "uid1 key1 uid2 key2 ... uidn keyn".
@@ -226,6 +227,20 @@ class BaseQueryProxy : public BaseProxy {
      */
     void populate_metta_mapping(QueryAnswer* answer);
 
+    /**
+     * Getter for the _keychain field.
+     *
+     * @return Keychain.
+     */
+    inline shared_ptr<Keychain> keychain() { return _keychain; }
+
+    /**
+     * Getter for the _atomdb field.
+     *
+     * @return AtomDB.
+     */
+    inline shared_ptr<AtomDB> atomdb() { return _atomdb; }
+
     // ---------------------------------------------------------------------------------------------
     // Virtual superclass API and the piggyback methods called by it
 
@@ -269,7 +284,6 @@ class BaseQueryProxy : public BaseProxy {
 
    private:
     void init();
-    void recursive_metta_mapping(string handle, map<string, string>& table);
 
     recursive_mutex api_mutex;
     SharedQueue answer_queue;
@@ -279,7 +293,8 @@ class BaseQueryProxy : public BaseProxy {
     vector<string> query_tokens;
     vector<string> answer_bundle_vector;
     vector<string> built_atoms_bundle_vector;
-    shared_ptr<AtomDB> atomdb;
+    shared_ptr<Keychain> _keychain;
+    shared_ptr<AtomDB> _atomdb;
 };
 
 }  // namespace agents

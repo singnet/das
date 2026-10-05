@@ -5,13 +5,16 @@
 #include <set>
 #include <thread>
 
+#include "AtomDB.h"
 #include "BusCommandProcessor.h"
+#include "Keychain.h"
 #include "PatternMatchingQueryProxy.h"
 #include "QueryEvolutionProxy.h"
 #include "StoppableThread.h"
 
 using namespace std;
 using namespace service_bus;
+using namespace atomdb;
 
 #define MIN_SELECTED_FITNESS ((float) 0.00001)
 
@@ -73,16 +76,17 @@ class QueryEvolutionProcessor : public BusCommandProcessor {
                    vector<std::pair<shared_ptr<QueryAnswer>, float>>& selected);
     void thread_process_one_query(shared_ptr<StoppableThread>, shared_ptr<QueryEvolutionProxy> proxy);
     void remove_query_thread(const string& stoppable_thread_id);
-    string answer_to_string_1(shared_ptr<QueryAnswer> answer, shared_ptr<AtomDB> db);
-    string answer_to_string_2(shared_ptr<QueryAnswer> answer, shared_ptr<AtomDB> db);
-    string answer_to_string(shared_ptr<QueryAnswer> answer);
+    shared_ptr<Link> get_link(const string& handle, shared_ptr<QueryEvolutionProxy> proxy);
+    string answer_to_string_1(shared_ptr<QueryAnswer> answer, shared_ptr<QueryEvolutionProxy> proxy);
+    string answer_to_string_2(shared_ptr<QueryAnswer> answer, shared_ptr<QueryEvolutionProxy> proxy);
+    string answer_to_string(shared_ptr<QueryAnswer> answer, shared_ptr<QueryEvolutionProxy> proxy);
 
     map<string, shared_ptr<StoppableThread>> query_threads;
     mutex query_threads_mutex;
     shared_ptr<QueryEvolutionProxy> proxy;
     set<string> visited_individuals;
     unsigned int generation_count;
-    HandleDecoder* decoder;
+    shared_ptr<AtomDB> atomdb;
 };
 
 }  // namespace evolution

@@ -14,6 +14,7 @@
 #include "Logger.h"
 #include "MorkDB.h"
 #include "Node.h"
+#include "ProtectedAtomDB.h"
 #include "RedisMongoDB.h"
 #include "Utils.h"
 
@@ -66,32 +67,7 @@ bool RemoteAtomDB::composite_type_enabled() const {
     return false;
 }
 
-shared_ptr<Atom> RemoteAtomDB::get_atom(const string& handle) {
-    // Writable peers first: their write buffer / local_persistence are the source of truth
-    // for updated custom attributes (strength) that share a content-addressed handle.
-    for (auto& [uid, peer] : writable_peers_) {
-        auto atom = peer->get_atom(handle);
-        if (atom) {
-            LOG_DEBUG("get_atom(" << handle << ") fetched from writable peer [" << uid << "]");
-            return atom;
-        }
-    }
-
-    // Readonly peers: cache probe then escalate to remote backends (base KB hot path).
-    for (auto& [uid, peer] : readonly_peers_) {
-        auto atom = peer->get_cached_atom(handle);
-        if (atom) return atom;
-    }
-    for (auto& [uid, peer] : readonly_peers_) {
-        auto atom = peer->get_atom(handle);
-        if (atom) {
-            LOG_DEBUG("get_atom(" << handle << ") fetched from [" << uid << "]");
-            return atom;
-        }
-    }
-    LOG_DEBUG("get_atom(" << handle << ") not found in any peer");
-    return nullptr;
-}
+shared_ptr<Atom> RemoteAtomDB::get_atom(const string& handle) { return this->get_atom(handle, nullptr); }
 
 shared_ptr<Node> RemoteAtomDB::get_node(const string& handle) {
     auto atom = get_atom(handle);
@@ -120,34 +96,7 @@ vector<shared_ptr<Atom>> RemoteAtomDB::get_matching_atoms(bool is_toplevel, Atom
 }
 
 shared_ptr<atomdb_api_types::HandleSet> RemoteAtomDB::query_for_pattern(const LinkSchema& link_schema) {
-    auto result = make_shared<atomdb_api_types::HandleSetInMemory>();
-    set<string> seen;
-
-    LOG_DEBUG("query_for_pattern(" << link_schema.handle() << ") fan-out to " << remote_db_.size()
-                                   << " peers");
-    for (auto& [uid, peer] : remote_db_) {
-        auto handle_set = peer->query_for_pattern(link_schema);
-        if (!handle_set) continue;
-
-        // Preserve per-handle assignments / metta expressions for peers so the
-        // aggregated result stays faithful instead of silently dropping the backend's match data.
-        LOG_DEBUG("  [" << uid << "] returned " << handle_set->size() << " handles");
-
-        auto it = handle_set->get_iterator();
-        if (!it) continue;
-
-        while (char* h = it->next()) {
-            string handle(h);
-            if (seen.insert(handle).second) {
-                result->add_handle(handle,
-                                   handle_set->get_metta_expressions_by_handle(handle),
-                                   handle_set->get_assignments_by_handle(handle));
-            }
-        }
-    }
-    LOG_DEBUG("query_for_pattern(" << link_schema.handle() << ") aggregated " << result->size()
-                                   << " unique handles");
-    return result;
+    return this->query_for_pattern(link_schema, nullptr);
 }
 
 shared_ptr<atomdb_api_types::HandleList> RemoteAtomDB::query_for_targets(const string& handle) {
@@ -412,4 +361,209 @@ void RemoteAtomDB::release_caches(const LinkSchema& link_schema, bool persist, b
         LOG_DEBUG("release_caches(" << link_schema.handle() << ") from peer [" << uid << "]");
         peer->release(link_schema, persist, force);
     }
+}
+
+// -------- KeySensitiveAtomDB API
+
+shared_ptr<Atom> RemoteAtomDB::get_atom(const string& handle, shared_ptr<Keychain> keychain) {
+    shared_ptr<Atom> atom;
+
+    // Writable peers first: their write buffer / local_persistence are the source of truth
+    // for updated custom attributes (strength) that share a content-addressed handle.
+    for (auto& [uid, peer] : writable_peers_) {
+        atom = peer->get_atom(handle, keychain);
+        if (atom) {
+            LOG_DEBUG("get_atom(" << handle << ") fetched from peer [" << uid << "]");
+            return atom;
+        }
+    }
+
+    // Readonly peers: cache probe then escalate to remote backends (base KB hot path).
+    for (auto& [uid, peer] : readonly_peers_) {
+        // get_cached_atom is an unauthenticated in-memory probe (RemoteAtomDBPeer only).
+        atom = peer->get_cached_atom(handle, keychain);
+        if (atom) return atom;
+    }
+
+    for (auto& [uid, peer] : readonly_peers_) {
+        atom = peer->get_atom(handle, keychain);
+        if (atom) {
+            LOG_DEBUG("get_atom(" << handle << ") fetched from peer [" << uid << "]");
+            return atom;
+        }
+    }
+
+    LOG_DEBUG("get_atom(" << handle << ") not found in any peer");
+
+    return nullptr;
+}
+
+shared_ptr<Node> RemoteAtomDB::get_node(const string& handle, shared_ptr<Keychain> keychain) {
+    return dynamic_pointer_cast<Node>(this->get_atom(handle, keychain));
+}
+
+shared_ptr<Link> RemoteAtomDB::get_link(const string& handle, shared_ptr<Keychain> keychain) {
+    return dynamic_pointer_cast<Link>(this->get_atom(handle, keychain));
+}
+
+vector<shared_ptr<Atom>> RemoteAtomDB::get_matching_atoms(bool is_toplevel,
+                                                          Atom& key,
+                                                          shared_ptr<Keychain> keychain) {
+    RAISE_ERROR("RemoteAtomDB::get_matching_atoms(keychain) is not implemented");
+}
+
+shared_ptr<atomdb_api_types::HandleSet> RemoteAtomDB::query_for_pattern(const LinkSchema& link_schema,
+                                                                        shared_ptr<Keychain> keychain) {
+    auto result = make_shared<atomdb_api_types::HandleSetInMemory>();
+    set<string> seen;
+
+    LOG_DEBUG("query_for_pattern(" << link_schema.handle() << ") fan-out to " << remote_db_.size()
+                                   << " peers");
+
+    for (auto& [uid, peer] : remote_db_) {
+        auto handle_set = peer->query_for_pattern(link_schema, keychain);
+        if (!handle_set) continue;
+
+        LOG_DEBUG("  [" << uid << "] returned " << handle_set->size() << " handles");
+
+        auto it = handle_set->get_iterator();
+        if (!it) continue;
+
+        while (char* h = it->next()) {
+            string handle(h);
+            if (seen.insert(handle).second) {
+                result->add_handle(handle,
+                                   handle_set->get_metta_expressions_by_handle(handle),
+                                   handle_set->get_assignments_by_handle(handle));
+            }
+        }
+    }
+    LOG_DEBUG("query_for_pattern(" << link_schema.handle() << ") aggregated " << result->size()
+                                   << " unique handles");
+    return result;
+}
+
+shared_ptr<atomdb_api_types::HandleList> RemoteAtomDB::query_for_targets(const string& handle,
+                                                                         shared_ptr<Keychain> keychain) {
+    RAISE_ERROR("RemoteAtomDB::query_for_targets(keychain) is not implemented");
+}
+
+shared_ptr<atomdb_api_types::HandleSet> RemoteAtomDB::query_for_incoming_set(
+    const string& handle, shared_ptr<Keychain> keychain) {
+    RAISE_ERROR("RemoteAtomDB::query_for_incoming_set(keychain) is not implemented");
+}
+
+bool RemoteAtomDB::atom_exists(const string& handle, shared_ptr<Keychain> keychain) {
+    RAISE_ERROR("RemoteAtomDB::atom_exists(keychain) is not implemented");
+}
+
+bool RemoteAtomDB::node_exists(const string& handle, shared_ptr<Keychain> keychain) {
+    RAISE_ERROR("RemoteAtomDB::node_exists(keychain) is not implemented");
+}
+
+bool RemoteAtomDB::link_exists(const string& handle, shared_ptr<Keychain> keychain) {
+    RAISE_ERROR("RemoteAtomDB::link_exists(keychain) is not implemented");
+}
+
+set<string> RemoteAtomDB::atoms_exist(const vector<string>& handles, shared_ptr<Keychain> keychain) {
+    RAISE_ERROR("RemoteAtomDB::atoms_exist(keychain) is not implemented");
+}
+
+set<string> RemoteAtomDB::nodes_exist(const vector<string>& handles, shared_ptr<Keychain> keychain) {
+    RAISE_ERROR("RemoteAtomDB::nodes_exist(keychain) is not implemented");
+}
+
+set<string> RemoteAtomDB::links_exist(const vector<string>& handles, shared_ptr<Keychain> keychain) {
+    RAISE_ERROR("RemoteAtomDB::links_exist(keychain) is not implemented");
+}
+
+string RemoteAtomDB::add_atom(const atoms::Atom* atom,
+                              shared_ptr<Keychain> keychain,
+                              const atoms::Merger* merger) {
+    RAISE_ERROR("RemoteAtomDB::add_atom(keychain) is not implemented");
+}
+
+string RemoteAtomDB::add_node(const atoms::Node* node,
+                              shared_ptr<Keychain> keychain,
+                              const atoms::Merger* merger) {
+    RAISE_ERROR("RemoteAtomDB::add_node(keychain) is not implemented");
+}
+
+string RemoteAtomDB::add_link(const atoms::Link* link,
+                              shared_ptr<Keychain> keychain,
+                              const atoms::Merger* merger) {
+    RAISE_ERROR("RemoteAtomDB::add_link(keychain) is not implemented");
+}
+
+vector<string> RemoteAtomDB::add_atoms(const vector<atoms::Atom*>& atoms,
+                                       shared_ptr<Keychain> keychain,
+                                       bool is_transactional,
+                                       const atoms::Merger* merger) {
+    RAISE_ERROR("RemoteAtomDB::add_atoms(keychain) is not implemented");
+}
+
+vector<string> RemoteAtomDB::add_nodes(const vector<atoms::Node*>& nodes,
+                                       shared_ptr<Keychain> keychain,
+                                       bool is_transactional,
+                                       const atoms::Merger* merger) {
+    RAISE_ERROR("RemoteAtomDB::add_nodes(keychain) is not implemented");
+}
+
+vector<string> RemoteAtomDB::add_links(const vector<atoms::Link*>& links,
+                                       shared_ptr<Keychain> keychain,
+                                       bool is_transactional,
+                                       const atoms::Merger* merger) {
+    RAISE_ERROR("RemoteAtomDB::add_links(keychain) is not implemented");
+}
+
+bool RemoteAtomDB::delete_atom(const string& handle,
+                               shared_ptr<Keychain> keychain,
+                               bool delete_link_targets) {
+    RAISE_ERROR("RemoteAtomDB::delete_atom(keychain) is not implemented");
+}
+
+bool RemoteAtomDB::delete_node(const string& handle,
+                               shared_ptr<Keychain> keychain,
+                               bool delete_link_targets) {
+    RAISE_ERROR("RemoteAtomDB::delete_node(keychain) is not implemented");
+}
+
+bool RemoteAtomDB::delete_link(const string& handle,
+                               shared_ptr<Keychain> keychain,
+                               bool delete_link_targets) {
+    RAISE_ERROR("RemoteAtomDB::delete_link(keychain) is not implemented");
+}
+
+uint RemoteAtomDB::delete_atoms(const vector<string>& handles,
+                                shared_ptr<Keychain> keychain,
+                                bool delete_link_targets) {
+    RAISE_ERROR("RemoteAtomDB::delete_atoms(keychain) is not implemented");
+}
+
+uint RemoteAtomDB::delete_nodes(const vector<string>& handles,
+                                shared_ptr<Keychain> keychain,
+                                bool delete_link_targets) {
+    RAISE_ERROR("RemoteAtomDB::delete_nodes(keychain) is not implemented");
+}
+
+uint RemoteAtomDB::delete_links(const vector<string>& handles,
+                                shared_ptr<Keychain> keychain,
+                                bool delete_link_targets) {
+    RAISE_ERROR("RemoteAtomDB::delete_links(keychain) is not implemented");
+}
+
+void RemoteAtomDB::re_index_patterns(shared_ptr<Keychain> keychain, bool flush_patterns) {
+    RAISE_ERROR("RemoteAtomDB::re_index_patterns(keychain, flush_patterns) is not implemented");
+}
+
+size_t RemoteAtomDB::node_count(shared_ptr<Keychain> keychain) const {
+    RAISE_ERROR("RemoteAtomDB::node_count(keychain) is not implemented");
+}
+
+size_t RemoteAtomDB::link_count(shared_ptr<Keychain> keychain) const {
+    RAISE_ERROR("RemoteAtomDB::link_count(keychain) is not implemented");
+}
+
+size_t RemoteAtomDB::atom_count(shared_ptr<Keychain> keychain) const {
+    RAISE_ERROR("RemoteAtomDB::atom_count(keychain) is not implemented");
 }

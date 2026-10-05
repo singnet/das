@@ -81,39 +81,6 @@ class AccessPermissionEntry {
     virtual const char* get_token(unsigned int index) const = 0;
 };
 
-class PublicKey {
-   public:
-    vector<string> keys;
-    map<string, unsigned int> peer_to_key;
-
-    bool is_single_key() const { return this->peer_to_key.empty(); }
-
-    /**
-     * Key this AtomDB should use for access-permission lookup.
-     * - Single-key: the one key, regardless of uid.
-     * - Per-peer map: the key registered for `uid`, if present.
-     * Returns "" if no key exists for `uid`.
-     */
-    string key_for_uid(const string& uid) const {
-        if (is_single_key()) {
-            if (keys.empty()) return "";
-            return keys.front();
-        }
-        auto it = peer_to_key.find(uid);
-        if (it == peer_to_key.end()) return "";
-        return keys[it->second];
-    }
-
-    explicit PublicKey(const string& key) : keys{key} {}
-    explicit PublicKey(const map<string, string>& peer_keys) {
-        this->keys.reserve(peer_keys.size());
-        for (const auto& [peer, key] : peer_keys) {
-            this->peer_to_key[peer] = this->keys.size();
-            this->keys.push_back(key);
-        }
-    }
-};
-
 class AccessPermissionDocument {
    public:
     AccessPermissionDocument() = default;
