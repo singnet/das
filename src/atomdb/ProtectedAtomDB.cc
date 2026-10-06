@@ -422,6 +422,10 @@ vector<shared_ptr<Atom>> ProtectedAtomDB::filter_atoms(const vector<shared_ptr<A
 size_t ProtectedAtomDB::count(const string& type, shared_ptr<Keychain> keychain) const {
     auto permissions = this->backend->get_access_permissions(keychain->get_public_key(this->uid_));
 
+    if (permissions == nullptr || permissions->get_entries_size() == 0) {
+        return 0;
+    }
+
     size_t node_count = 0;
     size_t link_count = 0;
     size_t atom_count = 0;

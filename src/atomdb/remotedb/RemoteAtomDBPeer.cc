@@ -370,17 +370,11 @@ void RemoteAtomDBPeer::re_index_patterns(bool flush_patterns) {
 // Note: a staged update of an atom that already exists locally is still counted twice; the
 // result is an upper bound, not an exact distinct count.
 
-size_t RemoteAtomDBPeer::node_count() const {
-    return this->node_count(nullptr);
-}
+size_t RemoteAtomDBPeer::node_count() const { return this->node_count(nullptr); }
 
-size_t RemoteAtomDBPeer::link_count() const {
-    return this->link_count(nullptr);
-}
+size_t RemoteAtomDBPeer::link_count() const { return this->link_count(nullptr); }
 
-size_t RemoteAtomDBPeer::atom_count() const {
-    return this->atom_count(nullptr);
-}
+size_t RemoteAtomDBPeer::atom_count() const { return this->atom_count(nullptr); }
 
 void RemoteAtomDBPeer::fetch(const LinkSchema& link_schema, shared_ptr<Keychain> keychain) {
     {

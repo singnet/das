@@ -265,17 +265,11 @@ void RemoteAtomDB::re_index_patterns(bool flush_patterns) {
     }
 }
 
-size_t RemoteAtomDB::node_count() const {
-    return this->node_count(nullptr);
-}
+size_t RemoteAtomDB::node_count() const { return this->node_count(nullptr); }
 
-size_t RemoteAtomDB::link_count() const {
-    return this->link_count(nullptr);
-}
+size_t RemoteAtomDB::link_count() const { return this->link_count(nullptr); }
 
-size_t RemoteAtomDB::atom_count() const {
-    return this->atom_count(nullptr);
-}
+size_t RemoteAtomDB::atom_count() const { return this->atom_count(nullptr); }
 
 RemoteAtomDBPeer* RemoteAtomDB::get_peer(const string& uid) {
     auto it = remote_db_.find(uid);
