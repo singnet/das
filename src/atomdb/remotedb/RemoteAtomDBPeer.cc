@@ -32,6 +32,11 @@ RemoteAtomDBPeer::RemoteAtomDBPeer(const string& uid,
         local_persistence_->get_protection_mode() != atomdb_api_types::ProtectionMode::UNPROTECTED) {
         RAISE_ERROR("RemoteAtomDBPeer supports only UNPROTECTED local persistence");
     }
+    if (auto p = dynamic_pointer_cast<ProtectedAtomDB>(this->atomdb_)) {
+        this->protected_atomdb_ = p;
+    } else {
+        this->protected_atomdb_ = nullptr;
+    }
     initialize();
     start_cleanup_thread();
 }
@@ -73,11 +78,9 @@ void RemoteAtomDBPeer::initialize() {
     this->read_cache_ = make_shared<InMemoryDB>(config);
 
     if (auto p = dynamic_pointer_cast<ProtectedAtomDB>(this->atomdb_)) {
-        this->protected_atomdb_ = p;
         this->protected_write_buffer_ = p->wrap(this->write_buffer_);
         this->protected_read_cache_ = p->wrap(this->read_cache_);
     } else {
-        this->protected_atomdb_ = nullptr;
         this->protected_write_buffer_ = nullptr;
         this->protected_read_cache_ = nullptr;
     }
