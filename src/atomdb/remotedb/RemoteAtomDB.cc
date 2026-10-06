@@ -470,7 +470,6 @@ set<string> RemoteAtomDB::nodes_exist(const vector<string>& handles, shared_ptr<
                         [](RemoteAtomDBPeer& p, const vector<string>& h, shared_ptr<Keychain> keychain) {
                             return p.nodes_exist(h, keychain);
                         });
-    ;
 }
 
 set<string> RemoteAtomDB::links_exist(const vector<string>& handles, shared_ptr<Keychain> keychain) {
