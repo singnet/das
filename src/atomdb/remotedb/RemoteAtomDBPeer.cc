@@ -559,7 +559,7 @@ void RemoteAtomDBPeer::release_cache(bool /*persist_to_local*/, bool /*persist_e
         // to it) finish — see quiescence wait below.
         old_write_buffer = write_buffer_;
         old_read_cache = read_cache_;
-        initialize_cache();
+        initialize();
         fetched_link_templates_.clear();
     }
 
