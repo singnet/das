@@ -251,6 +251,8 @@ class ProtectedAtomDB : public AtomDB, public KeySensitiveAtomDB {
      */
     vector<shared_ptr<Atom>> filter_atoms(const vector<shared_ptr<Atom>>& original_atoms,
                                           const string& public_key);
+
+    size_t count(const string& type, shared_ptr<Keychain> keychain) const;
 };
 
 }  // namespace atomdb

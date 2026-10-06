@@ -101,11 +101,9 @@ cc_library(
     includes = ["."],
     deps = [
         ":atomdb",
-        ":atomdb_api_types",
         ":key_sensitive_atomdb",
         "//atomdb/auth:auth_lib",
         "//atomdb/inmemorydb:inmemorydb_api_types",
         "//commons:commons_lib",
-        "//commons/atoms:atoms_lib",
     ],
 )

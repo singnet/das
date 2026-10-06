@@ -25,6 +25,27 @@ void AtomDBUtils::reachable_terminal_set(set<string>& output, const string& hand
     }
 }
 
+void AtomDBUtils::count_reachable_atoms(const string& handle,
+                                        size_t& node_count,
+                                        size_t& link_count,
+                                        size_t& atom_count,
+                                        shared_ptr<Keychain> keychain) {
+    auto atomdb = AtomDBSingleton::get_instance();
+    auto key_sensitive_atomdb = dynamic_pointer_cast<KeySensitiveAtomDB>(atomdb);
+    auto atom = key_sensitive_atomdb ? key_sensitive_atomdb->get_atom(handle, keychain)
+                                     : atomdb->get_atom(handle);
+    if (atom != nullptr) {
+        if (Atom::is_node(atom)) {
+            node_count++;
+        } else {
+            AtomDBUtils::count_reachable_atoms_recursive(
+                dynamic_pointer_cast<Link>(atom), node_count, link_count, atom_count, keychain);
+            link_count++;
+        }
+    }
+    atom_count++;
+}
+
 string AtomDBUtils::handle_to_metta(const string& handle, shared_ptr<Keychain> keychain) {
     map<string, string> not_used;
     shared_ptr<AtomDB> atomdb = AtomDBSingleton::get_instance();
@@ -58,6 +79,30 @@ void AtomDBUtils::reachable_terminal_set_recursive(set<string>& output,
                 output, dynamic_pointer_cast<Link>(atom), metta_mapping);
         }
         first_target = false;
+    }
+}
+
+void AtomDBUtils::count_reachable_atoms_recursive(shared_ptr<Link> link,
+                                                  size_t& node_count,
+                                                  size_t& link_count,
+                                                  size_t& atom_count,
+                                                  shared_ptr<Keychain> keychain) {
+    auto atomdb = AtomDBSingleton::get_instance();
+    auto key_sensitive_atomdb = dynamic_pointer_cast<KeySensitiveAtomDB>(atomdb);
+
+    for (string& target_handle : link->targets) {
+        auto atom = key_sensitive_atomdb ? key_sensitive_atomdb->get_atom(target_handle, keychain)
+                                         : atomdb->get_atom(target_handle);
+        if (atom != nullptr) {
+            if (Atom::is_node(atom)) {
+                node_count++;
+            } else {
+                AtomDBUtils::count_reachable_atoms_recursive(
+                    dynamic_pointer_cast<Link>(atom), node_count, link_count, atom_count, keychain);
+                link_count++;
+            }
+        }
+        atom_count++;
     }
 }
 

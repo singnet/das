@@ -31,6 +31,11 @@ class AtomDBUtils {
                                             shared_ptr<Keychain> keychain,
                                             shared_ptr<AtomDB> atomdb,
                                             shared_ptr<ProtectedAtomDB> protected_atomdb);
+    static void count_reachable_atoms_recursive(shared_ptr<Link> link,
+                                                size_t& node_count,
+                                                size_t& link_count,
+                                                size_t& atom_count,
+                                                shared_ptr<Keychain> keychain);
 
    public:
     /**
@@ -47,6 +52,11 @@ class AtomDBUtils {
     static void reachable_terminal_set(set<string>& output,
                                        const string& handle,
                                        bool metta_mapping = false);
+    static void count_reachable_atoms(const string& handle,
+                                      size_t& node_count,
+                                      size_t& link_count,
+                                      size_t& atom_count,
+                                      shared_ptr<Keychain> keychain = nullptr);
 
     /**
      * Build a metta expression out of an atom handle. Optionally, a keychain can be passed
