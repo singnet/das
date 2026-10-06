@@ -484,6 +484,8 @@ string QueryAnswer::get(const QueryAnswerElement& key, bool return_empty_when_no
             break;
         case QueryAnswerElement::HANDLE:
             return get(key.element_index, return_empty_when_not_found);
+        case QueryAnswerElement::CONSTANT_HANDLE:
+            return key.name;
         case QueryAnswerElement::VARIABLE:
             return get(key.name, return_empty_when_not_found);
         case QueryAnswerElement::PATH:

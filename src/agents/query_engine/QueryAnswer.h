@@ -30,6 +30,7 @@ class QueryAnswerElement {
     enum ElementType {
         NOTHING = 0,
         HANDLE,
+        CONSTANT_HANDLE,
         PATH,
         VARIABLE,
         ALL_HANDLES,
@@ -83,16 +84,21 @@ class QueryAnswerElement {
           reverse_path(false),
           pop_first(false),
           pop_last(false) {}
-    QueryAnswerElement(const string& key)
-        : type(VARIABLE),
-          path_index(0),
+    QueryAnswerElement(const string& key, bool is_constant_handle = false)
+        : path_index(0),
           element_index(0),
           name(key),
           hop_peek_start(0),
           hop_peek_end(0),
           reverse_path(false),
           pop_first(false),
-          pop_last(false) {}
+          pop_last(false) {
+        if (is_constant_handle) {
+            this->type = CONSTANT_HANDLE;
+        } else {
+            this->type = VARIABLE;
+        }
+    }
     QueryAnswerElement(unsigned int key_path, unsigned int hop_peek_start, unsigned int hop_peek_end)
         : type(PATH_HOPS),
           path_index(key_path),
@@ -153,9 +159,13 @@ class QueryAnswerElement {
         this->pop_last = other.pop_last;
         return *this;
     }
-    void set(const string& key) {
+    void set(const string& key, bool is_constant_handle = false) {
         if (this->type == NOTHING) {
-            this->type = VARIABLE;
+            if (is_constant_handle) {
+                this->type = CONSTANT_HANDLE;
+            } else {
+                this->type = VARIABLE;
+            }
             this->name = key;
         } else {
             RAISE_ERROR("Invalid attempt to reset a QueryAnswerElement");
@@ -194,6 +204,8 @@ class QueryAnswerElement {
             return "-";
         } else if (this->type == HANDLE) {
             return "_" + std::to_string(this->element_index);
+        } else if (this->type == CONSTANT_HANDLE) {
+            return "#" + this->name;
         } else if (this->type == VARIABLE) {
             return "$" + this->name;
         } else if (this->type == PATH) {
@@ -243,6 +255,8 @@ class QueryAnswerElement {
                 } else {
                     return QueryAnswerElement(s.substr(1, s.size() - 1));
                 }
+            } else if (s[0] == '#') {
+                return QueryAnswerElement(s.substr(1, s.size() - 1), true);
             } else if (s[0] == '^') {
                 if (s[1] == '*') {
                     return QueryAnswerElement(QueryAnswerElement::ALL_PATH_HANDLES);
