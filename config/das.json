@@ -1,6 +1,7 @@
 {
     "atomdb": {
         "uid": "local",
+        "public_keys": ["local_key_primary"],
         "type": "redismongodb",
         "composite_type_enabled": true,
         "redis": {
@@ -81,6 +82,7 @@
         "remote_peers": [
             {
                 "uid": "peer1",
+                "public_keys": ["peer1_key_primary"],
                 "type": "redismongodb",
                 "mongodb": {
                     "endpoint": "localhost:40021",
@@ -97,6 +99,7 @@
             },
             {
                 "uid": "peer2",
+                "public_keys": ["peer2_key_primary"],
                 "type": "redismongodb",
                 "mongodb": {
                     "endpoint": "localhost:40031",
@@ -113,6 +116,7 @@
             },
             {
                 "uid": "peer3",
+                "public_keys": ["peer3_key_primary"],
                 "type": "inmemorydb",
                 "local_persistence": {
                     "uid": "peer3_local",
@@ -167,7 +171,7 @@
                 "populate_metta_mapping": false,
                 "use_metta_as_query_tokens": false,
                 "allow_incomplete_chain_path": false,
-                "public_key_tokens": ""
+                "public_key_tokens": "local local_key_primary peer1 peer1_key_primary peer2 peer2_key_primary peer3 peer3_key_primary"
             }
         },
         "query": {
