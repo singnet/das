@@ -50,6 +50,7 @@ const int TEST_PORT = 19001;
 const int TEST_PORT_THREAD_POOL = 19007;
 const int TEST_PORT_PARALLEL = 19008;
 const int TEST_PORT_EVOLUTION = 19009;
+const int TEST_PORT_LINK_CREATION = 19010;
 const string UNKNOWN_EXECUTION_ID = "exec-00000000000000000000000000000000";
 const string SHORT_COMMAND_TEXT = "Blah";
 
@@ -175,6 +176,7 @@ class CaptureLinkCreationProcessor : public BusCommandProcessor {
             description = link_creation->to_string();
             received = true;
         }
+        link_creation->push(make_shared<QueryAnswer>("link-created", 0.0));
         link_creation->query_processing_finished();
     }
 };
@@ -413,6 +415,21 @@ class CommandRouterHttpAPIEvolutionTest : public ::testing::Test {
 };
 
 HttpAPIServerFixture CommandRouterHttpAPIEvolutionTest::server;
+
+class CommandRouterHttpAPILinkCreationTest : public ::testing::Test {
+   protected:
+    static HttpAPIServerFixture server;
+
+    static void SetUpTestSuite() {
+        server.start(TEST_PORT_LINK_CREATION, {}, 4, make_shared<CaptureLinkCreationProcessor>());
+    }
+
+    static void TearDownTestSuite() { server.stop(); }
+
+    httplib::Client client() { return server.make_client(TEST_PORT_LINK_CREATION); }
+};
+
+HttpAPIServerFixture CommandRouterHttpAPILinkCreationTest::server;
 
 class CommandRouterHttpAPISingletonTest : public ::testing::Test {
     void TearDown() override { CommandRouterHttpAPISingleton::provide(nullptr); }
@@ -953,22 +970,6 @@ TEST(BusCommandRouterProxyStreamPollerTest, stream_emits_one_item_per_chunk_by_d
     EXPECT_EQ(chunk_sizes(chunks), (vector<size_t>{1, 1, 1, 1, 1}));
     EXPECT_EQ(total_items(chunks), 5u);
     EXPECT_EQ(chunks.front()[0]["handles"][0][0], "answer-0");
-}
-
-TEST(BusCommandRouterProxyStreamPollerTest, link_creation_streams_answers_like_query) {
-    auto proxy = make_shared<StreamTestProxy>();
-    proxy->mark_routed();
-    proxy->enqueue_answers(2);
-    proxy->mark_finished();
-
-    vector<json> chunks;
-    auto on_chunk = [&](const json& chunk) { chunks.push_back(chunk); };
-
-    const auto poll_result = BusCommandRouterProxyStreamPoller::poll_stream(
-        proxy, "link_creation", 1, nullptr, on_chunk, nullptr, nullptr);
-    ASSERT_TRUE(poll_result.ok);
-    EXPECT_EQ(chunks.size(), 2u);
-    EXPECT_EQ(total_items(chunks), 2u);
 }
 
 TEST(BusCommandRouterProxyStreamPollerTest,
@@ -1542,6 +1543,53 @@ TEST_F(CommandRouterHttpAPIEvolutionTest, evolution_remote_fitness_round_trip) {
 
     EXPECT_TRUE(saw_eval_fitness);
     EXPECT_TRUE(saw_answer);
+    EXPECT_EQ(terminal_status, "completed");
+}
+
+TEST_F(CommandRouterHttpAPILinkCreationTest, link_creation_streams_one_answer_and_completes) {
+    const json body = {{"command", "link_creation"},
+                       {"params",
+                        {{"link_creation",
+                          {{"query", {{"syntax", "metta"}, {"tokens", json::array({"(Concept %C)"})}}},
+                           {"link_creator_tag", LinkCreatorRegistry::UNIT_TEST}}},
+                         {"use_metta_as_query_tokens", true},
+                         {"context", "default"}}}};
+
+    auto create = client().Post("/command-router/executions", body.dump(), "application/json");
+    ASSERT_TRUE(create);
+    ASSERT_EQ(create->status, 202) << create->body;
+    const string execution_id = json::parse(create->body)["execution_id"].get<string>();
+
+    httplib::ws::WebSocketClient ws("ws://" + TEST_HOST + ":" + std::to_string(TEST_PORT_LINK_CREATION) +
+                                    "/command-router/ws/" + execution_id);
+    ASSERT_TRUE(ws.is_valid());
+    ASSERT_TRUE(ws.connect());
+    ws.set_read_timeout(30, 0);
+
+    bool saw_answers = false;
+    int answer_count = 0;
+    string terminal_status;
+    string msg;
+    while (ws.read(msg)) {
+        auto event = json::parse(msg);
+        const string command = event.value("command", "");
+        if (command == CommandExecution::COMMAND_QUERY_ANSWERS) {
+            saw_answers = true;
+            ASSERT_TRUE(event["params"]["answers"].is_array());
+            answer_count += static_cast<int>(event["params"]["answers"].size());
+        } else if (command == CommandExecution::COMMAND_EXECUTION_STATUS) {
+            terminal_status = event["params"].value("status", "");
+            if (terminal_status == "completed" || terminal_status == "error" ||
+                terminal_status == "aborted") {
+                EXPECT_EQ(event["params"].value("total_items", -1), 1);
+                break;
+            }
+        }
+    }
+    ws.close();
+
+    EXPECT_TRUE(saw_answers);
+    EXPECT_EQ(answer_count, 1);
     EXPECT_EQ(terminal_status, "completed");
 }
 

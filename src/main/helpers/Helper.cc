@@ -257,6 +257,10 @@ Required arguments:
             (q | query)                 required: MeTTa query or quoted LINK_TEMPLATE tokens
             (lc | link-creator-tag)     required: link creator tag (e.g. and_two_predicates)
 
+            A MeTTa query is one expression. Set this before the command:
+            --cmd=set --arg='param use_metta_as_query_tokens true'
+            A quoted LINK_TEMPLATE query keeps the flag false.
+
             Example:
             ((q (and (Concept %C1) (Concept %C2)))
              (lc and_two_predicates))

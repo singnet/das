@@ -539,9 +539,15 @@ bool command_router::try_parse_link_creation_metta_arg(const string& arg, LinkCr
         }
         const auto& body = children[1];
         if (canonical == PARAM_QUERY) {
+            if (found_query) {
+                return false;
+            }
             out.query = query_expression_from_atom(body, *actions);
             found_query = !out.query.empty();
         } else if (canonical == PARAM_LINK_CREATOR) {
+            if (found_tag) {
+                return false;
+            }
             out.link_creator_tag = query_expression_from_atom(body, *actions);
             found_tag = !out.link_creator_tag.empty();
         }

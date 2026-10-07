@@ -380,6 +380,14 @@ TEST(LinkCreationMettaParser, rejects_query_clause_with_surplus_bodies) {
         "((query (Concept $A) (Concept $B)) (lc and_two_predicates))", args));
 }
 
+TEST(LinkCreationMettaParser, rejects_duplicate_query_and_link_creator_clauses) {
+    LinkCreationMettaArgs args;
+    EXPECT_FALSE(try_parse_link_creation_metta_arg(
+        "((q (Concept $A)) (q (Concept $B)) (lc and_two_predicates))", args));
+    EXPECT_FALSE(try_parse_link_creation_metta_arg(
+        "((q (Concept $A)) (lc and_two_predicates) (lc customizable))", args));
+}
+
 TEST(LinkCreationMettaParser, rejects_arg_missing_link_creator_tag) {
     LinkCreationMettaArgs args;
     EXPECT_FALSE(try_parse_link_creation_metta_arg("((query (Concept %C)))", args));
