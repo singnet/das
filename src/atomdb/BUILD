@@ -114,9 +114,7 @@ cc_library(
     hdrs = ["ProtectedAtomDB.h"],
     includes = ["."],
     deps = [
-        ":atomdb",
-        ":key_sensitive_atomdb",
-        "//atomdb/auth:auth_lib",
+        ":atomdbutils",
         "//atomdb/inmemorydb:inmemorydb_api_types",
         "//commons:commons_lib",
     ],

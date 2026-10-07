@@ -909,6 +909,7 @@ cc_test(
     ],
     linkstatic = 1,
     deps = [
+        "//atomdb:atomdb_singleton",
         "//atomdb:protected_atomdb",
         "//atomdb/auth:auth_lib",
         "//atomdb/auth:keychain",
