@@ -30,7 +30,7 @@ class AtomDBUtils {
                                             bool populate_mapping,
                                             shared_ptr<Keychain> keychain,
                                             shared_ptr<AtomDB> atomdb,
-                                            shared_ptr<KeySensitiveAtomDB> key_sensitive_atomdb);
+                                            shared_ptr<KeySensitiveAtomDB> protected_atomdb);
 
    public:
     /**
