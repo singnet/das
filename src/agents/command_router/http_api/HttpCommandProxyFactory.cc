@@ -267,6 +267,11 @@ bool parse_link_creation_arg(const json& params,
 
     const string query_body = use_metta ? query_expr : quote_metta_token(query_expr);
     link_creation_arg = "((query " + query_body + ") (lc " + tag + "))";
+    LinkCreationMettaArgs parsed;
+    if (!try_parse_link_creation_metta_arg(link_creation_arg, parsed)) {
+        error_message = "params.link_creation.query must be a single expression";
+        return false;
+    }
     return true;
 }
 

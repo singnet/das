@@ -201,7 +201,7 @@ int main(int argc, char* argv[]) {
                     return 1;
                 }
                 LOG_INFO("Link creation routed; waiting for results...");
-                while (!router_proxy->finished() && Helper::is_running) {
+                auto drain_link_creation_answers = [&]() {
                     shared_ptr<QueryAnswer> answer;
                     while ((answer = router_proxy->pop()) != nullptr) {
                         LOG_INFO("Received answer: " + answer->to_string(use_metta_as_query_tokens));
@@ -212,8 +212,16 @@ int main(int argc, char* argv[]) {
                             }
                         }
                     }
+                };
+                while (Helper::is_running) {
+                    drain_link_creation_answers();
+                    if (router_proxy->finished() || router_proxy->error_flag) {
+                        break;
+                    }
                     Utils::sleep(100);
                 }
+                // Answers can arrive together with FINISHED during the sleep above.
+                drain_link_creation_answers();
                 if (router_proxy->error_flag) {
                     return 1;
                 }

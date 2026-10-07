@@ -525,12 +525,17 @@ bool command_router::try_parse_link_creation_metta_arg(const string& arg, LinkCr
             continue;
         }
         vector<shared_ptr<Atom>> children = link_targets(clause_link, *actions);
-        if (children.size() < 2) {
+        if (children.empty()) {
             continue;
         }
         string canonical = canonical_link_creation_slot(atom_name(children[0]));
         if (canonical.empty()) {
             continue;
+        }
+        // Each recognized slot is (label body). Extra bodies would be dropped, so a
+        // caller who sent two MeTTa expressions would run only the first.
+        if (children.size() != 2) {
+            return false;
         }
         const auto& body = children[1];
         if (canonical == PARAM_QUERY) {

@@ -374,6 +374,12 @@ TEST(LinkCreationMettaParser, parse_full_slot_name_and_quoted_link_template) {
     EXPECT_EQ(args.link_creator_tag, "customizable");
 }
 
+TEST(LinkCreationMettaParser, rejects_query_clause_with_surplus_bodies) {
+    LinkCreationMettaArgs args;
+    EXPECT_FALSE(try_parse_link_creation_metta_arg(
+        "((query (Concept $A) (Concept $B)) (lc and_two_predicates))", args));
+}
+
 TEST(LinkCreationMettaParser, rejects_arg_missing_link_creator_tag) {
     LinkCreationMettaArgs args;
     EXPECT_FALSE(try_parse_link_creation_metta_arg("((query (Concept %C)))", args));

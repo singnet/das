@@ -876,6 +876,18 @@ TEST(HttpCommandProxyFactoryTest, create_link_creation_quotes_link_template_toke
     EXPECT_FALSE(proxy->parameters.get<bool>(BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS));
 }
 
+TEST(HttpCommandProxyFactoryTest, create_link_creation_rejects_multiple_metta_query_bodies) {
+    string error;
+    auto proxy = HttpCommandProxyFactory::create(
+        HttpCommandProxyFactory::LINK_CREATION,
+        {{"link_creation",
+          {{"query", {{"syntax", "metta"}, {"tokens", json::array({"(Concept $A)", "(Concept $B)"})}}},
+           {"link_creator_tag", "and_two_predicates"}}}},
+        error);
+    EXPECT_EQ(proxy, nullptr);
+    EXPECT_NE(error.find("single expression"), string::npos);
+}
+
 TEST(HttpCommandProxyFactoryTest, create_link_creation_requires_query_and_tag) {
     string error;
     auto missing_query = HttpCommandProxyFactory::create(
