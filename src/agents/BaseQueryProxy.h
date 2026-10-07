@@ -4,6 +4,7 @@
 
 #include "AtomDBSingleton.h"
 #include "BaseProxy.h"
+#include "Keychain.h"
 #include "Message.h"
 #include "QueryAnswer.h"
 #include "SharedQueue.h"
@@ -217,6 +218,20 @@ class BaseQueryProxy : public BaseProxy {
      */
     void populate_metta_mapping(QueryAnswer* answer);
 
+    /**
+     * Getter for the _keychain field.
+     *
+     * @return Keychain.
+     */
+    inline shared_ptr<Keychain> keychain() { return _keychain; }
+
+    /**
+     * Getter for the _atomdb field.
+     *
+     * @return AtomDB.
+     */
+    inline shared_ptr<AtomDB> atomdb() { return _atomdb; }
+
     // ---------------------------------------------------------------------------------------------
     // Virtual superclass API and the piggyback methods called by it
 
@@ -269,7 +284,8 @@ class BaseQueryProxy : public BaseProxy {
     vector<string> query_tokens;
     vector<string> answer_bundle_vector;
     vector<string> built_atoms_bundle_vector;
-    shared_ptr<AtomDB> atomdb;
+    shared_ptr<Keychain> _keychain;
+    shared_ptr<AtomDB> _atomdb;
 };
 
 }  // namespace agents

@@ -54,32 +54,10 @@ LinkTemplate::LinkTemplate(const string& type,
     }
     this->reverse_nesting_level = max_reverse_nesting + 1;
     if (public_key_tokens != "") {
-        bool parse_error = false;
-        vector<string> tokens = Utils::split(public_key_tokens);
-        map<string, string> keymap;
-        if ((tokens.size() > 0) && ((tokens.size() % 2) == 0)) {
-            for (unsigned int i = 0; i < tokens.size(); i += 2) {
-                if ((tokens[i] != "") && (tokens[i + 1] != "")) {
-                    keymap[tokens[i]] = tokens[i + 1];
-                } else {
-                    parse_error = true;
-                    break;
-                }
-            }
-            if (!parse_error && (keymap.size() == (tokens.size() / 2))) {
-                this->keychain = make_shared<Keychain>(keymap);
-            } else {
-                parse_error = true;
-            }
-        } else {
-            parse_error = true;
-        }
-        if (parse_error) {
-            RAISE_ERROR(
-                "Invalid tokens for public key. Expected a list of (uid, key) pairs (each uid being "
-                "unique) in a string like 'uid1 key1 uid2 key2 ... uidn keyn' but got: <" +
-                public_key_tokens + ">");
-        }
+        this->keychain = make_shared<Keychain>();
+        this->keychain->untokenize(Utils::split(public_key_tokens));
+    } else {
+        this->keychain = nullptr;
     }
 }
 
@@ -198,12 +176,13 @@ void LinkTemplate::processor_method(shared_ptr<StoppableThread> monitor) {
         return;
     }
     shared_ptr<AtomDB> atomdb = AtomDBSingleton::get_instance();
-    shared_ptr<KeySensitiveAtomDB> protected_atomdb = dynamic_pointer_cast<KeySensitiveAtomDB>(atomdb);
+    shared_ptr<KeySensitiveAtomDB> key_sensitive_atomdb =
+        dynamic_pointer_cast<KeySensitiveAtomDB>(atomdb);
     string link_schema_handle = this->link_schema.handle();
     shared_ptr<atomdb_api_types::HandleSet> handles;
     LOG_INFO("Fetching " + link_schema_handle + " from AtomDB");
-    if (protected_atomdb != nullptr) {
-        handles = protected_atomdb->query_for_pattern(this->link_schema, this->keychain);
+    if (key_sensitive_atomdb != nullptr) {
+        handles = key_sensitive_atomdb->query_for_pattern(this->link_schema, this->keychain);
     } else {
         handles = atomdb->query_for_pattern(this->link_schema);
     }

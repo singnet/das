@@ -7,6 +7,7 @@
 #include <string>
 
 #include "AtomDBAPITypes.h"
+#include "AtomDBInitializer.h"
 #include "AtomDBSingleton.h"
 #include "AttentionBrokerClient.h"
 #include "ContextBrokerProxy.h"
@@ -1054,6 +1055,7 @@ static void query_evolution(
     proxy->parameters[BaseQueryProxy::ALLOW_INCOMPLETE_CHAIN_PATH] = true;
     proxy->parameters[BaseQueryProxy::MAX_BUNDLE_SIZE] = (unsigned int) 1000;
     proxy->parameters[BaseQueryProxy::ATTENTION_FOCUS_STRICTNESS] = (double) ATTENTION_FOCUS_STRICTNESS;
+    proxy->parameters[BaseQueryProxy::PUBLIC_KEY_TOKENS] = "";
     proxy->parameters[PatternMatchingQueryProxy::DISREGARD_IMPORTANCE_FLAG] = false;
     proxy->parameters[PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG] = true;
     proxy->parameters[PatternMatchingQueryProxy::UNIQUE_VALUE_FLAG] = false;
@@ -1673,7 +1675,7 @@ int main(int argc, char* argv[]) {
     auto json_config = JsonConfigParser::load(config_file);
     auto atomdb_config = json_config.at_path("atomdb").get_or<JsonConfig>(JsonConfig());
     SystemParametersSingleton::init(json_config);
-    AtomDBSingleton::init(atomdb_config);
+    AtomDBInitializer::init(atomdb_config);
 
     if (HTTP_ENDPOINT.empty()) {
         HTTP_ENDPOINT = json_config.at_path("agents.command_router.http_api.endpoint")

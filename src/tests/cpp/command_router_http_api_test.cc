@@ -2,6 +2,7 @@
 #include <nlohmann/json.hpp>
 #include <thread>
 
+#include "AtomDBInitializer.h"
 #include "AtomDBSingleton.h"
 #include "BaseProxy.h"
 #include "BaseQueryProxy.h"
@@ -261,7 +262,7 @@ class HttpAPIServerFixture {
 class CommandRouterStreamTestEnvironment : public ::testing::Environment {
    public:
     void SetUp() override {
-        AtomDBSingleton::init(test_atomdb_json_config());
+        AtomDBInitializer::init(test_atomdb_json_config());
         init_test_system_parameters_singleton();
     }
 };

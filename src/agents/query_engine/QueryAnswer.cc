@@ -1,3 +1,4 @@
+#define LOG_LEVEL DEBUG_LEVEL
 #include "QueryAnswer.h"
 
 #include <cmath>
@@ -6,12 +7,11 @@
 #include <set>
 
 #include "Hasher.h"
+#include "KeySensitiveAtomDB.h"
 #include "LinkSchema.h"
 #include "Utils.h"
 
 using namespace query_engine;
-using namespace commons;
-using namespace atoms;
 
 QueryAnswer::QueryAnswer() : QueryAnswer(0.0) {}
 
@@ -484,6 +484,8 @@ string QueryAnswer::get(const QueryAnswerElement& key, bool return_empty_when_no
             break;
         case QueryAnswerElement::HANDLE:
             return get(key.element_index, return_empty_when_not_found);
+        case QueryAnswerElement::CONSTANT_HANDLE:
+            return key.name;
         case QueryAnswerElement::VARIABLE:
             return get(key.name, return_empty_when_not_found);
         case QueryAnswerElement::PATH:
@@ -530,7 +532,9 @@ string QueryAnswer::get(unsigned int key_path,
     return answer;
 }
 
-vector<string> QueryAnswer::get_all(const QueryAnswerElement& key, HandleDecoder* decoder) {
+vector<string> QueryAnswer::get_all(const QueryAnswerElement& key,
+                                    shared_ptr<AtomDB> atomdb,
+                                    shared_ptr<Keychain> keychain) {
     vector<string> answer;
     switch (key.type) {
         case QueryAnswerElement::ALL_HANDLES:
@@ -549,8 +553,8 @@ vector<string> QueryAnswer::get_all(const QueryAnswerElement& key, HandleDecoder
             }
             break;
         case QueryAnswerElement::PATH_HOPS: {
-            if (decoder == NULL) {
-                RAISE_ERROR("decoder can't be NULL when getting PATH_HOPS elements");
+            if (atomdb == nullptr) {
+                RAISE_ERROR("atomdb can't be nullptr when getting PATH_HOPS elements");
             }
             if (key.path_index >= get_paths_size()) {
                 break;
@@ -558,7 +562,19 @@ vector<string> QueryAnswer::get_all(const QueryAnswerElement& key, HandleDecoder
             auto& path = get_path_vector(key.path_index);
             bool first_handle = true;
             for (string& handle : path) {
-                auto atom = decoder->get_atom(handle);
+                shared_ptr<Atom> atom = nullptr;
+                if (keychain == nullptr) {
+                    atom = atomdb->get_atom(handle);
+                } else {
+                    auto key_sensitive_atomdb = dynamic_pointer_cast<KeySensitiveAtomDB>(atomdb);
+                    if (key_sensitive_atomdb != nullptr) {
+                        atom = key_sensitive_atomdb->get_atom(handle, keychain);
+                    } else {
+                        RAISE_ERROR(
+                            "Non-null keychain implies a KeySensitiveAtomDB but the passed atomdb "
+                            "object is not key sensitive.");
+                    }
+                }
                 if (atom == nullptr) {
                     RAISE_ERROR("Atom doesn't exist: " + handle);
                 }

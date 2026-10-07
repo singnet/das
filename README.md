@@ -78,6 +78,9 @@ das-cli config set
 If you are setting up a new environment, it's safe to hit `<ENTER>` and accept all suggested default values. Just make sure
 you don't have any other tool listening to the PORT numbers we are using.
 
+By default, `das-cli` uses `/usr/share/das/config.json` as the active config file (when this file exists in your installation).
+So, in most cases you can run `das-cli config set` and keep `Use default config`.
+
 ### 2. Starting an AtomDB
 
 The AtomDB is where the knowledge base is persisted. If you already have a persisted AtomDB you can just
@@ -169,23 +172,15 @@ We have `make` commands for most of the usual things we need to do in the repo
 (building, running tests, code-style formatting, running agents, etc). The only thing we need to
 do with `das-cli` is the DB setup. See how to install/configure `das-cli` [here](https://github.com/singnet/das-toolbox).
 
-To run unit tests you're are supposed to use the default values in `das-cli config set`.
+To run unit tests you are supposed to use the default config in `das-cli config set`.
 
 ```
 $ das-cli config set
-Enter Redis port [40020]:
-Is it a Redis cluster? [y/N]: 
-Enter MongoDB port [40021]:
-Enter MongoDB username [admin]:
-Enter MongoDB password [admin]:
-Is it a MongoDB cluster? [y/N]: 
-Enter Jupyter Notebook port [40019]: 
-Enter the Attention Broker port [40001]:
-Enter the Query Agent port [40002]: 
-Enter the Link Creation Agent Server port [40003]: 
-Enter the Inference Agent port [40004]: 
-Enter the Evolution agent port [40005]: 
-Enter the Context Broker port [40006]: 
+? Choose config setup mode
+	Use default config
+	Create new custom config
+
+# For unit tests, choose "Use default config".
 ```
 
 To run unit tests, firstly you need to setup an AtomDB and a Mork server. First the AtomDB.

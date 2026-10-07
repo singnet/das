@@ -4,6 +4,7 @@
 #include <string>
 
 #include "AtomDBAPITypes.h"
+#include "AtomDBInitializer.h"
 #include "AtomDBSingleton.h"
 #include "Hasher.h"
 #include "InMemoryDB.h"
@@ -25,7 +26,7 @@ TEST(LinkTemplate, basics) {
     string server_node_id = "SERVER";
     QueryNodeServer server_node(server_node_id);
 
-    AtomDBSingleton::init(test_atomdb_json_config());
+    AtomDBInitializer::init(test_atomdb_json_config());
     string expression = "Expression";
     string symbol = "Symbol";
 

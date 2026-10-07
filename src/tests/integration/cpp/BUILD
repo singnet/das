@@ -9,6 +9,7 @@ cc_library(
     srcs = ["lca_integration_test.cc"],
     deps = [
         "//agents/link_creation_agent:link_creation_agent_lib",
+        "//atomdb:atomdb_initializer",
         "//atomdb:atomdb_singleton",
         "//commons:commons_lib",
         "//service_bus:service_bus_lib",
