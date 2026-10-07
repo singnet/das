@@ -2,6 +2,7 @@
 
 #include "And.h"
 #include "AtomDBAPITypes.h"
+#include "AtomDBInitializer.h"
 #include "AtomDBSingleton.h"
 #include "Iterator.h"
 #include "LinkTemplate.h"
@@ -17,7 +18,7 @@ using namespace query_engine;
 using namespace query_element;
 
 TEST(LinkTemplate, basics) {
-    AtomDBSingleton::init(test_atomdb_json_config());
+    AtomDBInitializer::init(test_atomdb_json_config());
 
     const string expression = "Expression";
     const string symbol = "Symbol";

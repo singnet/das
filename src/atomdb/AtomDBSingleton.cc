@@ -1,6 +1,5 @@
 #include "AtomDBSingleton.h"
 
-#include "AtomDBFactory.h"
 #include "Utils.h"
 
 using namespace atomdb;
@@ -12,19 +11,10 @@ shared_ptr<AtomDB> AtomDBSingleton::atom_db = shared_ptr<AtomDB>{};
 // --------------------------------------------------------------------------------
 // Public methods
 
-void AtomDBSingleton::init(const JsonConfig& atomdb_config) {
-    if (AtomDBSingleton::initialized) {
-        RAISE_ERROR(
-            "AtomDBSingleton already initialized. AtomDBSingleton::init() should be called only once.");
-    }
-    AtomDBSingleton::atom_db = AtomDBFactory::create(atomdb_config);
-    AtomDBSingleton::initialized = true;
-}
-
 shared_ptr<AtomDB> AtomDBSingleton::get_instance() {
     if (!AtomDBSingleton::initialized) {
         RAISE_ERROR(
-            "Uninitialized AtomDBSingleton. AtomDBSingleton::init() must be called before "
+            "Uninitialized AtomDBSingleton. AtomDBInitializer::init() must be called before "
             "AtomDBSingleton::get_instance()");
         return shared_ptr<AtomDB>{};  // To avoid warnings
     } else {

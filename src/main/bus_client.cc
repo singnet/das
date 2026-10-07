@@ -1,5 +1,6 @@
 #include <signal.h>
 
+#include "AtomDBInitializer.h"
 #include "BaseQueryProxy.h"
 #include "BusCommandRouterProxy.h"
 #include "FitnessFunctionRegistry.h"
@@ -104,7 +105,7 @@ int main(int argc, char* argv[]) {
 
         LOG_INFO("Starting service: " + cmd_args[Helper::CLIENT]);
         auto atomdb_config = json_config.at_path("atomdb").get_or<JsonConfig>(JsonConfig());
-        AtomDBSingleton::init(atomdb_config);
+        AtomDBInitializer::init(atomdb_config);
         LOG_INFO("Atom count: " + std::to_string(AtomDBSingleton::get_instance()->atom_count()));
 
         if (Helper::processor_type_from_string(cmd_args[Helper::CLIENT]) ==

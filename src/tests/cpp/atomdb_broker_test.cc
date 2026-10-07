@@ -3,6 +3,7 @@
 #include <memory>
 
 #include "AtomDBAPITypes.h"
+#include "AtomDBInitializer.h"
 #include "AtomDBProcessor.h"
 #include "AtomDBProxy.h"
 #include "AtomDBSingleton.h"
@@ -30,7 +31,7 @@ using namespace query_engine;
 class AtomDBTestEnvironment : public ::testing::Environment {
    public:
     void SetUp() override {
-        AtomDBSingleton::init(test_atomdb_json_config());
+        AtomDBInitializer::init(test_atomdb_json_config());
         ServiceBusSingleton::init("0.0.0.0:52001", "", 52003, 52999);
         das_test::init_test_system_parameters_singleton();
     }

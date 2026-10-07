@@ -3,6 +3,7 @@
 #include <cstdlib>
 
 #include "AtomDBAPITypes.h"
+#include "AtomDBInitializer.h"
 #include "AtomDBSingleton.h"
 #include "LinkTemplate.h"
 #include "QueryAnswer.h"
@@ -73,7 +74,7 @@ TEST(Iterator, basics) {
 }
 
 TEST(Iterator, link_template_integration) {
-    AtomDBSingleton::init(test_atomdb_json_config());
+    AtomDBInitializer::init(test_atomdb_json_config());
     string expression = "Expression";
     string symbol = "Symbol";
 

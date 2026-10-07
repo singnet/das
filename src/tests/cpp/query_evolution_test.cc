@@ -1,4 +1,5 @@
 #include "AtomDBAPITypes.h"
+#include "AtomDBInitializer.h"
 #include "AtomDBSingleton.h"
 #include "FitnessFunctionRegistry.h"
 #include "Keychain.h"
@@ -37,7 +38,7 @@ class TestFitnessFunction : public FitnessFunction {
 };
 
 TEST(QueryEvolution, protected_methods) {
-    AtomDBSingleton::init(test_atomdb_json_config());
+    AtomDBInitializer::init(test_atomdb_json_config());
     init_test_system_parameters_singleton();
 
     string peer1_id = "localhost:40043";
