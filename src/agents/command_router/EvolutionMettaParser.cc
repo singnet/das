@@ -482,3 +482,64 @@ bool command_router::try_parse_evolution_metta_arg(const string& arg, EvolutionM
     }
     return found_labeled_slot;
 }
+
+namespace {
+
+const string PARAM_LINK_CREATOR = "link-creator-tag";
+const string ALIAS_LINK_CREATOR = "lc";
+
+string canonical_link_creation_slot(const string& name) {
+    if (name == PARAM_QUERY || name == ALIAS_QUERY) {
+        return PARAM_QUERY;
+    }
+    if (name == PARAM_LINK_CREATOR || name == ALIAS_LINK_CREATOR) {
+        return PARAM_LINK_CREATOR;
+    }
+    return "";
+}
+
+}  // namespace
+
+bool command_router::try_parse_link_creation_metta_arg(const string& arg, LinkCreationMettaArgs& out) {
+    out = LinkCreationMettaArgs{};
+    string trimmed = Utils::trim(arg);
+    if (trimmed.empty() || trimmed[0] != '(') {
+        return false;
+    }
+
+    auto actions = parse_metta(trimmed);
+    if (actions->root_handle.empty()) {
+        return false;
+    }
+    auto root_link = as_link(actions->handle_to_atom.at(actions->root_handle));
+    if (!root_link) {
+        return false;
+    }
+
+    bool found_query = false;
+    bool found_tag = false;
+    vector<shared_ptr<Atom>> clauses = link_targets(root_link, *actions);
+    for (const auto& clause_atom : clauses) {
+        auto clause_link = as_link(clause_atom);
+        if (!clause_link) {
+            continue;
+        }
+        vector<shared_ptr<Atom>> children = link_targets(clause_link, *actions);
+        if (children.size() < 2) {
+            continue;
+        }
+        string canonical = canonical_link_creation_slot(atom_name(children[0]));
+        if (canonical.empty()) {
+            continue;
+        }
+        const auto& body = children[1];
+        if (canonical == PARAM_QUERY) {
+            out.query = query_expression_from_atom(body, *actions);
+            found_query = !out.query.empty();
+        } else if (canonical == PARAM_LINK_CREATOR) {
+            out.link_creator_tag = query_expression_from_atom(body, *actions);
+            found_tag = !out.link_creator_tag.empty();
+        }
+    }
+    return found_query && found_tag;
+}

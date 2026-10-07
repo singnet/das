@@ -141,7 +141,7 @@ This processor manages AtomDB broker requests from the service bus.
                                                        {ProcessorType::COMMAND_ROUTER, string(R"(
 Bus Command Router:
 Gateway peer that accepts text commands as {COMMAND, ARG} over bus_command_router.
-Routes query and evolution to other bus agents; get/set manage local default parameters.
+Routes query, evolution, and link creation to other bus agents; get/set manage local default parameters.
 )")},
                                                        {ProcessorType::UNKNOWN, string(R"(
 Usage:
@@ -222,7 +222,7 @@ Bus Command Router Client:
 Sends {COMMAND, ARG} to the Bus Command Router peer via command_router.
 
 Required arguments:
-    - cmd: Router command (get, set, query, evolution)
+    - cmd: Router command (get, set, query, evolution, link_creation)
     - arg: Router argument; format depends on cmd:
 
         get  ARG: 'params'
@@ -253,7 +253,15 @@ Required arguments:
              (cr (((placeholder1 sentence1))))
              (cm (((sentence1 word1)))))
 
-        Context for query/evolution is taken from router params
+        link_creation  ARG: a labeled MeTTa list with these clauses:
+            (q | query)                 required: MeTTa query or quoted LINK_TEMPLATE tokens
+            (lc | link-creator-tag)     required: link creator tag (e.g. and_two_predicates)
+
+            Example:
+            ((q (and (Concept %C1) (Concept %C2)))
+             (lc and_two_predicates))
+
+        Context for query/evolution/link_creation is taken from router params
         (set it once via: --cmd=set --arg='param context <name>').
 
  Optional arguments:

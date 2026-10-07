@@ -16,6 +16,8 @@
 #include "FitnessFunctionRegistry.h"
 #include "HttpCommandProxyFactory.h"
 #include "JsonConfig.h"
+#include "LinkCreationProxy.h"
+#include "LinkCreatorRegistry.h"
 #include "PatternMatchingQueryProxy.h"
 #include "PortPool.h"
 #include "QueryAnswer.h"
@@ -36,6 +38,8 @@ using namespace query_engine;
 using namespace service_bus;
 using namespace evolution;
 using namespace fitness_functions;
+using namespace link_creation_agent;
+using namespace link_creators;
 using das_test::init_test_system_parameters_singleton;
 using json = nlohmann::json;
 
@@ -141,6 +145,40 @@ class CaptureEvolutionProcessor : public BusCommandProcessor {
     }
 };
 
+/** Captures LinkCreationProxy fields after HTTP/router forward. */
+class CaptureLinkCreationProcessor : public BusCommandProcessor {
+   public:
+    mutex mutex_;
+    Properties last_parameters;
+    string query_tokens;
+    string context;
+    string description;
+    bool received = false;
+
+    CaptureLinkCreationProcessor() : BusCommandProcessor({ServiceBus::LINK_CREATION}) {}
+
+    shared_ptr<BusCommandProxy> factory_empty_proxy() override {
+        return make_shared<LinkCreationProxy>();
+    }
+
+    void run_command(shared_ptr<BusCommandProxy> proxy) override {
+        auto link_creation = dynamic_pointer_cast<LinkCreationProxy>(proxy);
+        if (link_creation == nullptr) {
+            return;
+        }
+        link_creation->untokenize(link_creation->args);
+        {
+            lock_guard<mutex> lock(mutex_);
+            last_parameters = link_creation->parameters;
+            query_tokens = Utils::join(link_creation->get_query_tokens(), ' ');
+            context = link_creation->get_context();
+            description = link_creation->to_string();
+            received = true;
+        }
+        link_creation->query_processing_finished();
+    }
+};
+
 /** Sends eval_fitness to the requestor, waits for response, then pushes one answer. */
 class RemoteFitnessEvolutionProcessor : public BusCommandProcessor {
    public:
@@ -186,7 +224,8 @@ void initialize_test_service_bus_statics_once() {
     if (!initialized) {
         ServiceBus::initialize_statics({ServiceBus::BUS_COMMAND_ROUTER,
                                         ServiceBus::PATTERN_MATCHING_QUERY,
-                                        ServiceBus::QUERY_EVOLUTION},
+                                        ServiceBus::QUERY_EVOLUTION,
+                                        ServiceBus::LINK_CREATION},
                                        49400,
                                        49999);
         initialized = true;
@@ -263,6 +302,7 @@ class CommandRouterStreamTestEnvironment : public ::testing::Environment {
     void SetUp() override {
         AtomDBSingleton::init(test_atomdb_json_config());
         init_test_system_parameters_singleton();
+        LinkCreatorRegistry::initialize_statics();
     }
 };
 
@@ -538,6 +578,65 @@ TEST(BusCommandRouterProcessorTest, http_evolution_keeps_bus_parameter_set) {
     EXPECT_EQ(evo_processor->last_parameters.find("context"), evo_processor->last_parameters.end());
 }
 
+TEST(BusCommandRouterProcessorTest, http_link_creation_forwards_query_and_parameters) {
+    initialize_test_service_bus_statics_once();
+
+    const string requestor_id = TEST_HOST + ":http-lc-params-test";
+    const unsigned int lc_port = PortPool::get_port();
+    const unsigned int router_port = PortPool::get_port();
+    const string lc_id = TEST_HOST + ":" + std::to_string(lc_port);
+    const string router_id = TEST_HOST + ":" + std::to_string(router_port);
+
+    auto lc_processor = make_shared<CaptureLinkCreationProcessor>();
+    auto lc_bus = make_shared<ServiceBus>(lc_id);
+    lc_bus->register_processor(lc_processor);
+    Utils::sleep(300);
+
+    auto router_bus = make_shared<ServiceBus>(router_id, lc_id);
+    auto router_processor = make_shared<BusCommandRouterProcessor>(router_bus);
+    router_bus->register_processor(router_processor);
+    Utils::sleep(500);
+
+    string error;
+    const json params = {
+        {"link_creation",
+         {{"query",
+           {{"syntax", "metta"}, {"tokens", json::array({"(and (Concept %C1) (Concept %C2))"})}}},
+          {"link_creator_tag", LinkCreatorRegistry::UNIT_TEST}}},
+        {"use_metta_as_query_tokens", true},
+        {"context", "link-ctx"},
+        {"max_rounds", 2},
+        {"link_creation_strength_threshold", 0.25},
+        {"positive_importance_flag", true},
+        {"log_new_links", false},
+        {"use_cache", false},
+        {"initial_rent_rate", 0.1}};
+
+    auto caller = HttpCommandProxyFactory::create(HttpCommandProxyFactory::LINK_CREATION, params, error);
+    ASSERT_NE(caller, nullptr) << error;
+    router_processor->dispatch_http_command(caller, requestor_id);
+    Utils::sleep(1500);
+
+    lock_guard<mutex> lock(lc_processor->mutex_);
+    ASSERT_TRUE(lc_processor->received);
+    EXPECT_EQ(lc_processor->context, "link-ctx");
+    EXPECT_EQ(lc_processor->query_tokens, "(and (Concept $C1) (Concept $C2))");
+    EXPECT_NE(lc_processor->description.find(LinkCreatorRegistry::UNIT_TEST), string::npos);
+    EXPECT_EQ(lc_processor->last_parameters.get<unsigned int>(LinkCreationProxy::MAX_ROUNDS), 2u);
+    EXPECT_DOUBLE_EQ(
+        lc_processor->last_parameters.get<double>(LinkCreationProxy::LINK_CREATION_STRENGTH_THRESHOLD),
+        0.25);
+    EXPECT_TRUE(
+        lc_processor->last_parameters.get<bool>(PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG));
+    EXPECT_FALSE(lc_processor->last_parameters.get<bool>(LinkCreationProxy::LOG_NEW_LINKS));
+    EXPECT_EQ(lc_processor->last_parameters.find("use_cache"), lc_processor->last_parameters.end());
+    EXPECT_EQ(lc_processor->last_parameters.find("initial_rent_rate"),
+              lc_processor->last_parameters.end());
+    EXPECT_EQ(lc_processor->last_parameters.find("population_size"),
+              lc_processor->last_parameters.end());
+    EXPECT_EQ(lc_processor->last_parameters.find("context"), lc_processor->last_parameters.end());
+}
+
 TEST(HttpCommandProxyFactoryTest, create_query_sets_params_onto_proxy_defaults) {
     string error;
     const json params = {{"query", {{"tokens", json::array({"(Similarity \"human\" %C)"})}}},
@@ -734,6 +833,94 @@ TEST(HttpCommandProxyFactoryTest, create_evolution_rejects_syntax_flag_mismatch)
     EXPECT_NE(error.find("use_metta_as_query_tokens"), string::npos);
 }
 
+TEST(HttpCommandProxyFactoryTest, create_link_creation_builds_metta_arg_and_params) {
+    string error;
+    const json params = {
+        {"link_creation",
+         {{"query", {{"syntax", "metta"}, {"tokens", json::array({"(and (Concept \"50%\" %C1))"})}}},
+          {"link_creator_tag", "and_two_predicates"}}},
+        {"max_rounds", 3},
+        {"link_creation_strength_threshold", 0.2},
+        {"link_creator_extra_parameters", "spec-tokens"},
+        {"use_metta_as_query_tokens", true}};
+
+    auto proxy = HttpCommandProxyFactory::create(HttpCommandProxyFactory::LINK_CREATION, params, error);
+    ASSERT_NE(proxy, nullptr) << error;
+    EXPECT_EQ(proxy->get_args()[0], "link_creation");
+    const string& arg = proxy->get_args()[1];
+    EXPECT_NE(arg.find("(query (and (Concept \"50%\" $C1)))"), string::npos);
+    EXPECT_NE(arg.find("(lc and_two_predicates)"), string::npos);
+    EXPECT_EQ(proxy->parameters.get<unsigned int>(LinkCreationProxy::MAX_ROUNDS), 3u);
+    EXPECT_DOUBLE_EQ(proxy->parameters.get<double>(LinkCreationProxy::LINK_CREATION_STRENGTH_THRESHOLD),
+                     0.2);
+    EXPECT_EQ(proxy->parameters.get<string>(LinkCreationProxy::LINK_CREATOR_EXTRA_PARAMETERS),
+              "spec-tokens");
+    EXPECT_TRUE(proxy->parameters.get<bool>(BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS));
+}
+
+TEST(HttpCommandProxyFactoryTest, create_link_creation_quotes_link_template_tokens) {
+    string error;
+    const json params = {
+        {"link_creation",
+         {{"query",
+           {{"syntax", "link_template"},
+            {"tokens", json::array({"LINK_TEMPLATE", "Expression", "2", "VARIABLE", "C1"})}}},
+          {"link_creator_tag", "customizable"}}},
+        {"use_metta_as_query_tokens", false}};
+
+    auto proxy = HttpCommandProxyFactory::create(HttpCommandProxyFactory::LINK_CREATION, params, error);
+    ASSERT_NE(proxy, nullptr) << error;
+    EXPECT_NE(proxy->get_args()[1].find(
+                  "(query \"LINK_TEMPLATE Expression 2 VARIABLE C1\") (lc customizable)"),
+              string::npos);
+    EXPECT_FALSE(proxy->parameters.get<bool>(BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS));
+}
+
+TEST(HttpCommandProxyFactoryTest, create_link_creation_requires_query_and_tag) {
+    string error;
+    auto missing_query = HttpCommandProxyFactory::create(
+        HttpCommandProxyFactory::LINK_CREATION,
+        {{"link_creation", {{"link_creator_tag", "and_two_predicates"}}}},
+        error);
+    EXPECT_EQ(missing_query, nullptr);
+    EXPECT_NE(error.find("params.link_creation.query"), string::npos);
+
+    auto missing_tag = HttpCommandProxyFactory::create(
+        HttpCommandProxyFactory::LINK_CREATION,
+        {{"link_creation",
+          {{"query", {{"syntax", "metta"}, {"tokens", json::array({"(Concept %C)"})}}}}}},
+        error);
+    EXPECT_EQ(missing_tag, nullptr);
+    EXPECT_NE(error.find("link_creator_tag"), string::npos);
+}
+
+TEST(HttpCommandProxyFactoryTest, create_link_creation_rejects_tag_with_delimiters) {
+    const json query = {{"syntax", "metta"}, {"tokens", json::array({"(Concept %C)"})}};
+    for (const string bad_tag : {"and two", "and\ttwo", "(and_two)", "a\"b"}) {
+        string error;
+        auto proxy = HttpCommandProxyFactory::create(
+            HttpCommandProxyFactory::LINK_CREATION,
+            {{"link_creation", {{"query", query}, {"link_creator_tag", bad_tag}}}},
+            error);
+        EXPECT_EQ(proxy, nullptr) << "tag accepted: " << bad_tag;
+        EXPECT_NE(error.find("link_creator_tag"), string::npos);
+    }
+}
+
+TEST(HttpCommandProxyFactoryTest, create_link_creation_rejects_syntax_flag_mismatch) {
+    string error;
+    auto proxy = HttpCommandProxyFactory::create(
+        HttpCommandProxyFactory::LINK_CREATION,
+        {{"link_creation",
+          {{"query",
+            {{"syntax", "link_template"}, {"tokens", json::array({"LINK_TEMPLATE", "Expression"})}}},
+           {"link_creator_tag", "customizable"}}},
+         {"use_metta_as_query_tokens", true}},
+        error);
+    EXPECT_EQ(proxy, nullptr);
+    EXPECT_NE(error.find("use_metta_as_query_tokens"), string::npos);
+}
+
 // -----------------------------------------------------------------------------
 // BusCommandRouterProxyStreamPoller (HTTP stream polling)
 
@@ -754,6 +941,22 @@ TEST(BusCommandRouterProxyStreamPollerTest, stream_emits_one_item_per_chunk_by_d
     EXPECT_EQ(chunk_sizes(chunks), (vector<size_t>{1, 1, 1, 1, 1}));
     EXPECT_EQ(total_items(chunks), 5u);
     EXPECT_EQ(chunks.front()[0]["handles"][0][0], "answer-0");
+}
+
+TEST(BusCommandRouterProxyStreamPollerTest, link_creation_streams_answers_like_query) {
+    auto proxy = make_shared<StreamTestProxy>();
+    proxy->mark_routed();
+    proxy->enqueue_answers(2);
+    proxy->mark_finished();
+
+    vector<json> chunks;
+    auto on_chunk = [&](const json& chunk) { chunks.push_back(chunk); };
+
+    const auto poll_result = BusCommandRouterProxyStreamPoller::poll_stream(
+        proxy, "link_creation", 1, nullptr, on_chunk, nullptr, nullptr);
+    ASSERT_TRUE(poll_result.ok);
+    EXPECT_EQ(chunks.size(), 2u);
+    EXPECT_EQ(total_items(chunks), 2u);
 }
 
 TEST(BusCommandRouterProxyStreamPollerTest,

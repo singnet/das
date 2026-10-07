@@ -22,6 +22,7 @@ cc_library(
     deps = [
         "//agents:base_query_proxy",
         "//agents/evolution:query_evolution_proxy",
+        "//agents/link_creation_agent:link_creation_proxy",
         "//agents/query_engine:pattern_matching_query_proxy",
         "//service_bus:service_bus_lib",
     ],
@@ -49,6 +50,7 @@ cc_library(
         ":bus_command_router_proxy",
         ":evolution_metta_parser",
         "//agents/evolution:query_evolution_proxy",
+        "//agents/link_creation_agent:link_creation_proxy",
         "//agents/query_engine:pattern_matching_query_proxy",
         "//agents/query_engine:query_answer",
         "//service_bus:bus_command_processor",

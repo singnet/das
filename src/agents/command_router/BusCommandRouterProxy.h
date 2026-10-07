@@ -15,8 +15,8 @@ namespace command_router {
  * Proxy for the BUS_COMMAND_ROUTER service.
  *
  * Wire format: proxy->args = {COMMAND, ARG} (two strings).
- * Extends BaseQueryProxy so query/evolution answers from downstream services are received
- * directly on the client's proxy (no router relay).
+ * Extends BaseQueryProxy so query, evolution, and link-creation answers from downstream
+ * services are received directly on the client's proxy (no router relay).
  *
  * For HTTP evolution with remote fitness, EVAL_FITNESS from the evolution agent is buffered
  * here so the stream poller can forward it over WebSocket and reply with EVAL_FITNESS_RESPONSE.
