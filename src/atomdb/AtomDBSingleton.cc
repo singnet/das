@@ -23,6 +23,11 @@ shared_ptr<AtomDB> AtomDBSingleton::get_instance() {
 }
 
 void AtomDBSingleton::provide(shared_ptr<AtomDB> atom_db) {
+    if (AtomDBSingleton::initialized()) {
+        RAISE_ERROR(
+            "AtomDBSingleton already initialized. AtomDBInitializer::init() should be called only "
+            "once.");
+    }
     AtomDBSingleton::atom_db = atom_db;
     AtomDBSingleton::initialized = true;
 }

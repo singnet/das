@@ -69,7 +69,7 @@ cc_library(
         ":atomdb",
         ":atomdb_singleton",
         ":key_sensitive_atomdb",
-        "//atomdb/auth:auth_lib",
+        "//atomdb/auth:keychain",
     ],
 )
 
