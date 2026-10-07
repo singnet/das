@@ -77,14 +77,14 @@ string AtomDBUtils::handle_to_metta_recursion(const string& handle,
         shared_ptr<Atom> atom = nullptr;
 
         if (key_sensitive_atomdb == nullptr) {
-            // AtomDB is not key_sensitive. Disregard keychain.
+            // AtomDB is not protected. Disregard keychain.
             atom = atomdb->get_atom(handle);
         } else {
-            // AtomDB is key_sensitive. Keychain must be forwarded.
+            // AtomDB is protected. Keychain must be forwarded.
             if (keychain != nullptr) {
                 atom = key_sensitive_atomdb->get_atom(handle, keychain);
             } else {
-                RAISE_ERROR("AtomDB is key_sensitive and requires a keychain");
+                RAISE_ERROR("AtomDB is protected and requires a keychain");
             }
         }
 
