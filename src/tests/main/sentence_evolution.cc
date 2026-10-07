@@ -5,6 +5,7 @@
 
 #include "AtomDBAPITypes.h"
 #include "AtomDBSingleton.h"
+#include "AtomDBInitializer.h"
 #include "ContextBrokerProxy.h"
 #include "CountLetterFunction.h"
 #include "FitnessFunctionRegistry.h"
@@ -323,7 +324,7 @@ int main(int argc, char* argv[]) {
     auto json_config = JsonConfigParser::load(config_file);
     auto atomdb_config = json_config.at_path("atomdb").get_or<JsonConfig>(JsonConfig());
     SystemParametersSingleton::init(json_config);
-    AtomDBSingleton::init(atomdb_config);
+    AtomDBInitializer::init(atomdb_config);
 
     if (HTTP_ENDPOINT.empty()) {
         HTTP_ENDPOINT = json_config.at_path("agents.command_router.http_api.endpoint")

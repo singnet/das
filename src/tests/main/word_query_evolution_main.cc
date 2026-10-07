@@ -6,6 +6,7 @@
 
 #include "AtomDBAPITypes.h"
 #include "AtomDBSingleton.h"
+#include "AtomDBInitializer.h"
 #include "ContextBrokerProxy.h"
 #include "CountLetterFunction.h"
 #include "FitnessFunctionRegistry.h"
@@ -364,7 +365,7 @@ int main(int argc, char* argv[]) {
     auto ports_range = Utils::parse_ports_range(argv[3]);
     string atomdb_type_str = argv[4];
     Utils::init_random(0);
-    AtomDBSingleton::init(test_atomdb_json_config(atomdb_type_str));
+    AtomDBInitializer::init(test_atomdb_json_config(atomdb_type_str));
 
     string context_tag = argv[5];
     string word_tag1 = argv[6];

@@ -17,6 +17,7 @@
 #include "ServiceBusSingleton.h"
 #include "SystemParametersSingleton.h"
 #include "Utils.h"
+#include "AtomDBInitializer.h"
 
 using namespace commons;
 using namespace mains;
@@ -121,7 +122,7 @@ int main(int argc, char* argv[]) {
 
         ///////// Initializing AtomDB
         auto atomdb_config = json_config.at_path("atomdb").get_or<JsonConfig>(JsonConfig());
-        AtomDBSingleton::init(atomdb_config);
+        AtomDBInitializer::init(atomdb_config);
 
         if (AtomDBSingleton::get_instance()->get_protection_mode() ==
             atomdb_api_types::ProtectionMode::UNPROTECTED) {

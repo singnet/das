@@ -10,6 +10,7 @@ cc_library(
     deps = [
         "//agents/link_creation_agent:link_creation_agent_lib",
         "//atomdb:atomdb_singleton",
+        "//atomdb:atomdb_initializer",
         "//commons:commons_lib",
         "//service_bus:service_bus_lib",
     ],

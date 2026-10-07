@@ -8,7 +8,7 @@
 #include "Logger.h"
 #include "Node.h"
 #include "Utils.h"
-#include "atomdb/AtomDBUtils.h"
+#include "AtomDBUtils.h"
 
 using namespace std;
 using namespace atomdb;
@@ -439,7 +439,7 @@ size_t ProtectedAtomDB::count(const string& type, shared_ptr<Keychain> keychain)
             auto iterator = handles->get_iterator();
             char* handle;
             while ((handle = iterator->next()) != NULL) {
-                AtomDBUtils::count_reachable_atoms(handle, node_count, link_count, atom_count, keychain);
+                AtomDBUtils::count_reachable_atoms(handle, node_count, link_count, atom_count, keychain); // XXXXX
             }
         }
     }

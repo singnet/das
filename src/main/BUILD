@@ -18,6 +18,7 @@ cc_library(
     srcs = ["attention_broker_client_main.cc"],
     deps = [
         "//atomdb:atomdb_singleton",
+        "//atomdb:atomdb_initializer",
         "//attention_broker:attention_broker_lib",
         "//commons:commons_lib",
         "//main/helpers:main_helper_runner_helper_lib",
@@ -35,6 +36,7 @@ cc_library(
         "//agents/command_router:command_router_lib",
         "//agents/command_router/http_api:command_router_http_api_singleton",
         "//commons:commons_lib",
+        "//atomdb:atomdb_initializer",
         "//main/helpers:main_helper_processor_factory_lib",
     ],
 )
@@ -46,6 +48,7 @@ cc_library(
         "//agents/command_router:bus_command_router_proxy",
         "//agents/query_engine:query_answer",
         "//atomdb:atomdb_singleton",
+        "//atomdb:atomdb_initializer",
         "//atomdb/remotedb:remotedb_lib",
         "//commons:commons_lib",
         "//main/helpers:main_helper_proxy_factory_lib",
@@ -60,6 +63,7 @@ cc_library(
         "//atomdb:atomdb_api_types",
         "//atomdb:atomdb_factory",
         "//atomdb:atomdb_singleton",
+        "//atomdb:atomdb_initializer",
         "//commons:commons_lib",
         "//metta:metta_lib",
     ],
