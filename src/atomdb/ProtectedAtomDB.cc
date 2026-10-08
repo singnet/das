@@ -8,7 +8,6 @@
 #include "Logger.h"
 #include "Node.h"
 #include "Utils.h"
-#include "atomdb/AtomDBUtils.h"
 
 using namespace std;
 using namespace atomdb;

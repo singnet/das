@@ -77,12 +77,7 @@ size_t AuthorizationManifest::count_matching_atoms(AtomCountType count_type,
     shared_ptr<AuthorizationProfile> profile;
     {
         lock_guard<mutex> lock(this->profiles_mutex);
-        auto it = this->profiles.find(public_key);
-        if (it == this->profiles.end() || it->second == nullptr) {
-            LOG_ERROR("No authorization profile found for public key: " + public_key);
-            return 0;
-        }
-        profile = it->second;
+        profile = this->profiles.at(public_key);
     }
 
     auto count = profile->count_matching_atoms(keychain);

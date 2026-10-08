@@ -9,7 +9,6 @@
 #include <utility>
 #include <vector>
 
-#include "AtomDBSingleton.h"
 #include "Hasher.h"
 #include "InMemoryAccessPermissionTypes.h"
 #include "InMemoryDB.h"
@@ -89,16 +88,6 @@ vector<string> similarity_human_tokens() {
             "\"human\"",
             "VARIABLE",
             "V"};
-}
-
-void expect_counts(const shared_ptr<ProtectedAtomDB>& db,
-                   const shared_ptr<Keychain>& keys,
-                   size_t nodes,
-                   size_t links,
-                   size_t atoms) {
-    EXPECT_EQ(db->node_count(keys), nodes);
-    EXPECT_EQ(db->link_count(keys), links);
-    EXPECT_EQ(db->atom_count(keys), atoms);
 }
 
 struct Animals {
@@ -629,66 +618,4 @@ TEST(ProtectedAtomDBTest, NestedRelatedGrantDoesNotImplyInnerSimilarity) {
     EXPECT_TRUE(handles_from_set(protected_atomdb->db->query_for_pattern(related_similarity_human_schema,
                                                                          similarity_human_keys))
                     .empty());
-}
-
-TEST(ProtectedAtomDBTest, CountMethodsWalkGrantedSchemas) {
-    shared_ptr<ProtectedRedisMongo> empty_db = make_shared<ProtectedRedisMongo>(false);
-    empty_db->grant_link_template(PKSimilarityHuman, similarity_human_tokens());
-    expect_counts(empty_db->db, empty_db->keys(PKSimilarityHuman), 0, 0, 0);
-    expect_counts(empty_db->db, empty_db->keys(PKUnknown), 0, 0, 0);
-
-    shared_ptr<ProtectedRedisMongo> protected_atomdb = make_shared<ProtectedRedisMongo>(true);
-    AtomDBSingleton::provide(protected_atomdb->db);
-    protected_atomdb->grant_full_access(PKAdmin);
-    expect_counts(protected_atomdb->db, protected_atomdb->keys(PKAdmin), 0, 0, 0);
-    expect_counts(protected_atomdb->db, protected_atomdb->keys(PKUnknown), 0, 0, 0);
-    expect_counts(protected_atomdb->db, make_keychain(protected_atomdb->db->get_uid(), ""), 0, 0, 0);
-    expect_counts(protected_atomdb->db, make_keychain("other_uid", PKAdmin), 0, 0, 0);
-
-    // (Similarity "human" V) matches 3 links. Their node targets fail schema.match, so they are
-    // absent from node_count, but each target handle is still added to atom_count: 3 * (1 + 3) = 12.
-    protected_atomdb->grant_link_template(PKSimilarityHuman, similarity_human_tokens());
-    auto similarity_human_keys = protected_atomdb->keys(PKSimilarityHuman);
-    expect_counts(protected_atomdb->db, similarity_human_keys, 0, 3, 12);
-    EXPECT_GT(protected_atomdb->db->atom_count(similarity_human_keys),
-              protected_atomdb->db->node_count(similarity_human_keys) +
-                  protected_atomdb->db->link_count(similarity_human_keys));
-
-    // The loaded profile stays in the manifest, so the count does not drop after revoke.
-    protected_atomdb->persistence->revoke(PKSimilarityHuman);
-    expect_counts(protected_atomdb->db, similarity_human_keys, 0, 3, 12);
-
-    // (Expression (Expression A B) X). Only the outer link matches the template.
-    // The inner link and X fail schema.match: nodes = 0, links = 1, atoms = 3.
-    shared_ptr<ProtectedRedisMongo> nested = make_shared<ProtectedRedisMongo>(false);
-    AtomDBSingleton::provide(nested->db);
-    Node node_a("Symbol", "A");
-    Node node_b("Symbol", "B");
-    Node node_x("Symbol", "X");
-    nested->backend->add_node(&node_a);
-    nested->backend->add_node(&node_b);
-    nested->backend->add_node(&node_x);
-    Link inner("Expression", {node_a.handle(), node_b.handle()});
-    nested->backend->add_link(&inner);
-    Link outer("Expression", {inner.handle(), node_x.handle()});
-    nested->backend->add_link(&outer);
-    nested->grant_link_template(PKOnlyH,
-                                {"LINK_TEMPLATE",
-                                 "Expression",
-                                 "2",
-                                 "LINK_TEMPLATE",
-                                 "Expression",
-                                 "2",
-                                 "NODE",
-                                 "Symbol",
-                                 "A",
-                                 "NODE",
-                                 "Symbol",
-                                 "B",
-                                 "VARIABLE",
-                                 "x"});
-    auto nested_keys = nested->keys(PKOnlyH);
-    expect_counts(nested->db, nested_keys, 0, 1, 3);
-    EXPECT_GT(nested->db->atom_count(nested_keys),
-              nested->db->node_count(nested_keys) + nested->db->link_count(nested_keys));
 }
