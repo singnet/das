@@ -17,6 +17,14 @@ using namespace atomdb;
 using namespace query_engine;
 using namespace query_element;
 
+// This case lives in its own binary because link_template_test.cc initializes the shared
+// RedisMongoDB test AtomDB through AtomDBSingleton::provide(), and provide() accepts only one
+// instance. This test needs a private InMemoryDB, so it cannot share that process.
+//
+// Move it back to link_template_test.cc when nodes can be deleted from the RedisMongoDB test
+// AtomDB without affecting the other tests. It can then use that shared database instead of
+// installing its own.
+
 TEST(LinkTemplate, UniqueValueFilteringSetsAssignmentCompatibilityFlag) {
     auto db = make_shared<InMemoryDB>();
     AtomDBSingleton::provide(db);
