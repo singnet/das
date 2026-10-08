@@ -32,7 +32,12 @@ RemoteAtomDBPeer::RemoteAtomDBPeer(const string& uid,
         local_persistence_->get_protection_mode() != atomdb_api_types::ProtectionMode::UNPROTECTED) {
         RAISE_ERROR("RemoteAtomDBPeer supports only UNPROTECTED local persistence");
     }
-    initialize_cache();
+    if (auto p = dynamic_pointer_cast<ProtectedAtomDB>(this->atomdb_)) {
+        this->protected_atomdb_ = p;
+    } else {
+        this->protected_atomdb_ = nullptr;
+    }
+    initialize();
     start_cleanup_thread();
 }
 
@@ -67,17 +72,15 @@ shared_ptr<ProtectedAtomDB> RemoteAtomDBPeer::protected_read_cache() const {
     return protected_read_cache_;
 }
 
-void RemoteAtomDBPeer::initialize_cache() {
+void RemoteAtomDBPeer::initialize() {
     auto config = JsonConfig(json{{"uid", this->atomdb_->get_uid()}});
     this->write_buffer_ = make_shared<InMemoryDB>(config);
     this->read_cache_ = make_shared<InMemoryDB>(config);
 
     if (auto p = dynamic_pointer_cast<ProtectedAtomDB>(this->atomdb_)) {
-        this->protected_atomdb_ = p;
         this->protected_write_buffer_ = p->wrap(this->write_buffer_);
         this->protected_read_cache_ = p->wrap(this->read_cache_);
     } else {
-        this->protected_atomdb_ = nullptr;
         this->protected_write_buffer_ = nullptr;
         this->protected_read_cache_ = nullptr;
     }
@@ -541,7 +544,7 @@ void RemoteAtomDBPeer::release_cache(bool /*persist_to_local*/, bool /*persist_e
         // to it) finish — see quiescence wait below.
         old_write_buffer = write_buffer_;
         old_read_cache = read_cache_;
-        initialize_cache();
+        initialize();
         fetched_link_templates_.clear();
     }
 
