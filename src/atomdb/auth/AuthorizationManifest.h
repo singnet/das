@@ -43,6 +43,15 @@ class AuthorizationManifest {
      */
     bool ensure_profile_loaded(const string& public_key);
 
+    /**
+     * @brief Counts atoms for the public key stored in the keychain.
+     *
+     * @param count_type "node", "link", or "atom".
+     * @param keychain The keychain to count atoms for.
+     * @return The number of atoms matching the keychain.
+     */
+    size_t count_matching_atoms(const string& count_type, shared_ptr<Keychain> keychain);
+
    private:
     shared_ptr<AtomDB> atomdb;
     map<string, shared_ptr<AuthorizationProfile>> profiles;

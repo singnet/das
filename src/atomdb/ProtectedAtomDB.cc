@@ -200,15 +200,15 @@ void ProtectedAtomDB::re_index_patterns(shared_ptr<Keychain> keychain, bool flus
 }
 
 size_t ProtectedAtomDB::node_count(shared_ptr<Keychain> keychain) const {
-    return this->count("node", keychain);
+    return this->manifest->count_matching_atoms("node", keychain);
 }
 
 size_t ProtectedAtomDB::link_count(shared_ptr<Keychain> keychain) const {
-    return this->count("link", keychain);
+    return this->manifest->count_matching_atoms("link", keychain);
 }
 
 size_t ProtectedAtomDB::atom_count(shared_ptr<Keychain> keychain) const {
-    return this->count("atom", keychain);
+    return this->manifest->count_matching_atoms("atom", keychain);
 }
 
 bool ProtectedAtomDB::composite_type_enabled() const { return this->backend->composite_type_enabled(); }
@@ -417,44 +417,4 @@ vector<shared_ptr<Atom>> ProtectedAtomDB::filter_atoms(const vector<shared_ptr<A
         }
     }
     return authorized_atoms;
-}
-
-size_t ProtectedAtomDB::count(const string& type, shared_ptr<Keychain> keychain) const {
-    auto permissions = this->backend->get_access_permissions(keychain->get_public_key(this->uid_));
-
-    if (permissions == nullptr || permissions->get_entries_size() == 0) {
-        return 0;
-    }
-
-    size_t node_count = 0;
-    size_t link_count = 0;
-    size_t atom_count = 0;
-
-    for (unsigned int i = 0; i < permissions->get_entries_size(); ++i) {
-        const auto& entry = permissions->get_entry(i);
-        vector<string> tokens;
-        tokens.reserve(entry.get_tokens_size());
-        for (unsigned int j = 0; j < entry.get_tokens_size(); ++j) {
-            tokens.push_back(entry.get_token(j));
-        }
-        LinkSchema schema(tokens);
-        auto handles = const_cast<ProtectedAtomDB*>(this)->query_for_pattern(schema, keychain);
-        if (handles->size() > 0) {
-            auto iterator = handles->get_iterator();
-            char* handle;
-            while ((handle = iterator->next()) != NULL) {
-                AtomDBUtils::count_reachable_atoms(handle, node_count, link_count, atom_count, keychain);
-            }
-        }
-    }
-
-    if (type == "node") {
-        return node_count;
-    } else if (type == "link") {
-        return link_count;
-    } else if (type == "atom") {
-        return atom_count;
-    } else {
-        RAISE_ERROR("Unsupported type for count: " + type);
-    }
 }

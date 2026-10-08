@@ -115,6 +115,8 @@ cc_library(
     includes = ["."],
     deps = [
         ":atomdbutils",
+        "//atomdb/auth:authorization_manifest",
+        "//atomdb/auth:authorization_types",
         "//atomdb/inmemorydb:inmemorydb_api_types",
         "//commons:commons_lib",
     ],

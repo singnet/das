@@ -654,8 +654,9 @@ TEST(ProtectedAtomDBTest, CountMethodsWalkGrantedSchemas) {
               protected_atomdb->db->node_count(similarity_human_keys) +
                   protected_atomdb->db->link_count(similarity_human_keys));
 
+    // The loaded profile stays in the manifest, so the count does not drop after revoke.
     protected_atomdb->persistence->revoke(PKSimilarityHuman);
-    expect_counts(protected_atomdb->db, similarity_human_keys, 0, 0, 0);
+    expect_counts(protected_atomdb->db, similarity_human_keys, 0, 3, 12);
 
     // (Expression (Expression A B) X). Only the outer link matches the template.
     // The inner link and X fail schema.match: nodes = 0, links = 1, atoms = 3.
