@@ -30,7 +30,8 @@ class AtomDBUtils {
                                             bool populate_mapping,
                                             shared_ptr<Keychain> keychain,
                                             shared_ptr<AtomDB> atomdb,
-                                            shared_ptr<KeySensitiveAtomDB> key_sensitive_atomdb);
+                                            shared_ptr<KeySensitiveAtomDB> protected_atomdb);
+
     static void count_reachable_atoms_recursive(shared_ptr<Link> link,
                                                 size_t& node_count,
                                                 size_t& link_count,
