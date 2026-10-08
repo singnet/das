@@ -80,6 +80,19 @@ size_t AuthorizationManifest::count_matching_atoms(AtomCountType count_type,
         profile = this->profiles.at(public_key);
     }
 
+    if (profile->is_unrestricted()) {
+        switch (count_type) {
+            case AtomCountType::NODE:
+                return this->atomdb->node_count();
+            case AtomCountType::LINK:
+                return this->atomdb->link_count();
+            case AtomCountType::ATOM:
+                return this->atomdb->atom_count();
+            default:
+                return 0;
+        }
+    }
+
     auto count = profile->count_matching_atoms(keychain);
 
     switch (count_type) {
@@ -89,8 +102,9 @@ size_t AuthorizationManifest::count_matching_atoms(AtomCountType count_type,
             return count[1];
         case AtomCountType::ATOM:
             return count[2];
+        default:
+            return 0;
     }
-    return 0;
 }
 
 // --------------------------------------------------------------------------------
