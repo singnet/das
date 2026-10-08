@@ -200,15 +200,15 @@ void ProtectedAtomDB::re_index_patterns(shared_ptr<Keychain> keychain, bool flus
 }
 
 size_t ProtectedAtomDB::node_count(shared_ptr<Keychain> keychain) const {
-    return this->manifest->count_matching_atoms("node", keychain);
+    return this->manifest->count_matching_atoms(AtomCountType::NODE, keychain);
 }
 
 size_t ProtectedAtomDB::link_count(shared_ptr<Keychain> keychain) const {
-    return this->manifest->count_matching_atoms("link", keychain);
+    return this->manifest->count_matching_atoms(AtomCountType::LINK, keychain);
 }
 
 size_t ProtectedAtomDB::atom_count(shared_ptr<Keychain> keychain) const {
-    return this->manifest->count_matching_atoms("atom", keychain);
+    return this->manifest->count_matching_atoms(AtomCountType::ATOM, keychain);
 }
 
 bool ProtectedAtomDB::composite_type_enabled() const { return this->backend->composite_type_enabled(); }

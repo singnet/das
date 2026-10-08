@@ -18,6 +18,8 @@ namespace atomdb {
 
 enum class AuthorizationOperation { READ, WRITE };
 
+enum class AtomCountType { NODE, LINK, ATOM };
+
 class AuthorizationSchema {
    public:
     AuthorizationSchema(shared_ptr<AtomDB> atomdb, const LinkSchema& schema, bool read, bool write);

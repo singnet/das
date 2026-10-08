@@ -62,7 +62,7 @@ bool AuthorizationManifest::ensure_profile_loaded(const string& public_key) {
     return true;
 }
 
-size_t AuthorizationManifest::count_matching_atoms(const string& count_type,
+size_t AuthorizationManifest::count_matching_atoms(AtomCountType count_type,
                                                    shared_ptr<Keychain> keychain) {
     if (keychain == nullptr) {
         return 0;
@@ -87,12 +87,13 @@ size_t AuthorizationManifest::count_matching_atoms(const string& count_type,
 
     auto count = profile->count_matching_atoms(keychain);
 
-    if (count_type == "node") {
-        return count[0];
-    } else if (count_type == "link") {
-        return count[1];
-    } else if (count_type == "atom") {
-        return count[2];
+    switch (count_type) {
+        case AtomCountType::NODE:
+            return count[0];
+        case AtomCountType::LINK:
+            return count[1];
+        case AtomCountType::ATOM:
+            return count[2];
     }
     return 0;
 }
