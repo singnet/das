@@ -5,6 +5,7 @@
 #include <string>
 
 #include "AtomDBAPITypes.h"
+#include "AtomDBInitializer.h"
 #include "AtomDBSingleton.h"
 #include "ContextBrokerProxy.h"
 #include "CountLetterFunction.h"
@@ -385,7 +386,7 @@ int main(int argc, char* argv[]) {
     SystemParametersSingleton::init(json_config);
 
     auto atomdb_config = json_config.at_path("atomdb").get_or<JsonConfig>(JsonConfig());
-    AtomDBSingleton::init(atomdb_config);
+    AtomDBInitializer::init(atomdb_config);
     string atomdb_uid = atomdb_config.at_path("uid").get_or<string>("local");
 
     string context_tag = argv[5];

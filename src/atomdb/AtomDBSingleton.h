@@ -20,8 +20,13 @@ namespace atomdb {
 class AtomDBSingleton {
    public:
     ~AtomDBSingleton() {}
-    static void init(const commons::JsonConfig& atomdb_config);
     static shared_ptr<AtomDB> get_instance();
+
+    /**
+     * @brief Installs the AtomDB instance.
+     *
+     * Fails if the singleton is already initialized.
+     */
     static void provide(shared_ptr<AtomDB> atom_db);
 
    private:

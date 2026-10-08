@@ -13,6 +13,7 @@
 
 #include "Atom.h"
 #include "AtomDBAPITypes.h"
+#include "AtomDBInitializer.h"
 #include "AtomDBSingleton.h"
 #include "BoundedSharedQueue.h"
 #include "ContextLoader.h"
@@ -38,7 +39,7 @@ class SQLWrapperTestHelper : public SQLWrapper {
 class PostgresWrapperTestEnvironment : public ::testing::Environment {
    public:
     void SetUp() override {
-        AtomDBSingleton::init(test_atomdb_json_config("redismongodb", "postgreswrapper_test_"));
+        AtomDBInitializer::init(test_atomdb_json_config("redismongodb", "postgreswrapper_test_"));
     }
 
     void TearDown() override {}

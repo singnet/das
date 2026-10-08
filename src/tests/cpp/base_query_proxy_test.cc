@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 
+#include "AtomDBInitializer.h"
 #include "AtomDBSingleton.h"
 #include "AtomDBUtils.h"
 #include "InMemoryDB.h"
@@ -15,8 +16,8 @@ using namespace std;
 using das_test::init_test_system_parameters_singleton;
 
 TEST(AtomDBTest, handle_to_metta) {
-    // AtomDBSingleton::init(test_atomdb_json_config());
-    AtomDBSingleton::init(test_atomdb_json_config("redismongodb", "base_query_proxy_test_"));
+    // AtomDBInitializer::init(test_atomdb_json_config());
+    AtomDBInitializer::init(test_atomdb_json_config("redismongodb", "base_query_proxy_test_"));
     init_test_system_parameters_singleton();
 
     auto db = AtomDBSingleton::get_instance();
