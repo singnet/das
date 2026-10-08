@@ -31,8 +31,3 @@ void AtomDBSingleton::provide(shared_ptr<AtomDB> atom_db) {
     AtomDBSingleton::atom_db = atom_db;
     AtomDBSingleton::initialized = true;
 }
-
-void AtomDBSingleton::reset() {
-    AtomDBSingleton::atom_db = shared_ptr<AtomDB>{};
-    AtomDBSingleton::initialized = false;
-}

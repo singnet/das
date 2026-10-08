@@ -222,8 +222,36 @@ cc_test(
     deps = [
         "//agents/query_engine:query_engine_lib",
         "//atomdb:atomdb_initializer",
-        "//atomdb/inmemorydb:inmemorydb_lib",
         "//tests/cpp/test_commons:test_atomdb_json_config",
+        "@com_github_google_googletest//:gtest_main",
+        "@mbedtls",
+    ],
+)
+
+cc_test(
+    name = "link_template_unique_value_test",
+    size = "small",
+    srcs = [
+        "link_template_unique_value_test.cc",
+        "test_utils.cc",
+        "test_utils.h",
+    ],
+    copts = [
+        "-Iexternal/gtest/googletest/include",
+        "-Iexternal/gtest/googletest",
+    ],
+    linkopts = [
+        "-L/usr/local/lib",
+        "-lhiredis_cluster",
+        "-lhiredis",
+        "-lmongocxx",
+        "-lbsoncxx",
+    ],
+    linkstatic = 1,
+    deps = [
+        "//agents/query_engine:query_engine_lib",
+        "//atomdb:atomdb_singleton",
+        "//atomdb/inmemorydb:inmemorydb_lib",
         "@com_github_google_googletest//:gtest_main",
         "@mbedtls",
     ],
