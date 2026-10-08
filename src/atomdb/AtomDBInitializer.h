@@ -1,5 +1,7 @@
 #pragma once
 
+#include "JsonConfig.h"
+
 using namespace std;
 
 namespace atomdb {
