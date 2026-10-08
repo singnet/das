@@ -643,8 +643,9 @@ TEST_F(RemoteAtomDBKeySensitiveTest, CountMethodsSumGrantedSchemasAcrossPeers) {
     expect_counts(db, full_access_keys, 0, 0, 0);
     expect_counts(db, this->keychain({{empty_database_uid, empty_public_key}}), 0, 0, 0);
 
-    // (Similarity "human" V) matches 3 links on similarity_peer. Node targets fail schema.match.
-    expect_counts(db, similarity_keys, 0, 3, 12);
+    // (Similarity "human" V) matches 3 links on similarity_peer. Unreadable targets still
+    // count as atoms, once each: 3 links + 5 nodes = 8.
+    expect_counts(db, similarity_keys, 0, 3, 8);
     EXPECT_GT(db->atom_count(similarity_keys),
               db->node_count(similarity_keys) + db->link_count(similarity_keys));
 
@@ -652,12 +653,13 @@ TEST_F(RemoteAtomDBKeySensitiveTest, CountMethodsSumGrantedSchemasAcrossPeers) {
     expect_counts(db, nested_keys, 0, 1, 3);
     EXPECT_GT(db->atom_count(nested_keys), db->node_count(nested_keys) + db->link_count(nested_keys));
 
-    // similarity 3 links + nested 1 link. full_access has no schema entries, empty has no atoms.
-    expect_counts(db, all_keys, 0, 4, 15);
+    // similarity 3 links + 5 atoms targets, nested 1 link + 2 unreadable targets.
+    // full_access has no schema entries, empty has no atoms. 8 + 3 = 11.
+    expect_counts(db, all_keys, 0, 4, 11);
 
     // The loaded profile stays in the manifest, so the similarity peer still counts.
     similarity_backend->revoke(similarity_public_key);
-    expect_counts(db, all_keys, 0, 4, 15);
+    expect_counts(db, all_keys, 0, 4, 11);
 }
 
 int main(int argc, char** argv) {

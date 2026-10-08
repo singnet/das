@@ -36,7 +36,8 @@ class AtomDBUtils {
                                                 size_t& node_count,
                                                 size_t& link_count,
                                                 size_t& atom_count,
-                                                shared_ptr<Keychain> keychain);
+                                                shared_ptr<Keychain> keychain,
+                                                set<string>& visited);
 
    public:
     /**
@@ -57,7 +58,8 @@ class AtomDBUtils {
                                       size_t& node_count,
                                       size_t& link_count,
                                       size_t& atom_count,
-                                      shared_ptr<Keychain> keychain = nullptr);
+                                      shared_ptr<Keychain> keychain,
+                                      set<string>& visited);
 
     /**
      * Build a metta expression out of an atom handle. Optionally, a keychain can be passed

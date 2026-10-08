@@ -1,6 +1,7 @@
 #pragma once
 
 #include <optional>
+#include <set>
 #include <string>
 #include <vector>
 
@@ -40,7 +41,8 @@ class AuthorizationSchema {
     void count_matching_atoms(size_t& node_count,
                               size_t& link_count,
                               size_t& atom_count,
-                              shared_ptr<Keychain> keychain);
+                              shared_ptr<Keychain> keychain,
+                              set<string>& visited);
 
     // These method are used only for testing purposes.
    protected:

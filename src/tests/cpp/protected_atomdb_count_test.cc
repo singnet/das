@@ -136,8 +136,9 @@ TEST(ProtectedAtomDBTest, CountMethodsWalkGrantedSchemas) {
     expect_counts(protected_atomdb->db, make_keychain(protected_atomdb->db->get_uid(), ""), 0, 0, 0);
     expect_counts(protected_atomdb->db, make_keychain("other_uid", PKAdmin), 0, 0, 0);
 
-    // (Similarity "human" V) matches 3 links. Their node targets fail schema.match, so they are
-    // absent from node_count, but each target handle is still added to atom_count: 3 * (1 + 3) = 12.
+    // (Similarity "human" V) matches 3 links. Targets are not readable, so node_count stays 0,
+    // but each distinct target handle still counts as an atom:
+    // 3 links + Similarity + "human" + "monkey" + "chimp" + "ent" = 8.
     Node similarity("Symbol", "Similarity");
     Node human("Symbol", "\"human\"");
     Node monkey("Symbol", "\"monkey\"");
@@ -154,14 +155,14 @@ TEST(ProtectedAtomDBTest, CountMethodsWalkGrantedSchemas) {
     protected_atomdb->backend->add_link(&similarity_human_monkey);
     protected_atomdb->backend->add_link(&similarity_human_chimp);
     protected_atomdb->backend->add_link(&similarity_human_ent);
-    expect_counts(protected_atomdb->db, similarity_human_keys, 0, 3, 12);
+    expect_counts(protected_atomdb->db, similarity_human_keys, 0, 3, 8);
     EXPECT_GT(protected_atomdb->db->atom_count(similarity_human_keys),
               protected_atomdb->db->node_count(similarity_human_keys) +
                   protected_atomdb->db->link_count(similarity_human_keys));
 
     // The loaded profile stays in the manifest, so the count does not drop after revoke.
     protected_atomdb->persistence->revoke(PKSimilarityHuman);
-    expect_counts(protected_atomdb->db, similarity_human_keys, 0, 3, 12);
+    expect_counts(protected_atomdb->db, similarity_human_keys, 0, 3, 8);
 
     // (Expression (Expression A B) X). Only the outer link matches the template.
     // The inner link and X fail schema.match: nodes = 0, links = 1, atoms = 3.
