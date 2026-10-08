@@ -80,6 +80,22 @@ class InMemoryDBWithAccessDocuments : public InMemoryDB {
 
     void revoke(const string& public_key) { this->documents.erase(public_key); }
 
+    size_t node_count() const override {
+        size_t count = 0;
+        for (const auto& atom : const_cast<InMemoryDBWithAccessDocuments*>(this)->get_all_atoms()) {
+            if (Atom::is_node(atom)) count++;
+        }
+        return count;
+    }
+
+    size_t link_count() const override {
+        size_t count = 0;
+        for (const auto& atom : const_cast<InMemoryDBWithAccessDocuments*>(this)->get_all_atoms()) {
+            if (atom != nullptr && !Atom::is_node(atom)) count++;
+        }
+        return count;
+    }
+
     shared_ptr<AccessPermissionDocument> get_access_permissions(
         const string& public_key) const override {
         auto it = this->documents.find(public_key);
@@ -640,7 +656,8 @@ TEST_F(RemoteAtomDBKeySensitiveTest, CountMethodsSumGrantedSchemasAcrossPeers) {
     expect_counts(db, this->keychain({{similarity_database_uid, "unknown_reader"}}), 0, 0, 0);
     expect_counts(db, this->keychain({{similarity_database_uid, ""}}), 0, 0, 0);
     expect_counts(db, this->keychain({{"other_uid", similarity_public_key}}), 0, 0, 0);
-    expect_counts(db, full_access_keys, 0, 0, 0);
+    // Unrestricted profile returns the backend population: Inheritance, "mammal", and one link.
+    expect_counts(db, full_access_keys, 2, 1, 3);
     expect_counts(db, this->keychain({{empty_database_uid, empty_public_key}}), 0, 0, 0);
 
     // (Similarity "human" V) matches 3 links on similarity_peer. Unreadable targets still
@@ -653,13 +670,12 @@ TEST_F(RemoteAtomDBKeySensitiveTest, CountMethodsSumGrantedSchemasAcrossPeers) {
     expect_counts(db, nested_keys, 0, 1, 3);
     EXPECT_GT(db->atom_count(nested_keys), db->node_count(nested_keys) + db->link_count(nested_keys));
 
-    // similarity 3 links + 5 atoms targets, nested 1 link + 2 unreadable targets.
-    // full_access has no schema entries, empty has no atoms. 8 + 3 = 11.
-    expect_counts(db, all_keys, 0, 4, 11);
+    // similarity 0/3/8 + full access 2/1/3 + nested 0/1/3. empty has no atoms.
+    expect_counts(db, all_keys, 2, 5, 14);
 
     // The loaded profile stays in the manifest, so the similarity peer still counts.
     similarity_backend->revoke(similarity_public_key);
-    expect_counts(db, all_keys, 0, 4, 11);
+    expect_counts(db, all_keys, 2, 5, 14);
 }
 
 int main(int argc, char** argv) {
