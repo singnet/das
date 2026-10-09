@@ -171,7 +171,7 @@ PollStreamResult BusCommandRouterProxyStreamPoller::poll_stream(
         return poll_succeeded();
     }
 
-    if (command_type == "query" || command_type == "evolution") {
+    if (command_type == "query" || command_type == "evolution" || command_type == "link_creation") {
         while (!router_proxy->routed_flag && !finished_or_error()) {
             if (handle_abort()) {
                 return {};

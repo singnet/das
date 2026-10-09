@@ -194,6 +194,38 @@ int main(int argc, char* argv[]) {
                 if (router_proxy->error_flag) {
                     return 1;
                 }
+            } else if (router_cmd == "link_creation") {
+                while (!router_proxy->routed_flag && !router_finished_or_error() && Helper::is_running) {
+                    Utils::sleep(100);
+                }
+                if (router_proxy->error_flag) {
+                    return 1;
+                }
+                LOG_INFO("Link creation routed; waiting for results...");
+                auto drain_link_creation_answers = [&]() {
+                    shared_ptr<QueryAnswer> answer;
+                    while ((answer = router_proxy->pop()) != nullptr) {
+                        LOG_INFO("Received answer: " + answer->to_string(use_metta_as_query_tokens));
+                        for (string handle : answer->get_handles_vector()) {
+                            if (answer->metta_expression.find(handle) !=
+                                answer->metta_expression.end()) {
+                                LOG_INFO(answer->metta_expression[handle]);
+                            }
+                        }
+                    }
+                };
+                while (Helper::is_running) {
+                    drain_link_creation_answers();
+                    if (router_proxy->finished() || router_proxy->error_flag) {
+                        break;
+                    }
+                    Utils::sleep(100);
+                }
+                // Answers can arrive together with FINISHED during the sleep above.
+                drain_link_creation_answers();
+                if (router_proxy->error_flag) {
+                    return 1;
+                }
             } else if (router_cmd == "evolution") {
                 while (!router_proxy->routed_flag && !router_finished_or_error() && Helper::is_running) {
                     Utils::sleep(100);

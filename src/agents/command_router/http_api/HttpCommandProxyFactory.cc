@@ -223,6 +223,58 @@ bool parse_evolution_arg(const json& params,
     return true;
 }
 
+bool parse_link_creation_arg(const json& params,
+                             bool& use_metta,
+                             string& link_creation_arg,
+                             string& error_message) {
+    if (!params.contains("link_creation") || !params["link_creation"].is_object()) {
+        error_message = "params.link_creation must be an object";
+        return false;
+    }
+
+    const json& link_creation = params["link_creation"];
+    if (!link_creation.contains("query")) {
+        error_message = "params.link_creation.query must be an object";
+        return false;
+    }
+    if (!read_query_syntax(
+            link_creation["query"], "params.link_creation.query", use_metta, error_message)) {
+        return false;
+    }
+
+    string query_expr;
+    if (!parse_query_tokens_object(link_creation["query"],
+                                   "params.link_creation.query",
+                                   use_metta,
+                                   query_expr,
+                                   error_message)) {
+        return false;
+    }
+
+    if (!link_creation.contains("link_creator_tag") || !link_creation["link_creator_tag"].is_string() ||
+        link_creation["link_creator_tag"].get_ref<const string&>().empty()) {
+        error_message = "params.link_creation.link_creator_tag must be a non-empty string";
+        return false;
+    }
+    const string tag = link_creation["link_creator_tag"].get<string>();
+    // The tag is concatenated raw into the MeTTa ARG as (lc <tag>).
+    if (tag.find_first_of(" \t\r\n()\"") != string::npos) {
+        error_message =
+            "params.link_creation.link_creator_tag must not contain whitespace, parentheses,"
+            " or quotes";
+        return false;
+    }
+
+    const string query_body = use_metta ? query_expr : quote_metta_token(query_expr);
+    link_creation_arg = "((query " + query_body + ") (lc " + tag + "))";
+    LinkCreationMettaArgs parsed;
+    if (!try_parse_link_creation_metta_arg(link_creation_arg, parsed)) {
+        error_message = "params.link_creation.query must be a single expression";
+        return false;
+    }
+    return true;
+}
+
 }  // namespace
 
 shared_ptr<BusCommandRouterProxy> HttpCommandProxyFactory::create(const string& command,
@@ -254,6 +306,17 @@ shared_ptr<BusCommandRouterProxy> HttpCommandProxyFactory::create(const string& 
             return nullptr;
         }
         proxy->parameters[BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS] = evolution_metta;
+    } else if (command == LINK_CREATION) {
+        bool link_creation_metta = false;
+        if (!parse_link_creation_arg(params, link_creation_metta, arg, error_message)) {
+            return nullptr;
+        }
+        if (params.contains(BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS) &&
+            use_metta != link_creation_metta) {
+            error_message = "use_metta_as_query_tokens does not match params.link_creation.query.syntax";
+            return nullptr;
+        }
+        proxy->parameters[BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS] = link_creation_metta;
     } else {
         error_message = "Unsupported command: " + command;
         return nullptr;

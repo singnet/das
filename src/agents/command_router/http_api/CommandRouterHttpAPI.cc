@@ -21,8 +21,10 @@ using namespace agents;
 
 using json = nlohmann::json;
 
-const unordered_set<string> CommandRouterHttpAPI::VALID_COMMAND = {HttpCommandProxyFactory::QUERY,
-                                                                   HttpCommandProxyFactory::EVOLUTION};
+const unordered_set<string> CommandRouterHttpAPI::VALID_COMMAND = {
+    HttpCommandProxyFactory::QUERY,
+    HttpCommandProxyFactory::EVOLUTION,
+    HttpCommandProxyFactory::LINK_CREATION};
 
 namespace {
 
@@ -198,7 +200,9 @@ void CommandRouterHttpAPI::setup_routes() {
 
             if (!this->is_valid_command(command)) {
                 this->set_json_response(
-                    response, 400, {{"error", "Invalid command. Allowed values: query, evolution"}});
+                    response,
+                    400,
+                    {{"error", "Invalid command. Allowed values: query, evolution, link_creation"}});
                 return;
             }
 

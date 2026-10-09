@@ -57,6 +57,15 @@ TEST(SystemParametersTest, get_link_creation_agent_params) {
     EXPECT_EQ(params.get<bool>("unique_value_flag"), false);
 }
 
+TEST(SystemParametersTest, get_command_router_params_includes_link_creation) {
+    auto params = make_test_parameters().get_command_router_params();
+    EXPECT_EQ(params.get<unsigned int>("max_rounds"), 5U);
+    EXPECT_EQ(params.get<double>("link_creation_strength_threshold"), 0.1);
+    EXPECT_EQ(params.get<unsigned int>("population_size"), 1000U);
+    EXPECT_EQ(params.get<string>("context"), "context");
+    EXPECT_FALSE(params.get<bool>("unique_assignment_flag"));
+}
+
 TEST(SystemParametersTest, get_evolution_agent_params_merges_base) {
     auto params = make_test_parameters().get_evolution_agent_params();
     EXPECT_EQ(params.get<unsigned int>("population_size"), 1000U);
