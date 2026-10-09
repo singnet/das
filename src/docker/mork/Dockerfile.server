@@ -16,7 +16,8 @@ RUN git clone -b server https://github.com/trueagi-io/MORK.git \
  && git -C /opt/gxhash checkout 6438a7bc2a78d9426bea7671a044f82d3f767dc2 \
  && printf '\n[patch."https://github.com/ogxd/gxhash"]\ngxhash = { path = "/opt/gxhash" }\n' >> Cargo.toml \
  && cd server \
- && cargo build --release
+ && cargo generate-lockfile --config 'resolver.incompatible-rust-versions="fallback"' \
+ && cargo build --release --locked
 
 FROM gcr.io/distroless/cc
 
