@@ -2,6 +2,7 @@
 
 #include "AtomDBAPITypes.h"
 #include "Utils.h"
+#include "atomdb/AtomDBUtils.h"
 
 using namespace std;
 using namespace atomdb;
@@ -67,6 +68,22 @@ bool AuthorizationSchema::allows(AuthorizationOperation operation) const {
     return false;
 }
 
+void AuthorizationSchema::count_matching_atoms(size_t& node_count,
+                                               size_t& link_count,
+                                               size_t& atom_count,
+                                               shared_ptr<Keychain> keychain,
+                                               set<string>& visited) {
+    auto handles = this->atomdb_->query_for_pattern(schema_);
+    if (handles->size() > 0) {
+        auto iterator = handles->get_iterator();
+        char* handle;
+        while ((handle = iterator->next()) != NULL) {
+            AtomDBUtils::count_reachable_atoms(
+                handle, node_count, link_count, atom_count, keychain, visited);
+        }
+    }
+}
+
 /**
  * AuthorizationProfile
  */
@@ -108,4 +125,17 @@ bool AuthorizationProfile::is_granted(shared_ptr<Atom> atom, AuthorizationOperat
         if (schema->is_granted(atom, operation)) return true;
     }
     return false;
+}
+
+array<size_t, 3> AuthorizationProfile::count_matching_atoms(shared_ptr<Keychain> keychain) {
+    size_t node_count = 0;
+    size_t link_count = 0;
+    size_t atom_count = 0;
+    set<string> visited;
+    for (const auto& schema : this->schemas_) {
+        if (schema->allows(AuthorizationOperation::READ)) {
+            schema->count_matching_atoms(node_count, link_count, atom_count, keychain, visited);
+        }
+    }
+    return {node_count, link_count, atom_count};
 }

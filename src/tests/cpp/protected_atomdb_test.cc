@@ -225,6 +225,8 @@ TEST(ProtectedAtomDBTest, ProtectedMethodsRequireKeychain) {
     EXPECT_THROW(protected_atomdb->db->atom_exists("handle"), runtime_error);
     EXPECT_THROW(protected_atomdb->db->atoms_exist({"handle"}), runtime_error);
     EXPECT_THROW(protected_atomdb->db->add_node(&node), runtime_error);
+    EXPECT_THROW(protected_atomdb->db->node_count(), runtime_error);
+    EXPECT_THROW(protected_atomdb->db->link_count(), runtime_error);
     EXPECT_THROW(protected_atomdb->db->atom_count(), runtime_error);
 }
 

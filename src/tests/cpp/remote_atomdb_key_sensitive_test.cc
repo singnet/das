@@ -6,6 +6,7 @@
 #include <string>
 #include <vector>
 
+#include "AtomDBSingleton.h"
 #include "InMemoryAccessPermissionTypes.h"
 #include "InMemoryDB.h"
 #include "Keychain.h"
@@ -37,6 +38,16 @@ set<string> handles_from_handle_set(const shared_ptr<HandleSet>& handle_set) {
     return handles;
 }
 
+void expect_counts(const shared_ptr<RemoteAtomDB>& db,
+                   const shared_ptr<Keychain>& keys,
+                   size_t nodes,
+                   size_t links,
+                   size_t atoms) {
+    EXPECT_EQ(db->node_count(keys), nodes);
+    EXPECT_EQ(db->link_count(keys), links);
+    EXPECT_EQ(db->atom_count(keys), atoms);
+}
+
 vector<string> handles_from_handle_list(const shared_ptr<HandleList>& handle_list) {
     vector<string> handles;
     if (handle_list == nullptr) return handles;
@@ -65,6 +76,24 @@ class InMemoryDBWithAccessDocuments : public InMemoryDB {
         document->set_full_access(false);
         document->append_entry(tokens, true, false);
         this->documents[public_key] = document;
+    }
+
+    void revoke(const string& public_key) { this->documents.erase(public_key); }
+
+    size_t node_count() const override {
+        size_t count = 0;
+        for (const auto& atom : const_cast<InMemoryDBWithAccessDocuments*>(this)->get_all_atoms()) {
+            if (Atom::is_node(atom)) count++;
+        }
+        return count;
+    }
+
+    size_t link_count() const override {
+        size_t count = 0;
+        for (const auto& atom : const_cast<InMemoryDBWithAccessDocuments*>(this)->get_all_atoms()) {
+            if (atom != nullptr && !Atom::is_node(atom)) count++;
+        }
+        return count;
     }
 
     shared_ptr<AccessPermissionDocument> get_access_permissions(
@@ -526,6 +555,127 @@ TEST_F(RemoteAtomDBKeySensitiveTest, ExistenceChecksRespectKeychainsAcrossPeers)
                            this->human_handle,
                            this->mammal_handle}));
     EXPECT_TRUE(this->db->atoms_exist({}, both_keys).empty());
+}
+
+TEST_F(RemoteAtomDBKeySensitiveTest, CountMethodsSumGrantedSchemasAcrossPeers) {
+    const string nested_database_uid = "nested_database";
+    const string nested_public_key = "nested_reader";
+    const string empty_database_uid = "empty_database";
+    const string empty_public_key = "empty_reader";
+
+    vector<string> similarity_tokens = {"LINK_TEMPLATE",
+                                        "Expression",
+                                        "3",
+                                        "NODE",
+                                        "Symbol",
+                                        "Similarity",
+                                        "NODE",
+                                        "Symbol",
+                                        "\"human\"",
+                                        "VARIABLE",
+                                        "V"};
+
+    auto similarity_backend = make_shared<InMemoryDBWithAccessDocuments>(similarity_database_uid);
+    similarity_backend->grant_link_template(similarity_public_key, similarity_tokens);
+    Node similarity("Symbol", "Similarity");
+    Node human("Symbol", "\"human\"");
+    Node monkey("Symbol", "\"monkey\"");
+    Node chimp("Symbol", "\"chimp\"");
+    Node ent("Symbol", "\"ent\"");
+    similarity_backend->add_node(&similarity);
+    similarity_backend->add_node(&human);
+    similarity_backend->add_node(&monkey);
+    similarity_backend->add_node(&chimp);
+    similarity_backend->add_node(&ent);
+    Link similarity_human_monkey("Expression", {similarity.handle(), human.handle(), monkey.handle()});
+    Link similarity_human_chimp("Expression", {similarity.handle(), human.handle(), chimp.handle()});
+    Link similarity_human_ent("Expression", {similarity.handle(), human.handle(), ent.handle()});
+    similarity_backend->add_link(&similarity_human_monkey);
+    similarity_backend->add_link(&similarity_human_chimp);
+    similarity_backend->add_link(&similarity_human_ent);
+
+    auto full_access_backend = make_shared<InMemoryDBWithAccessDocuments>(full_access_database_uid);
+    full_access_backend->grant_full_access(full_access_public_key);
+    Node inheritance("Symbol", "Inheritance");
+    Node mammal("Symbol", "\"mammal\"");
+    full_access_backend->add_node(&inheritance);
+    full_access_backend->add_node(&mammal);
+    Link inheritance_human_mammal("Expression", {inheritance.handle(), human.handle(), mammal.handle()});
+    full_access_backend->add_link(&inheritance_human_mammal);
+
+    Node node_a("Symbol", "A");
+    Node node_b("Symbol", "B");
+    Node node_x("Symbol", "X");
+    Link inner("Expression", {node_a.handle(), node_b.handle()});
+    Link outer("Expression", {inner.handle(), node_x.handle()});
+    auto nested_backend = make_shared<InMemoryDBWithAccessDocuments>(nested_database_uid);
+    nested_backend->add_node(&node_a);
+    nested_backend->add_node(&node_b);
+    nested_backend->add_node(&node_x);
+    nested_backend->add_link(&inner);
+    nested_backend->add_link(&outer);
+    nested_backend->grant_link_template(nested_public_key,
+                                        {"LINK_TEMPLATE",
+                                         "Expression",
+                                         "2",
+                                         "LINK_TEMPLATE",
+                                         "Expression",
+                                         "2",
+                                         "NODE",
+                                         "Symbol",
+                                         "A",
+                                         "NODE",
+                                         "Symbol",
+                                         "B",
+                                         "VARIABLE",
+                                         "x"});
+
+    auto empty_backend = make_shared<InMemoryDBWithAccessDocuments>(empty_database_uid);
+    empty_backend->grant_link_template(empty_public_key, similarity_tokens);
+
+    map<string, shared_ptr<RemoteAtomDBPeer>> peers;
+    peers["similarity_peer"] = make_shared<RemoteAtomDBPeer>(
+        "similarity_peer", make_shared<ProtectedAtomDB>(similarity_backend), nullptr);
+    peers["full_access_peer"] = make_shared<RemoteAtomDBPeer>(
+        "full_access_peer", make_shared<ProtectedAtomDB>(full_access_backend), nullptr);
+    peers["nested_peer"] = make_shared<RemoteAtomDBPeer>(
+        "nested_peer", make_shared<ProtectedAtomDB>(nested_backend), nullptr);
+    peers["empty_peer"] = make_shared<RemoteAtomDBPeer>(
+        "empty_peer", make_shared<ProtectedAtomDB>(empty_backend), nullptr);
+    auto db = make_shared<RemoteAtomDB>("remote_counts", peers);
+    AtomDBSingleton::provide(db);
+
+    auto similarity_keys = this->keychain({{similarity_database_uid, similarity_public_key}});
+    auto full_access_keys = this->keychain({{full_access_database_uid, full_access_public_key}});
+    auto nested_keys = this->keychain({{nested_database_uid, nested_public_key}});
+    auto all_keys = this->keychain({{similarity_database_uid, similarity_public_key},
+                                    {full_access_database_uid, full_access_public_key},
+                                    {nested_database_uid, nested_public_key},
+                                    {empty_database_uid, empty_public_key}});
+
+    expect_counts(db, this->keychain({{similarity_database_uid, "unknown_reader"}}), 0, 0, 0);
+    expect_counts(db, this->keychain({{similarity_database_uid, ""}}), 0, 0, 0);
+    expect_counts(db, this->keychain({{"other_uid", similarity_public_key}}), 0, 0, 0);
+    // Unrestricted profile returns the backend population: Inheritance, "mammal", and one link.
+    expect_counts(db, full_access_keys, 2, 1, 3);
+    expect_counts(db, this->keychain({{empty_database_uid, empty_public_key}}), 0, 0, 0);
+
+    // (Similarity "human" V) matches 3 links on similarity_peer. Unreadable targets still
+    // count as atoms, once each: 3 links + 5 nodes = 8.
+    expect_counts(db, similarity_keys, 0, 3, 8);
+    EXPECT_GT(db->atom_count(similarity_keys),
+              db->node_count(similarity_keys) + db->link_count(similarity_keys));
+
+    // (Expression (Expression A B) X) matches only the outer link on nested_peer.
+    expect_counts(db, nested_keys, 0, 1, 3);
+    EXPECT_GT(db->atom_count(nested_keys), db->node_count(nested_keys) + db->link_count(nested_keys));
+
+    // similarity 0/3/8 + full access 2/1/3 + nested 0/1/3. empty has no atoms.
+    expect_counts(db, all_keys, 2, 5, 14);
+
+    // The loaded profile stays in the manifest, so the similarity peer still counts.
+    similarity_backend->revoke(similarity_public_key);
+    expect_counts(db, all_keys, 2, 5, 14);
 }
 
 int main(int argc, char** argv) {

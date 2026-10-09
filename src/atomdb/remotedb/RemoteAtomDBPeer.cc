@@ -373,29 +373,11 @@ void RemoteAtomDBPeer::re_index_patterns(bool flush_patterns) {
 // Note: a staged update of an atom that already exists locally is still counted twice; the
 // result is an upper bound, not an exact distinct count.
 
-size_t RemoteAtomDBPeer::node_count() const {
-    size_t count = write_buffer()->node_count();
-    if (local_persistence_) {
-        count += local_persistence_->node_count();
-    }
-    return count;
-}
+size_t RemoteAtomDBPeer::node_count() const { return this->node_count(nullptr); }
 
-size_t RemoteAtomDBPeer::link_count() const {
-    size_t count = write_buffer()->link_count();
-    if (local_persistence_) {
-        count += local_persistence_->link_count();
-    }
-    return count;
-}
+size_t RemoteAtomDBPeer::link_count() const { return this->link_count(nullptr); }
 
-size_t RemoteAtomDBPeer::atom_count() const {
-    size_t count = write_buffer()->atom_count();
-    if (local_persistence_) {
-        count += local_persistence_->atom_count();
-    }
-    return count;
-}
+size_t RemoteAtomDBPeer::atom_count() const { return this->atom_count(nullptr); }
 
 void RemoteAtomDBPeer::fetch(const LinkSchema& link_schema, shared_ptr<Keychain> keychain) {
     {
@@ -1096,13 +1078,28 @@ void RemoteAtomDBPeer::re_index_patterns(shared_ptr<Keychain> keychain, bool flu
 }
 
 size_t RemoteAtomDBPeer::node_count(shared_ptr<Keychain> keychain) const {
-    RAISE_ERROR("RemoteAtomDBPeer::node_count(keychain) is not implemented");
+    auto pwb = protected_write_buffer();
+    size_t count = pwb ? pwb->node_count(keychain) : write_buffer()->node_count();
+    if (local_persistence_) {
+        count += local_persistence_->node_count();
+    }
+    return count;
 }
 
 size_t RemoteAtomDBPeer::link_count(shared_ptr<Keychain> keychain) const {
-    RAISE_ERROR("RemoteAtomDBPeer::link_count(keychain) is not implemented");
+    auto pwb = protected_write_buffer();
+    size_t count = pwb ? pwb->link_count(keychain) : write_buffer()->link_count();
+    if (local_persistence_) {
+        count += local_persistence_->link_count();
+    }
+    return count;
 }
 
 size_t RemoteAtomDBPeer::atom_count(shared_ptr<Keychain> keychain) const {
-    RAISE_ERROR("RemoteAtomDBPeer::atom_count(keychain) is not implemented");
+    auto pwb = protected_write_buffer();
+    size_t count = pwb ? pwb->atom_count(keychain) : write_buffer()->atom_count();
+    if (local_persistence_) {
+        count += local_persistence_->atom_count();
+    }
+    return count;
 }
