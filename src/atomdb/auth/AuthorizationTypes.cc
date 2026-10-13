@@ -127,15 +127,14 @@ bool AuthorizationProfile::is_granted(shared_ptr<Atom> atom, AuthorizationOperat
     return false;
 }
 
-array<size_t, 3> AuthorizationProfile::count_matching_atoms(shared_ptr<Keychain> keychain) {
-    size_t node_count = 0;
-    size_t link_count = 0;
-    size_t atom_count = 0;
+void AuthorizationProfile::count_matching_atoms(size_t& node_count,
+                                                size_t& link_count,
+                                                size_t& atom_count,
+                                                shared_ptr<Keychain> keychain) {
     set<string> visited;
     for (const auto& schema : this->schemas_) {
         if (schema->allows(AuthorizationOperation::READ)) {
             schema->count_matching_atoms(node_count, link_count, atom_count, keychain, visited);
         }
     }
-    return {node_count, link_count, atom_count};
 }

@@ -39,11 +39,12 @@ void AtomDBUtils::count_reachable_atoms(const string& handle,
     auto atom = key_sensitive_atomdb ? key_sensitive_atomdb->get_atom(handle, keychain)
                                      : atomdb->get_atom(handle);
     if (atom != nullptr) {
-        if (Atom::is_node(atom)) {
+        auto link = dynamic_pointer_cast<Link>(atom);
+        if (link == nullptr) {
             node_count++;
         } else {
             AtomDBUtils::count_reachable_atoms_recursive(
-                dynamic_pointer_cast<Link>(atom), node_count, link_count, atom_count, keychain, visited);
+                link, node_count, link_count, atom_count, keychain, visited);
             link_count++;
         }
     }
@@ -104,15 +105,12 @@ void AtomDBUtils::count_reachable_atoms_recursive(shared_ptr<Link> link,
         auto atom = key_sensitive_atomdb ? key_sensitive_atomdb->get_atom(target_handle, keychain)
                                          : atomdb->get_atom(target_handle);
         if (atom != nullptr) {
-            if (Atom::is_node(atom)) {
+            auto link = dynamic_pointer_cast<Link>(atom);
+            if (link == nullptr) {
                 node_count++;
             } else {
-                AtomDBUtils::count_reachable_atoms_recursive(dynamic_pointer_cast<Link>(atom),
-                                                             node_count,
-                                                             link_count,
-                                                             atom_count,
-                                                             keychain,
-                                                             visited);
+                AtomDBUtils::count_reachable_atoms_recursive(
+                    link, node_count, link_count, atom_count, keychain, visited);
                 link_count++;
             }
         }

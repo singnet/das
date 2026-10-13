@@ -19,8 +19,6 @@ namespace atomdb {
 
 enum class AuthorizationOperation { READ, WRITE };
 
-enum class AtomCountType { NODE, LINK, ATOM };
-
 class AuthorizationSchema {
    public:
     AuthorizationSchema(shared_ptr<AtomDB> atomdb, const LinkSchema& schema, bool read, bool write);
@@ -75,12 +73,12 @@ class AuthorizationProfile {
     bool is_granted(shared_ptr<Atom> atom, AuthorizationOperation operation);
 
     /**
-     * @brief Counts atoms granted by this profile's read schemas.
-     *
-     * @param keychain The keychain to count atoms for.
-     * @return An array containing the number of nodes, links, and atoms matched by the profile.
+     * @brief Adds the atoms granted by this profile's read schemas to the three counters.
      */
-    array<size_t, 3> count_matching_atoms(shared_ptr<Keychain> keychain);
+    void count_matching_atoms(size_t& node_count,
+                              size_t& link_count,
+                              size_t& atom_count,
+                              shared_ptr<Keychain> keychain);
 
     // These method are used only for testing purposes.
    protected:
