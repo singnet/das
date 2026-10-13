@@ -74,7 +74,7 @@ void AuthorizationSchema::count_matching_atoms(size_t& node_count,
                                                shared_ptr<Keychain> keychain,
                                                set<string>& visited) {
     auto handles = this->atomdb_->query_for_pattern(schema_);
-    if (handles->size() > 0) {
+    if (handles != nullptr && handles->size() > 0) {
         auto iterator = handles->get_iterator();
         char* handle;
         while ((handle = iterator->next()) != NULL) {
