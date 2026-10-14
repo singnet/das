@@ -1,3 +1,4 @@
+#include "AtomDBInitializer.h"
 #include "AtomDBSingleton.h"
 #include "BusCommandRouterProcessor.h"
 #include "BusCommandRouterProxy.h"
@@ -22,7 +23,7 @@ string bus_node_id(unsigned int port) { return "localhost:" + std::to_string(por
 class BusCommandRouterTestEnvironment : public ::testing::Environment {
    public:
     void SetUp() override {
-        AtomDBSingleton::init(test_atomdb_json_config());
+        AtomDBInitializer::init(test_atomdb_json_config());
         init_test_system_parameters_singleton();
     }
     void TearDown() override {}

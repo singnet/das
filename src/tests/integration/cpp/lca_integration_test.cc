@@ -1,4 +1,5 @@
 #include "AndTwoPredicates.h"
+#include "AtomDBInitializer.h"
 #include "AtomDBSingleton.h"
 #include "AtomDBUtils.h"
 #include "CustomizableLinkCreator.h"
@@ -512,7 +513,7 @@ int main(int argc, char* argv[]) {
 
     auto atomdb_config = json_config.at_path("atomdb").get_or<JsonConfig>(JsonConfig());
     SystemParametersSingleton::init(json_config);
-    AtomDBSingleton::init(atomdb_config);
+    AtomDBInitializer::init(atomdb_config);
     LinkCreatorRegistry::initialize_statics();
     ServiceBusSingleton::init(client_endpoint, server_endpoint, ports_range.first, ports_range.second);
 

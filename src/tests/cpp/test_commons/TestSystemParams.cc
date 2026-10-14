@@ -9,7 +9,7 @@ namespace das_test {
 
 const char kAgentsJson[] = R"({
   "agents": {
-    "schema_version": "1.2.0",
+    "schema_version": "1.2.1",
     "base_proxy": {
       "params": {
         "orchestration_schema": 0
@@ -41,10 +41,6 @@ const char kAgentsJson[] = R"({
     },
     "link_creation": {
       "params": {
-        "unique_assignment_flag": false,
-        "positive_importance_flag": false,
-        "disregard_importance_flag": false,
-        "unique_value_flag": false,
         "max_successful_creation_per_round": 10,
         "max_unproductive_visits_per_round": 500,
         "max_visit_attempts_per_round": 20,

@@ -44,7 +44,7 @@ TEST(SystemParametersTest, get_query_agent_params_merges_base_and_query) {
     EXPECT_EQ(params.get<unsigned int>("max_answers"), 0U);
 }
 
-TEST(SystemParametersTest, get_link_creation_agent_params) {
+TEST(SystemParametersTest, get_link_creation_agent_params_merges_base_query_and_lca) {
     auto params = make_test_parameters().get_link_creation_agent_params();
     EXPECT_EQ(params.get<unsigned int>("max_successful_creation_per_round"), 10U);
     EXPECT_EQ(params.get<unsigned int>("max_unproductive_visits_per_round"), 500U);

@@ -3,6 +3,7 @@
 #include <iostream>
 #include <vector>
 
+#include "AtomDBInitializer.h"
 #include "AtomDBSingleton.h"
 #include "JsonConfig.h"
 #include "JsonConfigParser.h"
@@ -24,7 +25,7 @@ int main(int argc, char* argv[]) {
     auto config = string(argv[2]).substr(string("--config=").length());
     JsonConfig json_config = JsonConfigParser::load(config);
     auto atomdb_config = json_config.at_path("atomdb").get_or<JsonConfig>(JsonConfig());
-    AtomDBSingleton::init(atomdb_config);
+    AtomDBInitializer::init(atomdb_config);
 
     string command = string(argv[3]);
     vector<string> args;

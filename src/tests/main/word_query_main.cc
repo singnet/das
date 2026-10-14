@@ -4,6 +4,7 @@
 #include <string>
 
 #include "AtomDBAPITypes.h"
+#include "AtomDBInitializer.h"
 #include "AtomDBSingleton.h"
 #include "PatternMatchingQueryProxy.h"
 #include "QueryAnswer.h"
@@ -196,7 +197,7 @@ int main(int argc, char* argv[]) {
     string word_tag = argv[5];
     string atomdb_type_str = argv[6];
     Utils::init_random(0);
-    AtomDBSingleton::init(test_atomdb_json_config(atomdb_type_str));
+    AtomDBInitializer::init(test_atomdb_json_config(atomdb_type_str));
 
     run(client_id, server_id, ports_range.first, ports_range.second, context, word_tag);
     return 0;

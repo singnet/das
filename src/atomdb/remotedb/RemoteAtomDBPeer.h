@@ -65,7 +65,10 @@ class RemoteAtomDBPeer : public AtomDB, public processor::ThreadMethod, public K
     vector<shared_ptr<Atom>> get_matching_atoms(bool is_toplevel,
                                                 Atom& key,
                                                 shared_ptr<Keychain> keychain) override;
-    vector<shared_ptr<Atom>> get_matching_atoms(bool is_toplevel, Atom& key, bool local_only);
+    vector<shared_ptr<Atom>> get_matching_atoms(bool is_toplevel,
+                                                Atom& key,
+                                                bool local_only,
+                                                shared_ptr<Keychain> keychain);
 
     shared_ptr<atomdb_api_types::HandleSet> query_for_pattern(const LinkSchema& link_schema) override;
     shared_ptr<atomdb_api_types::HandleSet> query_for_pattern(const LinkSchema& link_schema,
@@ -207,7 +210,7 @@ class RemoteAtomDBPeer : public AtomDB, public processor::ThreadMethod, public K
     shared_ptr<InMemoryDB> read_cache() const;
     shared_ptr<ProtectedAtomDB> protected_write_buffer() const;
     shared_ptr<ProtectedAtomDB> protected_read_cache() const;
-    void initialize_cache();
+    void initialize();
     void invalidate_fetched_templates();
 
     void feed_cache_from_handle_set(shared_ptr<atomdb_api_types::HandleSet> handle_set,
@@ -224,6 +227,7 @@ class RemoteAtomDBPeer : public AtomDB, public processor::ThreadMethod, public K
     shared_ptr<InMemoryDB> read_cache_;
     shared_ptr<ProtectedAtomDB> protected_write_buffer_;
     shared_ptr<ProtectedAtomDB> protected_read_cache_;
+    shared_ptr<ProtectedAtomDB> protected_atomdb_;
     shared_ptr<AtomDB> atomdb_;
     shared_ptr<AtomDB> local_persistence_;
     unordered_set<string> fetched_link_templates_;
