@@ -198,7 +198,7 @@ int main(int argc, char* argv[]) {
                 while (!router_proxy->routed_flag && !router_finished_or_error() && Helper::is_running) {
                     Utils::sleep(100);
                 }
-                if (router_proxy->error_flag) {
+                if (router_proxy->error_flag || !router_proxy->routed_flag) {
                     return 1;
                 }
                 LOG_INFO("Link creation routed; waiting for results...");
