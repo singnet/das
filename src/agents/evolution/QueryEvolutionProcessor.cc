@@ -264,7 +264,23 @@ void QueryEvolutionProcessor::select_best_individuals(
     vector<std::pair<shared_ptr<QueryAnswer>, float>>& selected) {
     double selection_rate = proxy->parameters.get<double>(QueryEvolutionProxy::SELECTION_RATE);
     unsigned int population_size = population.size();
-    unsigned int count = (unsigned int) std::lround(selection_rate * population_size);
+    unsigned int max_population_size = proxy->parameters.get<unsigned int>(QueryEvolutionProxy::POPULATION_SIZE);
+    unsigned int max_count = (unsigned int) std::lround(selection_rate * max_population_size);
+
+    // clang-format off
+    // If we sampled a population which is smaller than POPULATION_SIZE, we want to select more
+    // individuals than the usual (rate * population_size). So we try to set count to the max
+    // amongst (rate * population_size) and max_count (which is (rate * POPULATION_SIZE)) but
+    // we need to cap this value by population_size.
+    unsigned int count =
+        min(
+            max(
+                max_count,
+                (unsigned int) std::lround(selection_rate * population_size)
+            ),
+            population_size
+        );
+    // clang-format on
 
     if (count > 0) {
         if (count > population_size) {
@@ -435,7 +451,7 @@ void QueryEvolutionProcessor::stimulate(shared_ptr<QueryEvolutionProxy> proxy,
     }
     if (min_fitness < MIN_SELECTED_FITNESS) {
         min_fitness = MIN_SELECTED_FITNESS;
-        LOG_ERROR("Minimal fitness if below MIN_SELECTED_FITNESS");
+        LOG_ERROR("Minimal fitness is below MIN_SELECTED_FITNESS");
     }
 
     float fitness_rate = (1.0 / min_fitness);

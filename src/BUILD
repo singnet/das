@@ -164,6 +164,18 @@ cc_binary(
 )
 
 cc_binary(
+    name = "context_creator",
+    srcs = [],
+    defines = ["BAZEL_BUILD"],
+    linkstatic = 1,
+    deps = [
+        "//commons:commons_lib",
+        "//tests/main:context_creator_main_lib",
+        "@mbedtls",
+    ],
+)
+
+cc_binary(
     name = "sentence_evolution",
     srcs = [],
     defines = ["BAZEL_BUILD"],

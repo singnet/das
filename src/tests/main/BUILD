@@ -61,6 +61,25 @@ cc_library(
 )
 
 cc_library(
+    name = "context_creator_main_lib",
+    srcs = ["context_creator.cc"],
+    deps = [
+        "//agents/context_broker:context_broker_lib",
+        "//agents/evolution:evolution_lib",
+        "//agents/query_engine:query_engine_lib",
+        "//agents/link_creation_agent:link_creation_proxy",
+        "//agents/link_creation_agent/link_creators:link_creators_lib",
+        "//atomdb:atomdb_api_types",
+        "//atomdb:atomdb_singleton",
+        "//commons:commons_lib",
+        "//hasher:hasher_lib",
+        "//service_bus:service_bus_lib",
+        "//tests/cpp/test_commons:test_atomdb_json_config",
+        "@nlohmann_json//:json",
+    ],
+)
+
+cc_library(
     name = "sentence_evolution_main_lib",
     srcs = ["sentence_evolution.cc"],
     deps = [

@@ -125,7 +125,7 @@ bool LinkCreationProxy::stop_criteria_met() {
 
 void LinkCreationProxy::set_link_creator_function_tag(const string& tag) {
     STACK_TRACE();
-    LOG_INFO("LinkCreator: " + tag);
+    LOG_DEBUG("LinkCreator: " + tag);
     lock_guard<mutex> semaphore(this->api_mutex);
     if (tag == LinkCreatorRegistry::REMOTE_FUNCTION) {
         RAISE_ERROR("Remote evaluation of link creators is not implemented yet.");
