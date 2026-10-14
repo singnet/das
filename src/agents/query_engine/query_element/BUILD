@@ -51,9 +51,9 @@ cc_library(
     hdrs = ["Chain.h"],
     deps = [
         ":operator",
+        "//agents:base_query_proxy",
         "//agents/query_engine/query_element:link_template",
         "//agents/query_engine/query_element:source",
-        "//agents:base_query_proxy",
         "//atomdb:atomdb_singleton",
         "//commons:commons_lib",
         "//commons/atoms:atoms_lib",

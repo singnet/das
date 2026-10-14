@@ -122,7 +122,8 @@ void BaseQueryProxy::push_supplementary_info(SUPPLEMENTARY_INFO_TAG tag, const s
 void BaseQueryProxy::flush_answer_bundle() {
     lock_guard<recursive_mutex> semaphore(this->api_mutex);
     if (this->supplementary_info_bundle_vector.size() > 0) {
-        LOG_DEBUG("Flushing " << this->supplementary_info_bundle_vector.size() << " tokens in supplementary info bundle");
+        LOG_DEBUG("Flushing " << this->supplementary_info_bundle_vector.size()
+                              << " tokens in supplementary info bundle");
         to_remote_peer(SUPPLEMENTARY_INFO, this->supplementary_info_bundle_vector);
         this->supplementary_info_bundle_vector.clear();
     }
@@ -247,11 +248,14 @@ void BaseQueryProxy::supplementary_info(const vector<string>& args) {
             LOG_INFO("Disregarding empty supplementary info bundle");
         } else {
             if ((args.size() % 2) != 0) {
-                RAISE_ERROR("Invalid tokens for supplementary info bundle. Expected an even number of tokens. Tokens: [" + Utils::join(args, ", ") + "]");
+                RAISE_ERROR(
+                    "Invalid tokens for supplementary info bundle. Expected an even number of tokens. "
+                    "Tokens: [" +
+                    Utils::join(args, ", ") + "]");
             }
             for (unsigned int i = 0; i < args.size(); i += 2) {
                 string key = args[i];
-                if (! supplementary_info_tag_is_valid(key)) {
+                if (!supplementary_info_tag_is_valid(key)) {
                     RAISE_ERROR("Invalid supplementary info key: " + key);
                 }
                 if (this->_supplementary_info.find(key) == this->_supplementary_info.end()) {

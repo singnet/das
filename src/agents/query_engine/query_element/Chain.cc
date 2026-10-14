@@ -151,7 +151,8 @@ bool Chain::PathFinder::conditional_refeed(Path& path,
         LOG_DEBUG("[PATH_FINDER] "
                   << "All input is acknowledged. "
                   << "Reporting incomplete dead-end path: " << path.to_string());
-        this->chain_operator->proxy->push_supplementary_info(BaseQueryProxy::CHAIN_DEAD_ENDS, path.end_point());
+        this->chain_operator->proxy->push_supplementary_info(BaseQueryProxy::CHAIN_DEAD_ENDS,
+                                                             path.end_point());
         this->chain_operator->report_path(path);
         LOG_DEBUG("[PATH_FINDER] "
                   << "Discarding dead-end path: " << path.to_string());

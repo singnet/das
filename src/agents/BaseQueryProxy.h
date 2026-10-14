@@ -35,20 +35,25 @@ class BaseQueryProxy : public BaseProxy {
    public:
     enum QUERY_ELEMENTS { NONE = 0, HANDLES, VARIABLES, HANDLES_AND_VARIABLES };
     enum SUPPLEMENTARY_INFO_TAG { UNDEFINED = 0, BUILT_ATOMS, CHAIN_DEAD_ENDS };
+
    private:
-        string supplementary_info_tag_to_string(SUPPLEMENTARY_INFO_TAG tag) {
-        switch(tag) {
-            case UNDEFINED: RAISE_ERROR("Invalid undefined supplementary info tag");
-            case BUILT_ATOMS: return "built_atoms";
-            case CHAIN_DEAD_ENDS: return "chain_dead_ends";
-            default: RAISE_ERROR("Invalid supplementary info tag: " + std::to_string(tag));
+    string supplementary_info_tag_to_string(SUPPLEMENTARY_INFO_TAG tag) {
+        switch (tag) {
+            case UNDEFINED:
+                RAISE_ERROR("Invalid undefined supplementary info tag");
+            case BUILT_ATOMS:
+                return "built_atoms";
+            case CHAIN_DEAD_ENDS:
+                return "chain_dead_ends";
+            default:
+                RAISE_ERROR("Invalid supplementary info tag: " + std::to_string(tag));
         }
     }
     bool supplementary_info_tag_is_valid(const string& key) {
         return (key == "built_atoms") || (key == "chain_dead_ends");
     }
-   public:
 
+   public:
     // ---------------------------------------------------------------------------------------------
     // Constructors, destructors and static state
 

@@ -1,18 +1,18 @@
 #include <cstdlib>
 #include <cstring>
 
-#include "TestAtomDBJsonConfig.h"
-#include "TestSystemParams.h"
-#include "PatternMatchingQueryProxy.h"
-#include "AtomDBSingleton.h"
 #include "AtomDBInitializer.h"
+#include "AtomDBSingleton.h"
 #include "Chain.h"
 #include "Hasher.h"
 #include "InMemoryDB.h"
 #include "Logger.h"
+#include "PatternMatchingQueryProxy.h"
 #include "QueryAnswer.h"
 #include "Sink.h"
 #include "Source.h"
+#include "TestAtomDBJsonConfig.h"
+#include "TestSystemParams.h"
 #include "gtest/gtest.h"
 #include "test_utils.h"
 
@@ -377,11 +377,10 @@ TEST(ChainOperatorTest, allow_concatenation_reverse) {
 TEST(ChainOperatorTest, back_after_dead_end) {
     if (!RUN_back_after_dead_end) return;
     auto source = make_shared<TestSource>();
-    shared_ptr<BaseQueryProxy> proxy = static_pointer_cast<BaseQueryProxy>(make_shared<PatternMatchingQueryProxy>());
-    auto chain_operator = make_shared<Chain>(proxy, array<shared_ptr<QueryElement>, 1>({source}),
-                                             Hasher::node_handle(NODE_TYPE, "S"),
-                                             Hasher::node_handle(NODE_TYPE, "T"));
-    TestSink sink(chain_operator);
+    shared_ptr<BaseQueryProxy> proxy =
+static_pointer_cast<BaseQueryProxy>(make_shared<PatternMatchingQueryProxy>()); auto chain_operator =
+make_shared<Chain>(proxy, array<shared_ptr<QueryElement>, 1>({source}), Hasher::node_handle(NODE_TYPE,
+"S"), Hasher::node_handle(NODE_TYPE, "T")); TestSink sink(chain_operator);
 
     EXPECT_TRUE(sink.empty());
     EXPECT_FALSE(sink.finished());
@@ -499,12 +498,10 @@ TEST(ChainOperatorTest, back_after_dead_end) {
 TEST(ChainOperatorTest, complete_only) {
     if (!RUN_complete_only) return;
     auto source = make_shared<TestSource>();
-    shared_ptr<BaseQueryProxy> proxy = static_pointer_cast<BaseQueryProxy>(make_shared<PatternMatchingQueryProxy>());
-    auto chain_operator = make_shared<Chain>(proxy, array<shared_ptr<QueryElement>, 1>({source}),
-                                             Hasher::node_handle(NODE_TYPE, "S"),
-                                             Hasher::node_handle(NODE_TYPE, "T"),
-                                             false);
-    TestSink sink(chain_operator);
+    shared_ptr<BaseQueryProxy> proxy =
+static_pointer_cast<BaseQueryProxy>(make_shared<PatternMatchingQueryProxy>()); auto chain_operator =
+make_shared<Chain>(proxy, array<shared_ptr<QueryElement>, 1>({source}), Hasher::node_handle(NODE_TYPE,
+"S"), Hasher::node_handle(NODE_TYPE, "T"), false); TestSink sink(chain_operator);
 
     EXPECT_TRUE(sink.empty());
     EXPECT_FALSE(sink.finished());
@@ -602,8 +599,10 @@ TEST(ChainOperatorTest, complete_only) {
 TEST(ChainOperatorTest, basics) {
     if (!RUN_basics) return;
     auto source = make_shared<TestSource>();
-    shared_ptr<BaseQueryProxy> proxy = static_pointer_cast<BaseQueryProxy>(make_shared<PatternMatchingQueryProxy>());
-    auto chain_operator = make_shared<Chain>(proxy, array<shared_ptr<QueryElement>, 1>({source}),
+    shared_ptr<BaseQueryProxy> proxy =
+        static_pointer_cast<BaseQueryProxy>(make_shared<PatternMatchingQueryProxy>());
+    auto chain_operator = make_shared<Chain>(proxy,
+                                             array<shared_ptr<QueryElement>, 1>({source}),
                                              Hasher::node_handle(NODE_TYPE, "S"),
                                              Hasher::node_handle(NODE_TYPE, "T"));
     TestSink sink(chain_operator);
@@ -695,7 +694,8 @@ TEST(ChainOperatorTest, basics) {
             } else {
                 prefix = "INCOMPLETE";
             }
-            LOG_INFO(prefix + " [" + std::to_string(answer->importance) + "]: " + answer_path_to_string(answer));
+            LOG_INFO(prefix + " [" + std::to_string(answer->importance) +
+                     "]: " + answer_path_to_string(answer));
         }
         Utils::sleep(500);
     }

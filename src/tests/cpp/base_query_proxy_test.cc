@@ -78,21 +78,22 @@ TEST(AtomDBTest, supplementary_info_basics) {
     proxy1.push_supplementary_info(BaseQueryProxy::BUILT_ATOMS, "ba1");
     proxy1.push_supplementary_info(BaseQueryProxy::BUILT_ATOMS, "ba2");
     proxy1.push_supplementary_info(BaseQueryProxy::CHAIN_DEAD_ENDS, "cde1");
-    proxy1.supplementary_info(vector<string>({
-        "built_atoms", "ba1",
-        "built_atoms", "ba2",
-        "chain_dead_ends", "cde1"}));
-    EXPECT_EQ(proxy1.get_supplementary_info(BaseQueryProxy::BUILT_ATOMS), vector<string>({"ba1", "ba2"}));
+    proxy1.supplementary_info(
+        vector<string>({"built_atoms", "ba1", "built_atoms", "ba2", "chain_dead_ends", "cde1"}));
+    EXPECT_EQ(proxy1.get_supplementary_info(BaseQueryProxy::BUILT_ATOMS),
+              vector<string>({"ba1", "ba2"}));
     EXPECT_EQ(proxy1.get_supplementary_info(BaseQueryProxy::CHAIN_DEAD_ENDS), vector<string>({"cde1"}));
 
     PatternMatchingQueryProxy proxy2;
     EXPECT_EQ(proxy2.get_supplementary_info(BaseQueryProxy::BUILT_ATOMS), vector<string>({}));
     EXPECT_EQ(proxy2.get_supplementary_info(BaseQueryProxy::CHAIN_DEAD_ENDS), vector<string>({}));
     EXPECT_THROW(proxy2.push_supplementary_info(BaseQueryProxy::UNDEFINED, "blah"), runtime_error);
-    EXPECT_THROW(proxy2.push_supplementary_info((BaseQueryProxy::SUPPLEMENTARY_INFO_TAG) 3, "blah"), runtime_error);
+    EXPECT_THROW(proxy2.push_supplementary_info((BaseQueryProxy::SUPPLEMENTARY_INFO_TAG) 3, "blah"),
+                 runtime_error);
     EXPECT_THROW(proxy2.supplementary_info(vector<string>({"blah", "bleh"})), runtime_error);
     EXPECT_THROW(proxy2.supplementary_info(vector<string>({"built_atoms"})), runtime_error);
-    EXPECT_THROW(proxy2.supplementary_info(vector<string>({"built_atoms", "blah", "built_atoms"})), runtime_error);
-    EXPECT_THROW(proxy2.supplementary_info(vector<string>({"built_atoms", "blah", "bleh", "blih"})), runtime_error);
-
+    EXPECT_THROW(proxy2.supplementary_info(vector<string>({"built_atoms", "blah", "built_atoms"})),
+                 runtime_error);
+    EXPECT_THROW(proxy2.supplementary_info(vector<string>({"built_atoms", "blah", "bleh", "blih"})),
+                 runtime_error);
 }
