@@ -11,9 +11,13 @@ WORKDIR /opt
 RUN git clone -b server https://github.com/trueagi-io/MORK.git \
  && cd MORK \
  && git checkout ${COMMIT_ID} \
- && sed -i 's/branch = "master"/rev = "cd30438cc1056ba819d88aa22c783ba4dd6c8e1c"/' Cargo.toml \ 
+ && sed -i 's/branch = "master"/rev = "cd30438cc1056ba819d88aa22c783ba4dd6c8e1c"/' Cargo.toml \
+ && git clone https://github.com/ogxd/gxhash.git /opt/gxhash \
+ && git -C /opt/gxhash checkout 6438a7bc2a78d9426bea7671a044f82d3f767dc2 \
+ && printf '\n[patch."https://github.com/luketpeterson/gxhash/"]\ngxhash = { path = "/opt/gxhash" }\n[patch.crates-io]\ngxhash = { path = "/opt/gxhash" }\n' >> Cargo.toml \
  && cd server \
- && cargo build --release
+ && cargo generate-lockfile --config 'resolver.incompatible-rust-versions="fallback"' \
+ && cargo build --release --locked
 
 FROM gcr.io/distroless/cc
 

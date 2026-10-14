@@ -17,6 +17,7 @@ jobs:
   unit-tests:
     runs-on:
       - self-hosted
+      - amd64
       - ${{ inputs.runner }}
       - ${{ github.actor }}
     env:
