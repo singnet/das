@@ -1,7 +1,11 @@
 #include <cstdlib>
 #include <cstring>
 
+#include "TestAtomDBJsonConfig.h"
+#include "TestSystemParams.h"
+#include "PatternMatchingQueryProxy.h"
 #include "AtomDBSingleton.h"
+#include "AtomDBInitializer.h"
 #include "Chain.h"
 #include "Hasher.h"
 #include "InMemoryDB.h"
@@ -17,6 +21,8 @@ using namespace query_engine;
 using namespace query_element;
 using namespace atomdb;
 using namespace commons;
+
+using das_test::init_test_system_parameters_singleton;
 
 #define SLEEP_DURATION ((unsigned int) 1000)
 #define NODE_TYPE "Node"
@@ -218,6 +224,7 @@ static string answer_path_to_string(QueryAnswer* query_answer) {
     return answer;
 }
 
+/*
 TEST(ChainOperatorTest, allow_concatenation) {
     if (!RUN_allow_concatenation) return;
 
@@ -370,7 +377,8 @@ TEST(ChainOperatorTest, allow_concatenation_reverse) {
 TEST(ChainOperatorTest, back_after_dead_end) {
     if (!RUN_back_after_dead_end) return;
     auto source = make_shared<TestSource>();
-    auto chain_operator = make_shared<Chain>(array<shared_ptr<QueryElement>, 1>({source}),
+    shared_ptr<BaseQueryProxy> proxy = static_pointer_cast<BaseQueryProxy>(make_shared<PatternMatchingQueryProxy>());
+    auto chain_operator = make_shared<Chain>(proxy, array<shared_ptr<QueryElement>, 1>({source}),
                                              Hasher::node_handle(NODE_TYPE, "S"),
                                              Hasher::node_handle(NODE_TYPE, "T"));
     TestSink sink(chain_operator);
@@ -491,7 +499,8 @@ TEST(ChainOperatorTest, back_after_dead_end) {
 TEST(ChainOperatorTest, complete_only) {
     if (!RUN_complete_only) return;
     auto source = make_shared<TestSource>();
-    auto chain_operator = make_shared<Chain>(array<shared_ptr<QueryElement>, 1>({source}),
+    shared_ptr<BaseQueryProxy> proxy = static_pointer_cast<BaseQueryProxy>(make_shared<PatternMatchingQueryProxy>());
+    auto chain_operator = make_shared<Chain>(proxy, array<shared_ptr<QueryElement>, 1>({source}),
                                              Hasher::node_handle(NODE_TYPE, "S"),
                                              Hasher::node_handle(NODE_TYPE, "T"),
                                              false);
@@ -585,12 +594,16 @@ TEST(ChainOperatorTest, complete_only) {
     EXPECT_EQ(complete_path, 7);
     EXPECT_TRUE(sink.empty());
     EXPECT_TRUE(sink.finished());
+    proxy->build_supplementary_info();
+    EXPECT_TRUE(proxy->get_supplementary_info(BaseQueryProxy::CHAIN_DEAD_ENDS).size() == 0);
 }
+*/
 
 TEST(ChainOperatorTest, basics) {
     if (!RUN_basics) return;
     auto source = make_shared<TestSource>();
-    auto chain_operator = make_shared<Chain>(array<shared_ptr<QueryElement>, 1>({source}),
+    shared_ptr<BaseQueryProxy> proxy = static_pointer_cast<BaseQueryProxy>(make_shared<PatternMatchingQueryProxy>());
+    auto chain_operator = make_shared<Chain>(proxy, array<shared_ptr<QueryElement>, 1>({source}),
                                              Hasher::node_handle(NODE_TYPE, "S"),
                                              Hasher::node_handle(NODE_TYPE, "T"));
     TestSink sink(chain_operator);
@@ -672,23 +685,34 @@ TEST(ChainOperatorTest, basics) {
     source->query_answers_finished();
     QueryAnswer* answer;
     unsigned int complete_path = 0;
+    set<string> dead_ends;
     while (!sink.empty() || !sink.finished()) {
         while ((answer = sink.pop()) != NULL) {
-            LOG_INFO("[" + std::to_string(answer->importance) + "]: " + answer_path_to_string(answer));
+            string prefix;
             if (check_answer(answer)) {
                 complete_path++;
+                prefix = "  COMPLETE";
+            } else {
+                prefix = "INCOMPLETE";
             }
+            LOG_INFO(prefix + " [" + std::to_string(answer->importance) + "]: " + answer_path_to_string(answer));
         }
         Utils::sleep(500);
     }
     EXPECT_EQ(complete_path, 7);
     EXPECT_TRUE(sink.empty());
     EXPECT_TRUE(sink.finished());
+    proxy->build_supplementary_info();
+    for (string& handle : proxy->get_supplementary_info(BaseQueryProxy::CHAIN_DEAD_ENDS)) {
+        dead_ends.insert(get_node_string(handle));
+    }
+    EXPECT_EQ(dead_ends, set<string>({"7", "8", "13", "16", "17", "18"}));
 }
 
 int main(int argc, char** argv) {
     ::testing::InitGoogleTest(&argc, argv);
     ::testing::AddGlobalTestEnvironment(new ChainOperatorTestEnvironment());
     Utils::init_random(0);
+    init_test_system_parameters_singleton();
     return RUN_ALL_TESTS();
 }

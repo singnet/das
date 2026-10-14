@@ -358,7 +358,10 @@ cc_test(
     linkstatic = 1,
     deps = [
         "//agents/query_engine:query_engine_lib",
+        "//tests/cpp/test_commons:test_atomdb_json_config",
+        "//tests/cpp/test_commons:test_system_params",
         "//atomdb:atomdb_singleton",
+        "//atomdb:atomdb_initializer",
         "//atomdb/inmemorydb:inmemorydb_lib",
         "//commons:commons_lib",
         "//hasher:hasher_lib",

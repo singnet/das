@@ -1,6 +1,7 @@
 #include "Chain.h"
 
 #include "AtomDBSingleton.h"
+#include "AtomDBUtils.h"
 #include "Hasher.h"
 #include "Logger.h"
 #include "ThreadSafeHeap.h"
@@ -25,7 +26,8 @@ static string convert_handle(const string& handle) {
 // -------------------------------------------------------------------------------------------------
 // Public methods
 
-Chain::Chain(const array<shared_ptr<QueryElement>, 1>& clauses,
+Chain::Chain(shared_ptr<BaseQueryProxy> proxy,
+             const array<shared_ptr<QueryElement>, 1>& clauses,
              shared_ptr<LinkTemplate> link_template,
              const string& source_reference,
              const string& target_reference,
@@ -35,6 +37,7 @@ Chain::Chain(const array<shared_ptr<QueryElement>, 1>& clauses,
              unsigned int head_reference,
              bool allow_incomplete_chain_path)
     : Operator<1>(clauses),
+      proxy(proxy),
       input_link_template(link_template),
       source_reference(source_reference),
       target_reference(target_reference),
@@ -46,11 +49,13 @@ Chain::Chain(const array<shared_ptr<QueryElement>, 1>& clauses,
     initialize(clauses);
 }
 
-Chain::Chain(const array<shared_ptr<QueryElement>, 1>& clauses,
+Chain::Chain(shared_ptr<BaseQueryProxy> proxy,
+             const array<shared_ptr<QueryElement>, 1>& clauses,
              const string& source_reference,
              const string& target_reference,
              bool allow_incomplete_chain_path)
-    : Chain(clauses,
+    : Chain(proxy,
+            clauses,
             nullptr,
             source_reference,
             target_reference,
@@ -146,6 +151,7 @@ bool Chain::PathFinder::conditional_refeed(Path& path,
         LOG_DEBUG("[PATH_FINDER] "
                   << "All input is acknowledged. "
                   << "Reporting incomplete dead-end path: " << path.to_string());
+        this->chain_operator->proxy->push_supplementary_info(BaseQueryProxy::CHAIN_DEAD_ENDS, path.end_point());
         this->chain_operator->report_path(path);
         LOG_DEBUG("[PATH_FINDER] "
                   << "Discarding dead-end path: " << path.to_string());

@@ -12,7 +12,7 @@ using namespace agents;
 
 string BaseQueryProxy::ABORT = "abort";
 string BaseQueryProxy::ANSWER_BUNDLE = "answer_bundle";
-string BaseQueryProxy::BUILT_ATOMS_BUNDLE = "built_atoms_bundle";
+string BaseQueryProxy::SUPPLEMENTARY_INFO = "supplementary_info";
 string BaseQueryProxy::FINISHED = "finished";
 
 string BaseQueryProxy::UNIQUE_ASSIGNMENT_FLAG = "unique_assignment_flag";
@@ -89,9 +89,14 @@ bool BaseQueryProxy::finished_cycle() {
     return (this->is_aborting() || (BaseProxy::finished_cycle() && this->answer_queue.empty()));
 }
 
-vector<string> BaseQueryProxy::get_built_atoms() {
+vector<string> BaseQueryProxy::get_supplementary_info(SUPPLEMENTARY_INFO_TAG tag) {
     lock_guard<recursive_mutex> semaphore(this->api_mutex);
-    return this->built_atoms;
+    string key = supplementary_info_tag_to_string(tag);
+    if (this->_supplementary_info.find(key) == this->_supplementary_info.end()) {
+        return {};
+    } else {
+        return this->_supplementary_info[key];
+    }
 }
 
 // -------------------------------------------------------------------------------------------------
@@ -107,21 +112,22 @@ void BaseQueryProxy::push(shared_ptr<QueryAnswer> answer) {
     }
 }
 
-void BaseQueryProxy::push_built_atom(const string& handle) {
+void BaseQueryProxy::push_supplementary_info(SUPPLEMENTARY_INFO_TAG tag, const string& handle) {
     lock_guard<recursive_mutex> semaphore(this->api_mutex);
-    this->built_atoms_bundle_vector.push_back(handle);
-    LOG_DEBUG("Built atom pushed to bundle: " + handle);
+    this->supplementary_info_bundle_vector.push_back(supplementary_info_tag_to_string(tag));
+    this->supplementary_info_bundle_vector.push_back(handle);
+    LOG_DEBUG("Supplementary info pushed to bundle: " + tag + " -> " + handle);
 }
 
 void BaseQueryProxy::flush_answer_bundle() {
     lock_guard<recursive_mutex> semaphore(this->api_mutex);
-    if (this->built_atoms_bundle_vector.size() > 0) {
-        LOG_DEBUG("Flushing " << this->built_atoms_bundle_vector.size() << " answers in bundle");
-        to_remote_peer(BUILT_ATOMS_BUNDLE, this->built_atoms_bundle_vector);
-        this->built_atoms_bundle_vector.clear();
+    if (this->supplementary_info_bundle_vector.size() > 0) {
+        LOG_DEBUG("Flushing " << this->supplementary_info_bundle_vector.size() << " tokens in supplementary info bundle");
+        to_remote_peer(SUPPLEMENTARY_INFO, this->supplementary_info_bundle_vector);
+        this->supplementary_info_bundle_vector.clear();
     }
     if (this->answer_bundle_vector.size() > 0) {
-        LOG_DEBUG("Flushing " << this->answer_bundle_vector.size() << " atoms in bundle");
+        LOG_DEBUG("Flushing " << this->answer_bundle_vector.size() << " answers in bundle");
         to_remote_peer(ANSWER_BUNDLE, this->answer_bundle_vector);
         this->answer_bundle_vector.clear();
     }
@@ -204,8 +210,8 @@ bool BaseQueryProxy::from_remote_peer(const string& command, const vector<string
     } else {
         if (command == ANSWER_BUNDLE) {
             answer_bundle(args);
-        } else if (command == BUILT_ATOMS_BUNDLE) {
-            built_atoms_bundle(args);
+        } else if (command == SUPPLEMENTARY_INFO) {
+            supplementary_info(args);
         } else {
             return false;
         }
@@ -234,15 +240,29 @@ void BaseQueryProxy::answer_bundle(const vector<string>& args) {
     }
 }
 
-void BaseQueryProxy::built_atoms_bundle(const vector<string>& args) {
+void BaseQueryProxy::supplementary_info(const vector<string>& args) {
     lock_guard<recursive_mutex> semaphore(this->api_mutex);
     if (!this->is_aborting()) {
         if (args.size() == 0) {
-            LOG_INFO("Disregarding empty built atoms answer bundle");
+            LOG_INFO("Disregarding empty supplementary info bundle");
         } else {
-            for (auto handle : args) {
-                this->built_atoms.push_back(handle);
+            if ((args.size() % 2) != 0) {
+                RAISE_ERROR("Invalid tokens for supplementary info bundle. Expected an even number of tokens. Tokens: [" + Utils::join(args, ", ") + "]");
+            }
+            for (unsigned int i = 0; i < args.size(); i += 2) {
+                string key = args[i];
+                if (! supplementary_info_tag_is_valid(key)) {
+                    RAISE_ERROR("Invalid supplementary info key: " + key);
+                }
+                if (this->_supplementary_info.find(key) == this->_supplementary_info.end()) {
+                    this->_supplementary_info[key] = {};
+                }
+                this->_supplementary_info[key].push_back(args[i + 1]);
             }
         }
     }
+}
+
+void BaseQueryProxy::build_supplementary_info() {
+    supplementary_info(this->supplementary_info_bundle_vector);
 }

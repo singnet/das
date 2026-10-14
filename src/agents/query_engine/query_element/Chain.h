@@ -1,5 +1,6 @@
 #pragma once
 
+#include "BaseQueryProxy.h"
 #include "DedicatedThread.h"
 #include "Link.h"
 #include "LinkTemplate.h"
@@ -199,7 +200,8 @@ class Chain : public Operator<1>, public ThreadMethod {
     /**
      * Constructor.
      */
-    Chain(const array<shared_ptr<QueryElement>, 1>& clauses,
+    Chain(shared_ptr<BaseQueryProxy> proxy,
+          const array<shared_ptr<QueryElement>, 1>& clauses,
           shared_ptr<LinkTemplate> link_template,
           const string& source_reference,
           const string& target_reference,
@@ -214,7 +216,8 @@ class Chain : public Operator<1>, public ThreadMethod {
      * the query answer and assuming a link like (disregarded $v1 $v2) where chaining will be made
      * assuming $v1 -> $v2.
      */
-    Chain(const array<shared_ptr<QueryElement>, 1>& clauses,
+    Chain(shared_ptr<BaseQueryProxy> proxy,
+          const array<shared_ptr<QueryElement>, 1>& clauses,
           const string& source_reference,
           const string& target_reference,
           bool allow_incomplete_chain_path = true);
@@ -288,6 +291,7 @@ class Chain : public Operator<1>, public ThreadMethod {
     virtual bool thread_one_step();
 
     mutex thread_debug_mutex;
+    shared_ptr<BaseQueryProxy> proxy;
 
    private:
     class PathFinder : public ThreadMethod {
