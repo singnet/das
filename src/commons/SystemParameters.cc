@@ -56,14 +56,6 @@ Properties SystemParameters::get_context_agent_params() const {
 }
 
 Properties SystemParameters::get_command_router_params() const {
-    // Shared keys (unique_assignment_flag, positive_importance_flag, ...) keep the
-    // query/context values already used by the router. Link-creation-only keys are added.
-    Properties params = get_base_query_params() + get_agent_params("query") +
-                        get_agent_params("evolution") + get_agent_params("context");
-    for (const auto& entry : get_agent_params("link_creation")) {
-        if (params.find(entry.first) == params.end()) {
-            params[entry.first] = entry.second;
-        }
-    }
-    return params;
+    return get_base_query_params() + get_agent_params("query") + get_agent_params("evolution") +
+           get_agent_params("link_creation") + get_agent_params("context");
 }
