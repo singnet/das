@@ -21,6 +21,13 @@ struct PollStreamResult {
 };
 
 /**
+ * Optional remote-fitness bridge for evolution over HTTP.
+ * Called with a JSON array of QueryAnswer objects; must fill fitness_out with one float
+ * string per answer and return true. Return false to abort/fail the stream.
+ */
+using EvalFitnessHandler = function<bool(const json& answers, vector<string>& fitness_out)>;
+
+/**
  * Polls a BusCommandRouterProxy and delivers results in HTTP-friendly chunks.
  *
  * Used by CommandRouterHttpAPI to stream command output over WebSocket. The terminal
@@ -35,6 +42,10 @@ class BusCommandRouterProxyStreamPoller {
      * and forwarded in batches of at most items_per_chunk JSON values. For "get" and
      * "set", a single chunk is emitted once the proxy response is ready.
      *
+     * When command_type is "evolution" and on_eval_fitness is set, pending EVAL_FITNESS
+     * requests on the proxy are converted to JSON and delegated to the handler; the
+     * returned floats are sent back to the evolution agent.
+     *
      * @param router_proxy Proxy already issued on the service bus.
      * @param command_type Router command: "get", "set", "query", or "evolution".
      * @param items_per_chunk Maximum answers per on_chunk call for query/evolution.
@@ -45,6 +56,7 @@ class BusCommandRouterProxyStreamPoller {
      * @param on_error Called with an error message on validation, proxy, or unknown
      *                 command failures.
      * @param on_aborted Called when polling stops because should_abort returned true.
+     * @param on_eval_fitness Optional remote-fitness handler (evolution only).
      * @return Result status; count-only totals are returned when is_count_only is true.
      */
     static PollStreamResult poll_stream(const shared_ptr<BusCommandRouterProxy>& router_proxy,
@@ -53,7 +65,8 @@ class BusCommandRouterProxyStreamPoller {
                                         const function<bool()>& should_abort,
                                         const function<void(const json& chunk)>& on_chunk,
                                         const function<void(const string& error)>& on_error,
-                                        const function<void()>& on_aborted);
+                                        const function<void()>& on_aborted,
+                                        const EvalFitnessHandler& on_eval_fitness = nullptr);
 
    private:
     BusCommandRouterProxyStreamPoller() = delete;

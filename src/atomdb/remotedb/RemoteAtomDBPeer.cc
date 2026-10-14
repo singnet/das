@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <deque>
 #include <fstream>
+#include <nlohmann/json.hpp>
 #include <sstream>
 #include <thread>
 #include <unordered_map>
@@ -13,6 +14,7 @@
 #include "Link.h"
 #include "Logger.h"
 #include "Node.h"
+#include "ProtectedAtomDB.h"
 #include "Utils.h"
 #include "expression_hasher.h"
 
@@ -20,19 +22,22 @@ using namespace atomdb;
 using namespace atomdb_api_types;
 using namespace atoms;
 using namespace commons;
+using nlohmann::json;
 
 RemoteAtomDBPeer::RemoteAtomDBPeer(const string& uid,
                                    shared_ptr<AtomDB> remote_atomdb,
                                    shared_ptr<AtomDB> local_persistence)
-    : AtomDB(uid),
-      write_buffer_(make_shared<InMemoryDB>()),
-      read_cache_(make_shared<InMemoryDB>()),
-      atomdb_(remote_atomdb),
-      local_persistence_(local_persistence) {
+    : AtomDB(uid), atomdb_(remote_atomdb), local_persistence_(local_persistence) {
     if (local_persistence_ &&
         local_persistence_->get_protection_mode() != atomdb_api_types::ProtectionMode::UNPROTECTED) {
         RAISE_ERROR("RemoteAtomDBPeer supports only UNPROTECTED local persistence");
     }
+    if (auto p = dynamic_pointer_cast<ProtectedAtomDB>(this->atomdb_)) {
+        this->protected_atomdb_ = p;
+    } else {
+        this->protected_atomdb_ = nullptr;
+    }
+    initialize();
     start_cleanup_thread();
 }
 
@@ -57,6 +62,30 @@ shared_ptr<InMemoryDB> RemoteAtomDBPeer::read_cache() const {
     return read_cache_;
 }
 
+shared_ptr<ProtectedAtomDB> RemoteAtomDBPeer::protected_write_buffer() const {
+    lock_guard<mutex> lock(peer_mutex_);
+    return protected_write_buffer_;
+}
+
+shared_ptr<ProtectedAtomDB> RemoteAtomDBPeer::protected_read_cache() const {
+    lock_guard<mutex> lock(peer_mutex_);
+    return protected_read_cache_;
+}
+
+void RemoteAtomDBPeer::initialize() {
+    auto config = JsonConfig(json{{"uid", this->atomdb_->get_uid()}});
+    this->write_buffer_ = make_shared<InMemoryDB>(config);
+    this->read_cache_ = make_shared<InMemoryDB>(config);
+
+    if (auto p = dynamic_pointer_cast<ProtectedAtomDB>(this->atomdb_)) {
+        this->protected_write_buffer_ = p->wrap(this->write_buffer_);
+        this->protected_read_cache_ = p->wrap(this->read_cache_);
+    } else {
+        this->protected_write_buffer_ = nullptr;
+        this->protected_read_cache_ = nullptr;
+    }
+}
+
 void RemoteAtomDBPeer::invalidate_fetched_templates() {
     lock_guard<mutex> lock(peer_mutex_);
     fetched_link_templates_.clear();
@@ -68,39 +97,7 @@ atomdb_api_types::ProtectionMode RemoteAtomDBPeer::get_protection_mode() const {
 }
 
 shared_ptr<Atom> RemoteAtomDBPeer::get_atom(const string& handle) {
-    // Snapshot the two in-memory layers without holding the mutex across I/O.
-    auto wb = write_buffer();
-    auto rc = read_cache();
-
-    // Dirty writes always win over durable / warmed copies.
-    if (auto atom = wb->get_atom(handle)) {
-        return atom;
-    }
-
-    if (local_persistence_) {
-        auto atom = local_persistence_->get_atom(handle);
-        if (atom) {
-            LOG_DEBUG("[RemoteDB(" << uid_ << ")] get_atom(" << handle
-                                   << ") <- local_persistence (warmed into read_cache)");
-            // Deliberately re-warm on EVERY hit, not just the first one.
-            rc->add_atom(atom.get());
-            return atom;
-        }
-    }
-
-    if (auto atom = rc->get_atom(handle)) {
-        return atom;
-    }
-
-    auto atom = atomdb_->get_atom(handle);
-    if (atom) {
-        LOG_DEBUG("[RemoteDB(" << uid_ << ")] get_atom(" << handle << ") <- remote atomdb (warmed)");
-        rc->add_atom(atom.get());
-        return atom;
-    }
-
-    LOG_DEBUG("[RemoteDB(" << uid_ << ")] get_atom(" << handle << ") miss");
-    return nullptr;
+    return this->get_atom(handle, nullptr);
 }
 
 shared_ptr<Node> RemoteAtomDBPeer::get_node(const string& handle) {
@@ -113,30 +110,33 @@ shared_ptr<Link> RemoteAtomDBPeer::get_link(const string& handle) {
     return dynamic_pointer_cast<Link>(atom);
 }
 
-shared_ptr<Atom> RemoteAtomDBPeer::get_cached_atom(const string& handle) {
-    if (auto atom = write_buffer()->get_atom(handle)) {
+shared_ptr<Atom> RemoteAtomDBPeer::get_cached_atom(const string& handle, shared_ptr<Keychain> keychain) {
+    auto pwb = protected_write_buffer();
+    if (auto atom = pwb ? pwb->get_atom(handle, keychain) : write_buffer()->get_atom(handle)) {
         return atom;
     }
-    return read_cache()->get_atom(handle);
+    auto prc = protected_read_cache();
+    return prc ? prc->get_atom(handle, keychain) : read_cache()->get_atom(handle);
 }
 
-shared_ptr<Node> RemoteAtomDBPeer::get_cached_node(const string& handle) {
-    auto atom = get_cached_atom(handle);
+shared_ptr<Node> RemoteAtomDBPeer::get_cached_node(const string& handle, shared_ptr<Keychain> keychain) {
+    auto atom = get_cached_atom(handle, keychain);
     return dynamic_pointer_cast<Node>(atom);
 }
 
-shared_ptr<Link> RemoteAtomDBPeer::get_cached_link(const string& handle) {
-    auto atom = get_cached_atom(handle);
+shared_ptr<Link> RemoteAtomDBPeer::get_cached_link(const string& handle, shared_ptr<Keychain> keychain) {
+    auto atom = get_cached_atom(handle, keychain);
     return dynamic_pointer_cast<Link>(atom);
 }
 
 vector<shared_ptr<Atom>> RemoteAtomDBPeer::get_matching_atoms(bool is_toplevel, Atom& key) {
-    return get_matching_atoms(is_toplevel, key, false);
+    return get_matching_atoms(is_toplevel, key, false, nullptr);
 }
 
 vector<shared_ptr<Atom>> RemoteAtomDBPeer::get_matching_atoms(bool is_toplevel,
                                                               Atom& key,
-                                                              bool local_only) {
+                                                              bool local_only,
+                                                              shared_ptr<Keychain> keychain) {
     vector<shared_ptr<Atom>> result;
     set<string> seen_handles;
 
@@ -149,20 +149,30 @@ vector<shared_ptr<Atom>> RemoteAtomDBPeer::get_matching_atoms(bool is_toplevel,
         }
     };
 
-    merge_results(write_buffer()->get_matching_atoms(is_toplevel, key));
-    merge_results(read_cache()->get_matching_atoms(is_toplevel, key));
+    auto pwb = protected_write_buffer();
+    merge_results(pwb ? pwb->get_matching_atoms(is_toplevel, key, keychain)
+                      : write_buffer()->get_matching_atoms(is_toplevel, key));
+
+    auto prc = protected_read_cache();
+    merge_results(prc ? prc->get_matching_atoms(is_toplevel, key, keychain)
+                      : read_cache()->get_matching_atoms(is_toplevel, key));
+
     if (local_persistence_) {
         merge_results(local_persistence_->get_matching_atoms(is_toplevel, key));
     }
 
     if (!local_only && atomdb_) {
-        merge_results(atomdb_->get_matching_atoms(is_toplevel, key));
+        auto atoms = this->protected_atomdb_
+                         ? this->protected_atomdb_->get_matching_atoms(is_toplevel, key, keychain)
+                         : this->atomdb_->get_matching_atoms(is_toplevel, key);
+        merge_results(atoms);
     }
 
     return result;
 }
 
-void RemoteAtomDBPeer::feed_cache_from_handle_set(shared_ptr<HandleSet> handle_set) {
+void RemoteAtomDBPeer::feed_cache_from_handle_set(shared_ptr<HandleSet> handle_set,
+                                                  shared_ptr<Keychain> keychain) {
     if (!handle_set) return;
 
     auto it = handle_set->get_iterator();
@@ -175,7 +185,7 @@ void RemoteAtomDBPeer::feed_cache_from_handle_set(shared_ptr<HandleSet> handle_s
         if (!handle_cstr) break;
 
         string handle(handle_cstr);
-        get_atom(handle);
+        get_atom(handle, keychain);
     }
 }
 
@@ -195,183 +205,33 @@ void RemoteAtomDBPeer::merge_handle_set(shared_ptr<HandleSet> source,
 }
 
 shared_ptr<HandleSet> RemoteAtomDBPeer::query_for_pattern(const LinkSchema& link_schema) {
-    auto result = make_shared<HandleSetInMemory>();
-    set<string> seen;
-
-    auto merge_memory = [&](const shared_ptr<InMemoryDB>& db) {
-        merge_handle_set(db->query_for_pattern(link_schema), result, seen);
-    };
-
-    auto merge_local_persistence = [&]() {
-        if (!local_persistence_) return;
-        merge_handle_set(local_persistence_->query_for_pattern(link_schema), result, seen);
-    };
-
-    bool cache_hit;
-    {
-        lock_guard<mutex> lock(peer_mutex_);
-        cache_hit = fetched_link_templates_.count(link_schema.handle()) > 0;
-    }
-
-    if (cache_hit) {
-        LOG_DEBUG("[RemoteDB(" << uid_ << ")] query_for_pattern(" << link_schema.handle()
-                               << ") cache-hit");
-        merge_memory(write_buffer());
-        merge_memory(read_cache());
-        merge_local_persistence();
-        LOG_DEBUG("[RemoteDB(" << uid_ << ")] query_for_pattern(" << link_schema.handle() << ") -> "
-                               << result->size() << " handles");
-        return result;
-    }
-
-    LOG_DEBUG("[RemoteDB(" << uid_ << ")] query_for_pattern(" << link_schema.handle()
-                           << ") cache-miss, fetching from remote atomdb");
-
-    shared_ptr<HandleSet> remote_handle_set = atomdb_->query_for_pattern(link_schema);
-    if (remote_handle_set) {
-        feed_cache_from_handle_set(remote_handle_set);
-        // Merge remote first when it carries nested metadata. InMemoryDB has no
-        // metta/assignments — if it fills `seen` first, the remote metadata is skipped.
-        merge_handle_set(remote_handle_set, result, seen);
-    }
-
-    merge_memory(write_buffer());
-    merge_memory(read_cache());
-    merge_local_persistence();
-
-    {
-        lock_guard<mutex> lock(peer_mutex_);
-        fetched_link_templates_.insert(link_schema.handle());
-    }
-
-    LOG_DEBUG("[RemoteDB(" << uid_ << ")] query_for_pattern(" << link_schema.handle() << ") -> "
-                           << result->size() << " handles");
-    return result;
+    return this->query_for_pattern(link_schema, nullptr);
 }
 
 shared_ptr<HandleList> RemoteAtomDBPeer::query_for_targets(const string& handle) {
-    if (auto result = write_buffer()->query_for_targets(handle)) {
-        return result;
-    }
-    if (auto result = read_cache()->query_for_targets(handle)) {
-        return result;
-    }
-
-    if (local_persistence_) {
-        auto result = local_persistence_->query_for_targets(handle);
-        if (result) {
-            LOG_DEBUG("[RemoteDB(" << uid_ << ")] query_for_targets(" << handle
-                                   << ") <- local_persistence");
-            return result;
-        }
-    }
-
-    LOG_DEBUG("[RemoteDB(" << uid_ << ")] query_for_targets(" << handle << ") <- remote atomdb");
-    return atomdb_->query_for_targets(handle);
+    return this->query_for_targets(handle, nullptr);
 }
 
 shared_ptr<HandleSet> RemoteAtomDBPeer::query_for_incoming_set(const string& handle) {
-    auto result = make_shared<HandleSetInMemory>();
-    set<string> seen;
-
-    merge_handle_set(write_buffer()->query_for_incoming_set(handle), result, seen);
-    merge_handle_set(read_cache()->query_for_incoming_set(handle), result, seen);
-    if (local_persistence_) {
-        merge_handle_set(local_persistence_->query_for_incoming_set(handle), result, seen);
-    }
-
-    merge_handle_set(atomdb_->query_for_incoming_set(handle), result, seen);
-
-    LOG_DEBUG("[RemoteDB(" << uid_ << ")] query_for_incoming_set(" << handle << ") -> " << result->size()
-                           << " handles");
-    return result;
+    return this->query_for_incoming_set(handle, nullptr);
 }
 
-bool RemoteAtomDBPeer::atom_exists(const string& handle) {
-    if (write_buffer()->atom_exists(handle)) return true;
-    if (read_cache()->atom_exists(handle)) return true;
-    if (local_persistence_ && local_persistence_->atom_exists(handle)) return true;
-    if (atomdb_ && atomdb_->atom_exists(handle)) return true;
-    return false;
-}
+bool RemoteAtomDBPeer::atom_exists(const string& handle) { return this->atom_exists(handle, nullptr); }
 
-bool RemoteAtomDBPeer::node_exists(const string& handle) {
-    if (write_buffer()->node_exists(handle)) return true;
-    if (read_cache()->node_exists(handle)) return true;
-    if (local_persistence_ && local_persistence_->node_exists(handle)) return true;
-    if (atomdb_ && atomdb_->node_exists(handle)) return true;
-    return false;
-}
+bool RemoteAtomDBPeer::node_exists(const string& handle) { return this->node_exists(handle, nullptr); }
 
-bool RemoteAtomDBPeer::link_exists(const string& handle) {
-    if (write_buffer()->link_exists(handle)) return true;
-    if (read_cache()->link_exists(handle)) return true;
-    if (local_persistence_ && local_persistence_->link_exists(handle)) return true;
-    if (atomdb_ && atomdb_->link_exists(handle)) return true;
-    return false;
-}
+bool RemoteAtomDBPeer::link_exists(const string& handle) { return this->link_exists(handle, nullptr); }
 
 set<string> RemoteAtomDBPeer::atoms_exist(const vector<string>& handles) {
-    set<string> result;
-    set<string> remaining(handles.begin(), handles.end());
-
-    auto from_source = [&](AtomDB& db) {
-        vector<string> to_check(remaining.begin(), remaining.end());
-        if (to_check.empty()) return;
-        for (const auto& h : db.atoms_exist(to_check)) {
-            result.insert(h);
-            remaining.erase(h);
-        }
-    };
-
-    from_source(*write_buffer());
-    if (!remaining.empty()) from_source(*read_cache());
-    if (local_persistence_ && !remaining.empty()) from_source(*local_persistence_);
-    if (atomdb_ && !remaining.empty()) from_source(*atomdb_);
-
-    return result;
+    return this->atoms_exist(handles, nullptr);
 }
 
 set<string> RemoteAtomDBPeer::nodes_exist(const vector<string>& handles) {
-    set<string> result;
-    set<string> remaining(handles.begin(), handles.end());
-
-    auto from_source = [&](AtomDB& db) {
-        vector<string> to_check(remaining.begin(), remaining.end());
-        if (to_check.empty()) return;
-        for (const auto& h : db.nodes_exist(to_check)) {
-            result.insert(h);
-            remaining.erase(h);
-        }
-    };
-
-    from_source(*write_buffer());
-    if (!remaining.empty()) from_source(*read_cache());
-    if (local_persistence_ && !remaining.empty()) from_source(*local_persistence_);
-    if (atomdb_ && !remaining.empty()) from_source(*atomdb_);
-
-    return result;
+    return this->nodes_exist(handles, nullptr);
 }
 
 set<string> RemoteAtomDBPeer::links_exist(const vector<string>& handles) {
-    set<string> result;
-    set<string> remaining(handles.begin(), handles.end());
-
-    auto from_source = [&](AtomDB& db) {
-        vector<string> to_check(remaining.begin(), remaining.end());
-        if (to_check.empty()) return;
-        for (const auto& h : db.links_exist(to_check)) {
-            result.insert(h);
-            remaining.erase(h);
-        }
-    };
-
-    from_source(*write_buffer());
-    if (!remaining.empty()) from_source(*read_cache());
-    if (local_persistence_ && !remaining.empty()) from_source(*local_persistence_);
-    if (atomdb_ && !remaining.empty()) from_source(*atomdb_);
-
-    return result;
+    return this->links_exist(handles, nullptr);
 }
 
 string RemoteAtomDBPeer::add_atom(const atoms::Atom* atom, const atoms::Merger* merger) {
@@ -537,7 +397,7 @@ size_t RemoteAtomDBPeer::atom_count() const {
     return count;
 }
 
-void RemoteAtomDBPeer::fetch(const LinkSchema& link_schema) {
+void RemoteAtomDBPeer::fetch(const LinkSchema& link_schema, shared_ptr<Keychain> keychain) {
     {
         lock_guard<mutex> lock(peer_mutex_);
         if (fetched_link_templates_.count(link_schema.handle()) > 0) {
@@ -547,12 +407,17 @@ void RemoteAtomDBPeer::fetch(const LinkSchema& link_schema) {
 
     LOG_DEBUG("[RemoteDB(" << uid_ << ")] fetch(" << link_schema.handle()
                            << ") prefetching from remote atomdb");
-    auto result = atomdb_->query_for_pattern(link_schema);
+    shared_ptr<atomdb_api_types::HandleSet> result;
+    if (keychain && this->protected_atomdb_) {
+        result = this->protected_atomdb_->query_for_pattern(link_schema, keychain);
+    } else {
+        result = this->atomdb_->query_for_pattern(link_schema);
+    }
     if (!result) {
         return;
     }
 
-    feed_cache_from_handle_set(result);
+    feed_cache_from_handle_set(result, keychain);
 
     lock_guard<mutex> lock(peer_mutex_);
     fetched_link_templates_.insert(link_schema.handle());
@@ -697,8 +562,7 @@ void RemoteAtomDBPeer::release_cache(bool /*persist_to_local*/, bool /*persist_e
         // to it) finish — see quiescence wait below.
         old_write_buffer = write_buffer_;
         old_read_cache = read_cache_;
-        write_buffer_ = make_shared<InMemoryDB>();
-        read_cache_ = make_shared<InMemoryDB>();
+        initialize();
         fetched_link_templates_.clear();
     }
 
@@ -822,4 +686,423 @@ void RemoteAtomDBPeer::stop_cleanup_thread() {
         cleanup_thread_->stop();
         cleanup_thread_.reset();
     }
+}
+
+// -------- KeySensitiveAtomDB API
+
+shared_ptr<Atom> RemoteAtomDBPeer::get_atom(const string& handle, shared_ptr<Keychain> keychain) {
+    // Snapshot the two in-memory layers without holding the mutex across I/O.
+    auto pwb = protected_write_buffer();
+    // Dirty writes always win over durable / warmed copies.
+    if (auto atom = pwb ? pwb->get_atom(handle, keychain) : write_buffer()->get_atom(handle)) {
+        return atom;
+    }
+
+    auto rc = read_cache();
+    if (local_persistence_) {
+        auto atom = local_persistence_->get_atom(handle);
+        if (atom) {
+            LOG_DEBUG("[RemoteDB(" << uid_ << ")] get_atom(" << handle
+                                   << ") <- local_persistence (warmed into read_cache)");
+            // Deliberately re-warm on EVERY hit, not just the first one.
+            rc->add_atom(atom.get());
+            return atom;
+        }
+    }
+
+    auto prc = protected_read_cache();
+    if (auto atom = prc ? prc->get_atom(handle, keychain) : rc->get_atom(handle)) {
+        return atom;
+    }
+
+    auto atom = this->protected_atomdb_ ? this->protected_atomdb_->get_atom(handle, keychain)
+                                        : this->atomdb_->get_atom(handle);
+
+    if (atom) {
+        LOG_DEBUG("[RemoteDB(" << uid_ << ")] get_atom(" << handle << ") <- remote atomdb (warmed)");
+        rc->add_atom(atom.get());
+        return atom;
+    }
+
+    return nullptr;
+}
+
+shared_ptr<Node> RemoteAtomDBPeer::get_node(const string& handle, shared_ptr<Keychain> keychain) {
+    return dynamic_pointer_cast<Node>(this->get_atom(handle, keychain));
+}
+
+shared_ptr<Link> RemoteAtomDBPeer::get_link(const string& handle, shared_ptr<Keychain> keychain) {
+    return dynamic_pointer_cast<Link>(this->get_atom(handle, keychain));
+}
+
+vector<shared_ptr<Atom>> RemoteAtomDBPeer::get_matching_atoms(bool is_toplevel,
+                                                              Atom& key,
+                                                              shared_ptr<Keychain> keychain) {
+    return this->get_matching_atoms(is_toplevel, key, false, keychain);
+}
+
+shared_ptr<atomdb_api_types::HandleSet> RemoteAtomDBPeer::query_for_pattern(
+    const LinkSchema& link_schema, shared_ptr<Keychain> keychain) {
+    auto result = make_shared<HandleSetInMemory>();
+    set<string> seen;
+
+    auto merge_memory = [&]() {
+        auto pwb = protected_write_buffer();
+        auto wb = write_buffer();
+        merge_handle_set(
+            pwb ? pwb->query_for_pattern(link_schema, keychain) : wb->query_for_pattern(link_schema),
+            result,
+            seen);
+
+        auto prc = protected_read_cache();
+        auto rc = read_cache();
+        merge_handle_set(
+            prc ? prc->query_for_pattern(link_schema, keychain) : rc->query_for_pattern(link_schema),
+            result,
+            seen);
+    };
+
+    auto merge_local_persistence = [&]() {
+        if (!local_persistence_) return;
+        merge_handle_set(local_persistence_->query_for_pattern(link_schema), result, seen);
+    };
+
+    bool cache_hit;
+    {
+        lock_guard<mutex> lock(peer_mutex_);
+        cache_hit = fetched_link_templates_.count(link_schema.handle()) > 0;
+    }
+
+    if (cache_hit) {
+        LOG_DEBUG("[RemoteDB(" << uid_ << ")] query_for_pattern(" << link_schema.handle()
+                               << ") cache-hit");
+        merge_memory();
+        merge_local_persistence();
+        LOG_DEBUG("[RemoteDB(" << uid_ << ")] query_for_pattern(" << link_schema.handle() << ") -> "
+                               << result->size() << " handles");
+        return result;
+    }
+
+    LOG_DEBUG("[RemoteDB(" << uid_ << ")] query_for_pattern(" << link_schema.handle()
+                           << ") cache-miss, fetching from remote atomdb");
+
+    auto remote_handle_set = this->protected_atomdb_
+                                 ? this->protected_atomdb_->query_for_pattern(link_schema, keychain)
+                                 : this->atomdb_->query_for_pattern(link_schema);
+
+    if (remote_handle_set) {
+        feed_cache_from_handle_set(remote_handle_set, keychain);
+        // Merge remote first when it carries nested metadata. InMemoryDB has no
+        // metta/assignments — if it fills `seen` first, the remote metadata is skipped.
+        merge_handle_set(remote_handle_set, result, seen);
+    }
+
+    merge_memory();
+    merge_local_persistence();
+
+    if (!this->protected_atomdb_ || keychain) {
+        lock_guard<mutex> lock(peer_mutex_);
+        fetched_link_templates_.insert(link_schema.handle());
+    }
+
+    LOG_DEBUG("[RemoteDB(" << uid_ << ")] query_for_pattern(" << link_schema.handle() << ") -> "
+                           << result->size() << " handles");
+    return result;
+}
+
+shared_ptr<atomdb_api_types::HandleList> RemoteAtomDBPeer::query_for_targets(
+    const string& handle, shared_ptr<Keychain> keychain) {
+    auto pwb = protected_write_buffer();
+    auto buffer_result =
+        pwb ? pwb->query_for_targets(handle, keychain) : write_buffer()->query_for_targets(handle);
+    if (buffer_result && buffer_result->size() > 0) {
+        return buffer_result;
+    }
+
+    auto prc = protected_read_cache();
+    auto cache_result =
+        prc ? prc->query_for_targets(handle, keychain) : read_cache()->query_for_targets(handle);
+    if (cache_result && cache_result->size() > 0) {
+        return cache_result;
+    }
+
+    if (local_persistence_) {
+        auto local_result = local_persistence_->query_for_targets(handle);
+        if (local_result && local_result->size() > 0) {
+            LOG_DEBUG("[RemoteDB(" << uid_ << ")] query_for_targets(" << handle
+                                   << ") <- local_persistence");
+            return local_result;
+        }
+    }
+
+    LOG_DEBUG("[RemoteDB(" << uid_ << ")] query_for_targets(" << handle << ") <- remote atomdb");
+
+    auto remote_result = this->protected_atomdb_
+                             ? this->protected_atomdb_->query_for_targets(handle, keychain)
+                             : this->atomdb_->query_for_targets(handle);
+    if (remote_result && remote_result->size() > 0) return remote_result;
+    return nullptr;
+}
+
+shared_ptr<atomdb_api_types::HandleSet> RemoteAtomDBPeer::query_for_incoming_set(
+    const string& handle, shared_ptr<Keychain> keychain) {
+    auto result = make_shared<HandleSetInMemory>();
+    set<string> seen;
+
+    auto pwb = protected_write_buffer();
+    merge_handle_set(pwb ? pwb->query_for_incoming_set(handle, keychain)
+                         : write_buffer()->query_for_incoming_set(handle),
+                     result,
+                     seen);
+    auto prc = protected_read_cache();
+    merge_handle_set(prc ? prc->query_for_incoming_set(handle, keychain)
+                         : read_cache()->query_for_incoming_set(handle),
+                     result,
+                     seen);
+
+    if (local_persistence_) {
+        merge_handle_set(local_persistence_->query_for_incoming_set(handle), result, seen);
+    }
+
+    merge_handle_set(this->protected_atomdb_
+                         ? this->protected_atomdb_->query_for_incoming_set(handle, keychain)
+                         : this->atomdb_->query_for_incoming_set(handle),
+                     result,
+                     seen);
+
+    LOG_DEBUG("[RemoteDB(" << uid_ << ")] query_for_incoming_set(" << handle << ") -> " << result->size()
+                           << " handles");
+    return result;
+}
+
+bool RemoteAtomDBPeer::atom_exists(const string& handle, shared_ptr<Keychain> keychain) {
+    auto pwb = protected_write_buffer();
+    if (pwb ? pwb->atom_exists(handle, keychain) : write_buffer()->atom_exists(handle)) return true;
+
+    auto prc = protected_read_cache();
+    if (prc ? prc->atom_exists(handle, keychain) : read_cache()->atom_exists(handle)) return true;
+
+    if (local_persistence_ && local_persistence_->atom_exists(handle)) return true;
+
+    return this->protected_atomdb_ ? this->protected_atomdb_->atom_exists(handle, keychain)
+                                   : this->atomdb_->atom_exists(handle);
+}
+
+bool RemoteAtomDBPeer::node_exists(const string& handle, shared_ptr<Keychain> keychain) {
+    auto pwb = protected_write_buffer();
+    if (pwb ? pwb->node_exists(handle, keychain) : write_buffer()->node_exists(handle)) return true;
+
+    auto prc = protected_read_cache();
+    if (prc ? prc->node_exists(handle, keychain) : read_cache()->node_exists(handle)) return true;
+
+    if (local_persistence_ && local_persistence_->node_exists(handle)) return true;
+
+    return this->protected_atomdb_ ? this->protected_atomdb_->node_exists(handle, keychain)
+                                   : this->atomdb_->node_exists(handle);
+}
+
+bool RemoteAtomDBPeer::link_exists(const string& handle, shared_ptr<Keychain> keychain) {
+    auto pwb = protected_write_buffer();
+    if (pwb ? pwb->link_exists(handle, keychain) : write_buffer()->link_exists(handle)) return true;
+
+    auto prc = protected_read_cache();
+    if (prc ? prc->link_exists(handle, keychain) : read_cache()->link_exists(handle)) return true;
+
+    if (local_persistence_ && local_persistence_->link_exists(handle)) return true;
+
+    return this->protected_atomdb_ ? this->protected_atomdb_->link_exists(handle, keychain)
+                                   : this->atomdb_->link_exists(handle);
+}
+
+set<string> RemoteAtomDBPeer::atoms_exist(const vector<string>& handles, shared_ptr<Keychain> keychain) {
+    set<string> result;
+    set<string> remaining(handles.begin(), handles.end());
+
+    auto from_source = [&](AtomDB& db, shared_ptr<ProtectedAtomDB> protected_db) {
+        vector<string> to_check(remaining.begin(), remaining.end());
+        if (to_check.empty()) return;
+
+        set<string> found =
+            protected_db ? protected_db->atoms_exist(to_check, keychain) : db.atoms_exist(to_check);
+
+        for (const auto& h : found) {
+            result.insert(h);
+            remaining.erase(h);
+        }
+    };
+
+    from_source(*write_buffer(), protected_write_buffer());
+
+    if (!remaining.empty()) {
+        from_source(*read_cache(), protected_read_cache());
+    }
+
+    if (this->local_persistence_ && !remaining.empty()) {
+        from_source(*this->local_persistence_, nullptr);
+    }
+
+    if (this->atomdb_ && !remaining.empty()) {
+        from_source(*this->atomdb_, this->protected_atomdb_);
+    }
+
+    return result;
+}
+
+set<string> RemoteAtomDBPeer::nodes_exist(const vector<string>& handles, shared_ptr<Keychain> keychain) {
+    set<string> result;
+    set<string> remaining(handles.begin(), handles.end());
+
+    auto from_source = [&](AtomDB& db, shared_ptr<ProtectedAtomDB> protected_db) {
+        vector<string> to_check(remaining.begin(), remaining.end());
+        if (to_check.empty()) return;
+
+        set<string> found =
+            protected_db ? protected_db->nodes_exist(to_check, keychain) : db.nodes_exist(to_check);
+
+        for (const auto& h : found) {
+            result.insert(h);
+            remaining.erase(h);
+        }
+    };
+
+    from_source(*write_buffer(), protected_write_buffer());
+
+    if (!remaining.empty()) {
+        from_source(*read_cache(), protected_read_cache());
+    }
+
+    if (this->local_persistence_ && !remaining.empty()) {
+        from_source(*this->local_persistence_, nullptr);
+    }
+
+    if (this->atomdb_ && !remaining.empty()) {
+        from_source(*this->atomdb_, this->protected_atomdb_);
+    }
+
+    return result;
+}
+
+set<string> RemoteAtomDBPeer::links_exist(const vector<string>& handles, shared_ptr<Keychain> keychain) {
+    set<string> result;
+    set<string> remaining(handles.begin(), handles.end());
+
+    auto from_source = [&](AtomDB& db, shared_ptr<ProtectedAtomDB> protected_db) {
+        vector<string> to_check(remaining.begin(), remaining.end());
+        if (to_check.empty()) return;
+
+        set<string> found =
+            protected_db ? protected_db->links_exist(to_check, keychain) : db.links_exist(to_check);
+
+        for (const auto& h : found) {
+            result.insert(h);
+            remaining.erase(h);
+        }
+    };
+
+    from_source(*write_buffer(), protected_write_buffer());
+
+    if (!remaining.empty()) {
+        from_source(*read_cache(), protected_read_cache());
+    }
+
+    if (this->local_persistence_ && !remaining.empty()) {
+        from_source(*this->local_persistence_, nullptr);
+    }
+
+    if (this->atomdb_ && !remaining.empty()) {
+        from_source(*this->atomdb_, this->protected_atomdb_);
+    }
+
+    return result;
+}
+
+string RemoteAtomDBPeer::add_atom(const atoms::Atom* atom,
+                                  shared_ptr<Keychain> keychain,
+                                  const atoms::Merger* merger) {
+    RAISE_ERROR("RemoteAtomDBPeer::add_atom(keychain) is not implemented");
+}
+
+string RemoteAtomDBPeer::add_node(const atoms::Node* node,
+                                  shared_ptr<Keychain> keychain,
+                                  const atoms::Merger* merger) {
+    RAISE_ERROR("RemoteAtomDBPeer::add_node(keychain) is not implemented");
+}
+
+string RemoteAtomDBPeer::add_link(const atoms::Link* link,
+                                  shared_ptr<Keychain> keychain,
+                                  const atoms::Merger* merger) {
+    RAISE_ERROR("RemoteAtomDBPeer::add_link(keychain) is not implemented");
+}
+
+vector<string> RemoteAtomDBPeer::add_atoms(const vector<atoms::Atom*>& atoms,
+                                           shared_ptr<Keychain> keychain,
+                                           bool is_transactional,
+                                           const atoms::Merger* merger) {
+    RAISE_ERROR("RemoteAtomDBPeer::add_atoms(keychain) is not implemented");
+}
+
+vector<string> RemoteAtomDBPeer::add_nodes(const vector<atoms::Node*>& nodes,
+                                           shared_ptr<Keychain> keychain,
+                                           bool is_transactional,
+                                           const atoms::Merger* merger) {
+    RAISE_ERROR("RemoteAtomDBPeer::add_nodes(keychain) is not implemented");
+}
+
+vector<string> RemoteAtomDBPeer::add_links(const vector<atoms::Link*>& links,
+                                           shared_ptr<Keychain> keychain,
+                                           bool is_transactional,
+                                           const atoms::Merger* merger) {
+    RAISE_ERROR("RemoteAtomDBPeer::add_links(keychain) is not implemented");
+}
+
+bool RemoteAtomDBPeer::delete_atom(const string& handle,
+                                   shared_ptr<Keychain> keychain,
+                                   bool delete_link_targets) {
+    RAISE_ERROR("RemoteAtomDBPeer::delete_atom(keychain) is not implemented");
+}
+
+bool RemoteAtomDBPeer::delete_node(const string& handle,
+                                   shared_ptr<Keychain> keychain,
+                                   bool delete_link_targets) {
+    RAISE_ERROR("RemoteAtomDBPeer::delete_node(keychain) is not implemented");
+}
+
+bool RemoteAtomDBPeer::delete_link(const string& handle,
+                                   shared_ptr<Keychain> keychain,
+                                   bool delete_link_targets) {
+    RAISE_ERROR("RemoteAtomDBPeer::delete_link(keychain) is not implemented");
+}
+
+uint RemoteAtomDBPeer::delete_atoms(const vector<string>& handles,
+                                    shared_ptr<Keychain> keychain,
+                                    bool delete_link_targets) {
+    RAISE_ERROR("RemoteAtomDBPeer::delete_atoms(keychain) is not implemented");
+}
+
+uint RemoteAtomDBPeer::delete_nodes(const vector<string>& handles,
+                                    shared_ptr<Keychain> keychain,
+                                    bool delete_link_targets) {
+    RAISE_ERROR("RemoteAtomDBPeer::delete_nodes(keychain) is not implemented");
+}
+
+uint RemoteAtomDBPeer::delete_links(const vector<string>& handles,
+                                    shared_ptr<Keychain> keychain,
+                                    bool delete_link_targets) {
+    RAISE_ERROR("RemoteAtomDBPeer::delete_links(keychain) is not implemented");
+}
+
+void RemoteAtomDBPeer::re_index_patterns(shared_ptr<Keychain> keychain, bool flush_patterns) {
+    RAISE_ERROR("RemoteAtomDBPeer::re_index_patterns(keychain) is not implemented");
+}
+
+size_t RemoteAtomDBPeer::node_count(shared_ptr<Keychain> keychain) const {
+    RAISE_ERROR("RemoteAtomDBPeer::node_count(keychain) is not implemented");
+}
+
+size_t RemoteAtomDBPeer::link_count(shared_ptr<Keychain> keychain) const {
+    RAISE_ERROR("RemoteAtomDBPeer::link_count(keychain) is not implemented");
+}
+
+size_t RemoteAtomDBPeer::atom_count(shared_ptr<Keychain> keychain) const {
+    RAISE_ERROR("RemoteAtomDBPeer::atom_count(keychain) is not implemented");
 }

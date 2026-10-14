@@ -49,6 +49,18 @@ cc_library(
 )
 
 cc_library(
+    name = "key_sensitive_atomdb",
+    hdrs = ["KeySensitiveAtomDB.h"],
+    includes = ["."],
+    deps = [
+        ":atomdb_api_types",
+        "//atomdb/auth:keychain",
+        "//commons:commons_lib",
+        "//commons/atoms:atoms_lib",
+    ],
+)
+
+cc_library(
     name = "atomdbutils",
     srcs = ["AtomDBUtils.cc"],
     hdrs = ["AtomDBUtils.h"],
@@ -56,6 +68,8 @@ cc_library(
     deps = [
         ":atomdb",
         ":atomdb_singleton",
+        ":key_sensitive_atomdb",
+        "//atomdb/auth:keychain",
     ],
 )
 
@@ -76,8 +90,20 @@ cc_library(
     hdrs = ["AtomDBSingleton.h"],
     includes = ["."],
     deps = [
-        ":atomdb_factory",
+        ":atomdb",
         "//atomdb:atomdb_api_types",
+        "//commons:commons_lib",
+    ],
+)
+
+cc_library(
+    name = "atomdb_initializer",
+    srcs = ["AtomDBInitializer.cc"],
+    hdrs = ["AtomDBInitializer.h"],
+    includes = ["."],
+    deps = [
+        ":atomdb_factory",
+        ":atomdb_singleton",
         "//commons:commons_lib",
     ],
 )
@@ -90,7 +116,9 @@ cc_library(
     deps = [
         ":atomdb",
         ":atomdb_api_types",
+        ":key_sensitive_atomdb",
         "//atomdb/auth:auth_lib",
+        "//atomdb/inmemorydb:inmemorydb_api_types",
         "//commons:commons_lib",
         "//commons/atoms:atoms_lib",
     ],

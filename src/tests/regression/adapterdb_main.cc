@@ -7,6 +7,7 @@
 #include <tuple>
 
 #include "AdapterDB.h"
+#include "AtomDBInitializer.h"
 #include "AtomDBSingleton.h"
 #include "JsonConfig.h"
 #include "JsonConfigParser.h"
@@ -83,7 +84,7 @@ int main(int argc, char* argv[]) {
 
     auto atomdb_config = json_config.at_path("atomdb").get_or<JsonConfig>(JsonConfig());
 
-    AtomDBSingleton::init(atomdb_config);
+    AtomDBInitializer::init(atomdb_config);
 
     auto morkdb = make_shared<MorkDB>(morkdb_json_config());
 

@@ -1,6 +1,8 @@
 #include "AtomDBAPITypes.h"
+#include "AtomDBInitializer.h"
 #include "AtomDBSingleton.h"
 #include "FitnessFunctionRegistry.h"
+#include "Keychain.h"
 #include "Logger.h"
 #include "PatternMatchingQueryProcessor.h"
 #include "QueryEvolutionProcessor.h"
@@ -30,11 +32,13 @@ class TestProcessor : public QueryEvolutionProcessor {
 
 class TestFitnessFunction : public FitnessFunction {
    public:
-    float eval(shared_ptr<QueryAnswer> query_answer) override { return 1; }
+    float eval(shared_ptr<QueryAnswer> query_answer, shared_ptr<Keychain> keychain = nullptr) override {
+        return 1;
+    }
 };
 
 TEST(QueryEvolution, protected_methods) {
-    AtomDBSingleton::init(test_atomdb_json_config());
+    AtomDBInitializer::init(test_atomdb_json_config());
     init_test_system_parameters_singleton();
 
     string peer1_id = "localhost:40043";
@@ -105,6 +109,8 @@ TEST(QueryEvolution, proxy_object) {
     QueryAnswerElement e17(0, 0, 1, true, false, true);
     QueryAnswerElement e18(0, 0, 1, true, true, false);
     QueryAnswerElement e19(0, 0, 1, true, true, true);
+    QueryAnswerElement e20("h1", true);
+    QueryAnswerElement e21("h1", false);
     QueryEvolutionProxy proxy({"t0", "t1"},
                               {{"tc00"}, {}, {"tc10", "tc11"}},
                               {{{"h1", e1}}, {}, {{"h2", e2}, {"h3", e3}}},
@@ -119,9 +125,11 @@ TEST(QueryEvolution, proxy_object) {
                                 {e12, e13},
                                 {e14, e15},
                                 {e16, e17},
-                                {e18, e19}}},
+                                {e18, e19},
+                                {e20, e21}}},
                               "query_evolution_test",
                               "unit_test");
+    proxy.parameters[BaseQueryProxy::PUBLIC_KEY_TOKENS] = (string) "db_uid public_key";
 
     EXPECT_EQ(
         proxy.to_string(),
@@ -131,13 +139,13 @@ TEST(QueryEvolution, proxy_object) {
         "elitism_rate: 0.010000, "
         "max_answers: 0, max_bundle_size: 1000, "
         "max_generations: 100, orchestration_schema: 0, populate_metta_mapping: false, population_size: "
-        "1000, public_key_tokens: '', selection_rate: "
+        "1000, public_key_tokens: 'db_uid public_key', selection_rate: "
         "0.100000, unique_assignment_flag: false, "
         "use_metta_as_query_tokens: false}}}, fitness_function: unit_test, correlation_queries: "
         "[[tc00], [], [tc10, tc11]], correlation_replacements: [{{h1, _0}}, {}, {{h2, _1}, {h3, $s1}}], "
         "correlation_mappings: [[(_1, _0), (_0, _1), (_0, $s1), (^0_1, _*), ($*, ^*), (^*, *), (>0_1_2, "
         "<1_0_1), (>0_1_2, <2_0_2), (>0_0_1, >$0_0_1), (>^0_0_1, >^$0_0_1), (<0_0_1, <$0_0_1), "
-        "(<^0_0_1, <^$0_0_1)]]}");
+        "(<^0_0_1, <^$0_0_1), (#h1, $h1)]]}");
     vector<string> tokens1, tokens2, tokens3;
     proxy.tokenize(tokens1);
     tokens2 = tokens1;
@@ -147,4 +155,6 @@ TEST(QueryEvolution, proxy_object) {
     cout << "tokens1: " << Utils::join(tokens1) << endl;
     cout << "tokens3: " << Utils::join(tokens3) << endl;
     EXPECT_EQ(tokens1, tokens3);
+    EXPECT_EQ(proxy.keychain(), nullptr);
+    EXPECT_NE(proxy2.keychain(), nullptr);
 }

@@ -28,16 +28,18 @@ void AtomDBUtils::reachable_terminal_set(set<string>& output, const string& hand
 string AtomDBUtils::handle_to_metta(const string& handle, shared_ptr<Keychain> keychain) {
     map<string, string> not_used;
     shared_ptr<AtomDB> atomdb = AtomDBSingleton::get_instance();
-    shared_ptr<ProtectedAtomDB> protected_atomdb = dynamic_pointer_cast<ProtectedAtomDB>(atomdb);
-    return handle_to_metta_recursion(handle, not_used, false, keychain, atomdb, protected_atomdb);
+    shared_ptr<KeySensitiveAtomDB> key_sensitive_atomdb =
+        dynamic_pointer_cast<KeySensitiveAtomDB>(atomdb);
+    return handle_to_metta_recursion(handle, not_used, false, keychain, atomdb, key_sensitive_atomdb);
 }
 
 string AtomDBUtils::handle_to_metta(const string& handle,
                                     map<string, string>& mapping,
                                     shared_ptr<Keychain> keychain) {
     shared_ptr<AtomDB> atomdb = AtomDBSingleton::get_instance();
-    shared_ptr<ProtectedAtomDB> protected_atomdb = dynamic_pointer_cast<ProtectedAtomDB>(atomdb);
-    return handle_to_metta_recursion(handle, mapping, true, keychain, atomdb, protected_atomdb);
+    shared_ptr<KeySensitiveAtomDB> key_sensitive_atomdb =
+        dynamic_pointer_cast<KeySensitiveAtomDB>(atomdb);
+    return handle_to_metta_recursion(handle, mapping, true, keychain, atomdb, key_sensitive_atomdb);
 }
 
 // -------------------------------------------------------------------------------------------------
@@ -66,7 +68,7 @@ string AtomDBUtils::handle_to_metta_recursion(const string& handle,
                                               bool populate_map,
                                               shared_ptr<Keychain> keychain,
                                               shared_ptr<AtomDB> atomdb,
-                                              shared_ptr<ProtectedAtomDB> protected_atomdb) {
+                                              shared_ptr<KeySensitiveAtomDB> key_sensitive_atomdb) {
     string answer = "";
     auto iterator = mapping.find(handle);
     if (iterator != mapping.end()) {
@@ -74,13 +76,13 @@ string AtomDBUtils::handle_to_metta_recursion(const string& handle,
     } else {
         shared_ptr<Atom> atom = nullptr;
 
-        if (protected_atomdb == nullptr) {
+        if (key_sensitive_atomdb == nullptr) {
             // AtomDB is not protected. Disregard keychain.
             atom = atomdb->get_atom(handle);
         } else {
             // AtomDB is protected. Keychain must be forwarded.
             if (keychain != nullptr) {
-                atom = protected_atomdb->get_atom(handle, keychain);
+                atom = key_sensitive_atomdb->get_atom(handle, keychain);
             } else {
                 RAISE_ERROR("AtomDB is protected and requires a keychain");
             }
@@ -99,7 +101,7 @@ string AtomDBUtils::handle_to_metta_recursion(const string& handle,
                     vector<string> targets;
                     for (string& _handle : dynamic_pointer_cast<Link>(atom)->targets) {
                         targets.push_back(handle_to_metta_recursion(
-                            _handle, mapping, populate_map, keychain, atomdb, protected_atomdb));
+                            _handle, mapping, populate_map, keychain, atomdb, key_sensitive_atomdb));
                     }
                     answer = MettaMapping::metta_expr(targets);
                 } else {

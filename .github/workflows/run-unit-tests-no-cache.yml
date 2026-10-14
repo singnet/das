@@ -1,0 +1,109 @@
+name: Unit Tests (No Cache)
+
+on:
+  workflow_dispatch:
+  workflow_call:
+
+jobs:
+  unit-tests:
+    runs-on:
+      - self-hosted
+      - self-hosted-nocache
+      - amd64
+    env:
+      DAS_REDIS_HOSTNAME: localhost
+      DAS_REDIS_PORT: 40020
+      DAS_MONGODB_HOSTNAME: localhost
+      DAS_MONGODB_PORT: 40021
+      DAS_MONGODB_USERNAME: admin
+      DAS_MONGODB_PASSWORD: admin
+      DAS_MORK_HOSTNAME: localhost
+      DAS_MORK_PORT: 40022
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |-
+          sudo apt -y update
+          sudo apt -y install build-essential wget
+          sudo bash -c "wget -O - http://45.77.4.33/apt-repo/setup.sh | bash"
+          sudo apt -y install das-toolbox
+          sudo das-cli update-version --version ${{ vars.DAS_CLI_VERSION }}
+          das-cli --version
+
+      - name: Download Knowledge Base
+        run: curl https://raw.githubusercontent.com/singnet/das-toolbox/refs/heads/master/das-cli/src/examples/data/animals.metta -o /tmp/animals.metta
+
+      - name: Setting das-cli configuration
+        run: |-
+          das-cli config set services.database.atomdb_backend=redis_mongodb
+
+      - name: Starting Redis and MongoDB
+        run: das-cli db restart
+
+      - name: Loading Load Knowledge Base
+        run: das-cli metta load /tmp/animals.metta
+
+      - name: Starting Attention Broker
+        run: das-cli attention-broker restart
+
+      - name: Starting MORK Servers
+        run: |-
+          set -euo pipefail
+
+          make run-mork-server &
+          pid_40022=$!
+          DAS_MORK_PORT=40032 make run-mork-server &
+          pid_40032=$!
+
+          launch_failed=0
+          wait "${pid_40022}" || launch_failed=1
+          wait "${pid_40032}" || launch_failed=1
+          if [[ "${launch_failed}" -ne 0 ]]; then
+            echo "MORK server launch failed" >&2
+            docker ps -a --filter "name=das-mork-server-" >&2 || true
+            exit 1
+          fi
+
+          for port in 40022 40032; do
+            for attempt in $(seq 1 60); do
+              if curl --fail --silent --show-error "http://localhost:${port}/status/-"; then
+                echo "MORK ready on port ${port}"
+                break
+              fi
+              if [[ "${attempt}" -eq 60 ]]; then
+                echo "MORK failed to start on port ${port}" >&2
+                docker ps -a --filter "name=das-mork-server-${port}" >&2 || true
+                exit 1
+              fi
+              echo "Waiting for MORK on port ${port}..."
+              sleep 1
+            done
+          done
+
+      - name: Starting Postgres Server and load database
+        run: |-
+          docker run -d --name pg_test -e POSTGRES_PASSWORD=test -e POSTGRES_DB=postgres_wrapper_test -p 5433:5432 postgres:15
+
+          for i in {1..30}; do
+            if docker exec pg_test pg_isready -U postgres -d postgres_wrapper_test; then
+              echo "Postgres is ready"
+              break
+            fi
+            echo "Waiting for Postgres..."
+            sleep 1
+          done
+
+          docker exec -i pg_test psql -U postgres -d postgres_wrapper_test < src/scripts/postgres_setup.sql
+
+      - name: Setup bazel
+        run: .github/scripts/setup_bazel.sh
+
+      - name: Execute Unit Test Suite
+        working-directory: ./src
+        run: ./scripts/bazel_exec.sh test --noshow_progress --cache_test_results=no //tests/cpp/...
+
+      - name: Build production binaries
+        working-directory: ./src
+        run: ./scripts/bazel_exec.sh build --noshow_progress //:ci_binaries

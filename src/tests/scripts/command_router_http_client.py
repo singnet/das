@@ -77,7 +77,6 @@ def main() -> int:
             "command": "query",
             "params": {
                 "query": {
-                    "syntax": "metta",
                     "tokens": ['(Similarity "human" %V)'],
                 },
                 "use_metta_as_query_tokens": True,

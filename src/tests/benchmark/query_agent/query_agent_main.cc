@@ -12,6 +12,7 @@
 #include <vector>
 
 #include "AtomDB.h"
+#include "AtomDBInitializer.h"
 #include "AtomDBSingleton.h"
 #include "AtomSpace.h"
 #include "JsonConfig.h"
@@ -51,7 +52,7 @@ JsonConfig benchmark_atomdb_config(string atomdb_type) {
 }  // namespace
 
 void setup(string atomdb_type, string client_id, string server_id) {
-    AtomDBSingleton::init(benchmark_atomdb_config(atomdb_type));
+    AtomDBInitializer::init(benchmark_atomdb_config(atomdb_type));
     ServiceBusSingleton::init(client_id, server_id, 4000, 4100);
 }
 

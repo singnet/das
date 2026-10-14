@@ -164,6 +164,25 @@ cc_binary(
 )
 
 cc_binary(
+    name = "sentence_evolution",
+    srcs = [],
+    defines = ["BAZEL_BUILD"],
+    linkopts = [
+        "-L/usr/local/lib",
+        "-lhiredis_cluster",
+        "-lhiredis",
+        "-lmongocxx",
+        "-lbsoncxx",
+    ],
+    linkstatic = 1,
+    deps = [
+        "//commons:commons_lib",
+        "//tests/main:sentence_evolution_main_lib",
+        "@mbedtls",
+    ],
+)
+
+cc_binary(
     name = "link_template_seed_check",
     srcs = [],
     defines = ["BAZEL_BUILD"],

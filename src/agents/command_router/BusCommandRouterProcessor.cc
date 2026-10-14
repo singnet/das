@@ -10,6 +10,7 @@
 #include "PortPool.h"
 #include "QueryEvolutionProxy.h"
 #include "ServiceBusSingleton.h"
+#include "SystemParametersSingleton.h"
 #include "Utils.h"
 
 #define LOG_LEVEL INFO_LEVEL
@@ -19,11 +20,26 @@ using namespace command_router;
 using namespace query_engine;
 using namespace evolution;
 using namespace service_bus;
+using namespace commons;
 
 namespace {
 
 const string CONTEXT_KEY = "context";
 atomic<unsigned int> HTTP_REQUEST_SERIAL{1};
+
+// Copy HTTP/router overrides onto a QueryEvolutionProxy the same way a bus
+// client does: keep evolution-agent defaults, apply query+evolution keys, and
+// drop context-agent keys (use_cache, initial_rent_rate, ...). Replacing the
+// whole map leaked those keys into sampling queries and changed attention.
+void apply_direct_evolution_parameters(Properties& evo_parameters, const Properties& router_parameters) {
+    Properties allowed = SystemParametersSingleton::get_instance()->get_evolution_agent_params() +
+                         SystemParametersSingleton::get_instance()->get_query_agent_params();
+    for (const auto& entry : router_parameters) {
+        if (allowed.find(entry.first) != allowed.end()) {
+            evo_parameters[entry.first] = entry.second;
+        }
+    }
+}
 
 }  // namespace
 
@@ -243,17 +259,16 @@ void BusCommandRouterProcessor::forward_to_service(shared_ptr<BusCommandRouterPr
 void BusCommandRouterProcessor::handle_query(shared_ptr<BusCommandRouterProxy> proxy,
                                              const string& arg) {
     string context = proxy->parameters.get<string>(CONTEXT_KEY);
-    string normalized_arg = normalize_metta_percent_variables(arg);
     vector<string> query_tokens;
     if (proxy->parameters.get<bool>(BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS)) {
-        query_tokens = {normalized_arg};
+        query_tokens = {normalize_metta_percent_variables(arg)};
     } else {
-        query_tokens = Utils::split(normalized_arg, ' ');
+        query_tokens = Utils::split(arg, ' ');
     }
 
     auto pm_proxy = make_shared<PatternMatchingQueryProxy>(query_tokens, context);
     pm_proxy->parameters = proxy->parameters;
-    forward_to_service(proxy, pm_proxy);
+    this->forward_to_service(proxy, pm_proxy);
 }
 
 void BusCommandRouterProcessor::handle_evolution(shared_ptr<BusCommandRouterProxy> proxy,
@@ -265,14 +280,25 @@ void BusCommandRouterProcessor::handle_evolution(shared_ptr<BusCommandRouterProx
         RAISE_ERROR("Evolution ARG must be a labeled MeTTa form starting with (query ...)");
     }
 
-    vector<string> query = {normalize_metta_percent_variables(metta_args.query)};
-
     string fitness_tag = metta_args.fitness_function_tag;
     if (fitness_tag.empty()) {
         RAISE_ERROR("Missing fitness function tag in Evolution ARG: " + arg);
     }
 
-    auto correlation_queries = metta_correlation_queries(metta_args.correlation_query_expressions);
+    const bool use_metta = proxy->parameters.get<bool>(BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS);
+
+    vector<string> query;
+    vector<vector<string>> correlation_queries;
+    if (use_metta) {
+        query = {normalize_metta_percent_variables(metta_args.query)};
+        correlation_queries = metta_correlation_queries(metta_args.correlation_query_expressions);
+    } else {
+        query = Utils::split(metta_args.query, ' ');
+        correlation_queries.reserve(metta_args.correlation_query_expressions.size());
+        for (const auto& expression : metta_args.correlation_query_expressions) {
+            correlation_queries.push_back(Utils::split(expression, ' '));
+        }
+    }
     auto correlation_replacements =
         metta_correlation_replacements(metta_args.correlation_replacement_groups);
     auto correlation_mappings = metta_correlation_mappings(metta_args.correlation_mapping_groups);
@@ -283,6 +309,6 @@ void BusCommandRouterProcessor::handle_evolution(shared_ptr<BusCommandRouterProx
                                                       correlation_mappings,
                                                       context,
                                                       fitness_tag);
-    evo_proxy->parameters = proxy->parameters;
-    forward_to_service(proxy, evo_proxy);
+    apply_direct_evolution_parameters(evo_proxy->parameters, proxy->parameters);
+    this->forward_to_service(proxy, evo_proxy);
 }
