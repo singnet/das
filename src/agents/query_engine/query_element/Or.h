@@ -144,11 +144,9 @@ class Or : public Operator<N> {
         for (unsigned int i = 0; i < N; i++) {
             if (this->next_input_to_process[i] < this->query_answer[i].size()) {
                 double importance = this->query_answer[i][this->next_input_to_process[i]]->importance;
-                // A fixed seed keeps the lower clause index. Otherwise a coin flip
-                // chooses which tied clause is emitted.
-                bool random_tie =
-                    (importance == best_importance) && !Utils::reproducible_seed() && Utils::flip_coin();
-                if ((importance > best_importance) || random_tie) {
+                if ((importance > best_importance) ||
+                    ((importance == best_importance) && !Utils::reproducible_seed() &&
+                     Utils::flip_coin())) {
                     best_importance = importance;
                     best_index = i;
                 }

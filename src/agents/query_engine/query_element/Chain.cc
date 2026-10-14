@@ -493,16 +493,25 @@ bool Chain::all_paths_explored() {
 
 void Chain::flush_pending_answers() {
     lock_guard<mutex> semaphore(this->reported_answers_mutex);
-    std::sort(this->pending_answers.begin(),
-              this->pending_answers.end(),
-              [](QueryAnswer* left, QueryAnswer* right) {
-                  if (left->importance != right->importance) {
-                      return left->importance > right->importance;
-                  }
-                  return left->compute_hash() < right->compute_hash();
-              });
+    // Importance descending, matching the order downstream operators expect. The hash
+    // tie-break makes the order total, so forward/backward finders racing to report the
+    // same set of paths still yield the same sequence. Hash once per answer: compute_hash()
+    // runs MD5 over every handle, so it must not be called inside the comparator.
+    vector<pair<string, QueryAnswer*>> keyed;
+    keyed.reserve(this->pending_answers.size());
     for (QueryAnswer* answer : this->pending_answers) {
-        this->output_buffer->add_query_answer(answer);
+        keyed.push_back({answer->compute_hash(), answer});
+    }
+    std::sort(keyed.begin(),
+              keyed.end(),
+              [](const pair<string, QueryAnswer*>& left, const pair<string, QueryAnswer*>& right) {
+                  if (left.second->importance != right.second->importance) {
+                      return left.second->importance > right.second->importance;
+                  }
+                  return left.first < right.first;
+              });
+    for (const auto& entry : keyed) {
+        this->output_buffer->add_query_answer(entry.second);
     }
     this->pending_answers.clear();
 }
