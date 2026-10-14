@@ -8,6 +8,7 @@ jobs:
   format-check:
     runs-on:
       - self-hosted-withcache
+      - amd64
       - ${{ github.actor }}
     steps:
       - name: Checkout
