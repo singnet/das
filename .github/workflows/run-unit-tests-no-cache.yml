@@ -9,6 +9,7 @@ jobs:
     runs-on:
       - self-hosted
       - self-hosted-nocache
+      - amd64
     env:
       DAS_REDIS_HOSTNAME: localhost
       DAS_REDIS_PORT: 40020
