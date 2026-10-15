@@ -1,6 +1,7 @@
 #include "BusCommandRouterProxy.h"
 
 #include "BaseQueryProxy.h"
+#include "LinkCreationProxy.h"
 #include "PatternMatchingQueryProxy.h"
 #include "QueryEvolutionProxy.h"
 #include "ServiceBus.h"
@@ -11,6 +12,7 @@
 
 using namespace command_router;
 using namespace evolution;
+using namespace link_creation_agent;
 
 string BusCommandRouterProxy::PARAMS_RESPONSE = "params_response";
 string BusCommandRouterProxy::SET_PARAM_ACK = "set_param_ack";
@@ -34,6 +36,16 @@ BusCommandRouterProxy::~BusCommandRouterProxy() {}
 
 void BusCommandRouterProxy::apply_default_parameters(Properties& parameters) {
     parameters += SystemParametersSingleton::get_instance()->get_command_router_params();
+    // Runtime link-creation keys that are not part of agents.link_creation.params.
+    if (parameters.find(LinkCreationProxy::LOG_NEW_LINKS) == parameters.end()) {
+        parameters[LinkCreationProxy::LOG_NEW_LINKS] = true;
+    }
+    if (parameters.find(LinkCreationProxy::LINK_CREATION_LOG_FILE_NAME) == parameters.end()) {
+        parameters[LinkCreationProxy::LINK_CREATION_LOG_FILE_NAME] = string("");
+    }
+    if (parameters.find(LinkCreationProxy::LINK_CREATOR_EXTRA_PARAMETERS) == parameters.end()) {
+        parameters[LinkCreationProxy::LINK_CREATOR_EXTRA_PARAMETERS] = string("");
+    }
 }
 
 void BusCommandRouterProxy::pack_command_line_args() {

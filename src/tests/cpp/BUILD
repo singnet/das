@@ -1295,6 +1295,8 @@ cc_test(
         "//agents/command_router/http_api:http_command_proxy_factory",
         "//agents/evolution:query_evolution_proxy",
         "//agents/evolution/fitness_functions:fitness_functions_lib",
+        "//agents/link_creation_agent:link_creation_proxy",
+        "//agents/link_creation_agent/link_creators:link_creators_lib",
         "//agents/query_engine:query_answer",
         "//atomdb:atomdb_initializer",
         "//atomdb:atomdb_singleton",

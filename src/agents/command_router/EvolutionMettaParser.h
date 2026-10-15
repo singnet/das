@@ -55,6 +55,26 @@ string canonical_evolution_param_key(const string& key_or_alias);
  */
 bool try_parse_evolution_metta_arg(const string& arg, EvolutionMettaArgs& out);
 
+/** Fields parsed from a labeled MeTTa link-creation ARG (context comes from router params). */
+struct LinkCreationMettaArgs {
+    string query;
+    string link_creator_tag;
+};
+
+/**
+ * Parse link-creation ARG as a MeTTa list of labeled clauses, e.g.:
+ *   (
+ *    (query (and (Concept $C1) (Concept $C2)))
+ *    (lc and_two_predicates)
+ *   )
+ *
+ * Slot labels: q | query; lc | link-creator-tag.
+ * A link_template query is one quoted token stream: (query "LINK_TEMPLATE ...").
+ *
+ * @return true when both the query and link-creator tag are present.
+ */
+bool try_parse_link_creation_metta_arg(const string& arg, LinkCreationMettaArgs& out);
+
 /** Rewrite unquoted `%name` variable tokens to `$name`. Quoted percents are left unchanged. */
 string normalize_metta_percent_variables(const string& expression);
 

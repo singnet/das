@@ -357,6 +357,44 @@ TEST(EvolutionMettaParser, quoted_link_template_query_is_unquoted) {
               "LINK_TEMPLATE Expression 3 NODE Symbol Inheritance VARIABLE v1 VARIABLE v2");
 }
 
+TEST(LinkCreationMettaParser, parse_labeled_link_creation_arg) {
+    LinkCreationMettaArgs args;
+    string metta_arg = "((query (and (Concept %C1) (Concept %C2))) (lc and_two_predicates))";
+    ASSERT_TRUE(try_parse_link_creation_metta_arg(metta_arg, args));
+    EXPECT_EQ(args.query, "(and (Concept %C1) (Concept %C2))");
+    EXPECT_EQ(args.link_creator_tag, "and_two_predicates");
+}
+
+TEST(LinkCreationMettaParser, parse_full_slot_name_and_quoted_link_template) {
+    LinkCreationMettaArgs args;
+    string metta_arg =
+        "((query \"LINK_TEMPLATE Expression 2 VARIABLE C1 VARIABLE C2\") "
+        "(link-creator-tag customizable))";
+    ASSERT_TRUE(try_parse_link_creation_metta_arg(metta_arg, args));
+    EXPECT_EQ(args.query, "LINK_TEMPLATE Expression 2 VARIABLE C1 VARIABLE C2");
+    EXPECT_EQ(args.link_creator_tag, "customizable");
+}
+
+TEST(LinkCreationMettaParser, rejects_query_clause_with_surplus_bodies) {
+    LinkCreationMettaArgs args;
+    EXPECT_FALSE(try_parse_link_creation_metta_arg(
+        "((query (Concept $A) (Concept $B)) (lc and_two_predicates))", args));
+}
+
+TEST(LinkCreationMettaParser, rejects_duplicate_query_and_link_creator_clauses) {
+    LinkCreationMettaArgs args;
+    EXPECT_FALSE(try_parse_link_creation_metta_arg(
+        "((q (Concept $A)) (q (Concept $B)) (lc and_two_predicates))", args));
+    EXPECT_FALSE(try_parse_link_creation_metta_arg(
+        "((q (Concept $A)) (lc and_two_predicates) (lc customizable))", args));
+}
+
+TEST(LinkCreationMettaParser, rejects_arg_missing_link_creator_tag) {
+    LinkCreationMettaArgs args;
+    EXPECT_FALSE(try_parse_link_creation_metta_arg("((query (Concept %C)))", args));
+    EXPECT_FALSE(try_parse_link_creation_metta_arg("(Similarity $a $b)", args));
+}
+
 TEST(BusCommandRouter, get_and_set_params) {
     set<string> commands = {ServiceBus::BUS_COMMAND_ROUTER};
     ServiceBus::initialize_statics(commands, 40500, 40599);

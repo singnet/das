@@ -23,6 +23,7 @@ class HttpCommandProxyFactory {
     /** Known HTTP command names. */
     static constexpr const char* QUERY = "query";
     static constexpr const char* EVOLUTION = "evolution";
+    static constexpr const char* LINK_CREATION = "link_creation";
 
     /**
      * @brief Create a dispatch-ready proxy for the given HTTP command.
