@@ -150,13 +150,13 @@ bool Chain::PathFinder::conditional_refeed(Path& path,
         (candidates_heap->empty() || (count_cycles == candidates_heap->size()))) {
         if (this->chain_operator->allow_incomplete_chain_path) {
             LOG_DEBUG("[PATH_FINDER] "
-                     << "All input is acknowledged. "
-                     << "Reporting incomplete dead-end path: " << path.to_string());
+                      << "All input is acknowledged. "
+                      << "Reporting incomplete dead-end path: " << path.to_string());
             this->chain_operator->push_dead_end(path.end_point());
             this->chain_operator->report_path(path);
         } else {
             LOG_DEBUG("[PATH_FINDER] "
-                    << "Discarding dead-end path: " << path.to_string());
+                      << "Discarding dead-end path: " << path.to_string());
         }
         return false;
     } else {
@@ -350,7 +350,7 @@ bool Chain::thread_one_step() {
                     RAISE_ERROR("Invalid query answer in Chain operator.");
                 } else {
                     LOG_DEBUG("[CHAIN OPERATOR] "
-                            << "New link: " << link->to_string());
+                              << "New link: " << link->to_string());
                 }
                 if (link->arity() > max(this->tail_reference, this->head_reference)) {
                     string tail = link->targets[this->tail_reference];
