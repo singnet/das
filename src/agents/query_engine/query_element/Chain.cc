@@ -148,12 +148,13 @@ bool Chain::PathFinder::conditional_refeed(Path& path,
                                            unsigned int count_cycles) {
     if (this->chain_operator->all_input_acknowledged() &&
         (candidates_heap->empty() || (count_cycles == candidates_heap->size()))) {
-        LOG_DEBUG("[PATH_FINDER] "
+        LOG_INFO("[PATH_FINDER] "
                   << "All input is acknowledged. "
                   << "Reporting incomplete dead-end path: " << path.to_string());
-        this->chain_operator->proxy->push_supplementary_info(BaseQueryProxy::CHAIN_DEAD_ENDS,
-                                                             path.end_point());
-        this->chain_operator->report_path(path);
+        if (this->chain_operator->allow_incomplete_chain_path) {
+            this->chain_operator->push_dead_end(path.end_point());
+            this->chain_operator->report_path(path);
+        }
         LOG_DEBUG("[PATH_FINDER] "
                   << "Discarding dead-end path: " << path.to_string());
         return false;
@@ -271,7 +272,6 @@ bool Chain::PathFinder::thread_one_step() {
     if (best_sti >= 0) {
         LOG_DEBUG("[PATH_FINDER] "
                   << "Best path: " << best_path.to_string());
-        this->chain_operator->report_path(best_path);
         return true;
     } else {
         LOG_DEBUG("[PATH_FINDER] "
@@ -467,6 +467,11 @@ bool Chain::all_paths_explored() {
     return this->all_paths_explored_flag;
 }
 
+void Chain::push_dead_end(const string& handle) {
+    lock_guard<mutex> semaphore(this->all_paths_explored_mutex);
+    this->proxy->push_supplementary_info(BaseQueryProxy::CHAIN_DEAD_ENDS, handle);
+}
+
 // --------------------------------------------------------------------------------------------
 // Private stuff
 
@@ -474,10 +479,14 @@ void Chain::initialize(const array<shared_ptr<QueryElement>, 1>& clauses) {
     if (clauses.size() != 1) {
         RAISE_ERROR("Invalid Chain operator with " + std::to_string(clauses.size()) + " clauses.");
     }
-    if (!(allow_incomplete_chain_path || (forward_active() && backward_active()))) {
+    if (!(this->allow_incomplete_chain_path || (forward_active() && backward_active()))) {
         RAISE_ERROR(
             "Invalid parameters. If CHAIN source or target is a variable, incomplete paths must be "
             "allowed");
+    }
+    if (allow_incomplete_chain_path && (proxy == nullptr)) {
+        RAISE_ERROR(
+            "Invalid parameters. If incomplete paths are allowed, proxy must be non-null");
     }
     this->id =
         "CHAIN(" + clauses[0]->id + ", " + this->source_reference + ", " + this->target_reference + ")";

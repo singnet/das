@@ -684,7 +684,8 @@ TEST(ChainOperatorTest, basics) {
     source->query_answers_finished();
     QueryAnswer* answer;
     unsigned int complete_path = 0;
-    set<string> dead_ends;
+    unsigned int incomplete_path = 0;
+    vector<string> dead_ends;
     while (!sink.empty() || !sink.finished()) {
         while ((answer = sink.pop()) != NULL) {
             string prefix;
@@ -692,6 +693,7 @@ TEST(ChainOperatorTest, basics) {
                 complete_path++;
                 prefix = "  COMPLETE";
             } else {
+                incomplete_path++;
                 prefix = "INCOMPLETE";
             }
             LOG_INFO(prefix + " [" + std::to_string(answer->importance) +
@@ -702,11 +704,13 @@ TEST(ChainOperatorTest, basics) {
     EXPECT_EQ(complete_path, 7);
     EXPECT_TRUE(sink.empty());
     EXPECT_TRUE(sink.finished());
+    EXPECT_EQ(incomplete_path, 8);
     proxy->build_supplementary_info();
     for (string& handle : proxy->get_supplementary_info(BaseQueryProxy::CHAIN_DEAD_ENDS)) {
-        dead_ends.insert(get_node_string(handle));
+        dead_ends.push_back(get_node_string(handle));
     }
-    EXPECT_EQ(dead_ends, set<string>({"7", "8", "13", "16", "17", "18"}));
+    sort(dead_ends.begin(), dead_ends.end());
+    EXPECT_EQ(dead_ends, vector<string>({"13", "16", "17", "18", "18", "18", "7", "8"}));
 }
 
 int main(int argc, char** argv) {

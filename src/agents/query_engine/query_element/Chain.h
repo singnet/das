@@ -279,6 +279,8 @@ class Chain : public Operator<1>, public ThreadMethod {
     void refeed_paths_forward();
     void refeed_paths_backward();
 
+    void push_dead_end(const string& handle);
+
     // --------------------------------------------------------------------------------------------
     // QueryElement API
 

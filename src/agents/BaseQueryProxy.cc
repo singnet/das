@@ -116,7 +116,7 @@ void BaseQueryProxy::push_supplementary_info(SUPPLEMENTARY_INFO_TAG tag, const s
     lock_guard<recursive_mutex> semaphore(this->api_mutex);
     this->supplementary_info_bundle_vector.push_back(supplementary_info_tag_to_string(tag));
     this->supplementary_info_bundle_vector.push_back(handle);
-    LOG_DEBUG("Supplementary info pushed to bundle: " + tag + " -> " + handle);
+    LOG_DEBUG("Supplementary info pushed to bundle: " + supplementary_info_tag_to_string(tag) + " -> " + handle);
 }
 
 void BaseQueryProxy::flush_answer_bundle() {
@@ -256,10 +256,8 @@ void BaseQueryProxy::supplementary_info(const vector<string>& args) {
             for (unsigned int i = 0; i < args.size(); i += 2) {
                 string key = args[i];
                 if (!supplementary_info_tag_is_valid(key)) {
+                    this->_supplementary_info.clear();
                     RAISE_ERROR("Invalid supplementary info key: " + key);
-                }
-                if (this->_supplementary_info.find(key) == this->_supplementary_info.end()) {
-                    this->_supplementary_info[key] = {};
                 }
                 this->_supplementary_info[key].push_back(args[i + 1]);
             }
