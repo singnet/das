@@ -257,7 +257,6 @@ void BaseQueryProxy::supplementary_info(const vector<string>& args) {
             for (unsigned int i = 0; i < args.size(); i += 2) {
                 string key = args[i];
                 if (!supplementary_info_tag_is_valid(key)) {
-                    this->_supplementary_info.clear();
                     RAISE_ERROR("Invalid supplementary info key: " + key);
                 }
                 this->_supplementary_info[key].push_back(args[i + 1]);
