@@ -146,17 +146,18 @@ void Chain::graceful_shutdown() {
 bool Chain::PathFinder::conditional_refeed(Path& path,
                                            shared_ptr<HeapType>& candidates_heap,
                                            unsigned int count_cycles) {
-    if (this->chain_operator->all_input_acknowledged() &&
+    if (this->chain_operator->all_input_acknowledged_flag &&
         (candidates_heap->empty() || (count_cycles == candidates_heap->size()))) {
-        LOG_INFO("[PATH_FINDER] "
-                 << "All input is acknowledged. "
-                 << "Reporting incomplete dead-end path: " << path.to_string());
         if (this->chain_operator->allow_incomplete_chain_path) {
+            LOG_DEBUG("[PATH_FINDER] "
+                     << "All input is acknowledged. "
+                     << "Reporting incomplete dead-end path: " << path.to_string());
             this->chain_operator->push_dead_end(path.end_point());
             this->chain_operator->report_path(path);
+        } else {
+            LOG_DEBUG("[PATH_FINDER] "
+                    << "Discarding dead-end path: " << path.to_string());
         }
-        LOG_DEBUG("[PATH_FINDER] "
-                  << "Discarding dead-end path: " << path.to_string());
         return false;
     } else {
         LOG_DEBUG("[PATH_FINDER] "
@@ -193,13 +194,14 @@ bool Chain::PathFinder::thread_one_step() {
                                          : this->chain_operator->get_target_index(this->origin);
 
     if (base_heap->empty()) {
+        lock_guard<mutex> semaphore(this->chain_operator->feeding_mutex);
         LOG_DEBUG("[PATH_FINDER] "
                   << "Empty base_heap. Trying to refeed paths.");
         this->refeed_paths();
         if (base_heap->empty()) {
             LOG_DEBUG("[PATH_FINDER] "
                       << "No paths to refeed.");
-            if (this->chain_operator->all_input_acknowledged()) {
+            if (this->chain_operator->all_input_acknowledged_flag) {
                 // double check is required to avoid race condition
                 shared_ptr<HeapType> check_heap =
                     this->forward_flag ? this->chain_operator->get_source_index(this->origin)
@@ -283,24 +285,24 @@ bool Chain::PathFinder::thread_one_step() {
 
 void Chain::refeed_paths_forward() {
     lock_guard<mutex> semaphore(this->refeed_paths_forward_mutex);
+    this->source_index_mutex.lock();
     while (!this->refeeding_buffer_forward.empty()) {
         Path path = refeeding_buffer_forward.front_and_pop();
         LOG_DEBUG("Refeeding: " << path.to_string());
-        this->source_index_mutex.lock();
         this->source_index[this->source_reference]->push(path, path.path_sti);
-        this->source_index_mutex.unlock();
     }
+    this->source_index_mutex.unlock();
 }
 
 void Chain::refeed_paths_backward() {
     lock_guard<mutex> semaphore(this->refeed_paths_backward_mutex);
+    this->target_index_mutex.lock();
     while (!this->refeeding_buffer_backward.empty()) {
         Path path = refeeding_buffer_backward.front_and_pop();
         LOG_DEBUG("Refeeding: " << path.to_string());
-        this->target_index_mutex.lock();
         this->target_index[this->target_reference]->push(path, path.path_sti);
-        this->target_index_mutex.unlock();
     }
+    this->target_index_mutex.unlock();
 }
 
 bool Chain::thread_one_step() {
@@ -327,13 +329,14 @@ bool Chain::thread_one_step() {
         }
         return false;
     }
-    if (all_input_acknowledged()) {
+    if (all_input_acknowledged_flag) {
         return false;
     }
-#if LOG_LEVEL >= DEBUG_LEVEL
     {
+#if LOG_LEVEL >= DEBUG_LEVEL
         lock_guard<mutex> semaphore(this->thread_debug_mutex);
 #endif
+        lock_guard<mutex> semaphore(this->feeding_mutex);
         if ((answer = dynamic_cast<QueryAnswer*>(this->input_buffer[0]->pop_query_answer())) != NULL) {
             LOG_DEBUG("[CHAIN OPERATOR] "
                       << "New query answer: " << answer->to_string());
@@ -347,10 +350,8 @@ bool Chain::thread_one_step() {
                     RAISE_ERROR("Invalid query answer in Chain operator.");
                 } else {
                     LOG_DEBUG("[CHAIN OPERATOR] "
-                              << "Valid link");
+                            << "New link: " << link->to_string());
                 }
-                LOG_DEBUG("[CHAIN OPERATOR] "
-                          << "New link: " << link->to_string());
                 if (link->arity() > max(this->tail_reference, this->head_reference)) {
                     string tail = link->targets[this->tail_reference];
                     string head = link->targets[this->head_reference];
@@ -400,13 +401,11 @@ bool Chain::thread_one_step() {
                 this->input_buffer[0]->is_query_answers_empty()) {
                 LOG_DEBUG("[CHAIN OPERATOR] "
                           << "All input has been acknowledged");
-                this->set_all_input_acknowledged(true);
+                this->all_input_acknowledged_flag = true;
             }
             return false;
         }
-#if LOG_LEVEL >= DEBUG_LEVEL
     }
-#endif
 }
 
 void Chain::report_path(Path& path) {
@@ -448,18 +447,7 @@ void Chain::report_path(Path& path) {
     }
 }
 
-void Chain::set_all_input_acknowledged(bool flag) {
-    lock_guard<mutex> semaphore(this->all_input_acknowledged_mutex);
-    this->all_input_acknowledged_flag = flag;
-}
-
-bool Chain::all_input_acknowledged() {
-    lock_guard<mutex> semaphore(this->all_input_acknowledged_mutex);
-    return this->all_input_acknowledged_flag;
-}
-
 bool Chain::all_paths_explored() {
-    lock_guard<mutex> semaphore(this->all_paths_explored_mutex);
     if ((this->forward_path_finder != NULL) && !this->forward_path_finder->all_paths_explored_flag) {
         return false;
     }
@@ -470,7 +458,6 @@ bool Chain::all_paths_explored() {
 }
 
 void Chain::push_dead_end(const string& handle) {
-    lock_guard<mutex> semaphore(this->all_paths_explored_mutex);
     this->proxy->push_supplementary_info(BaseQueryProxy::CHAIN_DEAD_ENDS, handle);
 }
 

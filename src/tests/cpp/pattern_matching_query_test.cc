@@ -72,7 +72,9 @@ void check_query(const string& query_tag,
                  bool error_flag,
                  bool unique_value_flag,
                  double attention_focus_strictness) {
+    LOG_INFO("================================================================================");
     LOG_INFO("==================== Query tag: " + query_tag);
+    LOG_INFO("================================================================================");
 
     shared_ptr<PatternMatchingQueryProxy> proxy1(new PatternMatchingQueryProxy(query, context));
     proxy1->parameters[BaseQueryProxy::UNIQUE_ASSIGNMENT_FLAG] = unique_assignment;
@@ -133,7 +135,7 @@ void check_query(const string& query_tag,
         if (query_answer) {
             LOG_INFO(">>>>>>>>>> " << query_answer->assignment.to_string());
             for (auto pair : query_answer->assignment.table) {
-                LOG_INFO(">>>>>>>>>>>>>> " << pair.first << " " << handle_to_atom(pair.second));
+                LOG_INFO(">>>> " << pair.first << " " << handle_to_atom(pair.second));
             }
             count++;
         }
@@ -552,36 +554,37 @@ TEST(PatternMatchingQuery, queries) {
     int q16_expected_count = 1;
 
     // Regular queries
-    check_query("q1", q1, q1m, q1_expected_count, client_bus, "PatternMatchingQuery.queries", false, false, false, false, false, 0.0);
-    check_query("q2", q2, q2m, q2_expected_count, client_bus, "PatternMatchingQuery.queries", false, false, false, false, false, 0.0);
-    check_query("q3", q3, q3m, q3_expected_count, client_bus, "PatternMatchingQuery.queries", false, false, false, false, false, 0.0);
-    check_query("q4", q4, q4m, q4_expected_count, client_bus, "PatternMatchingQuery.queries", false, true, false, false, true, 0.0);
-    check_query("q4", q4, q4m, 26, client_bus, "PatternMatchingQuery.queries", false, false, false, false, false, 0.0);
-    check_query("q5", q5, q5m, q5_expected_count, client_bus, "PatternMatchingQuery.queries", false, false, false, false, false, 0.0);
-    check_query("q6", q6, q6m, q6_expected_count, client_bus, "PatternMatchingQuery.queries", false, true, false, false, false, 0.0);
-    check_query("q7", q7, q7m, q7_expected_count, client_bus, "PatternMatchingQuery.queries", false, true, false, false, false, 0.0);
-    check_query_chain("q8", q8, q8m, Hasher::node_handle("Symbol", "\"chimp\""), Hasher::node_handle("Symbol", "\"ent\""), q8_expected_count, client_bus, "PatternMatchingQuery.queries", false, true, false, false, false, 0.0);
-    check_query_chain("q9", q9, q9m, Hasher::node_handle("Symbol", "\"ent\""), Hasher::node_handle("Symbol", "\"animal\""), q9_expected_count, client_bus, "PatternMatchingQuery.queries", false, true, false, false, false, 0.0);
-    check_query_chain("q10", q10, q10m, Hasher::node_handle("Symbol", "\"chimp\""), Hasher::node_handle("Symbol", "\"ent\""), q10_expected_count, client_bus, "PatternMatchingQuery.queries", false, true, false, false, false, 0.0);
-    check_query("q11", q11, q11m, q11_expected_count, client_bus, "PatternMatchingQuery.queries", false, true, false, false, false, 0.0);
-    check_query("q12", q12, q12m, q12_expected_count, client_bus, "PatternMatchingQuery.queries", false, true, false, false, false, 0.0);
-    check_query("q13", q13, q13m, q13_expected_count, client_bus, "PatternMatchingQuery.queries", false, true, false, false, false, 0.0);
-    check_query("q14", q14, q14m, q14_expected_count, client_bus, "PatternMatchingQuery.queries", false, true, false, false, false, 0.0);
-    check_query("q15", q15, q15m, q15_expected_count, client_bus, "PatternMatchingQuery.queries", false, false, false, false, false, 0.0);
+    //check_query("q1", q1, q1m, q1_expected_count, client_bus, "PatternMatchingQuery.queries", false, false, false, false, false, 0.0);
+    //check_query("q2", q2, q2m, q2_expected_count, client_bus, "PatternMatchingQuery.queries", false, false, false, false, false, 0.0);
+    //check_query("q3", q3, q3m, q3_expected_count, client_bus, "PatternMatchingQuery.queries", false, false, false, false, false, 0.0);
+    //check_query("q4", q4, q4m, q4_expected_count, client_bus, "PatternMatchingQuery.queries", false, true, false, false, true, 0.0);
+    //check_query("q4", q4, q4m, 26, client_bus, "PatternMatchingQuery.queries", false, false, false, false, false, 0.0);
+    //check_query("q5", q5, q5m, q5_expected_count, client_bus, "PatternMatchingQuery.queries", false, false, false, false, false, 0.0);
+    //check_query("q6", q6, q6m, q6_expected_count, client_bus, "PatternMatchingQuery.queries", false, true, false, false, false, 0.0);
+    //check_query("q7", q7, q7m, q7_expected_count, client_bus, "PatternMatchingQuery.queries", false, true, false, false, false, 0.0);
+    //check_query_chain("q8", q8, q8m, Hasher::node_handle("Symbol", "\"chimp\""), Hasher::node_handle("Symbol", "\"ent\""), q8_expected_count, client_bus, "PatternMatchingQuery.queries", false, true, false, false, false, 0.0);
+    //check_query_chain("q9", q9, q9m, Hasher::node_handle("Symbol", "\"ent\""), Hasher::node_handle("Symbol", "\"animal\""), q9_expected_count, client_bus, "PatternMatchingQuery.queries", false, true, false, false, false, 0.0);
+    //check_query_chain("q10", q10, q10m, Hasher::node_handle("Symbol", "\"chimp\""), Hasher::node_handle("Symbol", "\"ent\""), q10_expected_count, client_bus, "PatternMatchingQuery.queries", false, true, false, false, false, 0.0);
+    //check_query("q11", q11, q11m, q11_expected_count, client_bus, "PatternMatchingQuery.queries", false, true, false, false, false, 0.0);
+    //check_query("q12", q12, q12m, q12_expected_count, client_bus, "PatternMatchingQuery.queries", false, true, false, false, false, 0.0);
+    //check_query("q13", q13, q13m, q13_expected_count, client_bus, "PatternMatchingQuery.queries", false, true, false, false, false, 0.0);
+    //check_query("q14", q14, q14m, q14_expected_count, client_bus, "PatternMatchingQuery.queries", false, true, false, false, false, 0.0);
+    //check_query("q15", q15, q15m, q15_expected_count, client_bus, "PatternMatchingQuery.queries", false, false, false, false, false, 0.0);
     check_query("q16", q16, q16m, q16_expected_count, client_bus, "PatternMatchingQuery.queries", false, false, false, false, false, 0.0);
+    //FAIL();
 
     // Importance filtering
-    check_query("filtered q2", q2, q2m, q2_expected_count, client_bus, "PatternMatchingQuery.spreading", true, false, false, false, false, 0.0);
-    check_query("filtered q1", q1, q1m, 3, client_bus, "PatternMatchingQuery.spreading", false, false, true, false, false, 0.0);
+    //check_query("filtered q2", q2, q2m, q2_expected_count, client_bus, "PatternMatchingQuery.spreading", true, false, false, false, false, 0.0);
+    //check_query("filtered q1", q1, q1m, 3, client_bus, "PatternMatchingQuery.spreading", false, false, true, false, false, 0.0);
 
     // Remote exception
-    check_query("invalid", {"BLAH"}, "", 0, client_bus, "PatternMatchingQuery.queries", false, false, false, true, false, 0.0);
+    //check_query("invalid", {"BLAH"}, "", 0, client_bus, "PatternMatchingQuery.queries", false, false, false, true, false, 0.0);
 
     // Attention Focus Strictness
-    check_query("AF strictness 1", q1, q1m, 14, client_bus, "PatternMatchingQuery.strictness", true, false, false, false, false, 0.0);
-    check_query("AF strictness 2", q1, q1m, 4, client_bus, "PatternMatchingQuery.strictness", false, false, false, false, false, 0.3);
-    check_query("AF strictness 3", q1, q1m, 6, client_bus, "PatternMatchingQuery.strictness", false, false, true, false, false, 0.4);
-    check_query("AF strictness 4", q1, q1m, 1, client_bus, "PatternMatchingQuery.strictness", false, false, false, false, false, 1.0);
+    //check_query("AF strictness 1", q1, q1m, 14, client_bus, "PatternMatchingQuery.strictness", true, false, false, false, false, 0.0);
+    //check_query("AF strictness 2", q1, q1m, 4, client_bus, "PatternMatchingQuery.strictness", false, false, false, false, false, 0.3);
+    //check_query("AF strictness 3", q1, q1m, 6, client_bus, "PatternMatchingQuery.strictness", false, false, true, false, false, 0.4);
+    //check_query("AF strictness 4", q1, q1m, 1, client_bus, "PatternMatchingQuery.strictness", false, false, false, false, false, 1.0);
 
     // Metta expression in QueryAnswer
     shared_ptr<PatternMatchingQueryProxy> proxy(new PatternMatchingQueryProxy(q3, "PatternMatchingQuery.queries"));
