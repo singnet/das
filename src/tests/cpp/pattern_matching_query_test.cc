@@ -72,7 +72,9 @@ void check_query(const string& query_tag,
                  bool error_flag,
                  bool unique_value_flag,
                  double attention_focus_strictness) {
+    LOG_INFO("================================================================================");
     LOG_INFO("==================== Query tag: " + query_tag);
+    LOG_INFO("================================================================================");
 
     shared_ptr<PatternMatchingQueryProxy> proxy1(new PatternMatchingQueryProxy(query, context));
     proxy1->parameters[BaseQueryProxy::UNIQUE_ASSIGNMENT_FLAG] = unique_assignment;
@@ -133,7 +135,7 @@ void check_query(const string& query_tag,
         if (query_answer) {
             LOG_INFO(">>>>>>>>>> " << query_answer->assignment.to_string());
             for (auto pair : query_answer->assignment.table) {
-                LOG_INFO(">>>>>>>>>>>>>> " << pair.first << " " << handle_to_atom(pair.second));
+                LOG_INFO(">>>> " << pair.first << " " << handle_to_atom(pair.second));
             }
             count++;
         }

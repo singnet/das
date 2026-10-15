@@ -105,7 +105,7 @@ LinkCreationStats LinkCreationProxy::link_creation(shared_ptr<QueryAnswer> answe
     } else {
         stats = this->link_creation_function_object->create(answer);
         for (string& handle : this->link_creation_function_object->newly_created_links) {
-            push_built_atom(handle);
+            push_supplementary_info(BUILT_ATOMS, handle);
         }
         this->link_creation_function_object->newly_created_links.clear();
     }
