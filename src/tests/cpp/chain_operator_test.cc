@@ -377,9 +377,12 @@ TEST(ChainOperatorTest, back_after_dead_end) {
     if (!RUN_back_after_dead_end) return;
     auto source = make_shared<TestSource>();
     shared_ptr<BaseQueryProxy> proxy =
-static_pointer_cast<BaseQueryProxy>(make_shared<PatternMatchingQueryProxy>()); auto chain_operator =
-make_shared<Chain>(proxy, array<shared_ptr<QueryElement>, 1>({source}), Hasher::node_handle(NODE_TYPE,
-"S"), Hasher::node_handle(NODE_TYPE, "T")); TestSink sink(chain_operator);
+        static_pointer_cast<BaseQueryProxy>(make_shared<PatternMatchingQueryProxy>());
+    auto chain_operator = make_shared<Chain>(proxy,
+                                             array<shared_ptr<QueryElement>, 1>({source}),
+                                             Hasher::node_handle(NODE_TYPE, "S"),
+                                             Hasher::node_handle(NODE_TYPE, "T"));
+    TestSink sink(chain_operator);
 
     EXPECT_TRUE(sink.empty());
     EXPECT_FALSE(sink.finished());
@@ -498,9 +501,13 @@ TEST(ChainOperatorTest, complete_only) {
     if (!RUN_complete_only) return;
     auto source = make_shared<TestSource>();
     shared_ptr<BaseQueryProxy> proxy =
-static_pointer_cast<BaseQueryProxy>(make_shared<PatternMatchingQueryProxy>()); auto chain_operator =
-make_shared<Chain>(proxy, array<shared_ptr<QueryElement>, 1>({source}), Hasher::node_handle(NODE_TYPE,
-"S"), Hasher::node_handle(NODE_TYPE, "T"), false); TestSink sink(chain_operator);
+        static_pointer_cast<BaseQueryProxy>(make_shared<PatternMatchingQueryProxy>());
+    auto chain_operator = make_shared<Chain>(proxy,
+                                             array<shared_ptr<QueryElement>, 1>({source}),
+                                             Hasher::node_handle(NODE_TYPE, "S"),
+                                             Hasher::node_handle(NODE_TYPE, "T"),
+                                             false);
+    TestSink sink(chain_operator);
 
     EXPECT_TRUE(sink.empty());
     EXPECT_FALSE(sink.finished());

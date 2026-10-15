@@ -149,8 +149,8 @@ bool Chain::PathFinder::conditional_refeed(Path& path,
     if (this->chain_operator->all_input_acknowledged() &&
         (candidates_heap->empty() || (count_cycles == candidates_heap->size()))) {
         LOG_INFO("[PATH_FINDER] "
-                  << "All input is acknowledged. "
-                  << "Reporting incomplete dead-end path: " << path.to_string());
+                 << "All input is acknowledged. "
+                 << "Reporting incomplete dead-end path: " << path.to_string());
         if (this->chain_operator->allow_incomplete_chain_path) {
             this->chain_operator->push_dead_end(path.end_point());
             this->chain_operator->report_path(path);
@@ -460,10 +460,10 @@ bool Chain::all_input_acknowledged() {
 
 bool Chain::all_paths_explored() {
     lock_guard<mutex> semaphore(this->all_paths_explored_mutex);
-    if ((this->forward_path_finder != NULL) && ! this->forward_path_finder->all_paths_explored_flag) {
+    if ((this->forward_path_finder != NULL) && !this->forward_path_finder->all_paths_explored_flag) {
         return false;
     }
-    if ((this->backward_path_finder != NULL) && ! this->backward_path_finder->all_paths_explored_flag) {
+    if ((this->backward_path_finder != NULL) && !this->backward_path_finder->all_paths_explored_flag) {
         return false;
     }
     return true;
@@ -487,8 +487,7 @@ void Chain::initialize(const array<shared_ptr<QueryElement>, 1>& clauses) {
             "allowed");
     }
     if (allow_incomplete_chain_path && (proxy == nullptr)) {
-        RAISE_ERROR(
-            "Invalid parameters. If incomplete paths are allowed, proxy must be non-null");
+        RAISE_ERROR("Invalid parameters. If incomplete paths are allowed, proxy must be non-null");
     }
     this->id =
         "CHAIN(" + clauses[0]->id + ", " + this->source_reference + ", " + this->target_reference + ")";

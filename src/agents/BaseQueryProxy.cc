@@ -116,7 +116,8 @@ void BaseQueryProxy::push_supplementary_info(SUPPLEMENTARY_INFO_TAG tag, const s
     lock_guard<recursive_mutex> semaphore(this->api_mutex);
     this->supplementary_info_bundle_vector.push_back(supplementary_info_tag_to_string(tag));
     this->supplementary_info_bundle_vector.push_back(handle);
-    LOG_DEBUG("Supplementary info pushed to bundle: " + supplementary_info_tag_to_string(tag) + " -> " + handle);
+    LOG_DEBUG("Supplementary info pushed to bundle: " + supplementary_info_tag_to_string(tag) + " -> " +
+              handle);
 }
 
 void BaseQueryProxy::flush_answer_bundle() {
