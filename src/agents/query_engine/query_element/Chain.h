@@ -302,6 +302,7 @@ class Chain : public Operator<1>, public ThreadMethod {
         bool forward_flag;
         string origin;
         string destiny;
+        atomic<bool> all_paths_explored_flag;
         PathFinder(Chain* chain_operator, bool forward_flag) {
             this->chain_operator = chain_operator;
             this->forward_flag = forward_flag;
@@ -312,6 +313,7 @@ class Chain : public Operator<1>, public ThreadMethod {
                 origin = chain_operator->target_reference;
                 destiny = chain_operator->source_reference;
             }
+            this->all_paths_explored_flag = false;
         }
         ~PathFinder() {}
         bool thread_one_step();
@@ -347,7 +349,6 @@ class Chain : public Operator<1>, public ThreadMethod {
     map<string, shared_ptr<HeapType>> source_index;
     map<string, shared_ptr<HeapType>> target_index;
     bool all_input_acknowledged_flag;
-    bool all_paths_explored_flag;
     bool allow_incomplete_chain_path;
     mutex source_index_mutex;
     mutex target_index_mutex;

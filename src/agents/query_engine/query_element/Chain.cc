@@ -184,7 +184,7 @@ bool Chain::PathFinder::thread_one_step() {
 #if LOG_LEVEL >= DEBUG_LEVEL
     lock_guard<mutex> semaphore(this->chain_operator->thread_debug_mutex);
 #endif
-    if (this->chain_operator->all_paths_explored()) {
+    if (this->all_paths_explored_flag) {
         return false;
     }
     LOG_DEBUG("[PATH_FINDER] " << (this->forward_flag ? "FORWARD" : "BACKWARD") << " PathFinder STEP");
@@ -205,12 +205,13 @@ bool Chain::PathFinder::thread_one_step() {
                     this->forward_flag ? this->chain_operator->get_source_index(this->origin)
                                        : this->chain_operator->get_target_index(this->origin);
                 if (check_heap == nullptr || check_heap->empty()) {
-                    this->chain_operator->set_all_paths_explored(true);
+                    this->all_paths_explored_flag = true;
                     LOG_DEBUG("[PATH_FINDER] "
                               << "All paths has been explored");
+                    return false;
                 }
             }
-            return false;
+            return true;
         } else {
             LOG_DEBUG("[PATH_FINDER] "
                       << "Paths has been refed.");
@@ -457,14 +458,15 @@ bool Chain::all_input_acknowledged() {
     return this->all_input_acknowledged_flag;
 }
 
-void Chain::set_all_paths_explored(bool flag) {
-    lock_guard<mutex> semaphore(this->all_paths_explored_mutex);
-    this->all_paths_explored_flag = flag;
-}
-
 bool Chain::all_paths_explored() {
     lock_guard<mutex> semaphore(this->all_paths_explored_mutex);
-    return this->all_paths_explored_flag;
+    if ((this->forward_path_finder != NULL) && ! this->forward_path_finder->all_paths_explored_flag) {
+        return false;
+    }
+    if ((this->backward_path_finder != NULL) && ! this->backward_path_finder->all_paths_explored_flag) {
+        return false;
+    }
+    return true;
 }
 
 void Chain::push_dead_end(const string& handle) {
@@ -491,7 +493,6 @@ void Chain::initialize(const array<shared_ptr<QueryElement>, 1>& clauses) {
     this->id =
         "CHAIN(" + clauses[0]->id + ", " + this->source_reference + ", " + this->target_reference + ")";
     this->all_input_acknowledged_flag = false;
-    this->all_paths_explored_flag = false;
     if (forward_active()) {
         this->forward_path_finder = new PathFinder(this, true);
     } else {

@@ -224,7 +224,6 @@ static string answer_path_to_string(QueryAnswer* query_answer) {
     return answer;
 }
 
-/*
 TEST(ChainOperatorTest, allow_concatenation) {
     if (!RUN_allow_concatenation) return;
 
@@ -594,7 +593,6 @@ make_shared<Chain>(proxy, array<shared_ptr<QueryElement>, 1>({source}), Hasher::
     proxy->build_supplementary_info();
     EXPECT_TRUE(proxy->get_supplementary_info(BaseQueryProxy::CHAIN_DEAD_ENDS).size() == 0);
 }
-*/
 
 TEST(ChainOperatorTest, basics) {
     if (!RUN_basics) return;
