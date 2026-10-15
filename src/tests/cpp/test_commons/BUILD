@@ -18,6 +18,7 @@ cc_library(
     hdrs = ["MockAnimalsData.h"],
     includes = ["."],
     deps = [
+        "//atomdb:atomdb_initializer",
         "//atomdb:atomdb_singleton",
         "//commons:commons_lib",
         "//commons/atoms:atoms_lib",

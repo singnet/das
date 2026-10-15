@@ -70,6 +70,7 @@ BAZEL_BINARY_OUTPUTS=(
   "bazel-bin/busnode"
   "bazel-bin/busclient"
   "bazel-bin/database_adapter"
+  "bazel-bin/authorization_admin"
 )
 
 BAZEL_LIB_OUTPUTS=(

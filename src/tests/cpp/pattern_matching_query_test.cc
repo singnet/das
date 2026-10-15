@@ -1,4 +1,5 @@
 #include "AtomDBAPITypes.h"
+#include "AtomDBInitializer.h"
 #include "AtomDBSingleton.h"
 #include "Chain.h"
 #include "Hasher.h"
@@ -267,7 +268,7 @@ void check_query_chain(const string& query_tag,
 }
 
 TEST(PatternMatchingQuery, queries) {
-    AtomDBSingleton::init(test_atomdb_json_config());
+    AtomDBInitializer::init(test_atomdb_json_config());
     init_test_system_parameters_singleton();
     ServiceBus::initialize_statics({}, 40200, 40299);
 

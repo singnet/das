@@ -1,4 +1,5 @@
 #include "AtomDBAPITypes.h"
+#include "AtomDBInitializer.h"
 #include "AtomDBSingleton.h"
 #include "AttentionBrokerClient.h"
 #include "ContextBrokerProcessor.h"
@@ -29,7 +30,7 @@ using namespace query_engine;
 class ContextTestEnvironment : public ::testing::Environment {
    public:
     void SetUp() override {
-        AtomDBSingleton::init(test_atomdb_json_config());
+        AtomDBInitializer::init(test_atomdb_json_config());
         init_test_system_parameters_singleton();
     }
 

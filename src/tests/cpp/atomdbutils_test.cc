@@ -2,6 +2,7 @@
 
 #include <gtest/gtest.h>
 
+#include "AtomDBInitializer.h"
 #include "AtomDBSingleton.h"
 #include "InMemoryDB.h"
 #include "MettaMapping.h"
@@ -197,6 +198,6 @@ TEST(AtomDBTest, atom_getters) {
 int main(int argc, char** argv) {
     ::testing::InitGoogleTest(&argc, argv);
     Utils::init_random(0);
-    AtomDBSingleton::init(test_atomdb_json_config("redismongodb", "atomdbutils_test_"));
+    AtomDBInitializer::init(test_atomdb_json_config("redismongodb", "atomdbutils_test_"));
     return RUN_ALL_TESTS();
 }

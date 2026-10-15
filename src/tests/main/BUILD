@@ -10,6 +10,7 @@ cc_library(
     deps = [
         "//agents/query_engine:query_engine_lib",
         "//atomdb:atomdb_api_types",
+        "//atomdb:atomdb_initializer",
         "//atomdb:atomdb_singleton",
         "//service_bus:service_bus_lib",
         "//tests/cpp/test_commons:test_atomdb_json_config",
@@ -22,6 +23,7 @@ cc_library(
     deps = [
         "//agents/query_engine:query_engine_lib",
         "//atomdb:atomdb_api_types",
+        "//atomdb:atomdb_initializer",
         "//atomdb:atomdb_singleton",
         "//service_bus:service_bus_lib",
         "//tests/cpp/test_commons:test_atomdb_json_config",
@@ -35,6 +37,7 @@ cc_library(
         "//agents/context_broker:context_broker_lib",
         "//agents/evolution:evolution_lib",
         "//atomdb:atomdb_api_types",
+        "//atomdb:atomdb_initializer",
         "//atomdb:atomdb_singleton",
         "//service_bus:service_bus_lib",
         "//tests/cpp/test_commons:test_atomdb_json_config",
@@ -70,6 +73,7 @@ cc_library(
         "//agents/link_creation_agent:link_creation_proxy",
         "//agents/link_creation_agent/link_creators:link_creators_lib",
         "//atomdb:atomdb_api_types",
+        "//atomdb:atomdb_initializer",
         "//atomdb:atomdb_singleton",
         "//commons:commons_lib",
         "//hasher:hasher_lib",
@@ -87,6 +91,7 @@ cc_library(
         "//agents/evolution:evolution_lib",
         "//agents/query_engine:query_engine_lib",
         "//atomdb:atomdb_api_types",
+        "//atomdb:atomdb_initializer",
         "//atomdb:atomdb_singleton",
         "//commons:commons_lib",
         "//service_bus:service_bus_lib",
@@ -107,6 +112,7 @@ cc_library(
     srcs = ["database_adapter_main.cc"],
     deps = [
         "//atomdb",
+        "//atomdb:atomdb_initializer",
         "//atomdb:atomdb_singleton",
         "//commons:commons_lib",
     ],

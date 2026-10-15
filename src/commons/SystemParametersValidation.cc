@@ -8,7 +8,7 @@ using namespace commons;
 using nlohmann::json;
 using namespace std;
 
-string SystemParametersValidation::SCHEMA_VERSION = "1.2.0";
+string SystemParametersValidation::SCHEMA_VERSION = "1.2.1";
 
 namespace {
 
@@ -35,11 +35,7 @@ const AgentParamsSchema& params_schema() {
           {"unique_value_flag", "bool"},
           {"count_flag", "bool"}}},
         {"link_creation",
-         {{"unique_assignment_flag", "bool"},
-          {"positive_importance_flag", "bool"},
-          {"disregard_importance_flag", "bool"},
-          {"unique_value_flag", "bool"},
-          {"max_successful_creation_per_round", "unsigned_int"},
+         {{"max_successful_creation_per_round", "unsigned_int"},
           {"max_unproductive_visits_per_round", "unsigned_int"},
           {"max_visit_attempts_per_round", "unsigned_int"},
           {"max_rounds", "unsigned_int"},

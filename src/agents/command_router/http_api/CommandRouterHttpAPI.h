@@ -37,7 +37,8 @@ class BusCommandRouterProcessor;
  *   WS   /command-router/ws/{id}             — stream JSON events
  *
  * The HTTP layer only unpacks the top-level envelope {command, params}. Command-specific
- * interpretation of params is delegated to the matching command handler (e.g. query, evolution).
+ * interpretation of params is delegated to the matching command handler
+ * (e.g. query, evolution, link_creation).
  * WebSocket stream events use the same {command, params} envelope.
  * For evolution with remote fitness, the client may send eval_fitness_response on the same WS.
  *
@@ -121,7 +122,7 @@ class CommandRouterHttpAPI : public processor::Processor, public processor::Thre
 
     string generate_execution_id();
 
-    /** @brief Check if the command is valid. (Allowed values: query, evolution) */
+    /** @brief Check if the command is valid. (Allowed values: query, evolution, link_creation) */
     bool is_valid_command(const string& command) const;
 
     /** @brief Check queue limit and register a pending execution. */
