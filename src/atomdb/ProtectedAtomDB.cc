@@ -1,9 +1,8 @@
+#define LOG_LEVEL INFO_LEVEL
 #include "ProtectedAtomDB.h"
 
-#include "InMemoryDBAPITypes.h"
-
-#define LOG_LEVEL INFO_LEVEL
 #include "Atom.h"
+#include "InMemoryDBAPITypes.h"
 #include "Link.h"
 #include "Logger.h"
 #include "Node.h"

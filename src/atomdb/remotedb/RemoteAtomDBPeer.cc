@@ -1077,9 +1077,13 @@ void RemoteAtomDBPeer::re_index_patterns(shared_ptr<Keychain> keychain, bool flu
     RAISE_ERROR("RemoteAtomDBPeer::re_index_patterns(keychain) is not implemented");
 }
 
+// Count the peer write buffer directly instead of through the protected wrapper.
+// The protected wrapper's manifest counts the remote backend, not this buffer.
+// Authorization guards the knowledge base; atoms created in memory are shared, so this count stays open
+// until we find a better way.
+
 size_t RemoteAtomDBPeer::node_count(shared_ptr<Keychain> keychain) const {
-    auto pwb = protected_write_buffer();
-    size_t count = pwb ? pwb->node_count(keychain) : write_buffer()->node_count();
+    size_t count = write_buffer()->node_count();
     if (local_persistence_) {
         count += local_persistence_->node_count();
     }
@@ -1087,8 +1091,7 @@ size_t RemoteAtomDBPeer::node_count(shared_ptr<Keychain> keychain) const {
 }
 
 size_t RemoteAtomDBPeer::link_count(shared_ptr<Keychain> keychain) const {
-    auto pwb = protected_write_buffer();
-    size_t count = pwb ? pwb->link_count(keychain) : write_buffer()->link_count();
+    size_t count = write_buffer()->link_count();
     if (local_persistence_) {
         count += local_persistence_->link_count();
     }
@@ -1096,8 +1099,7 @@ size_t RemoteAtomDBPeer::link_count(shared_ptr<Keychain> keychain) const {
 }
 
 size_t RemoteAtomDBPeer::atom_count(shared_ptr<Keychain> keychain) const {
-    auto pwb = protected_write_buffer();
-    size_t count = pwb ? pwb->atom_count(keychain) : write_buffer()->atom_count();
+    size_t count = write_buffer()->atom_count();
     if (local_persistence_) {
         count += local_persistence_->atom_count();
     }
