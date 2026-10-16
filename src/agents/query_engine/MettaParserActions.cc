@@ -265,7 +265,8 @@ void MettaParserActions::expression_end(bool toplevel, const string& metta_expre
             LOG_DEBUG(string("Allow incomplete paths: ") + (incomplete_flag ? "true" : "false"));
 
             auto chain_operator =
-                make_shared<Chain>(clauses,
+                make_shared<Chain>(static_pointer_cast<BaseQueryProxy>(this->proxy),
+                                   clauses,
                                    link_template,
                                    source->is_variable ? source->name : source->compute_handle(),
                                    target->is_variable ? target->name : target->compute_handle(),
