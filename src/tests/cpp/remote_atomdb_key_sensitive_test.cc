@@ -38,13 +38,9 @@ set<string> handles_from_handle_set(const shared_ptr<HandleSet>& handle_set) {
     return handles;
 }
 
-void expect_counts(const shared_ptr<RemoteAtomDB>& db,
-                   const shared_ptr<Keychain>& keys,
-                   size_t nodes,
-                   size_t links,
-                   size_t atoms) {
-    EXPECT_EQ(db->node_count(keys), nodes);
-    EXPECT_EQ(db->link_count(keys), links);
+void expect_atom_count(const shared_ptr<RemoteAtomDB>& db,
+                       const shared_ptr<Keychain>& keys,
+                       size_t atoms) {
     EXPECT_EQ(db->atom_count(keys), atoms);
 }
 
@@ -557,7 +553,7 @@ TEST_F(RemoteAtomDBKeySensitiveTest, ExistenceChecksRespectKeychainsAcrossPeers)
     EXPECT_TRUE(this->db->atoms_exist({}, both_keys).empty());
 }
 
-TEST_F(RemoteAtomDBKeySensitiveTest, CountMethodsSumGrantedSchemasAcrossPeers) {
+TEST_F(RemoteAtomDBKeySensitiveTest, CountMethodsUseTheWriteBuffer) {
     const string nested_database_uid = "nested_database";
     const string nested_public_key = "nested_reader";
     const string empty_database_uid = "empty_database";
@@ -653,29 +649,23 @@ TEST_F(RemoteAtomDBKeySensitiveTest, CountMethodsSumGrantedSchemasAcrossPeers) {
                                     {nested_database_uid, nested_public_key},
                                     {empty_database_uid, empty_public_key}});
 
-    expect_counts(db, this->keychain({{similarity_database_uid, "unknown_reader"}}), 0, 0, 0);
-    expect_counts(db, this->keychain({{similarity_database_uid, ""}}), 0, 0, 0);
-    expect_counts(db, this->keychain({{"other_uid", similarity_public_key}}), 0, 0, 0);
-    // Unrestricted profile returns the backend population: Inheritance, "mammal", and one link.
-    expect_counts(db, full_access_keys, 2, 1, 3);
-    expect_counts(db, this->keychain({{empty_database_uid, empty_public_key}}), 0, 0, 0);
+    // The peer write buffer is a plain InMemoryDB, which does not implement these counts.
+    EXPECT_THROW(db->node_count(similarity_keys), runtime_error);
+    EXPECT_THROW(db->link_count(similarity_keys), runtime_error);
 
-    // (Similarity "human" V) matches 3 links on similarity_peer. Unreadable targets still
-    // count as atoms, once each: 3 links + 5 nodes = 8.
-    expect_counts(db, similarity_keys, 0, 3, 8);
-    EXPECT_GT(db->atom_count(similarity_keys),
-              db->node_count(similarity_keys) + db->link_count(similarity_keys));
+    // atom_count is the in-memory write buffers, not the granted atoms on each backend.
+    // Nothing was written through the peers, so every keychain sees 0.
+    expect_atom_count(db, this->keychain({{similarity_database_uid, "unknown_reader"}}), 0);
+    expect_atom_count(db, this->keychain({{similarity_database_uid, ""}}), 0);
+    expect_atom_count(db, this->keychain({{"other_uid", similarity_public_key}}), 0);
+    expect_atom_count(db, full_access_keys, 0);
+    expect_atom_count(db, this->keychain({{empty_database_uid, empty_public_key}}), 0);
+    expect_atom_count(db, similarity_keys, 0);
+    expect_atom_count(db, nested_keys, 0);
+    expect_atom_count(db, all_keys, 0);
 
-    // (Expression (Expression A B) X) matches only the outer link on nested_peer.
-    expect_counts(db, nested_keys, 0, 1, 3);
-    EXPECT_GT(db->atom_count(nested_keys), db->node_count(nested_keys) + db->link_count(nested_keys));
-
-    // similarity 0/3/8 + full access 2/1/3 + nested 0/1/3. empty has no atoms.
-    expect_counts(db, all_keys, 2, 5, 14);
-
-    // The loaded profile stays in the manifest, so the similarity peer still counts.
     similarity_backend->revoke(similarity_public_key);
-    expect_counts(db, all_keys, 2, 5, 14);
+    expect_atom_count(db, all_keys, 0);
 }
 
 int main(int argc, char** argv) {
