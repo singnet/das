@@ -146,6 +146,31 @@ PollStreamResult BusCommandRouterProxyStreamPoller::poll_stream(
         return poll_succeeded();
     }
 
+    if (command_type == "add_atom" || command_type == "delete_atom") {
+        while (router_proxy->atom_result.empty() && !finished_or_error()) {
+            if (handle_abort()) {
+                return {};
+            }
+            Utils::sleep(100);
+        }
+        if (router_proxy->error_flag) {
+            if (on_error) {
+                on_error(router_proxy->error_message);
+            }
+            return {};
+        }
+        if (router_proxy->atom_result.empty()) {
+            if (on_error) {
+                on_error("Atom command finished without a result");
+            }
+            return {};
+        }
+        if (on_chunk) {
+            on_chunk(json::array({json(router_proxy->atom_result)}));
+        }
+        return poll_succeeded();
+    }
+
     if (command_type == "set") {
         while (router_proxy->set_param_ack.empty() && !finished_or_error()) {
             if (handle_abort()) {

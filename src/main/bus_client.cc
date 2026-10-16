@@ -170,6 +170,15 @@ int main(int argc, char* argv[]) {
                     return 1;
                 }
                 cout << router_proxy->set_param_ack << endl;
+            } else if (router_cmd == "add_atom" || router_cmd == "delete_atom") {
+                while (router_proxy->atom_result.empty() && !router_finished_or_error() &&
+                       Helper::is_running) {
+                    Utils::sleep(100);
+                }
+                if (router_proxy->error_flag) {
+                    return 1;
+                }
+                cout << router_proxy->atom_result << endl;
             } else if (router_cmd == "query") {
                 while (!router_proxy->routed_flag && !router_finished_or_error() && Helper::is_running) {
                     Utils::sleep(100);
