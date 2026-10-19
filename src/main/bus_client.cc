@@ -1,5 +1,7 @@
 #include <signal.h>
 
+#include <nlohmann/json.hpp>
+
 #include "AtomDBInitializer.h"
 #include "BaseQueryProxy.h"
 #include "BusCommandRouterProxy.h"
@@ -122,7 +124,15 @@ int main(int argc, char* argv[]) {
         if (is_router_client) {
             string router_cmd = props.get<string>(Helper::CMD);
             string router_arg = props.get<string>(Helper::ARG);
-            router_arg = ProxyFactory::parse_metta_expression(router_arg);
+            if (router_cmd == "add_atom" || router_cmd == "delete_atom") {
+                auto spec = nlohmann::json::parse(router_arg);
+                if (spec.contains("metta") && spec["metta"].is_string()) {
+                    spec["metta"] = ProxyFactory::parse_metta_expression(spec["metta"].get<string>());
+                    router_arg = spec.dump();
+                }
+            } else {
+                router_arg = ProxyFactory::parse_metta_expression(router_arg);
+            }
             proxy = make_shared<BusCommandRouterProxy>(router_cmd, router_arg);
         } else {
             proxy = ProxyFactory::create_proxy(cmd_args[Helper::CLIENT], props);
