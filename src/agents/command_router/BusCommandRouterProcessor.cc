@@ -74,9 +74,7 @@ BusCommandRouterProcessor::BusCommandRouterProcessor(shared_ptr<ServiceBus> serv
     this->atomdb = AtomDBSingleton::get_instance();
 }
 
-BusCommandRouterProcessor::~BusCommandRouterProcessor() {
-    this->atomdb = AtomDBSingleton::get_instance();
-}
+BusCommandRouterProcessor::~BusCommandRouterProcessor() {}
 
 shared_ptr<BusCommandProxy> BusCommandRouterProcessor::factory_empty_proxy() {
     return make_shared<BusCommandRouterProxy>();
