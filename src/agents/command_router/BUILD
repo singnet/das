@@ -47,7 +47,7 @@ cc_library(
     hdrs = ["AtomExpression.h"],
     includes = ["."],
     deps = [
-        "//atomdb:atomdb",
+        "//atomdb",
         "//commons/atoms:atoms_lib",
         "//metta:metta_parser",
     ],
@@ -68,9 +68,9 @@ cc_library(
         "//agents/query_engine:query_answer",
         "//atomdb:atomdb_singleton",
         "//commons/atoms:atoms_lib",
-        "@nlohmann_json//:json",
         "//service_bus:bus_command_processor",
         "//service_bus:service_bus_lib",
         "//service_bus:service_bus_singleton",
+        "@nlohmann_json//:json",
     ],
 )

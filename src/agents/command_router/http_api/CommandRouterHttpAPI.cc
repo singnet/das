@@ -126,7 +126,8 @@ void CommandRouterHttpAPI::initialize(shared_ptr<CommandRouterHttpAPI> instance,
     }
     instance->setup();
     instance->start();
-    LOG_INFO("CommandRouter HTTP API" << " listening on " << instance->host << ":" << instance->port);
+    LOG_INFO("CommandRouter HTTP API"
+             << " listening on " << instance->host << ":" << instance->port);
 }
 
 bool CommandRouterHttpAPI::thread_one_step() {
