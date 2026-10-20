@@ -464,7 +464,7 @@ PollStreamResult CommandRouterHttpAPI::execute_router_command(
                 return {};
             }
             const string result =
-                this->router_processor->edit_atom(command, router_proxy->get_args()[1]);
+                this->router_processor->execute_atomdb_cmd(command, router_proxy->get_args()[1]);
             if (on_chunk) {
                 on_chunk(json::array({json(result)}));
             }

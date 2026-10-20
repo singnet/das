@@ -43,10 +43,9 @@ class BusCommandRouterProcessor : public BusCommandProcessor {
                              const string& http_requestor_id);
 
     /**
-     * Add or delete one atom on this router's AtomDB and return the result.
-     * add_atom returns the handle. delete_atom returns "deleted" or "not_found".
+     * Execute an atomdb command and return the result.
      */
-    string edit_atom(const string& command, const string& arg);
+    string execute_atomdb_cmd(const string& command, const string& arg);
 
    private:
     void run_command_internal(shared_ptr<BusCommandRouterProxy> router_proxy, bool load_peer_parameters);

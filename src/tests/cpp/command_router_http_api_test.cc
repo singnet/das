@@ -666,13 +666,14 @@ TEST(BusCommandRouterProcessorTest, http_add_and_delete_atom) {
         error);
     ASSERT_NE(add_proxy, nullptr) << error;
 
-    const string handle = router_processor->edit_atom("add_atom", add_proxy->get_args()[1]);
+    const string handle = router_processor->execute_atomdb_cmd("add_atom", add_proxy->get_args()[1]);
     EXPECT_FALSE(handle.empty());
 
     auto delete_proxy = HttpCommandProxyFactory::create(
         HttpCommandProxyFactory::DELETE_ATOM, {{"delete_atom", {{"handle", handle}}}}, error);
     ASSERT_NE(delete_proxy, nullptr) << error;
-    EXPECT_EQ(router_processor->edit_atom("delete_atom", delete_proxy->get_args()[1]), "deleted");
+    EXPECT_EQ(router_processor->execute_atomdb_cmd("delete_atom", delete_proxy->get_args()[1]),
+              "deleted");
 }
 
 TEST(HttpCommandProxyFactoryTest, create_query_sets_params_onto_proxy_defaults) {

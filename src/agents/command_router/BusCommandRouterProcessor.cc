@@ -416,14 +416,14 @@ bool optional_bool(const json& spec, const string& key, bool default_value) {
 
 }  // namespace
 
-string BusCommandRouterProcessor::edit_atom(const string& command, const string& arg) {
+string BusCommandRouterProcessor::execute_atomdb_cmd(const string& command, const string& arg) {
     if (command == "add_atom") {
         return this->add_atom(arg);
     }
     if (command == "delete_atom") {
         return this->delete_atom(arg);
     }
-    RAISE_ERROR("Not an atom edit command: " + command);
+    RAISE_ERROR("Not an atomdb command: " + command);
     return "";
 }
 
