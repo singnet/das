@@ -4,10 +4,12 @@
 #include <algorithm>
 #include <deque>
 #include <fstream>
+#include <functional>
 #include <nlohmann/json.hpp>
 #include <sstream>
 #include <thread>
 #include <unordered_map>
+#include <unordered_set>
 
 #include "Atom.h"
 #include "InMemoryDBAPITypes.h"
@@ -180,12 +182,28 @@ void RemoteAtomDBPeer::feed_cache_from_handle_set(shared_ptr<HandleSet> handle_s
 
     LOG_DEBUG("[RemoteDB(" << uid_ << ")] feed_cache_from_handle_set: warming cache with "
                            << handle_set->size() << " handles");
+
+    // The read cache is later asked to re-match these links. Match decodes nested
+    // targets, so those atoms have to be in this peer's cache too, not only the hits.
+    unordered_set<string> warmed;
+    function<void(const string&)> warm = [&](const string& handle) {
+        if (!warmed.insert(handle).second) {
+            return;
+        }
+        auto atom = get_atom(handle, keychain);
+        auto link = dynamic_pointer_cast<Link>(atom);
+        if (link == nullptr) {
+            return;
+        }
+        for (const auto& target : link->targets) {
+            warm(target);
+        }
+    };
+
     while (true) {
         char* handle_cstr = it->next();
         if (!handle_cstr) break;
-
-        string handle(handle_cstr);
-        get_atom(handle, keychain);
+        warm(string(handle_cstr));
     }
 }
 
