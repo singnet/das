@@ -131,16 +131,17 @@ string AtomDBUtils::handle_to_metta_recursion(const string& handle,
     } else {
         shared_ptr<Atom> atom = nullptr;
 
-        if (key_sensitive_atomdb == nullptr) {
-            // AtomDB is not protected. Disregard keychain.
-            atom = atomdb->get_atom(handle);
-        } else {
+        if (key_sensitive_atomdb != nullptr &&
+            atomdb->get_protection_mode() != atomdb_api_types::ProtectionMode::UNPROTECTED) {
             // AtomDB is protected. Keychain must be forwarded.
             if (keychain != nullptr) {
                 atom = key_sensitive_atomdb->get_atom(handle, keychain);
             } else {
                 RAISE_ERROR("AtomDB is protected and requires a keychain");
             }
+        } else {
+            // AtomDB is not protected. Disregard keychain.
+            atom = atomdb->get_atom(handle);
         }
 
         if (atom != nullptr) {
