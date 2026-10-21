@@ -4,7 +4,6 @@
 #include <algorithm>
 #include <deque>
 #include <fstream>
-#include <functional>
 #include <nlohmann/json.hpp>
 #include <sstream>
 #include <thread>
@@ -185,25 +184,28 @@ void RemoteAtomDBPeer::feed_cache_from_handle_set(shared_ptr<HandleSet> handle_s
 
     // The read cache is later asked to re-match these links. Match decodes nested
     // targets, so those atoms have to be in this peer's cache too, not only the hits.
+    // Walk iteratively so a deep link chain does not grow the C++ stack.
     unordered_set<string> warmed;
-    function<void(const string&)> warm = [&](const string& handle) {
+    deque<string> pending;
+    while (true) {
+        char* handle_cstr = it->next();
+        if (!handle_cstr) break;
+        pending.push_back(string(handle_cstr));
+    }
+    while (!pending.empty()) {
+        string handle = pending.front();
+        pending.pop_front();
         if (!warmed.insert(handle).second) {
-            return;
+            continue;
         }
         auto atom = get_atom(handle, keychain);
         auto link = dynamic_pointer_cast<Link>(atom);
         if (link == nullptr) {
-            return;
+            continue;
         }
         for (const auto& target : link->targets) {
-            warm(target);
+            pending.push_back(target);
         }
-    };
-
-    while (true) {
-        char* handle_cstr = it->next();
-        if (!handle_cstr) break;
-        warm(string(handle_cstr));
     }
 }
 
