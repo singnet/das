@@ -34,13 +34,34 @@ class BaseQueryProxy : public BaseProxy {
 
    public:
     enum QUERY_ELEMENTS { NONE = 0, HANDLES, VARIABLES, HANDLES_AND_VARIABLES };
+    enum SUPPLEMENTARY_INFO_TAG { UNDEFINED = 0, BUILT_ATOMS, CHAIN_DEAD_ENDS };
 
+   private:
+    string supplementary_info_tag_to_string(SUPPLEMENTARY_INFO_TAG tag) {
+        switch (tag) {
+            case UNDEFINED:
+                RAISE_ERROR("Invalid undefined supplementary info tag");
+            case BUILT_ATOMS:
+                return "built_atoms";
+            case CHAIN_DEAD_ENDS:
+                return "chain_dead_ends";
+            default:
+                RAISE_ERROR("Invalid supplementary info tag: " + std::to_string(tag));
+        }
+    }
+    bool supplementary_info_tag_is_valid(const string& key) {
+        return (key == "built_atoms") || (key == "chain_dead_ends");
+    }
+
+   public:
     // ---------------------------------------------------------------------------------------------
     // Constructors, destructors and static state
 
     // Commands allowed at the proxy level (caller <--> processor)
     static string ANSWER_BUNDLE;       // Delivery of a bundle with QueryAnswer objects
-    static string BUILT_ATOMS_BUNDLE;  // Delivery of a bundle with handles of newly built atoms
+    static string SUPPLEMENTARY_INFO;  // Delivery of any supplementary info (i.e. anything that
+                                       // is not the QueryAnswers thenselves) the server need to
+                                       // deliver to the caller.
     static string ABORT;               // Abort current query
     static string FINISHED;            // Notification that all query results have already been
                                        // delivered
@@ -149,11 +170,11 @@ class BaseQueryProxy : public BaseProxy {
     virtual bool finished_cycle();
 
     /**
-     * Returns the handles of the atoms newly built so far.
+     * Returns the attached supplementary info regarding a specific tag.
      *
-     * @return the handles of the atoms newly built so far.
+     * @return the attached supplementary info regarding a specific tag.
      */
-    vector<string> get_built_atoms();
+    vector<string> get_supplementary_info(SUPPLEMENTARY_INFO_TAG tag);
 
     // ---------------------------------------------------------------------------------------------
     // Server-side API
@@ -175,12 +196,14 @@ class BaseQueryProxy : public BaseProxy {
     virtual void push(shared_ptr<QueryAnswer> answer);
 
     /**
-     * Push the handle of a newly built atom to the proxy. This handle will end in the peer proxy
-     * but it may not happen immediatelly because of the buffering algorithm.
+     * Push a handle into the tag's vector as a supplementary info. This info will end up
+     * in the peer proxy but it may not happen immediatelly because of the buffering algorithm.
+     * However, whenever a QueryAnswer is actually delivered, any supplementary info pushed so
+     * far is also delivered.
      *
      * @param answer Answer to push.
      */
-    virtual void push_built_atom(const string& handle);
+    virtual void push_supplementary_info(SUPPLEMENTARY_INFO_TAG tag, const string& handle);
 
     /**
      * Send current answer bundle to remote client peer.
@@ -258,11 +281,11 @@ class BaseQueryProxy : public BaseProxy {
     void answer_bundle(const vector<string>& args);
 
     /**
-     * Piggyback method called by BUILT_ATOMS_BUNDLE command
+     * Piggyback method called by SUPPLEMENTARY_INFO command
      *
-     * @param args Command arguments (tokenized QueryAnswer objects)
+     * @param args Command arguments (tokenized map objects)
      */
-    void built_atoms_bundle(const vector<string>& args);
+    void supplementary_info(const vector<string>& args);
 
     /**
      * Piggyback method called by FINISHED command
@@ -271,6 +294,11 @@ class BaseQueryProxy : public BaseProxy {
      */
     void query_answers_finished(const vector<string>& args);
 
+    /**
+     * Not actually part of the API. This method is used only in unit tests.
+     */
+    void build_supplementary_info();
+
     virtual void pack_command_line_args() = 0;
 
    private:
@@ -278,12 +306,12 @@ class BaseQueryProxy : public BaseProxy {
 
     recursive_mutex api_mutex;
     SharedQueue answer_queue;
-    vector<string> built_atoms;
+    map<string, vector<string>> _supplementary_info;
     unsigned int answer_count;
     string context;
     vector<string> query_tokens;
     vector<string> answer_bundle_vector;
-    vector<string> built_atoms_bundle_vector;
+    vector<string> supplementary_info_bundle_vector;
     shared_ptr<Keychain> _keychain;
     shared_ptr<AtomDB> _atomdb;
 };

@@ -136,7 +136,8 @@ static bool test_and_two_predicates() {
         }
     }
     success &= assert_equal(proxy->get_count(), 10530, "link creation count");
-    AtomDBSingleton::get_instance()->delete_atoms(proxy->get_built_atoms());
+    AtomDBSingleton::get_instance()->delete_atoms(
+        proxy->get_supplementary_info(BaseQueryProxy::BUILT_ATOMS));
 
     finish_test_case(test_case, success);
     return success;
@@ -297,8 +298,10 @@ static bool test_customizable() {
     }
     success &= assert_equal(proxy2->get_count(), 200, "link creation count");
 
-    AtomDBSingleton::get_instance()->delete_atoms(proxy1->get_built_atoms());
-    AtomDBSingleton::get_instance()->delete_atoms(proxy2->get_built_atoms());
+    AtomDBSingleton::get_instance()->delete_atoms(
+        proxy1->get_supplementary_info(BaseQueryProxy::BUILT_ATOMS));
+    AtomDBSingleton::get_instance()->delete_atoms(
+        proxy2->get_supplementary_info(BaseQueryProxy::BUILT_ATOMS));
 
     finish_test_case(test_case, success);
     return success;
@@ -400,7 +403,8 @@ static bool test_customizable_counts() {
             }
             shared_ptr<QueryAnswer> answer = proxy[i]->pop();
             if (answer != nullptr) {
-                string handle = proxy[i]->get_built_atoms()[count_answers++];
+                string handle =
+                    proxy[i]->get_supplementary_info(BaseQueryProxy::BUILT_ATOMS)[count_answers++];
                 double strength = get_strength(handle);
                 double expected_strength =
                     compute_expected_strength(answer->get("v1"), answer->get("v2"), composition[i]);
@@ -413,7 +417,8 @@ static bool test_customizable_counts() {
             }
         }
         success &= assert_equal(proxy[i]->get_count(), 10, "link creation count");
-        AtomDBSingleton::get_instance()->delete_atoms(proxy[i]->get_built_atoms());
+        AtomDBSingleton::get_instance()->delete_atoms(
+            proxy[i]->get_supplementary_info(BaseQueryProxy::BUILT_ATOMS));
     }
     finish_test_case(test_case, success);
     return success;
@@ -496,7 +501,8 @@ static bool test_cycles() {
         success &= assert_equal(total_creation[i],
                                 creations_per_cycle[i] * num_cycles[i],
                                 "total creations in proxy[" + to_string(i) + "]");
-        AtomDBSingleton::get_instance()->delete_atoms(proxy[i]->get_built_atoms());
+        AtomDBSingleton::get_instance()->delete_atoms(
+            proxy[i]->get_supplementary_info(BaseQueryProxy::BUILT_ATOMS));
     }
     finish_test_case(test_case, success);
     return success;
