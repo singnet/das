@@ -177,7 +177,6 @@ void RemoteAtomDBPeer::feed_cache_from_handle_set(shared_ptr<HandleSet> handle_s
 
     auto it = handle_set->get_iterator();
     if (!it) {
-        cout << "===> Iterator is NULL" << endl;
         return;
     }
     StopWatch timer_feed;
@@ -185,18 +184,12 @@ void RemoteAtomDBPeer::feed_cache_from_handle_set(shared_ptr<HandleSet> handle_s
     LOG_DEBUG("[RemoteDB(" << uid_ << ")] feed_cache_from_handle_set: warming cache with "
                            << handle_set->size() << " handles");
     while (true) {
-        cout << "[[ 1 ]]" << endl;
         char* handle_cstr = it->next();
-        cout << "[[ 2 ]]" << endl;
         if (!handle_cstr) {
-            cout << "[[ break ]]" << endl;
             break;
         }
-        cout << "[[ 3 ]]" << endl;
         string handle(handle_cstr);
-        cout << "[[ 4 ]]" << endl;
         get_atom(handle, keychain);
-        cout << "[[ 5 ]]" << endl;
     }
     timer_feed.stop();
     LOG_DEBUG("[RemoteDB(" << uid_ << ")] feed_cache_from_handle_set: warmed "

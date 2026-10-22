@@ -588,10 +588,10 @@ shared_ptr<atomdb_api_types::AtomDocument> RedisMongoDB::get_document(
     timer_make_shared.stop();
 
     timer_total.stop();
-    // LOG_DEBUG("[RedisMongoDB(" << this->uid_ << ")] get_document(" << handle << ", " << collection_name
-    //                            << ") " << (atom_document ? "found" : "not found")
-    //                            << " | find_one: " << timer_find_one.milliseconds() << "ms"
-    //                            << " | total: " << timer_total.milliseconds() << "ms");
+    LOG_DEBUG("[RedisMongoDB(" << this->uid_ << ")] get_document(" << handle << ", " << collection_name
+                               << ") " << (atom_document ? "found" : "not found")
+                               << " | find_one: " << timer_find_one.milliseconds() << "ms"
+                               << " | total: " << timer_total.milliseconds() << "ms");
     // LOG_DEBUG("[RedisMongoDB(" << this->uid_ << ")] get_document(" << handle << ", " << collection_name
     //                            << ") " << (atom_document ? "found" : "not found")
     //                            << " | acquire: " << timer_acquire.milliseconds() << "ms"
