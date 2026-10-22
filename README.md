@@ -17,17 +17,6 @@ These are the Github repos we're currently using in the project:
 * Vultr [pre-infra](https://github.com/singnet/das-pre-infra-vultr) and [infra](https://github.com/singnet/das-infra-stack-vultr) - Infra deployment/setup in Vultr
 * AWS [pre-infra](https://github.com/singnet/das-pre-infra-aws) and [infra](https://github.com/singnet/das-infra-stack-aws) - Infra deployment/setup in AWS
 
-These repos are frozen and deprecated:
-
-* https://github.com/singnet/das-atom-db
-* https://github.com/singnet/das-query-engine
-* https://github.com/singnet/das-serverless-functions
-* https://github.com/singnet/das-attention-broker
-* https://github.com/singnet/das-node
-* https://github.com/singnet/das-postgres-lobe
-* https://github.com/singnet/das-openfaas-templates
-* https://github.com/singnet/das-poc
-
 Issues for project management are kept in two boards:
 
 * [Public board](https://github.com/orgs/singnet/projects/7) - GitHub project board used to track bug reports, feature requests, and major new features planning. Use this board to report bugs or request new features.
