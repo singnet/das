@@ -209,13 +209,18 @@ class ProtectedAtomDB : public AtomDB, public KeySensitiveAtomDB {
      * @brief Returns whether the caller may READ the specified handle.
      */
     bool can_read(const string& handle, const string& public_key) {
+        cout << "**************** START can_read() *************************" << endl;
         if (public_key.empty()) return false;
         if (this->manifest->is_unrestricted(public_key)) {
             return true;
         } else {
+            cout << "   **************** START this->backend->get_atom() *************************" << endl;
             auto atom = this->backend->get_atom(handle);
-            return this->manifest->is_granted(
+            cout << "   **************** END this->backend->get_atom() *************************" << endl;
+            auto granted = this->manifest->is_granted(
                 public_key, atom, AuthorizationOperation::READ);
+            cout << "**************** END can_read() *************************" << endl;
+            return granted;
         }
     }
 
