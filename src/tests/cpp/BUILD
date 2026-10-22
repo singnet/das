@@ -1133,6 +1133,8 @@ cc_test(
     linkstatic = 1,
     deps = [
         "//atomdb:atomdb_factory",
+        "//atomdb:atomdb_singleton",
+        "//atomdb:atomdbutils",
         "//atomdb:protected_atomdb",
         "//atomdb/inmemorydb:inmemorydb_lib",
         "//atomdb/redis_mongodb:redis_mongodb_lib",

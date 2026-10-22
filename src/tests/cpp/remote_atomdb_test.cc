@@ -15,6 +15,8 @@
 
 #include "Assignment.h"
 #include "AtomDBFactory.h"
+#include "AtomDBSingleton.h"
+#include "AtomDBUtils.h"
 #include "InMemoryDB.h"
 #include "InMemoryDBAPITypes.h"
 #include "JsonConfig.h"
@@ -1357,6 +1359,90 @@ TEST(RemoteAtomDBFederationTest, ConcurrentAddAndReleaseLosesNoWrites) {
                 << "missing handle for race_" << w << "_" << i;
         }
     }
+}
+
+// (Evaluation (Predicate "contains_bbb") (Concept $C))
+// The nested Predicate and Concept links are not part of the pattern hit list. A second
+// query is served from the read cache and re-matches against that cache, so those targets
+// have to be warmed with the hits or the peer disappears from the result.
+static LinkSchema contains_concept_schema() {
+    return LinkSchema({"LINK_TEMPLATE", "Expression", "3",          "NODE",   "Symbol",
+                       "Evaluation",    "LINK",       "Expression", "2",      "NODE",
+                       "Symbol",        "Predicate",  "NODE",       "Symbol", "contains_bbb",
+                       "LINK_TEMPLATE", "Expression", "2",          "NODE",   "Symbol",
+                       "Concept",       "VARIABLE",   "C"});
+}
+
+static string add_contains_link(shared_ptr<InMemoryDB> backend, const string& concept_name) {
+    Node evaluation("Symbol", "Evaluation");
+    Node predicate_symbol("Symbol", "Predicate");
+    Node predicate_name("Symbol", "contains_bbb");
+    Node concept_symbol("Symbol", "Concept");
+    Node concept_name_node("Symbol", concept_name);
+    backend->add_node(&evaluation);
+    backend->add_node(&predicate_symbol);
+    backend->add_node(&predicate_name);
+    backend->add_node(&concept_symbol);
+    backend->add_node(&concept_name_node);
+
+    Link predicate("Expression", {predicate_symbol.handle(), predicate_name.handle()});
+    Link concept("Expression", {concept_symbol.handle(), concept_name_node.handle()});
+    backend->add_link(&predicate);
+    backend->add_link(&concept);
+    Link evaluation_link("Expression", {evaluation.handle(), predicate.handle(), concept.handle()});
+    string handle = backend->add_link(&evaluation_link);
+    backend->re_index_patterns(true);
+    return handle;
+}
+
+TEST(RemoteAtomDBFederationTest, RepeatedNestedPatternKeepsEveryPeer) {
+    auto backend1 = make_shared<InMemoryDB>();
+    auto backend2 = make_shared<InMemoryDB>();
+    string peer1_handle = add_contains_link(backend1, "c1");
+    string peer2_handle = add_contains_link(backend2, "c2");
+
+    map<string, shared_ptr<RemoteAtomDBPeer>> peers;
+    peers["peer1"] = make_shared<RemoteAtomDBPeer>("peer1", backend1, nullptr);
+    peers["peer2"] = make_shared<RemoteAtomDBPeer>("peer2", backend2, nullptr);
+    auto db = make_shared<RemoteAtomDB>("remote", peers);
+
+    auto schema = contains_concept_schema();
+    auto first = db->query_for_pattern(schema);
+    auto second = db->query_for_pattern(schema);
+    ASSERT_NE(first, nullptr);
+    ASSERT_NE(second, nullptr);
+
+    set<string> first_handles;
+    set<string> second_handles;
+    auto collect = [](shared_ptr<HandleSet> handle_set, set<string>& out) {
+        auto it = handle_set->get_iterator();
+        char* handle;
+        while ((handle = it->next()) != nullptr) {
+            out.insert(handle);
+        }
+    };
+    collect(first, first_handles);
+    collect(second, second_handles);
+
+    EXPECT_EQ(first_handles, set<string>({peer1_handle, peer2_handle}));
+    EXPECT_EQ(second_handles, first_handles);
+}
+
+// RemoteAtomDB is key-sensitive even when every peer is unprotected. handle_to_metta()
+// discovers that by casting the singleton and then calls handle_to_metta_recursion()
+// with a null keychain. Without the protection-mode check, that call raises.
+TEST(RemoteAtomDBFederationTest, UnprotectedRemoteHandleToMetta) {
+    auto backend = make_shared<InMemoryDB>();
+    Node symbol("Symbol", "A");
+    backend->add_node(&symbol);
+    Link expression("Expression", {symbol.handle()});
+    backend->add_link(&expression);
+
+    map<string, shared_ptr<RemoteAtomDBPeer>> peers;
+    peers["peer1"] = make_shared<RemoteAtomDBPeer>("peer1", backend, nullptr);
+    AtomDBSingleton::provide(make_shared<RemoteAtomDB>("remote", peers));
+
+    EXPECT_EQ(AtomDBUtils::handle_to_metta(expression.handle()), "(A)");
 }
 
 int main(int argc, char** argv) {
