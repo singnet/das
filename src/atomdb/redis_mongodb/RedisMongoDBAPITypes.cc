@@ -112,10 +112,10 @@ char* HandleSetRedisIterator::next() {
     }
     while ((candidate = _next()) != NULL) {
         handle = string(candidate);
-        cout << "**************** START next() *************************" << endl;
+        // cout << "**************** START next() *************************" << endl;
         if ((this->handle_set->link_schema == nullptr) || this->handle_set->link_schema->match(handle, assignment, *decoder)) {
             this->handle_set->assignments_by_handle[handle] = assignment;
-            cout << "**************** END next() *************************" << endl;
+            // cout << "**************** END next() *************************" << endl;
             return candidate;
         }
         assignment.clear();
