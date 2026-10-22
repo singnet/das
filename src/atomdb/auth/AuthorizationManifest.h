@@ -51,6 +51,8 @@ class AuthorizationManifest {
                               size_t& atom_count,
                               shared_ptr<Keychain> keychain);
 
+    bool is_unrestricted(const string& public_key);
+
    private:
     shared_ptr<AtomDB> atomdb;
     map<string, shared_ptr<AuthorizationProfile>> profiles;

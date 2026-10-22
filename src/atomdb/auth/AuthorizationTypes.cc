@@ -1,6 +1,9 @@
+#define LOG_LEVEL DEBUG_LEVEL
+
 #include "AuthorizationTypes.h"
 
 #include "AtomDBAPITypes.h"
+#include "Logger.h"
 #include "Utils.h"
 #include "atomdb/AtomDBUtils.h"
 
@@ -42,18 +45,28 @@ AuthorizationSchema::AuthorizationSchema(shared_ptr<AtomDB> atomdb,
 bool AuthorizationSchema::is_granted(shared_ptr<Atom> atom, AuthorizationOperation operation) {
     if (!this->allows(operation) || atom == nullptr) return false;
 
+    // StopWatch timer;
+    // timer.start();
+
     Assignment assignment;
     shared_ptr<Link> link = dynamic_pointer_cast<Link>(atom);
+    bool granted = false;
 
     if (link != nullptr) {
-        return this->schema_.match(*link, assignment, *this->atomdb_);
+        granted = this->schema_.match(*link, assignment, *this->atomdb_);
     } else {
         shared_ptr<Node> node = dynamic_pointer_cast<Node>(atom);
         if (node == nullptr) {
             RAISE_ERROR("Atom must be a Link or a Node.");
         }
-        return this->schema_.match(node->handle(), assignment, *this->atomdb_);
+        granted = this->schema_.match(node->handle(), assignment, *this->atomdb_);
     }
+
+    // timer.stop();
+    // LOG_DEBUG("schema match " << " on " << atom->handle() << " -> "
+    //                           << (granted ? "granted" : "denied")
+    //                           << " | time: " << timer.milliseconds() << "ms");
+    return granted;
 }
 
 bool AuthorizationSchema::allows(AuthorizationOperation operation) const {
@@ -120,11 +133,27 @@ shared_ptr<AuthorizationProfile> AuthorizationProfile::from_document(
 }
 
 bool AuthorizationProfile::is_granted(shared_ptr<Atom> atom, AuthorizationOperation operation) {
-    if (this->is_unrestricted()) return true;
-    for (const auto& schema : this->schemas_) {
-        if (schema->is_granted(atom, operation)) return true;
+    // StopWatch timer;
+    // timer.start();
+    if (this->is_unrestricted()) {
+        // timer.stop();
+        // LOG_DEBUG("profile is_granted(" << (atom ? atom->handle() : "null")
+        //                                 << ") unrestricted | time: " << timer.milliseconds() << "ms");
+        return true;
     }
-    return false;
+    bool granted = false;
+    for (const auto& schema : this->schemas_) {
+        if (schema->is_granted(atom, operation)) {
+            granted = true;
+            break;
+        }
+    }
+    // timer.stop();
+    // LOG_DEBUG("profile is_granted(" << (atom ? atom->handle() : "null") << ") "
+    //                                 << (granted ? "granted" : "denied") << " after "
+    //                                 << this->schemas_.size() << " schemas | time: "
+    //                                 << timer.milliseconds() << "ms");
+    return granted;
 }
 
 void AuthorizationProfile::count_matching_atoms(size_t& node_count,

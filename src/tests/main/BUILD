@@ -103,5 +103,6 @@ cc_library(
     deps = [
         "//atomdb/auth:auth_lib",
         "//commons:commons_lib",
+        "@mbedtls",
     ],
 )

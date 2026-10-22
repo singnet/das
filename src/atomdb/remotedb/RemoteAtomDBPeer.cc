@@ -1,4 +1,4 @@
-#define LOG_LEVEL INFO_LEVEL
+#define LOG_LEVEL DEBUG_LEVEL
 #include "RemoteAtomDBPeer.h"
 
 #include <algorithm>
@@ -176,17 +176,32 @@ void RemoteAtomDBPeer::feed_cache_from_handle_set(shared_ptr<HandleSet> handle_s
     if (!handle_set) return;
 
     auto it = handle_set->get_iterator();
-    if (!it) return;
-
+    if (!it) {
+        cout << "===> Iterator is NULL" << endl;
+        return;
+    }
+    StopWatch timer_feed;
+    timer_feed.start();
     LOG_DEBUG("[RemoteDB(" << uid_ << ")] feed_cache_from_handle_set: warming cache with "
                            << handle_set->size() << " handles");
     while (true) {
+        cout << "[[ 1 ]]" << endl;
         char* handle_cstr = it->next();
-        if (!handle_cstr) break;
-
+        cout << "[[ 2 ]]" << endl;
+        if (!handle_cstr) {
+            cout << "[[ break ]]" << endl;
+            break;
+        }
+        cout << "[[ 3 ]]" << endl;
         string handle(handle_cstr);
+        cout << "[[ 4 ]]" << endl;
         get_atom(handle, keychain);
+        cout << "[[ 5 ]]" << endl;
     }
+    timer_feed.stop();
+    LOG_DEBUG("[RemoteDB(" << uid_ << ")] feed_cache_from_handle_set: warmed "
+                           << handle_set->size() << " handles | time: " << timer_feed.milliseconds()
+                           << "ms");
 }
 
 void RemoteAtomDBPeer::merge_handle_set(shared_ptr<HandleSet> source,
@@ -673,19 +688,32 @@ void RemoteAtomDBPeer::stop_cleanup_thread() {
 // -------- KeySensitiveAtomDB API
 
 shared_ptr<Atom> RemoteAtomDBPeer::get_atom(const string& handle, shared_ptr<Keychain> keychain) {
+    StopWatch timer_write_buffer;
+    StopWatch timer_local_persistence;
+    StopWatch timer_read_cache;
+    StopWatch timer_remote;
+
     // Snapshot the two in-memory layers without holding the mutex across I/O.
     auto pwb = protected_write_buffer();
     // Dirty writes always win over durable / warmed copies.
-    if (auto atom = pwb ? pwb->get_atom(handle, keychain) : write_buffer()->get_atom(handle)) {
+    timer_write_buffer.start();
+    auto atom = pwb ? pwb->get_atom(handle, keychain) : write_buffer()->get_atom(handle);
+    timer_write_buffer.stop();
+    if (atom) {
+        LOG_DEBUG("[RemoteDB(" << uid_ << ")] get_atom(" << handle << ") <- write_buffer | time: "
+                               << timer_write_buffer.milliseconds() << "ms");
         return atom;
     }
 
     auto rc = read_cache();
     if (local_persistence_) {
-        auto atom = local_persistence_->get_atom(handle);
+        timer_local_persistence.start();
+        atom = local_persistence_->get_atom(handle);
+        timer_local_persistence.stop();
         if (atom) {
             LOG_DEBUG("[RemoteDB(" << uid_ << ")] get_atom(" << handle
-                                   << ") <- local_persistence (warmed into read_cache)");
+                                   << ") <- local_persistence | time: "
+                                   << timer_local_persistence.milliseconds() << "ms");
             // Deliberately re-warm on EVERY hit, not just the first one.
             rc->add_atom(atom.get());
             return atom;
@@ -693,19 +721,52 @@ shared_ptr<Atom> RemoteAtomDBPeer::get_atom(const string& handle, shared_ptr<Key
     }
 
     auto prc = protected_read_cache();
-    if (auto atom = prc ? prc->get_atom(handle, keychain) : rc->get_atom(handle)) {
+    timer_read_cache.start();
+    atom = prc ? prc->get_atom(handle, keychain) : rc->get_atom(handle);
+    timer_read_cache.stop();
+    if (atom) {
+        LOG_DEBUG("[RemoteDB(" << uid_ << ")] get_atom(" << handle << ") <- read_cache | time: "
+                               << timer_read_cache.milliseconds() << "ms");
         return atom;
     }
 
-    auto atom = this->protected_atomdb_ ? this->protected_atomdb_->get_atom(handle, keychain)
-                                        : this->atomdb_->get_atom(handle);
+    // LOG_DEBUG("[RemoteDB(" << uid_ << ")] get_atom(" << handle << ") cache-miss, fetching from remote");
+    // timer_remote.start();
+    // atom = this->protected_atomdb_ ? this->protected_atomdb_->get_atom(handle, keychain)
+    //                                : this->atomdb_->get_atom(handle);
+    // timer_remote.stop();
+
+
+    const bool is_protected = static_cast<bool>(this->protected_atomdb_);
+
+    LOG_DEBUG("[RemoteDB(" << uid_ << ")] get_atom(" << handle
+                        << ") cache-miss, fetching from remote"
+                        << " | path: " << (is_protected ? "PROTECTED" : "UNPROTECTED")
+                        << " | keychain: " << (keychain ? "present" : "nullptr"));
+
+    timer_remote.start();
+
+    atom = is_protected ? this->protected_atomdb_->get_atom(handle, keychain)
+                        : this->atomdb_->get_atom(handle);
+
+    timer_remote.stop();
+
+    LOG_DEBUG("[RemoteDB(" << uid_ << ")] get_atom(" << handle
+                        << ") backend call completed"
+                        << " | path: " << (is_protected ? "PROTECTED" : "UNPROTECTED")
+                        << " | result: " << (atom ? "found" : "not found")
+                        << " | time: " << timer_remote.milliseconds() << "ms");
 
     if (atom) {
-        LOG_DEBUG("[RemoteDB(" << uid_ << ")] get_atom(" << handle << ") <- remote atomdb (warmed)");
+        LOG_DEBUG("[RemoteDB(" << uid_ << ")] get_atom(" << handle
+                               << ") <- remote atomdb (warmed) | time: " << timer_remote.milliseconds()
+                               << "ms");
         rc->add_atom(atom.get());
         return atom;
     }
 
+    LOG_DEBUG("[RemoteDB(" << uid_ << ")] get_atom(" << handle << ") not found | time: "
+                           << timer_remote.milliseconds() << "ms");
     return nullptr;
 }
 
@@ -728,20 +789,20 @@ shared_ptr<atomdb_api_types::HandleSet> RemoteAtomDBPeer::query_for_pattern(
     auto result = make_shared<HandleSetInMemory>();
     set<string> seen;
 
-    auto merge_memory = [&]() {
+    auto merge_write_buffer = [&]() {
         auto pwb = protected_write_buffer();
-        auto wb = write_buffer();
-        merge_handle_set(
-            pwb ? pwb->query_for_pattern(link_schema, keychain) : wb->query_for_pattern(link_schema),
-            result,
-            seen);
+        merge_handle_set(pwb ? pwb->query_for_pattern(link_schema, keychain)
+                             : write_buffer()->query_for_pattern(link_schema),
+                         result,
+                         seen);
+    };
 
+    auto merge_read_cache = [&]() {
         auto prc = protected_read_cache();
-        auto rc = read_cache();
-        merge_handle_set(
-            prc ? prc->query_for_pattern(link_schema, keychain) : rc->query_for_pattern(link_schema),
-            result,
-            seen);
+        merge_handle_set(prc ? prc->query_for_pattern(link_schema, keychain)
+                             : read_cache()->query_for_pattern(link_schema),
+                         result,
+                         seen);
     };
 
     auto merge_local_persistence = [&]() {
@@ -758,37 +819,102 @@ shared_ptr<atomdb_api_types::HandleSet> RemoteAtomDBPeer::query_for_pattern(
     if (cache_hit) {
         LOG_DEBUG("[RemoteDB(" << uid_ << ")] query_for_pattern(" << link_schema.handle()
                                << ") cache-hit");
-        merge_memory();
+
+        StopWatch timer_merge_write_buffer;
+        StopWatch timer_merge_read_cache;
+        StopWatch timer_local_persistence;
+
+        timer_merge_write_buffer.start();
+        merge_write_buffer();
+        timer_merge_write_buffer.stop();
+
+        timer_merge_read_cache.start();
+        merge_read_cache();
+        timer_merge_read_cache.stop();
+
+        timer_local_persistence.start();
         merge_local_persistence();
+        timer_local_persistence.stop();
+
         LOG_DEBUG("[RemoteDB(" << uid_ << ")] query_for_pattern(" << link_schema.handle() << ") -> "
-                               << result->size() << " handles");
+                               << result->size() << " handles"
+                               << " | write_buffer: " << timer_merge_write_buffer.milliseconds() << "ms"
+                               << " | read_cache: " << timer_merge_read_cache.milliseconds() << "ms"
+                               << " | local_persistence: " << timer_local_persistence.milliseconds()
+                               << "ms");
         return result;
     }
 
     LOG_DEBUG("[RemoteDB(" << uid_ << ")] query_for_pattern(" << link_schema.handle()
                            << ") cache-miss, fetching from remote atomdb");
 
+    StopWatch timer_remote;
+    StopWatch timer_feed;
+    StopWatch timer_merge_remote;
+    StopWatch timer_merge_write_buffer;
+    StopWatch timer_merge_read_cache;
+    StopWatch timer_local_persistence;
+
+    timer_remote.start();
     auto remote_handle_set = this->protected_atomdb_
                                  ? this->protected_atomdb_->query_for_pattern(link_schema, keychain)
                                  : this->atomdb_->query_for_pattern(link_schema);
+    timer_remote.stop();
 
     if (remote_handle_set) {
+        timer_feed.start();
         feed_cache_from_handle_set(remote_handle_set, keychain);
-        // Merge remote first when it carries nested metadata. InMemoryDB has no
-        // metta/assignments — if it fills `seen` first, the remote metadata is skipped.
+        timer_feed.stop();
+
+        // Preserve metadata carried by the remote result.
+        timer_merge_remote.start();
         merge_handle_set(remote_handle_set, result, seen);
+        timer_merge_remote.stop();
+
+        // The write buffer may contain local changes not present remotely.
+        timer_merge_write_buffer.start();
+        merge_write_buffer();
+        timer_merge_write_buffer.stop();
+
+        // Do not query the read cache here. It has just been populated
+        // from remote_handle_set, which is already present in result.
+    } else {
+        // Remote query failed or was unavailable. Use both local
+        // in-memory layers as fallback.
+        timer_merge_write_buffer.start();
+        merge_write_buffer();
+        timer_merge_write_buffer.stop();
+
+        timer_merge_read_cache.start();
+        merge_read_cache();
+        timer_merge_read_cache.stop();
     }
 
-    merge_memory();
+    timer_local_persistence.start();
     merge_local_persistence();
+    timer_local_persistence.stop();
 
-    if (!this->protected_atomdb_ || keychain) {
+    // A nullptr does not represent a completed remote fetch.
+    if (remote_handle_set && (!this->protected_atomdb_ || keychain)) {
         lock_guard<mutex> lock(peer_mutex_);
         fetched_link_templates_.insert(link_schema.handle());
     }
 
     LOG_DEBUG("[RemoteDB(" << uid_ << ")] query_for_pattern(" << link_schema.handle() << ") -> "
-                           << result->size() << " handles");
+                           << result->size() << " handles"
+                           << " | atomdb_remote: " << timer_remote.milliseconds() << "ms"
+                           << " | feed_cache: " << timer_feed.milliseconds() << "ms"
+                           << " | merge_handle_set: " << timer_merge_remote.milliseconds() << "ms"
+                           << "ms");
+    // LOG_DEBUG("[RemoteDB(" << uid_ << ")] query_for_pattern(" << link_schema.handle() << ") -> "
+    //                        << result->size() << " handles"
+    //                        << " | remote: " << timer_remote.milliseconds() << "ms"
+    //                        << " | feed_cache: " << timer_feed.milliseconds() << "ms"
+    //                        << " | merge_remote: " << timer_merge_remote.milliseconds() << "ms"
+    //                        << " | write_buffer: " << timer_merge_write_buffer.milliseconds() << "ms"
+    //                        << " | read_cache: " << timer_merge_read_cache.milliseconds() << "ms"
+    //                        << " | local_persistence: " << timer_local_persistence.milliseconds()
+    //                        << "ms");
     return result;
 }
 

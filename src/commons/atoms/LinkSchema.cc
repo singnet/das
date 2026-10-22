@@ -1,3 +1,4 @@
+#define LOG_LEVEL INFO_LEVEL
 #include "LinkSchema.h"
 
 #include "HandleDecoder.h"
@@ -6,7 +7,7 @@
 #include "Node.h"
 #include "UntypedVariable.h"
 
-#define LOG_LEVEL INFO_LEVEL
+
 #include "Logger.h"
 
 using namespace atoms;

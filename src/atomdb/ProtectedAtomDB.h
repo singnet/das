@@ -1,3 +1,4 @@
+#define LOG_LEVEL DEBUG_LEVEL
 #pragma once
 
 #include <functional>
@@ -6,6 +7,7 @@
 #include <set>
 #include <string>
 #include <vector>
+#include "Logger.h"
 
 #include "AtomDB.h"
 #include "AuthorizationManifest.h"
@@ -206,9 +208,15 @@ class ProtectedAtomDB : public AtomDB, public KeySensitiveAtomDB {
     /**
      * @brief Returns whether the caller may READ the specified handle.
      */
-    inline bool can_read(const string& handle, const string& public_key) {
+    bool can_read(const string& handle, const string& public_key) {
         if (public_key.empty()) return false;
-        return this->manifest->is_granted(public_key, handle, AuthorizationOperation::READ);
+        if (this->manifest->is_unrestricted(public_key)) {
+            return true;
+        } else {
+            auto atom = this->backend->get_atom(handle);
+            return this->manifest->is_granted(
+                public_key, atom, AuthorizationOperation::READ);
+        }
     }
 
     /**

@@ -1,13 +1,15 @@
+#define LOG_LEVEL DEBUG_LEVEL
+
 #include "AuthorizationManifest.h"
 
 #include <algorithm>
 
-#define LOG_LEVEL INFO_LEVEL
 #include "Logger.h"
 #include "Utils.h"
 
 using namespace std;
 using namespace atomdb;
+using namespace commons;
 
 // -------------------------------------------------------------------------------------------------
 // Constructor
@@ -45,8 +47,14 @@ bool AuthorizationManifest::ensure_profile_loaded(const string& public_key) {
         return true;
     }
 
+    StopWatch timer_fetch;
+    // timer_fetch.start();
+    // LOG_DEBUG("ensure_profile_loaded: cache-miss, fetching access document");
     auto access_document = this->atomdb->get_access_permissions(public_key);
+    // timer_fetch.stop();
     if (access_document == nullptr) {
+        // LOG_DEBUG("ensure_profile_loaded: no access document | time: " << timer_fetch.milliseconds()
+                                                                    //   << "ms");
         return false;
     }
 
@@ -56,8 +64,16 @@ bool AuthorizationManifest::ensure_profile_loaded(const string& public_key) {
         return false;
     }
 
+    StopWatch timer_build;
+    // timer_build.start();
     this->profiles.emplace(access_key,
                            AuthorizationProfile::from_document(this->atomdb, access_document));
+    // timer_build.stop();
+    // LOG_DEBUG("ensure_profile_loaded: loaded full_access="
+    //           << (access_document->get_full_access() ? "true" : "false")
+    //           << " schemas=" << access_document->get_entries_size()
+    //           << " | fetch: " << timer_fetch.milliseconds() << "ms"
+    //           << " | build: " << timer_build.milliseconds() << "ms");
 
     return true;
 }
@@ -92,6 +108,15 @@ void AuthorizationManifest::count_matching_atoms(size_t& node_count,
     profile->count_matching_atoms(node_count, link_count, atom_count, keychain);
 }
 
+bool atomdb::AuthorizationManifest::is_unrestricted(const string& public_key) {
+    lock_guard<mutex> lock(this->profiles_mutex);
+    auto it = this->profiles.find(public_key);
+    if (it == this->profiles.end() || it->second == nullptr) {
+        return false;
+    }
+    return it->second->is_unrestricted();
+}
+
 // --------------------------------------------------------------------------------
 // Private methods
 
@@ -101,11 +126,30 @@ bool AuthorizationManifest::is_granted(const string& public_key,
                                        const string& handle) {
     lock_guard<mutex> lock(this->profiles_mutex);
     auto it = this->profiles.find(public_key);
-    if (it == this->profiles.end() || it->second == nullptr) return false;
-
-    if (atom == nullptr) {
-        atom = this->atomdb->get_atom(handle);
-        if (atom == nullptr) return false;
+    if (it == this->profiles.end() || it->second == nullptr) {
+        // LOG_DEBUG("is_granted(" << handle << "): no profile");
+        return false;
     }
-    return it->second->is_granted(atom, operation);
+
+    unsigned long fetch_ms = 0;
+    if (atom == nullptr) {
+        // StopWatch timer_fetch;
+        // timer_fetch.start();
+        atom = this->atomdb->get_atom(handle);
+        // timer_fetch.stop();
+        // fetch_ms = timer_fetch.milliseconds();
+        if (atom == nullptr) {
+            // LOG_DEBUG("is_granted(" << handle << "): atom not found | fetch: " << fetch_ms << "ms");
+            return false;
+        }
+    }
+
+    // StopWatch timer_check;
+    // timer_check.start();
+    bool granted = it->second->is_granted(atom, operation);
+    // timer_check.stop();
+    // LOG_DEBUG("is_granted(" << atom->handle() << "): " << (granted ? "granted" : "denied")
+    //                         << " | fetch: " << fetch_ms << "ms"
+    //                         << " | check: " << timer_check.milliseconds() << "ms");
+    return granted;
 }

@@ -5,7 +5,7 @@
         "composite_type_enabled": true,
         "redis": {
             "image": "redis:7.2.3-alpine",
-            "endpoint": "localhost:40020",
+            "endpoint": "139.84.158.82:40020",
             "cluster": false,
             "nodes": [
                 {
@@ -17,7 +17,7 @@
         },
         "mongodb": {
             "image": "mongodb/mongodb-community-server:8.2-ubuntu2204",
-            "endpoint": "localhost:40021",
+            "endpoint": "139.84.158.82:40021",
             "username": "admin",
             "password": "admin",
             "cluster": false,
@@ -147,7 +147,7 @@
         "endpoint": "http://localhost:40010"
     },
     "agents": {
-        "schema_version": "1.2.1",
+        "schema_version": "1.2.0",
         "attention": {
             "endpoint": "localhost:40001"
         },
@@ -184,6 +184,10 @@
             "endpoint": "localhost:40003",
             "ports_range": "43000:43999",
             "params": {
+                "unique_assignment_flag": false,
+                "positive_importance_flag": false,
+                "disregard_importance_flag": false,
+                "unique_value_flag": false,
                 "max_successful_creation_per_round": 10,
                 "max_unproductive_visits_per_round": 500,
                 "max_visit_attempts_per_round": 20,

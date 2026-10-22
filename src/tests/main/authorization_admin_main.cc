@@ -12,6 +12,7 @@
 #include "LinkSchema.h"
 #include "MongodbAuthorizationPersistence.h"
 #include "Utils.h"
+#include "mbedtls/base64.h"
 #include "nlohmann/json.hpp"
 
 using namespace std;
@@ -106,6 +107,41 @@ void create_config_collection(shared_ptr<MongodbAuthorizationPersistence> persis
     collection.replace_one(filter.view(), document.view(), options);
 }
 
+string validade_public_key(const string& public_key) {
+    string key = Utils::trim(public_key);
+    if (key.find_first_of("\r\n") != string::npos) {
+        RAISE_ERROR("Public key must be a single line");
+    }
+
+    vector<string> parts = Utils::split(key);
+    if (parts.size() < 2 || parts[0].empty() || parts[1].empty() || parts[1].size() % 4 != 0) {
+        RAISE_ERROR("Invalid public key format");
+    }
+    const string& type = parts[0];
+    const string& b64 = parts[1];
+
+    string blob((b64.size() / 4) * 3, '\0');
+    size_t decoded_len = 0;
+    if (mbedtls_base64_decode(reinterpret_cast<unsigned char*>(blob.data()),
+                              blob.size(),
+                              &decoded_len,
+                              reinterpret_cast<const unsigned char*>(b64.data()),
+                              b64.size()) != 0 ||
+        decoded_len < 4) {
+        RAISE_ERROR("Invalid base64 in public key");
+    }
+    blob.resize(decoded_len);
+
+    size_t len = (static_cast<unsigned char>(blob[0]) << 24) |
+                 (static_cast<unsigned char>(blob[1]) << 16) |
+                 (static_cast<unsigned char>(blob[2]) << 8) | static_cast<unsigned char>(blob[3]);
+    if (len != type.size() || 4 + len > blob.size() || blob.compare(4, len, type) != 0) {
+        RAISE_ERROR("Key type does not match key data");
+    }
+
+    return b64;
+}
+
 int main(int argc, char* argv[]) {
     signal(SIGINT, &ctrl_c_handler);
     signal(SIGTERM, &ctrl_c_handler);
@@ -177,6 +213,8 @@ int main(int argc, char* argv[]) {
 
     auto persistence = make_shared<MongodbAuthorizationPersistence>(
         endpoint, username, password, database, access_permissions_collection);
+
+    public_key = validade_public_key(public_key);
 
     if (action == "grant") {
         if (full_access) {

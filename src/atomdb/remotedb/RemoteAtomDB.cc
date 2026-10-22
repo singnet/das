@@ -1,4 +1,4 @@
-#define LOG_LEVEL INFO_LEVEL
+#define LOG_LEVEL DEBUG_LEVEL
 #include "RemoteAtomDB.h"
 
 #include <algorithm>
@@ -349,14 +349,23 @@ shared_ptr<atomdb_api_types::HandleSet> RemoteAtomDB::query_for_pattern(const Li
     auto result = make_shared<atomdb_api_types::HandleSetInMemory>();
     set<string> seen;
 
-    LOG_DEBUG("query_for_pattern(" << link_schema.handle() << ") fan-out to " << remote_db_.size()
-                                   << " peers");
+    StopWatch timer_total;
+    timer_total.start();
+
+    LOG_DEBUG("query_for_pattern(" << link_schema.handle() << ") fan-out to " << remote_db_.size() << " peers");
 
     for (auto& [uid, peer] : remote_db_) {
+        StopWatch timer_peer;
+        timer_peer.start();
         auto handle_set = peer->query_for_pattern(link_schema, keychain);
-        if (!handle_set) continue;
+        timer_peer.stop();
 
-        LOG_DEBUG("  [" << uid << "] returned " << handle_set->size() << " handles");
+        if (!handle_set) {
+            LOG_DEBUG("[" << uid << "] returned null | ((( TIME ))): " << timer_peer.milliseconds() << "ms");
+            continue;
+        }
+
+        LOG_DEBUG("[" << uid << "] returned " << handle_set->size() << " handles | ((( TIME ))): " << timer_peer.milliseconds() << "ms");
 
         auto it = handle_set->get_iterator();
         if (!it) continue;
@@ -370,8 +379,10 @@ shared_ptr<atomdb_api_types::HandleSet> RemoteAtomDB::query_for_pattern(const Li
             }
         }
     }
+
+    timer_total.stop();
     LOG_DEBUG("query_for_pattern(" << link_schema.handle() << ") aggregated " << result->size()
-                                   << " unique handles");
+                                   << " unique handles | time: " << timer_total.milliseconds() << "ms");
     return result;
 }
 

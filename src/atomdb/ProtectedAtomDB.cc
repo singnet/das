@@ -1,4 +1,4 @@
-#define LOG_LEVEL INFO_LEVEL
+#define LOG_LEVEL DEBUG_LEVEL
 #include "ProtectedAtomDB.h"
 
 #include "Atom.h"
@@ -41,11 +41,22 @@ shared_ptr<ProtectedAtomDB> ProtectedAtomDB::wrap(shared_ptr<AtomDB> atomdb) {
 // Public methods
 
 shared_ptr<Atom> ProtectedAtomDB::get_atom(const string& handle, shared_ptr<Keychain> keychain) {
+    StopWatch timer_backend;
+    StopWatch timer_auth;
+
+    timer_backend.start();
     auto atom = this->backend->get_atom(handle);
-    if (this->authorize_read(atom, keychain)) {
-        return atom;
-    }
-    return nullptr;
+    timer_backend.stop();
+
+    timer_auth.start();
+    bool granted = this->authorize_read(atom, keychain).has_value();
+    timer_auth.stop();
+
+    LOG_DEBUG("[ProtectedAtomDB(" << this->uid_ << ")] get_atom(" << handle << ") "
+                                  << (granted ? "granted" : "denied")
+                                  << " | backend: " << timer_backend.milliseconds() << "ms"
+                                  << " | auth: " << timer_auth.milliseconds() << "ms");
+    return granted ? atom : nullptr;
 }
 
 shared_ptr<Node> ProtectedAtomDB::get_node(const string& handle, shared_ptr<Keychain> keychain) {
@@ -68,9 +79,26 @@ vector<shared_ptr<Atom>> ProtectedAtomDB::get_matching_atoms(bool is_toplevel,
 
 shared_ptr<atomdb_api_types::HandleSet> ProtectedAtomDB::query_for_pattern(
     const LinkSchema& link_schema, shared_ptr<Keychain> keychain) {
-    return this->filter_handle_set(this->try_get_public_key(keychain), [this, &link_schema] {
-        return this->backend->query_for_pattern(link_schema);
-    });
+    StopWatch timer_keychain;
+    StopWatch timer_filter;
+
+    timer_keychain.start();
+    auto public_key = this->try_get_public_key(keychain);
+    timer_keychain.stop();
+    LOG_DEBUG("[ProtectedAtomDB(" << this->uid_ << ")] query_for_pattern(" << link_schema.handle()
+                                  << ") " << (public_key ? "start" : "skipped, no public key")
+                                  << " | try_get_public_key: " << timer_keychain.milliseconds() << "ms");
+
+    timer_filter.start();
+    auto result = this->filter_handle_set(
+        public_key, [this, &link_schema] { return this->backend->query_for_pattern(link_schema); });
+    timer_filter.stop();
+
+    LOG_DEBUG("[ProtectedAtomDB(" << this->uid_ << ")] query_for_pattern(" << link_schema.handle()
+                                  << ") -> " << (result ? result->size() : 0) << " handles"
+                                  << " | try_get_public_key: " << timer_keychain.milliseconds() << "ms"
+                                  << " | filter_handle_set: " << timer_filter.milliseconds() << "ms");
+    return result;
 }
 
 shared_ptr<atomdb_api_types::HandleList> ProtectedAtomDB::query_for_targets(
@@ -346,7 +374,20 @@ void ProtectedAtomDB::raise_keychain_required(const string& method_name) {
 
 optional<string> ProtectedAtomDB::try_get_public_key(const shared_ptr<Keychain>& keychain) {
     string public_key = keychain ? keychain->get_public_key(this->uid_) : "";
-    if (public_key == "" || !this->manifest->ensure_profile_loaded(public_key)) return nullopt;
+    if (public_key == "") {
+        return nullopt;
+    }
+
+    StopWatch timer;
+    timer.start();
+    bool loaded = this->manifest->ensure_profile_loaded(public_key);
+    timer.stop();
+    if (!loaded) {
+        LOG_DEBUG("[ProtectedAtomDB(" << this->uid_
+                                      << ")] no authorization profile for public key | time: "
+                                      << timer.milliseconds() << "ms");
+        return nullopt;
+    }
     return public_key;
 }
 
@@ -374,9 +415,18 @@ set<string> ProtectedAtomDB::check_handles(shared_ptr<Keychain> keychain,
 shared_ptr<atomdb_api_types::HandleSet> ProtectedAtomDB::filter_handle_set(
     const optional<string>& public_key,
     const function<shared_ptr<atomdb_api_types::HandleSet>()>& query) {
-    if (!public_key) return make_shared<atomdb_api_types::HandleSetInMemory>();
+    if (!public_key) {
+        return make_shared<atomdb_api_types::HandleSetInMemory>();
+    }
 
+    StopWatch timer_backend;
+    timer_backend.start();
+    LOG_DEBUG("[ProtectedAtomDB(" << this->uid_ << ")] filter_handle_set: querying backend");
     auto original_handle_set = query();
+    timer_backend.stop();
+    LOG_DEBUG("[ProtectedAtomDB(" << this->uid_ << ")] filter_handle_set: backend returned "
+                                  << (original_handle_set ? original_handle_set->size() : 0)
+                                  << " handles | time: " << timer_backend.milliseconds() << "ms");
 
     auto authorized_handle_set = make_shared<atomdb_api_types::HandleSetInMemory>();
 
@@ -384,6 +434,14 @@ shared_ptr<atomdb_api_types::HandleSet> ProtectedAtomDB::filter_handle_set(
         return authorized_handle_set;
     }
 
+    if (this->manifest->is_unrestricted(*public_key)) {
+        LOG_DEBUG("[ProtectedAtomDB(" << this->uid_
+                                      << ")] filter_handle_set: unrestricted, skipping per-handle auth");
+        return original_handle_set;
+    }
+
+    StopWatch timer_auth;
+    timer_auth.start();
     auto it = original_handle_set->get_iterator();
 
     while (true) {
@@ -398,11 +456,12 @@ shared_ptr<atomdb_api_types::HandleSet> ProtectedAtomDB::filter_handle_set(
                 original_handle_set->get_assignments_by_handle(handle));
         }
     }
+    timer_auth.stop();
 
-    LOG_DEBUG("ProtectedAtomDB::filter_handle_set() - original handle_set: " +
-              std::to_string(original_handle_set->size()));
-    LOG_DEBUG("ProtectedAtomDB::filter_handle_set() - authorized handle_set: " +
-              std::to_string(authorized_handle_set->size()));
+    LOG_DEBUG("[ProtectedAtomDB(" << this->uid_ << ")] filter_handle_set: "
+                                  << original_handle_set->size() << " -> "
+                                  << authorized_handle_set->size()
+                                  << " authorized | time: " << timer_auth.milliseconds() << "ms");
 
     return authorized_handle_set;
 }

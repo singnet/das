@@ -106,19 +106,24 @@ char* HandleSetRedisIterator::next() {
     char* candidate;
     string handle;
     HandleDecoder* decoder = this->handle_set->decoder;
+    cout << "   A" << endl;
     if ((this->handle_set->link_schema != nullptr) && (decoder == NULL)) {
         RAISE_ERROR("Non-null link_schema requires a decoder to be matched against handles");
+        cout << "===> ?????" << endl;
         return NULL;
     }
+    cout << "   B" << endl;
     while ((candidate = _next()) != NULL) {
         handle = string(candidate);
-        if ((this->handle_set->link_schema == nullptr) ||
-            this->handle_set->link_schema->match(handle, assignment, *decoder)) {
+        cout << "===> handle: " << handle << endl;
+        if ((this->handle_set->link_schema == nullptr) || this->handle_set->link_schema->match(handle, assignment, *decoder)) {
             this->handle_set->assignments_by_handle[handle] = assignment;
+            cout << "   candidated RETURNED" << endl;
             return candidate;
         }
         assignment.clear();
     }
+    cout << "   C" << endl;
     return NULL;
 }
 
