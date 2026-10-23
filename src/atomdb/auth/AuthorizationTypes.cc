@@ -52,7 +52,9 @@ bool AuthorizationSchema::is_granted(shared_ptr<Atom> atom, AuthorizationOperati
         if (node == nullptr) {
             RAISE_ERROR("Atom must be a Link or a Node.");
         }
-        return this->schema_.match(node->handle(), assignment, *this->atomdb_);
+        // TODO: For now, we will grant full access to the nodes, until we find a better way to handle
+        // node authorization.
+        return true;
     }
 }
 
