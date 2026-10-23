@@ -51,6 +51,14 @@ class AuthorizationManifest {
                               size_t& atom_count,
                               shared_ptr<Keychain> keychain);
 
+    /**
+     * @brief Returns whether public_key's loaded profile grants unrestricted access.
+     *
+     * @return true if the profile is cached and has full access; false if it is
+     *         missing, not loaded, or schema-restricted.
+     */
+    bool is_unrestricted(const string& public_key);
+
    private:
     shared_ptr<AtomDB> atomdb;
     map<string, shared_ptr<AuthorizationProfile>> profiles;

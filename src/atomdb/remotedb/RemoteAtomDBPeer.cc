@@ -728,20 +728,20 @@ shared_ptr<atomdb_api_types::HandleSet> RemoteAtomDBPeer::query_for_pattern(
     auto result = make_shared<HandleSetInMemory>();
     set<string> seen;
 
-    auto merge_memory = [&]() {
+    auto merge_write_buffer = [&]() {
         auto pwb = protected_write_buffer();
-        auto wb = write_buffer();
-        merge_handle_set(
-            pwb ? pwb->query_for_pattern(link_schema, keychain) : wb->query_for_pattern(link_schema),
-            result,
-            seen);
+        merge_handle_set(pwb ? pwb->query_for_pattern(link_schema, keychain)
+                             : write_buffer()->query_for_pattern(link_schema),
+                         result,
+                         seen);
+    };
 
+    auto merge_read_cache = [&]() {
         auto prc = protected_read_cache();
-        auto rc = read_cache();
-        merge_handle_set(
-            prc ? prc->query_for_pattern(link_schema, keychain) : rc->query_for_pattern(link_schema),
-            result,
-            seen);
+        merge_handle_set(prc ? prc->query_for_pattern(link_schema, keychain)
+                             : read_cache()->query_for_pattern(link_schema),
+                         result,
+                         seen);
     };
 
     auto merge_local_persistence = [&]() {
@@ -758,7 +758,8 @@ shared_ptr<atomdb_api_types::HandleSet> RemoteAtomDBPeer::query_for_pattern(
     if (cache_hit) {
         LOG_DEBUG("[RemoteDB(" << uid_ << ")] query_for_pattern(" << link_schema.handle()
                                << ") cache-hit");
-        merge_memory();
+        merge_write_buffer();
+        merge_read_cache();
         merge_local_persistence();
         LOG_DEBUG("[RemoteDB(" << uid_ << ")] query_for_pattern(" << link_schema.handle() << ") -> "
                                << result->size() << " handles");
@@ -777,12 +778,18 @@ shared_ptr<atomdb_api_types::HandleSet> RemoteAtomDBPeer::query_for_pattern(
         // Merge remote first when it carries nested metadata. InMemoryDB has no
         // metta/assignments — if it fills `seen` first, the remote metadata is skipped.
         merge_handle_set(remote_handle_set, result, seen);
+
+        merge_write_buffer();
+        // Do not query the read cache here. It has just been populated
+        // from remote_handle_set, which is already present in result
+    } else {
+        merge_write_buffer();
+        merge_read_cache();
     }
 
-    merge_memory();
     merge_local_persistence();
 
-    if (!this->protected_atomdb_ || keychain) {
+    if (remote_handle_set && (!this->protected_atomdb_ || keychain)) {
         lock_guard<mutex> lock(peer_mutex_);
         fetched_link_templates_.insert(link_schema.handle());
     }

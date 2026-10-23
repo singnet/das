@@ -208,7 +208,11 @@ class ProtectedAtomDB : public AtomDB, public KeySensitiveAtomDB {
      */
     inline bool can_read(const string& handle, const string& public_key) {
         if (public_key.empty()) return false;
-        return this->manifest->is_granted(public_key, handle, AuthorizationOperation::READ);
+        if (this->manifest->is_unrestricted(public_key)) {
+            return true;
+        } else {
+            return this->can_read(this->backend->get_atom(handle), public_key);
+        }
     }
 
     /**

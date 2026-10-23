@@ -92,6 +92,13 @@ void AuthorizationManifest::count_matching_atoms(size_t& node_count,
     profile->count_matching_atoms(node_count, link_count, atom_count, keychain);
 }
 
+bool AuthorizationManifest::is_unrestricted(const string& public_key) {
+    lock_guard<mutex> lock(this->profiles_mutex);
+    auto it = this->profiles.find(public_key);
+    if (it == this->profiles.end() || it->second == nullptr) return false;
+    return it->second->is_unrestricted();
+}
+
 // --------------------------------------------------------------------------------
 // Private methods
 
