@@ -78,11 +78,7 @@ shared_ptr<atomdb_api_types::HandleList> ProtectedAtomDB::query_for_targets(
     if (!this->authorize_read(handle, keychain)) {
         return make_shared<atomdb_api_types::HandleListInMemory>();
     }
-    auto targets = this->backend->query_for_targets(handle);
-    if (targets == nullptr) {
-        return make_shared<atomdb_api_types::HandleListInMemory>();
-    }
-    return targets;
+    return this->backend->query_for_targets(handle);
 }
 
 shared_ptr<atomdb_api_types::HandleSet> ProtectedAtomDB::query_for_incoming_set(
@@ -426,6 +422,9 @@ shared_ptr<atomdb_api_types::HandleSet> ProtectedAtomDB::filter_handle_set(
 
 set<string> ProtectedAtomDB::filter_handles(const set<string>& original_handles,
                                             const string& public_key) {
+    if (this->manifest->is_unrestricted(public_key)) {
+        return original_handles;
+    }
     set<string> authorized_handles;
     for (const auto& handle : original_handles) {
         if (this->can_read(handle, public_key)) {
