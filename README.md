@@ -104,7 +104,7 @@ feature for the (near to) mid future.
 
 Currently we support [Postgresql](https://www.postgresql.org) and 
 [Mork](https://github.com/trueagi-io/MORK/blob/server/README.md) but we are working to extend this list. 
-Look [here](https://github.com/singnet/das/blob/master/docs/database-adapter-users-guide.md)
+Look [here](./src/db_adapter/README.md)
 for complete documentation on how to use our Database Adapter.
 
 ### 3. Starting the AttentionBroker
