@@ -386,10 +386,8 @@ shared_ptr<atomdb_api_types::HandleSet> ProtectedAtomDB::filter_handle_set(
                                   << (original_handle_set ? original_handle_set->size() : 0)
                                   << " handles");
 
-    auto authorized_handle_set = make_shared<atomdb_api_types::HandleSetInMemory>();
-
     if (original_handle_set == nullptr) {
-        return authorized_handle_set;
+        return make_shared<atomdb_api_types::HandleSetInMemory>();
     }
 
     if (this->manifest->is_unrestricted(*public_key)) {
@@ -399,6 +397,7 @@ shared_ptr<atomdb_api_types::HandleSet> ProtectedAtomDB::filter_handle_set(
     }
 
     auto it = original_handle_set->get_iterator();
+    auto authorized_handle_set = make_shared<atomdb_api_types::HandleSetInMemory>();
 
     while (true) {
         char* handle_cstr = it->next();
