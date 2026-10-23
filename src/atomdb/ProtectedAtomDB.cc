@@ -78,7 +78,11 @@ shared_ptr<atomdb_api_types::HandleList> ProtectedAtomDB::query_for_targets(
     if (!this->authorize_read(handle, keychain)) {
         return make_shared<atomdb_api_types::HandleListInMemory>();
     }
-    return this->backend->query_for_targets(handle);
+    auto targets = this->backend->query_for_targets(handle);
+    if (targets == nullptr) {
+        return make_shared<atomdb_api_types::HandleListInMemory>();
+    }
+    return targets;
 }
 
 shared_ptr<atomdb_api_types::HandleSet> ProtectedAtomDB::query_for_incoming_set(
