@@ -199,6 +199,24 @@ TEST(AuthorizationManifestTest, IsGranted) {
     EXPECT_FALSE(manifest.is_granted("pk", string(32, '0'), AuthorizationOperation::WRITE));
 }
 
+TEST(AuthorizationManifestTest, IsUnrestricted) {
+    auto db = make_shared<AccessPermissionAtomDB>();
+    db->permissions["full"] = make_document("full", true, {});
+    db->permissions["restricted"] = make_document("restricted", false, {read_only_inheritance_schema()});
+    AuthorizationManifest manifest(db);
+
+    EXPECT_FALSE(manifest.is_unrestricted("full"));
+    EXPECT_FALSE(manifest.is_unrestricted("restricted"));
+    EXPECT_FALSE(manifest.is_unrestricted("unknown"));
+    EXPECT_FALSE(manifest.is_unrestricted(""));
+
+    ASSERT_TRUE(manifest.ensure_profile_loaded("full"));
+    ASSERT_TRUE(manifest.ensure_profile_loaded("restricted"));
+    EXPECT_TRUE(manifest.is_unrestricted("full"));
+    EXPECT_FALSE(manifest.is_unrestricted("restricted"));
+    EXPECT_FALSE(manifest.is_unrestricted("unknown"));
+}
+
 TEST(AuthorizationManifestTest, FullAccessGrantsAllOperations) {
     string link_handle;
     auto db = db_with_inheritance_link(&link_handle);

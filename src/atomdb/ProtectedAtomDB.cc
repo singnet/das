@@ -359,6 +359,7 @@ optional<string> ProtectedAtomDB::authorize_read(const string& handle,
 
 optional<string> ProtectedAtomDB::authorize_read(const shared_ptr<Atom>& atom,
                                                  const shared_ptr<Keychain>& keychain) {
+    if (atom == nullptr) return nullopt;
     auto public_key = this->try_get_public_key(keychain);
     if (!public_key || !this->can_read(atom, *public_key)) return nullopt;
     return public_key;
@@ -374,17 +375,29 @@ set<string> ProtectedAtomDB::check_handles(shared_ptr<Keychain> keychain,
 shared_ptr<atomdb_api_types::HandleSet> ProtectedAtomDB::filter_handle_set(
     const optional<string>& public_key,
     const function<shared_ptr<atomdb_api_types::HandleSet>()>& query) {
-    if (!public_key) return make_shared<atomdb_api_types::HandleSetInMemory>();
+    if (!public_key) {
+        LOG_DEBUG("[ProtectedAtomDB(" << this->uid_ << ")] filter_handle_set: skipped, no public key");
+        return make_shared<atomdb_api_types::HandleSetInMemory>();
+    }
 
+    LOG_DEBUG("[ProtectedAtomDB(" << this->uid_ << ")] filter_handle_set: querying backend");
     auto original_handle_set = query();
-
-    auto authorized_handle_set = make_shared<atomdb_api_types::HandleSetInMemory>();
+    LOG_DEBUG("[ProtectedAtomDB(" << this->uid_ << ")] filter_handle_set: backend returned "
+                                  << (original_handle_set ? original_handle_set->size() : 0)
+                                  << " handles");
 
     if (original_handle_set == nullptr) {
-        return authorized_handle_set;
+        return make_shared<atomdb_api_types::HandleSetInMemory>();
+    }
+
+    if (this->manifest->is_unrestricted(*public_key)) {
+        LOG_DEBUG("[ProtectedAtomDB(" << this->uid_
+                                      << ")] filter_handle_set: unrestricted, skipping authorization");
+        return original_handle_set;
     }
 
     auto it = original_handle_set->get_iterator();
+    auto authorized_handle_set = make_shared<atomdb_api_types::HandleSetInMemory>();
 
     while (true) {
         char* handle_cstr = it->next();
@@ -399,16 +412,18 @@ shared_ptr<atomdb_api_types::HandleSet> ProtectedAtomDB::filter_handle_set(
         }
     }
 
-    LOG_DEBUG("ProtectedAtomDB::filter_handle_set() - original handle_set: " +
-              std::to_string(original_handle_set->size()));
-    LOG_DEBUG("ProtectedAtomDB::filter_handle_set() - authorized handle_set: " +
-              std::to_string(authorized_handle_set->size()));
+    LOG_DEBUG("[ProtectedAtomDB(" << this->uid_
+                                  << ")] filter_handle_set: " << original_handle_set->size() << " -> "
+                                  << authorized_handle_set->size() << " authorized");
 
     return authorized_handle_set;
 }
 
 set<string> ProtectedAtomDB::filter_handles(const set<string>& original_handles,
                                             const string& public_key) {
+    if (this->manifest->is_unrestricted(public_key)) {
+        return original_handles;
+    }
     set<string> authorized_handles;
     for (const auto& handle : original_handles) {
         if (this->can_read(handle, public_key)) {
