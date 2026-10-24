@@ -275,6 +275,121 @@ bool parse_link_creation_arg(const json& params,
     return true;
 }
 
+bool require_nonempty_string(
+    const json& object, const string& key, const string& path, string& out, string& error_message) {
+    if (!object.contains(key) || !object[key].is_string() ||
+        object[key].get_ref<const string&>().empty()) {
+        error_message = path + " must be a non-empty string";
+        return false;
+    }
+    out = object[key].get<string>();
+    return true;
+}
+
+bool parse_add_atom_arg(const json& params, string& add_atom_arg, string& error_message) {
+    if (!params.contains("add_atom") || !params["add_atom"].is_object()) {
+        error_message = "params.add_atom must be an object";
+        return false;
+    }
+    const json& atom = params["add_atom"];
+    if (atom.contains("metta")) {
+        if (atom.contains("kind") || atom.contains("atom_type") || atom.contains("name") ||
+            atom.contains("targets")) {
+            error_message =
+                "params.add_atom.metta cannot be combined with kind, atom_type, name, or targets";
+            return false;
+        }
+        string metta;
+        if (!require_nonempty_string(atom, "metta", "params.add_atom.metta", metta, error_message)) {
+            return false;
+        }
+        add_atom_arg = json({{"metta", metta}}).dump();
+        return true;
+    }
+    string kind;
+    if (!require_nonempty_string(atom, "kind", "params.add_atom.kind", kind, error_message)) {
+        return false;
+    }
+    if (kind != "node" && kind != "link") {
+        error_message = "params.add_atom.kind must be \"node\" or \"link\"";
+        return false;
+    }
+    string atom_type;
+    if (!require_nonempty_string(
+            atom, "atom_type", "params.add_atom.atom_type", atom_type, error_message)) {
+        return false;
+    }
+    if (atom.contains("is_toplevel") && !atom["is_toplevel"].is_boolean()) {
+        error_message = "params.add_atom.is_toplevel must be a bool";
+        return false;
+    }
+
+    json spec = {{"kind", kind}, {"atom_type", atom_type}};
+    if (atom.contains("is_toplevel")) {
+        spec["is_toplevel"] = atom["is_toplevel"].get<bool>();
+    }
+    if (kind == "node") {
+        string name;
+        if (!require_nonempty_string(atom, "name", "params.add_atom.name", name, error_message)) {
+            return false;
+        }
+        spec["name"] = name;
+    } else {
+        if (!atom.contains("targets") || !atom["targets"].is_array() || atom["targets"].empty()) {
+            error_message = "params.add_atom.targets must be a non-empty array of strings";
+            return false;
+        }
+        json targets = json::array();
+        for (const auto& target : atom["targets"]) {
+            if (!target.is_string() || target.get_ref<const string&>().empty()) {
+                error_message = "params.add_atom.targets entries must be non-empty strings";
+                return false;
+            }
+            targets.push_back(target.get<string>());
+        }
+        spec["targets"] = std::move(targets);
+    }
+    add_atom_arg = spec.dump();
+    return true;
+}
+
+bool parse_delete_atom_arg(const json& params, string& delete_atom_arg, string& error_message) {
+    if (!params.contains("delete_atom") || !params["delete_atom"].is_object()) {
+        error_message = "params.delete_atom must be an object";
+        return false;
+    }
+    const json& spec_in = params["delete_atom"];
+    if (spec_in.contains("metta") && spec_in.contains("handle")) {
+        error_message = "params.delete_atom.metta cannot be combined with handle";
+        return false;
+    }
+    json spec = json::object();
+    if (spec_in.contains("metta")) {
+        string metta;
+        if (!require_nonempty_string(
+                spec_in, "metta", "params.delete_atom.metta", metta, error_message)) {
+            return false;
+        }
+        spec["metta"] = metta;
+    } else {
+        string handle;
+        if (!require_nonempty_string(
+                spec_in, "handle", "params.delete_atom.handle", handle, error_message)) {
+            return false;
+        }
+        spec["handle"] = handle;
+    }
+    if (spec_in.contains("delete_link_targets") && !spec_in["delete_link_targets"].is_boolean()) {
+        error_message = "params.delete_atom.delete_link_targets must be a bool";
+        return false;
+    }
+    if (spec_in.contains("delete_link_targets")) {
+        spec["delete_link_targets"] = spec_in["delete_link_targets"].get<bool>();
+    }
+    delete_atom_arg = spec.dump();
+    return true;
+}
+
 }  // namespace
 
 shared_ptr<BusCommandRouterProxy> HttpCommandProxyFactory::create(const string& command,
@@ -317,6 +432,14 @@ shared_ptr<BusCommandRouterProxy> HttpCommandProxyFactory::create(const string& 
             return nullptr;
         }
         proxy->parameters[BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS] = link_creation_metta;
+    } else if (command == ADD_ATOM) {
+        if (!parse_add_atom_arg(params, arg, error_message)) {
+            return nullptr;
+        }
+    } else if (command == DELETE_ATOM) {
+        if (!parse_delete_atom_arg(params, arg, error_message)) {
+            return nullptr;
+        }
     } else {
         error_message = "Unsupported command: " + command;
         return nullptr;

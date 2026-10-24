@@ -4,15 +4,20 @@
 #include <atomic>
 #include <variant>
 
+#include "AtomDBSingleton.h"
+#include "AtomExpression.h"
 #include "BaseQueryProxy.h"
 #include "EvolutionMettaParser.h"
+#include "Link.h"
 #include "LinkCreationProxy.h"
+#include "Node.h"
 #include "PatternMatchingQueryProxy.h"
 #include "PortPool.h"
 #include "QueryEvolutionProxy.h"
 #include "ServiceBusSingleton.h"
 #include "SystemParametersSingleton.h"
 #include "Utils.h"
+#include "nlohmann/json.hpp"
 
 #define LOG_LEVEL INFO_LEVEL
 #include "Logger.h"
@@ -23,6 +28,9 @@ using namespace evolution;
 using namespace link_creation_agent;
 using namespace service_bus;
 using namespace commons;
+using namespace atoms;
+
+using json = nlohmann::json;
 
 namespace {
 
@@ -62,7 +70,9 @@ void apply_direct_link_creation_parameters(Properties& lc_parameters,
 }  // namespace
 
 BusCommandRouterProcessor::BusCommandRouterProcessor(shared_ptr<ServiceBus> service_bus)
-    : BusCommandProcessor({ServiceBus::BUS_COMMAND_ROUTER}), service_bus(service_bus) {}
+    : BusCommandProcessor({ServiceBus::BUS_COMMAND_ROUTER}), service_bus(service_bus) {
+    this->atomdb = AtomDBSingleton::get_instance();
+}
 
 BusCommandRouterProcessor::~BusCommandRouterProcessor() {}
 
@@ -81,7 +91,7 @@ Properties& BusCommandRouterProcessor::parameters_for_peer(const string& peer_id
     return iterator->second;
 }
 
-void BusCommandRouterProcessor::dispatch_http_command(
+void BusCommandRouterProcessor::prepare_http_caller_proxy(
     const shared_ptr<BusCommandRouterProxy>& caller_proxy, const string& http_requestor_id) {
     if (caller_proxy == nullptr) {
         RAISE_ERROR("HTTP command requires a caller proxy");
@@ -93,16 +103,33 @@ void BusCommandRouterProcessor::dispatch_http_command(
         RAISE_ERROR("HTTP command dispatch requires a non-empty http_requestor_id");
     }
 
-    const unsigned int serial = HTTP_REQUEST_SERIAL.fetch_add(1);
-
     caller_proxy->issued = true;
     caller_proxy->requestor_id = http_requestor_id;
-    caller_proxy->serial = serial;
+    caller_proxy->serial = HTTP_REQUEST_SERIAL.fetch_add(1);
     caller_proxy->proxy_port = PortPool::get_port();
     if (caller_proxy->proxy_port == 0) {
         RAISE_ERROR("No port is available to start HTTP caller proxy");
     }
     caller_proxy->setup_proxy_node();
+}
+
+void BusCommandRouterProcessor::dispatch_http_query(
+    const shared_ptr<BusCommandRouterProxy>& caller_proxy, const string& http_requestor_id) {
+    this->prepare_http_caller_proxy(caller_proxy, http_requestor_id);
+    try {
+        if (caller_proxy->get_args().size() < 2 || caller_proxy->get_args()[0] != "query") {
+            RAISE_ERROR("HTTP query requires args {query, ARG}");
+        }
+        this->handle_query(caller_proxy, caller_proxy->get_args()[1], caller_proxy->my_id(), false);
+        caller_proxy->routed_flag = true;
+    } catch (const std::exception& exception) {
+        caller_proxy->raise_error(exception.what());
+    }
+}
+
+void BusCommandRouterProcessor::dispatch_http_command(
+    const shared_ptr<BusCommandRouterProxy>& caller_proxy, const string& http_requestor_id) {
+    this->prepare_http_caller_proxy(caller_proxy, http_requestor_id);
 
     auto processor_proxy = dynamic_pointer_cast<BusCommandRouterProxy>(factory_empty_proxy());
     if (processor_proxy == nullptr) {
@@ -113,7 +140,7 @@ void BusCommandRouterProcessor::dispatch_http_command(
         RAISE_ERROR("No port is available to start HTTP processor proxy");
     }
     processor_proxy->requestor_id = http_requestor_id;
-    processor_proxy->serial = serial;
+    processor_proxy->serial = caller_proxy->serial;
     const string requestor_host = http_requestor_id.substr(0, http_requestor_id.find(':'));
     const string processor_proxy_node_id = requestor_host + ":" + to_string(processor_proxy->proxy_port);
     processor_proxy->setup_proxy_node(processor_proxy_node_id, caller_proxy->my_id());
@@ -149,11 +176,15 @@ void BusCommandRouterProcessor::run_command_internal(shared_ptr<BusCommandRouter
         } else if (command == "set") {
             handle_set(router_proxy, arg);
         } else if (command == "query") {
-            handle_query(router_proxy, arg);
+            handle_query(router_proxy, arg, router_proxy->peer_id(), true);
         } else if (command == "evolution") {
             handle_evolution(router_proxy, arg);
         } else if (command == "link_creation") {
             handle_link_creation(router_proxy, arg);
+        } else if (command == "add_atom") {
+            handle_add_atom(router_proxy, arg);
+        } else if (command == "delete_atom") {
+            handle_delete_atom(router_proxy, arg);
         } else {
             RAISE_ERROR("Unknown router command: " + command);
         }
@@ -269,15 +300,21 @@ void BusCommandRouterProcessor::handle_set(shared_ptr<BusCommandRouterProxy> pro
 }
 
 void BusCommandRouterProcessor::forward_to_service(shared_ptr<BusCommandRouterProxy> router_proxy,
-                                                   shared_ptr<BaseQueryProxy> service_proxy) {
+                                                   shared_ptr<BaseQueryProxy> service_proxy,
+                                                   const string& answer_node_id,
+                                                   bool notify_routed) {
     shared_ptr<ServiceBus> bus =
         this->service_bus ? this->service_bus : ServiceBusSingleton::get_instance();
-    bus->forward_bus_command(service_proxy, router_proxy->get_requestor_id(), router_proxy->peer_id());
-    router_proxy->to_remote_peer(BusCommandRouterProxy::ROUTED, {});
+    bus->forward_bus_command(service_proxy, router_proxy->get_requestor_id(), answer_node_id);
+    if (notify_routed) {
+        router_proxy->to_remote_peer(BusCommandRouterProxy::ROUTED, {});
+    }
 }
 
 void BusCommandRouterProcessor::handle_query(shared_ptr<BusCommandRouterProxy> proxy,
-                                             const string& arg) {
+                                             const string& arg,
+                                             const string& answer_node_id,
+                                             bool notify_routed) {
     string context = proxy->parameters.get<string>(CONTEXT_KEY);
     vector<string> query_tokens;
     if (proxy->parameters.get<bool>(BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS)) {
@@ -288,7 +325,7 @@ void BusCommandRouterProcessor::handle_query(shared_ptr<BusCommandRouterProxy> p
 
     auto pm_proxy = make_shared<PatternMatchingQueryProxy>(query_tokens, context);
     pm_proxy->parameters = proxy->parameters;
-    this->forward_to_service(proxy, pm_proxy);
+    this->forward_to_service(proxy, pm_proxy, answer_node_id, notify_routed);
 }
 
 void BusCommandRouterProcessor::handle_evolution(shared_ptr<BusCommandRouterProxy> proxy,
@@ -330,7 +367,7 @@ void BusCommandRouterProcessor::handle_evolution(shared_ptr<BusCommandRouterProx
                                                       context,
                                                       fitness_tag);
     apply_direct_evolution_parameters(evo_proxy->parameters, proxy->parameters);
-    this->forward_to_service(proxy, evo_proxy);
+    this->forward_to_service(proxy, evo_proxy, proxy->peer_id(), true);
 }
 
 void BusCommandRouterProcessor::handle_link_creation(shared_ptr<BusCommandRouterProxy> proxy,
@@ -354,5 +391,126 @@ void BusCommandRouterProcessor::handle_link_creation(shared_ptr<BusCommandRouter
     auto lc_proxy = make_shared<LinkCreationProxy>(
         query_tokens, context, metta_args.link_creator_tag, BaseProxy::NONE);
     apply_direct_link_creation_parameters(lc_proxy->parameters, proxy->parameters);
-    this->forward_to_service(proxy, lc_proxy);
+    this->forward_to_service(proxy, lc_proxy, proxy->peer_id(), true);
+}
+
+namespace {
+
+json parse_atom_arg(const string& arg) {
+    json spec = json::parse(arg);
+    if (!spec.is_object()) {
+        RAISE_ERROR("Atom ARG must be a JSON object");
+    }
+    return spec;
+}
+
+bool optional_bool(const json& spec, const string& key, bool default_value) {
+    if (!spec.contains(key)) {
+        return default_value;
+    }
+    if (!spec[key].is_boolean()) {
+        RAISE_ERROR(key + " must be a bool");
+    }
+    return spec[key].get<bool>();
+}
+
+}  // namespace
+
+string BusCommandRouterProcessor::execute_atomdb_cmd(const string& command, const string& arg) {
+    if (command == "add_atom") {
+        return this->add_atom(arg);
+    }
+    if (command == "delete_atom") {
+        return this->delete_atom(arg);
+    }
+    RAISE_ERROR("Not an atomdb command: " + command);
+    return "";
+}
+
+void BusCommandRouterProcessor::handle_add_atom(shared_ptr<BusCommandRouterProxy> proxy,
+                                                const string& arg) {
+    const string handle = this->add_atom(arg);
+    proxy->to_remote_peer(BusCommandRouterProxy::ATOM_RESULT, {handle});
+    proxy->to_remote_peer(BaseProxy::FINISHED, {});
+}
+
+string BusCommandRouterProcessor::add_atom(const string& arg) {
+    json spec = parse_atom_arg(arg);
+    if (spec.contains("metta")) {
+        if (!spec["metta"].is_string() || spec["metta"].get_ref<const string&>().empty()) {
+            RAISE_ERROR("add_atom.metta must be a non-empty string");
+        }
+        if (spec.contains("kind")) {
+            RAISE_ERROR("add_atom.metta cannot be combined with kind");
+        }
+        return add_metta_expression(*this->atomdb, spec["metta"].get<string>());
+    }
+    if (!spec.contains("kind") || !spec["kind"].is_string()) {
+        RAISE_ERROR("add_atom.kind must be \"node\" or \"link\"");
+    }
+    const string kind = spec["kind"].get<string>();
+    if (!spec.contains("atom_type") || !spec["atom_type"].is_string() ||
+        spec["atom_type"].get_ref<const string&>().empty()) {
+        RAISE_ERROR("add_atom.atom_type must be a non-empty string");
+    }
+    const string atom_type = spec["atom_type"].get<string>();
+
+    string handle;
+    if (kind == "node") {
+        if (!spec.contains("name") || !spec["name"].is_string() ||
+            spec["name"].get_ref<const string&>().empty()) {
+            RAISE_ERROR("add_atom.name must be a non-empty string");
+        }
+        Node node(atom_type, spec["name"].get<string>(), optional_bool(spec, "is_toplevel", false));
+        handle = this->atomdb->add_node(&node);
+    } else if (kind == "link") {
+        if (!spec.contains("targets") || !spec["targets"].is_array() || spec["targets"].empty()) {
+            RAISE_ERROR("add_atom.targets must be a non-empty array of strings");
+        }
+        vector<string> targets;
+        targets.reserve(spec["targets"].size());
+        for (const auto& target : spec["targets"]) {
+            if (!target.is_string() || target.get_ref<const string&>().empty()) {
+                RAISE_ERROR("add_atom.targets entries must be non-empty strings");
+            }
+            targets.push_back(target.get<string>());
+        }
+        Link link(atom_type, targets, optional_bool(spec, "is_toplevel", true));
+        handle = this->atomdb->add_link(&link);
+    } else {
+        RAISE_ERROR("add_atom.kind must be \"node\" or \"link\"");
+    }
+    if (handle.empty()) {
+        RAISE_ERROR("AtomDB add returned an empty handle");
+    }
+    return handle;
+}
+
+void BusCommandRouterProcessor::handle_delete_atom(shared_ptr<BusCommandRouterProxy> proxy,
+                                                   const string& arg) {
+    const string result = this->delete_atom(arg);
+    proxy->to_remote_peer(BusCommandRouterProxy::ATOM_RESULT, {result});
+    proxy->to_remote_peer(BaseProxy::FINISHED, {});
+}
+
+string BusCommandRouterProcessor::delete_atom(const string& arg) {
+    json spec = parse_atom_arg(arg);
+    const bool delete_link_targets = optional_bool(spec, "delete_link_targets", false);
+    string handle;
+    if (spec.contains("metta")) {
+        if (!spec["metta"].is_string() || spec["metta"].get_ref<const string&>().empty()) {
+            RAISE_ERROR("delete_atom.metta must be a non-empty string");
+        }
+        if (spec.contains("handle")) {
+            RAISE_ERROR("delete_atom.metta cannot be combined with handle");
+        }
+        handle = metta_expression_root_handle(spec["metta"].get<string>());
+    } else if (!spec.contains("handle") || !spec["handle"].is_string() ||
+               spec["handle"].get_ref<const string&>().empty()) {
+        RAISE_ERROR("delete_atom.handle must be a non-empty string");
+    } else {
+        handle = spec["handle"].get<string>();
+    }
+    const bool deleted = this->atomdb->delete_atom(handle, delete_link_targets);
+    return deleted ? "deleted" : "not_found";
 }

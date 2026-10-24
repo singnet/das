@@ -40,14 +40,16 @@ class BusCommandRouterProxyStreamPoller {
      *
      * For command_type "query", "evolution", and "link_creation", answers are popped
      * from the proxy and forwarded in batches of at most items_per_chunk JSON values.
-     * For "get" and "set", a single chunk is emitted once the proxy response is ready.
+     * For "get", "set", "add_atom", and "delete_atom", a single chunk is emitted once the
+     * proxy response is ready.
      *
      * When command_type is "evolution" and on_eval_fitness is set, pending EVAL_FITNESS
      * requests on the proxy are converted to JSON and delegated to the handler; the
      * returned floats are sent back to the evolution agent.
      *
      * @param router_proxy Proxy already issued on the service bus.
-     * @param command_type Router command: "get", "set", "query", "evolution", or "link_creation".
+     * @param command_type Router command: "get", "set", "query", "evolution", "link_creation",
+     *                    "add_atom", or "delete_atom".
      * @param items_per_chunk Maximum answers per on_chunk call for query/evolution/link_creation.
      *                        Must be at least 1.
      * @param should_abort Optional callback; when it returns true, the proxy is aborted

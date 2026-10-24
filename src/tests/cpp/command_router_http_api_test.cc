@@ -655,6 +655,27 @@ TEST(BusCommandRouterProcessorTest, http_link_creation_forwards_query_and_parame
     EXPECT_EQ(lc_processor->last_parameters.find("context"), lc_processor->last_parameters.end());
 }
 
+TEST(BusCommandRouterProcessorTest, http_add_and_delete_atom) {
+    auto router_processor = make_shared<BusCommandRouterProcessor>();
+
+    string error;
+    auto add_proxy = HttpCommandProxyFactory::create(
+        HttpCommandProxyFactory::ADD_ATOM,
+        {{"add_atom",
+          {{"kind", "node"}, {"atom_type", "Symbol"}, {"name", "\"http_router_add_atom_probe\""}}}},
+        error);
+    ASSERT_NE(add_proxy, nullptr) << error;
+
+    const string handle = router_processor->execute_atomdb_cmd("add_atom", add_proxy->get_args()[1]);
+    EXPECT_FALSE(handle.empty());
+
+    auto delete_proxy = HttpCommandProxyFactory::create(
+        HttpCommandProxyFactory::DELETE_ATOM, {{"delete_atom", {{"handle", handle}}}}, error);
+    ASSERT_NE(delete_proxy, nullptr) << error;
+    EXPECT_EQ(router_processor->execute_atomdb_cmd("delete_atom", delete_proxy->get_args()[1]),
+              "deleted");
+}
+
 TEST(HttpCommandProxyFactoryTest, create_query_sets_params_onto_proxy_defaults) {
     string error;
     const json params = {{"query", {{"tokens", json::array({"(Similarity \"human\" %C)"})}}},
@@ -949,6 +970,112 @@ TEST(HttpCommandProxyFactoryTest, create_link_creation_rejects_syntax_flag_misma
         error);
     EXPECT_EQ(proxy, nullptr);
     EXPECT_NE(error.find("use_metta_as_query_tokens"), string::npos);
+}
+
+TEST(HttpCommandProxyFactoryTest, create_add_atom_builds_node_and_link_args) {
+    string error;
+    auto node_proxy = HttpCommandProxyFactory::create(
+        HttpCommandProxyFactory::ADD_ATOM,
+        {{"add_atom", {{"kind", "node"}, {"atom_type", "Symbol"}, {"name", "\"human\""}}}},
+        error);
+    ASSERT_NE(node_proxy, nullptr) << error;
+    EXPECT_EQ(node_proxy->get_args()[0], "add_atom");
+    const json node_spec = json::parse(node_proxy->get_args()[1]);
+    EXPECT_EQ(node_spec["kind"], "node");
+    EXPECT_EQ(node_spec["atom_type"], "Symbol");
+    EXPECT_EQ(node_spec["name"], "\"human\"");
+    EXPECT_FALSE(node_spec.contains("is_toplevel"));
+
+    auto link_proxy =
+        HttpCommandProxyFactory::create(HttpCommandProxyFactory::ADD_ATOM,
+                                        {{"add_atom",
+                                          {{"kind", "link"},
+                                           {"atom_type", "Expression"},
+                                           {"targets", json::array({"handle-a", "handle-b"})},
+                                           {"is_toplevel", true}}}},
+                                        error);
+    ASSERT_NE(link_proxy, nullptr) << error;
+    const json link_spec = json::parse(link_proxy->get_args()[1]);
+    EXPECT_EQ(link_spec["kind"], "link");
+    ASSERT_EQ(link_spec["targets"].size(), 2u);
+    EXPECT_EQ(link_spec["targets"][0], "handle-a");
+    EXPECT_TRUE(link_spec["is_toplevel"].get<bool>());
+}
+
+TEST(HttpCommandProxyFactoryTest, create_add_atom_requires_kind_and_fields) {
+    string error;
+    auto missing =
+        HttpCommandProxyFactory::create(HttpCommandProxyFactory::ADD_ATOM, json::object(), error);
+    EXPECT_EQ(missing, nullptr);
+    EXPECT_NE(error.find("params.add_atom"), string::npos);
+
+    auto bad_kind = HttpCommandProxyFactory::create(
+        HttpCommandProxyFactory::ADD_ATOM,
+        {{"add_atom", {{"kind", "atom"}, {"atom_type", "Symbol"}, {"name", "x"}}}},
+        error);
+    EXPECT_EQ(bad_kind, nullptr);
+    EXPECT_NE(error.find("kind"), string::npos);
+
+    auto missing_targets =
+        HttpCommandProxyFactory::create(HttpCommandProxyFactory::ADD_ATOM,
+                                        {{"add_atom", {{"kind", "link"}, {"atom_type", "Expression"}}}},
+                                        error);
+    EXPECT_EQ(missing_targets, nullptr);
+    EXPECT_NE(error.find("targets"), string::npos);
+}
+
+TEST(HttpCommandProxyFactoryTest, create_add_and_delete_atom_accept_metta) {
+    string error;
+    auto add_proxy =
+        HttpCommandProxyFactory::create(HttpCommandProxyFactory::ADD_ATOM,
+                                        {{"add_atom", {{"metta", "(Similarity \"human\" \"monkey\")"}}}},
+                                        error);
+    ASSERT_NE(add_proxy, nullptr) << error;
+    const json add_spec = json::parse(add_proxy->get_args()[1]);
+    EXPECT_EQ(add_spec["metta"], "(Similarity \"human\" \"monkey\")");
+    EXPECT_FALSE(add_spec.contains("kind"));
+
+    auto mixed = HttpCommandProxyFactory::create(
+        HttpCommandProxyFactory::ADD_ATOM,
+        {{"add_atom", {{"metta", "(Similarity \"human\" \"monkey\")"}, {"kind", "node"}}}},
+        error);
+    EXPECT_EQ(mixed, nullptr);
+    EXPECT_NE(error.find("metta"), string::npos);
+
+    auto delete_proxy = HttpCommandProxyFactory::create(
+        HttpCommandProxyFactory::DELETE_ATOM,
+        {{"delete_atom",
+          {{"metta", "(Similarity \"human\" \"monkey\")"}, {"delete_link_targets", false}}}},
+        error);
+    ASSERT_NE(delete_proxy, nullptr) << error;
+    const json delete_spec = json::parse(delete_proxy->get_args()[1]);
+    EXPECT_EQ(delete_spec["metta"], "(Similarity \"human\" \"monkey\")");
+    EXPECT_FALSE(delete_spec["delete_link_targets"].get<bool>());
+
+    auto both = HttpCommandProxyFactory::create(
+        HttpCommandProxyFactory::DELETE_ATOM,
+        {{"delete_atom", {{"metta", "(Similarity \"human\" \"monkey\")"}, {"handle", "abc"}}}},
+        error);
+    EXPECT_EQ(both, nullptr);
+    EXPECT_NE(error.find("metta"), string::npos);
+}
+
+TEST(HttpCommandProxyFactoryTest, create_delete_atom_builds_arg) {
+    string error;
+    auto proxy = HttpCommandProxyFactory::create(
+        HttpCommandProxyFactory::DELETE_ATOM,
+        {{"delete_atom", {{"handle", "abc"}, {"delete_link_targets", true}}}},
+        error);
+    ASSERT_NE(proxy, nullptr) << error;
+    EXPECT_EQ(proxy->get_args()[0], "delete_atom");
+    const json spec = json::parse(proxy->get_args()[1]);
+    EXPECT_EQ(spec["handle"], "abc");
+    EXPECT_TRUE(spec["delete_link_targets"].get<bool>());
+
+    auto missing = HttpCommandProxyFactory::create(
+        HttpCommandProxyFactory::DELETE_ATOM, {{"delete_atom", json::object()}}, error);
+    EXPECT_EQ(missing, nullptr);
+    EXPECT_NE(error.find("handle"), string::npos);
 }
 
 // -----------------------------------------------------------------------------

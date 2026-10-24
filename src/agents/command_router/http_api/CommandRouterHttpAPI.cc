@@ -24,7 +24,9 @@ using json = nlohmann::json;
 const unordered_set<string> CommandRouterHttpAPI::VALID_COMMAND = {
     HttpCommandProxyFactory::QUERY,
     HttpCommandProxyFactory::EVOLUTION,
-    HttpCommandProxyFactory::LINK_CREATION};
+    HttpCommandProxyFactory::LINK_CREATION,
+    HttpCommandProxyFactory::ADD_ATOM,
+    HttpCommandProxyFactory::DELETE_ATOM};
 
 namespace {
 
@@ -202,7 +204,9 @@ void CommandRouterHttpAPI::setup_routes() {
                 this->set_json_response(
                     response,
                     400,
-                    {{"error", "Invalid command. Allowed values: query, evolution, link_creation"}});
+                    {{"error",
+                      "Invalid command. Allowed values: query, evolution, link_creation, add_atom, "
+                      "delete_atom"}});
                 return;
             }
 
@@ -437,6 +441,34 @@ PollStreamResult CommandRouterHttpAPI::execute_router_command(
                 on_error(create_error);
             }
             return {};
+        }
+
+        if (command == HttpCommandProxyFactory::QUERY) {
+            this->router_processor->dispatch_http_query(router_proxy, this->http_requestor_id);
+            return BusCommandRouterProxyStreamPoller::poll_stream(router_proxy,
+                                                                  command,
+                                                                  this->settings.stream_items_per_chunk,
+                                                                  should_abort,
+                                                                  on_chunk,
+                                                                  on_error,
+                                                                  on_aborted,
+                                                                  on_eval_fitness);
+        }
+
+        if (command == HttpCommandProxyFactory::ADD_ATOM ||
+            command == HttpCommandProxyFactory::DELETE_ATOM) {
+            if (should_abort && should_abort()) {
+                if (on_aborted) {
+                    on_aborted();
+                }
+                return {};
+            }
+            const string result =
+                this->router_processor->execute_atomdb_cmd(command, router_proxy->get_args()[1]);
+            if (on_chunk) {
+                on_chunk(json::array({json(result)}));
+            }
+            return {true, false, 0};
         }
 
         this->router_processor->dispatch_http_command(router_proxy, this->http_requestor_id);
