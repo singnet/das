@@ -741,10 +741,10 @@ shared_ptr<Atom> RemoteAtomDBPeer::get_atom(const string& handle, shared_ptr<Key
     }
 
     const bool is_protected = static_cast<bool>(this->protected_atomdb_);
-    LOG_DEBUG("[RemoteDB(" << uid_ << ")] get_atom(" << handle
-                           << ") cache-miss, fetching from remote"
-                           << " | path: " << (is_protected ? "PROTECTED" : "UNPROTECTED")
-                           << " | keychain: " << (keychain ? "present" : "nullptr"));
+    // LOG_DEBUG("[RemoteDB(" << uid_ << ")] get_atom(" << handle
+    //                        << ") cache-miss, fetching from remote"
+    //                        << " | path: " << (is_protected ? "PROTECTED" : "UNPROTECTED")
+    //                        << " | keychain: " << (keychain ? "present" : "nullptr"));
 
     timer_remote.start();
     atom = is_protected ? this->protected_atomdb_->get_atom(handle, keychain)

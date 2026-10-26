@@ -52,10 +52,10 @@ shared_ptr<Atom> ProtectedAtomDB::get_atom(const string& handle, shared_ptr<Keyc
     bool granted = this->authorize_read(atom, keychain).has_value();
     timer_auth.stop();
 
-    LOG_DEBUG("[ProtectedAtomDB(" << this->uid_ << ")] get_atom(" << handle << ") "
-                                  << (granted ? "granted" : "denied")
-                                  << " | backend: " << timer_backend.milliseconds() << "ms"
-                                  << " | auth: " << timer_auth.milliseconds() << "ms");
+    // LOG_DEBUG("[ProtectedAtomDB(" << this->uid_ << ")] get_atom(" << handle << ") "
+    //                               << (granted ? "granted" : "denied")
+    //                               << " | backend: " << timer_backend.milliseconds() << "ms"
+    //                               << " | auth: " << timer_auth.milliseconds() << "ms");
     return granted ? atom : nullptr;
 }
 
