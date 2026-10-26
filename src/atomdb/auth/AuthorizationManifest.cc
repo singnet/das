@@ -1,13 +1,14 @@
+#define LOG_LEVEL DEBUG_LEVEL
 #include "AuthorizationManifest.h"
 
 #include <algorithm>
 
-#define LOG_LEVEL INFO_LEVEL
 #include "Logger.h"
 #include "Utils.h"
 
 using namespace std;
 using namespace atomdb;
+using namespace commons;
 
 // -------------------------------------------------------------------------------------------------
 // Constructor
@@ -45,8 +46,14 @@ bool AuthorizationManifest::ensure_profile_loaded(const string& public_key) {
         return true;
     }
 
+    StopWatch timer_fetch;
+    timer_fetch.start();
+    LOG_DEBUG("ensure_profile_loaded: cache-miss, fetching access document");
     auto access_document = this->atomdb->get_access_permissions(public_key);
+    timer_fetch.stop();
     if (access_document == nullptr) {
+        LOG_DEBUG("ensure_profile_loaded: no access document | time: " << timer_fetch.milliseconds()
+                                                                      << "ms");
         return false;
     }
 
@@ -56,8 +63,16 @@ bool AuthorizationManifest::ensure_profile_loaded(const string& public_key) {
         return false;
     }
 
+    StopWatch timer_build;
+    timer_build.start();
     this->profiles.emplace(access_key,
                            AuthorizationProfile::from_document(this->atomdb, access_document));
+    timer_build.stop();
+    LOG_DEBUG("ensure_profile_loaded: loaded full_access="
+              << (access_document->get_full_access() ? "true" : "false")
+              << " schemas=" << access_document->get_entries_size()
+              << " | fetch: " << timer_fetch.milliseconds() << "ms"
+              << " | build: " << timer_build.milliseconds() << "ms");
 
     return true;
 }
@@ -110,9 +125,25 @@ bool AuthorizationManifest::is_granted(const string& public_key,
     auto it = this->profiles.find(public_key);
     if (it == this->profiles.end() || it->second == nullptr) return false;
 
+    unsigned long fetch_ms = 0;
     if (atom == nullptr) {
+        StopWatch timer_fetch;
+        timer_fetch.start();
         atom = this->atomdb->get_atom(handle);
-        if (atom == nullptr) return false;
+        timer_fetch.stop();
+        fetch_ms = timer_fetch.milliseconds();
+        if (atom == nullptr) {
+            LOG_DEBUG("is_granted(" << handle << "): atom not found | fetch: " << fetch_ms << "ms");
+            return false;
+        }
     }
-    return it->second->is_granted(atom, operation);
+
+    StopWatch timer_check;
+    timer_check.start();
+    bool granted = it->second->is_granted(atom, operation);
+    timer_check.stop();
+    LOG_DEBUG("is_granted(" << atom->handle() << "): " << (granted ? "granted" : "denied")
+                            << " | fetch: " << fetch_ms << "ms"
+                            << " | check: " << timer_check.milliseconds() << "ms");
+    return granted;
 }

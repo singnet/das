@@ -1,4 +1,4 @@
-#define LOG_LEVEL INFO_LEVEL
+#define LOG_LEVEL DEBUG_LEVEL
 #include "RemoteAtomDB.h"
 
 #include <algorithm>
@@ -349,14 +349,20 @@ shared_ptr<atomdb_api_types::HandleSet> RemoteAtomDB::query_for_pattern(const Li
     auto result = make_shared<atomdb_api_types::HandleSetInMemory>();
     set<string> seen;
 
+    StopWatch timer_total;
+    timer_total.start();
     LOG_DEBUG("query_for_pattern(" << link_schema.handle() << ") fan-out to " << remote_db_.size()
                                    << " peers");
 
     for (auto& [uid, peer] : remote_db_) {
+        StopWatch timer_peer;
+        timer_peer.start();
         auto handle_set = peer->query_for_pattern(link_schema, keychain);
+        timer_peer.stop();
         if (!handle_set) continue;
 
-        LOG_DEBUG("  [" << uid << "] returned " << handle_set->size() << " handles");
+        LOG_DEBUG("  [" << uid << "] returned " << handle_set->size()
+                        << " handles | time: " << timer_peer.milliseconds() << "ms");
 
         auto it = handle_set->get_iterator();
         if (!it) continue;
@@ -370,8 +376,10 @@ shared_ptr<atomdb_api_types::HandleSet> RemoteAtomDB::query_for_pattern(const Li
             }
         }
     }
+    timer_total.stop();
     LOG_DEBUG("query_for_pattern(" << link_schema.handle() << ") aggregated " << result->size()
-                                   << " unique handles");
+                                   << " unique handles | time: " << timer_total.milliseconds()
+                                   << "ms");
     return result;
 }
 
