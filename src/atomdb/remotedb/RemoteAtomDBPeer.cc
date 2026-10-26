@@ -710,8 +710,8 @@ shared_ptr<Atom> RemoteAtomDBPeer::get_atom(const string& handle, shared_ptr<Key
     auto atom = pwb ? pwb->get_atom(handle, keychain) : write_buffer()->get_atom(handle);
     timer_write_buffer.stop();
     if (atom) {
-        LOG_DEBUG("[RemoteDB(" << uid_ << ")] get_atom(" << handle << ") <- write_buffer | time: "
-                               << timer_write_buffer.milliseconds() << "ms");
+        // LOG_DEBUG("[RemoteDB(" << uid_ << ")] get_atom(" << handle << ") <- write_buffer | time: "
+        //                        << timer_write_buffer.milliseconds() << "ms");
         return atom;
     }
 
@@ -721,9 +721,9 @@ shared_ptr<Atom> RemoteAtomDBPeer::get_atom(const string& handle, shared_ptr<Key
         atom = local_persistence_->get_atom(handle);
         timer_local_persistence.stop();
         if (atom) {
-            LOG_DEBUG("[RemoteDB(" << uid_ << ")] get_atom(" << handle
-                                   << ") <- local_persistence | time: "
-                                   << timer_local_persistence.milliseconds() << "ms");
+            // LOG_DEBUG("[RemoteDB(" << uid_ << ")] get_atom(" << handle
+            //                        << ") <- local_persistence | time: "
+            //                        << timer_local_persistence.milliseconds() << "ms");
             // Deliberately re-warm on EVERY hit, not just the first one.
             rc->add_atom(atom.get());
             return atom;
@@ -735,8 +735,8 @@ shared_ptr<Atom> RemoteAtomDBPeer::get_atom(const string& handle, shared_ptr<Key
     atom = prc ? prc->get_atom(handle, keychain) : rc->get_atom(handle);
     timer_read_cache.stop();
     if (atom) {
-        LOG_DEBUG("[RemoteDB(" << uid_ << ")] get_atom(" << handle << ") <- read_cache | time: "
-                               << timer_read_cache.milliseconds() << "ms");
+        // LOG_DEBUG("[RemoteDB(" << uid_ << ")] get_atom(" << handle << ") <- read_cache | time: "
+        //                        << timer_read_cache.milliseconds() << "ms");
         return atom;
     }
 
@@ -752,15 +752,15 @@ shared_ptr<Atom> RemoteAtomDBPeer::get_atom(const string& handle, shared_ptr<Key
     timer_remote.stop();
 
     if (atom) {
-        LOG_DEBUG("[RemoteDB(" << uid_ << ")] get_atom(" << handle
-                               << ") <- remote atomdb (warmed) | time: " << timer_remote.milliseconds()
-                               << "ms");
+        // LOG_DEBUG("[RemoteDB(" << uid_ << ")] get_atom(" << handle
+        //                        << ") <- remote atomdb (warmed) | time: " << timer_remote.milliseconds()
+        //                        << "ms");
         rc->add_atom(atom.get());
         return atom;
     }
 
-    LOG_DEBUG("[RemoteDB(" << uid_ << ")] get_atom(" << handle << ") not found | time: "
-                           << timer_remote.milliseconds() << "ms");
+    // LOG_DEBUG("[RemoteDB(" << uid_ << ")] get_atom(" << handle << ") not found | time: "
+    //                        << timer_remote.milliseconds() << "ms");
     return nullptr;
 }
 
