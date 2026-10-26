@@ -125,19 +125,19 @@ string ProtectedAtomDB::add_atom(const atoms::Atom* atom,
 }
 
 string ProtectedAtomDB::add_node(const atoms::Node* node,
-                                 shared_ptr<Keychain> keychain,
+                                  shared_ptr<Keychain> keychain,
                                  const atoms::Merger* merger) {
-    RAISE_ERROR("ProtectedAtomDB::add_node(node, public_key) is not implemented yet");
+    return this->backend->add_node(node, merger);
 }
 
 string ProtectedAtomDB::add_link(const atoms::Link* link,
-                                 shared_ptr<Keychain> keychain,
+                                  shared_ptr<Keychain> keychain,
                                  const atoms::Merger* merger) {
-    RAISE_ERROR("ProtectedAtomDB::add_link(link, public_key) is not implemented yet");
+    return this->backend->add_link(link, merger);
 }
 
 vector<string> ProtectedAtomDB::add_atoms(const vector<atoms::Atom*>& atom_list,
-                                          shared_ptr<Keychain> keychain,
+                                            shared_ptr<Keychain> keychain,
                                           bool is_transactional,
                                           const atoms::Merger* merger) {
     return this->backend->add_atoms(atom_list, is_transactional, merger);

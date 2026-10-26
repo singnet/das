@@ -28,6 +28,7 @@
 #include "commons/atoms/MettaParserActions.h"
 #include "httplib.h"
 #include "nlohmann/json.hpp"
+#include "KeySensitiveAtomDB.h"
 
 // Symbols
 #define AND_OPERATOR "AND"
@@ -416,7 +417,12 @@ static shared_ptr<Link> add_or_update_link(const string& type_handle,
                 LOG_DEBUG("Updating Link in AtomDB");
                 // Upsert/replace the existing atom (same content-addressed handle, new strength).
                 // Default merger (NULL) upserts/replaces — do not delete_link first.
-                db->add_link(new_link.get());
+                auto protected_atomdb = dynamic_pointer_cast<KeySensitiveAtomDB>(db);
+                if (protected_atomdb && (db->get_protection_mode() != atomdb_api_types::ProtectionMode::UNPROTECTED)) {
+                    protected_atomdb->add_link(new_link.get(), nullptr);
+                } else {
+                    db->add_link(new_link.get());
+                }
             }
             if (WRITE_CREATED_LINKS_TO_FILE) {
                 LOG_DEBUG("Writing Link to file: " + PRESET_LINKS_FILE);
@@ -431,7 +437,12 @@ static shared_ptr<Link> add_or_update_link(const string& type_handle,
                 LOG_INFO("ADD LINK: [" + std::to_string(strength) + "] " +
                          new_link->metta_representation(*DECODER));
             }
-            db->add_link(new_link.get());
+            auto protected_atomdb = dynamic_pointer_cast<KeySensitiveAtomDB>(db);
+            if (protected_atomdb && (db->get_protection_mode() != atomdb_api_types::ProtectionMode::UNPROTECTED)) {
+                protected_atomdb->add_link(new_link.get(), nullptr);
+            } else {
+                db->add_link(new_link.get());
+            }
             buffer_determiners.push_back({handle, target1, target2});
             AttentionBrokerClient::correlate(set<string>({target1, target2}), context);
         }
@@ -1192,7 +1203,12 @@ static void add_preset_links(const vector<string>& implication_to_target_predica
             for (const auto& [_, atom] : parser_handler->handle_to_atom) {
                 atoms_to_add.push_back(atom.get());
             }
-            db->add_atoms(atoms_to_add, true);
+            auto protected_atomdb = dynamic_pointer_cast<KeySensitiveAtomDB>(db);
+            if (protected_atomdb && (db->get_protection_mode() != atomdb_api_types::ProtectionMode::UNPROTECTED)) {
+                protected_atomdb->add_atoms(atoms_to_add, nullptr, true);
+            } else {
+                db->add_atoms(atoms_to_add, true);
+            }
             count++;
             line.clear();
             buffer_determiners.push_back({link->handle(), link->targets[1], link->targets[2]});
@@ -1593,7 +1609,12 @@ static void insert_type_symbols() {
     Node* node;
     for (string node_name : to_insert) {
         node = new Node(SYMBOL, node_name);
-        db->add_node(node);
+        auto protected_atomdb = dynamic_pointer_cast<KeySensitiveAtomDB>(db);
+        if (protected_atomdb && (db->get_protection_mode() != atomdb_api_types::ProtectionMode::UNPROTECTED)) {
+            protected_atomdb->add_node(node, nullptr);
+        } else {
+            db->add_node(node);
+        }
         delete (node);
     }
     flush_remote_link_template_cache();
