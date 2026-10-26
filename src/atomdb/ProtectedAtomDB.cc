@@ -442,28 +442,51 @@ shared_ptr<atomdb_api_types::HandleSet> ProtectedAtomDB::filter_handle_set(
     }
 
     StopWatch timer_auth;
+    StopWatch timer_next;
+    StopWatch timer_can_read;
+    StopWatch timer_add;
+
     timer_auth.start();
     auto it = original_handle_set->get_iterator();
     auto authorized_handle_set = make_shared<atomdb_api_types::HandleSetInMemory>();
-
+    unsigned long scanned = 0;
     while (true) {
+        timer_next.start();
         char* handle_cstr = it->next();
+        timer_next.stop();
         if (!handle_cstr) break;
+        scanned++;
         string handle(handle_cstr);
 
-        if (this->can_read(handle, *public_key)) {
+        timer_can_read.start();
+        bool granted = this->can_read(handle, *public_key);
+        timer_can_read.stop();
+        if (granted) {
+            timer_add.start();
             authorized_handle_set->add_handle(
                 handle,
                 original_handle_set->get_metta_expressions_by_handle(handle),
                 original_handle_set->get_assignments_by_handle(handle));
+            timer_add.stop();
         }
     }
-
     timer_auth.stop();
+
+    unsigned long total_ms = timer_auth.milliseconds();
+    unsigned long next_ms = timer_next.milliseconds();
+    unsigned long can_read_ms = timer_can_read.milliseconds();
+    unsigned long add_ms = timer_add.milliseconds();
     LOG_DEBUG("[ProtectedAtomDB(" << this->uid_
                                   << ")] filter_handle_set: " << original_handle_set->size() << " -> "
-                                  << authorized_handle_set->size()
-                                  << " authorized | time: " << timer_auth.milliseconds() << "ms");
+                                  << authorized_handle_set->size() << " authorized"
+                                  << " | scanned: " << scanned
+                                  << " | next: " << next_ms << "ms"
+                                  << " | can_read: " << can_read_ms << "ms"
+                                  << " | add_handle: " << add_ms << "ms"
+                                  << " | total: " << total_ms << "ms"
+                                  << " | avg_next: " << (scanned ? next_ms / scanned : 0) << "ms"
+                                  << " | avg_can_read: " << (scanned ? can_read_ms / scanned : 0)
+                                  << "ms");
 
     return authorized_handle_set;
 }
