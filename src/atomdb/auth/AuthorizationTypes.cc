@@ -64,8 +64,8 @@ bool AuthorizationSchema::is_granted(shared_ptr<Atom> atom, AuthorizationOperati
     }
 
     timer.stop();
-    LOG_DEBUG("schema match on " << atom->handle() << " -> " << (granted ? "granted" : "denied")
-                                 << " | time: " << timer.milliseconds() << "ms");
+    // LOG_DEBUG("schema match on " << atom->handle() << " -> " << (granted ? "granted" : "denied")
+    //                              << " | time: " << timer.milliseconds() << "ms");
     return granted;
 }
 
@@ -149,9 +149,9 @@ bool AuthorizationProfile::is_granted(shared_ptr<Atom> atom, AuthorizationOperat
         }
     }
     timer.stop();
-    LOG_DEBUG("profile is_granted(" << (atom ? atom->handle() : "null") << ") "
-                                    << (granted ? "granted" : "denied")
-                                    << " | time: " << timer.milliseconds() << "ms");
+    // LOG_DEBUG("profile is_granted(" << (atom ? atom->handle() : "null") << ") "
+    //                                 << (granted ? "granted" : "denied")
+    //                                 << " | time: " << timer.milliseconds() << "ms");
     return granted;
 }
 

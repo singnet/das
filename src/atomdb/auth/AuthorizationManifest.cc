@@ -142,8 +142,8 @@ bool AuthorizationManifest::is_granted(const string& public_key,
     timer_check.start();
     bool granted = it->second->is_granted(atom, operation);
     timer_check.stop();
-    LOG_DEBUG("is_granted(" << atom->handle() << "): " << (granted ? "granted" : "denied")
-                            << " | fetch: " << fetch_ms << "ms"
-                            << " | check: " << timer_check.milliseconds() << "ms");
+    // LOG_DEBUG("is_granted(" << atom->handle() << "): " << (granted ? "granted" : "denied")
+    //                         << " | fetch: " << fetch_ms << "ms"
+    //                         << " | check: " << timer_check.milliseconds() << "ms");
     return granted;
 }

@@ -195,10 +195,10 @@ shared_ptr<Atom> RedisMongoDB::get_atom(const string& handle) {
     }
 
     timer_total.stop();
-    LOG_DEBUG("[RedisMongoDB(" << this->uid_ << ")] get_atom(" << handle << ") "
-                               << (atom ? atom_kind : "not found")
-                               << " | get_atom_document: " << timer_get_atom_document.milliseconds()
-                               << "ms | total: " << timer_total.milliseconds() << "ms");
+    // LOG_DEBUG("[RedisMongoDB(" << this->uid_ << ")] get_atom(" << handle << ") "
+    //                            << (atom ? atom_kind : "not found")
+    //                            << " | get_atom_document: " << timer_get_atom_document.milliseconds()
+    //                            << "ms | total: " << timer_total.milliseconds() << "ms");
     return atom;
 }
 
@@ -547,13 +547,13 @@ shared_ptr<atomdb_api_types::AtomDocument> RedisMongoDB::get_document(
     timer_make_shared.stop();
     timer_total.stop();
 
-    LOG_DEBUG("[RedisMongoDB(" << this->uid_ << ")] get_document(" << handle << ", " << collection_name
-                               << ") " << (atom_document ? "found" : "not found")
-                               << " | acquire: " << timer_acquire.milliseconds() << "ms"
-                               << " | collection: " << timer_collection.milliseconds() << "ms"
-                               << " | find_one: " << timer_find_one.milliseconds() << "ms"
-                               << " | make_shared: " << timer_make_shared.milliseconds() << "ms"
-                               << " | total: " << timer_total.milliseconds() << "ms");
+    // LOG_DEBUG("[RedisMongoDB(" << this->uid_ << ")] get_document(" << handle << ", " << collection_name
+    //                            << ") " << (atom_document ? "found" : "not found")
+    //                            << " | acquire: " << timer_acquire.milliseconds() << "ms"
+    //                            << " | collection: " << timer_collection.milliseconds() << "ms"
+    //                            << " | find_one: " << timer_find_one.milliseconds() << "ms"
+    //                            << " | make_shared: " << timer_make_shared.milliseconds() << "ms"
+    //                            << " | total: " << timer_total.milliseconds() << "ms");
     return atom_document;
 }
 
