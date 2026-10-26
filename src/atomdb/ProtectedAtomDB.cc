@@ -140,7 +140,7 @@ vector<string> ProtectedAtomDB::add_atoms(const vector<atoms::Atom*>& atom_list,
                                           shared_ptr<Keychain> keychain,
                                           bool is_transactional,
                                           const atoms::Merger* merger) {
-    RAISE_ERROR("ProtectedAtomDB::add_atoms(atom_list, public_key) is not implemented yet");
+    return this->backend->add_atoms(atom_list, is_transactional, merger);
 }
 
 vector<string> ProtectedAtomDB::add_nodes(const vector<atoms::Node*>& nodes,
