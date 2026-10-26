@@ -565,18 +565,18 @@ shared_ptr<atomdb_api_types::AtomDocument> RedisMongoDB::get_atom_document(const
     auto node_document = get_node_document(handle);
     timer_node.stop();
     if (node_document != nullptr) {
-        LOG_DEBUG("[RedisMongoDB(" << this->uid_ << ")] get_atom_document(" << handle
-                                   << ") node | nodes: " << timer_node.milliseconds() << "ms");
+        // LOG_DEBUG("[RedisMongoDB(" << this->uid_ << ")] get_atom_document(" << handle
+        //                            << ") node | nodes: " << timer_node.milliseconds() << "ms");
         return node_document;
     }
 
     timer_link.start();
     auto link_document = get_link_document(handle);
     timer_link.stop();
-    LOG_DEBUG("[RedisMongoDB(" << this->uid_ << ")] get_atom_document(" << handle << ") "
-                               << (link_document ? "link" : "not found")
-                               << " | nodes: " << timer_node.milliseconds() << "ms"
-                               << " | links: " << timer_link.milliseconds() << "ms");
+    // LOG_DEBUG("[RedisMongoDB(" << this->uid_ << ")] get_atom_document(" << handle << ") "
+    //                            << (link_document ? "link" : "not found")
+    //                            << " | nodes: " << timer_node.milliseconds() << "ms"
+    //                            << " | links: " << timer_link.milliseconds() << "ms");
     if (link_document != nullptr) {
         return link_document;
     }
