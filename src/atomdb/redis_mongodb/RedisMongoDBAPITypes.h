@@ -60,6 +60,10 @@ class HandleSetRedisIterator : public HandleSetIterator {
     HandleSetRedis* handle_set;
     unsigned int outer_idx;
     unsigned int inner_idx;
+    StopWatch timer_raw_next;
+    StopWatch timer_match;
+    unsigned long candidates = 0;
+    unsigned long matches = 0;
 };
 
 class RedisStringBundle : public HandleList {

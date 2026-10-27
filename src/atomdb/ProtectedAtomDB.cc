@@ -12,6 +12,22 @@ using namespace std;
 using namespace atomdb;
 using namespace commons;
 
+namespace {
+thread_local StopWatch g_can_read_unrestricted;
+thread_local StopWatch g_can_read_exists;
+thread_local StopWatch g_can_read_get_atom;
+thread_local StopWatch g_can_read_is_granted;
+thread_local unsigned long g_can_read_calls = 0;
+
+void reset_can_read_timing() {
+    g_can_read_unrestricted.reset();
+    g_can_read_exists.reset();
+    g_can_read_get_atom.reset();
+    g_can_read_is_granted.reset();
+    g_can_read_calls = 0;
+}
+}  // namespace
+
 // --------------------------------------------------------------------------------
 // Constructors and destructors
 
@@ -367,6 +383,29 @@ size_t ProtectedAtomDB::atom_count() const { raise_keychain_required("atom_count
 // --------------------------------------------------------------------------------
 // Private methods
 
+bool ProtectedAtomDB::can_read(const string& handle, const string& public_key) {
+    if (public_key.empty()) return false;
+
+    g_can_read_calls++;
+    g_can_read_unrestricted.start();
+    bool unrestricted = this->manifest->is_unrestricted(public_key);
+    g_can_read_unrestricted.stop();
+    if (unrestricted) {
+        g_can_read_exists.start();
+        bool exists = this->backend->atom_exists(handle);
+        g_can_read_exists.stop();
+        return exists;
+    }
+
+    g_can_read_get_atom.start();
+    auto atom = this->backend->get_atom(handle);
+    g_can_read_get_atom.stop();
+    g_can_read_is_granted.start();
+    bool granted = this->can_read(atom, public_key);
+    g_can_read_is_granted.stop();
+    return granted;
+}
+
 void ProtectedAtomDB::raise_keychain_required(const string& method_name) {
     RAISE_ERROR("ProtectedAtomDB::" + method_name +
                 "() is unavailable in protected AtomDBs. Use the public API in ProtectedAtomDB passing "
@@ -445,6 +484,7 @@ shared_ptr<atomdb_api_types::HandleSet> ProtectedAtomDB::filter_handle_set(
     StopWatch timer_next;
     StopWatch timer_can_read;
     StopWatch timer_add;
+    reset_can_read_timing();
 
     timer_auth.start();
     auto it = original_handle_set->get_iterator();
@@ -483,9 +523,14 @@ shared_ptr<atomdb_api_types::HandleSet> ProtectedAtomDB::filter_handle_set(
                                   << " | next: " << next_ms << "ms"
                                   << " | can_read: " << can_read_ms << "ms"
                                   << " | add_handle: " << add_ms << "ms"
-                                  << " | total: " << total_ms << "ms"
-                                  << " | avg_next: " << (scanned ? next_ms / scanned : 0) << "ms"
-                                  << " | avg_can_read: " << (scanned ? can_read_ms / scanned : 0)
+                                  << " | total: " << total_ms << "ms");
+    LOG_DEBUG("[ProtectedAtomDB(" << this->uid_ << ")] can_read breakdown"
+                                  << " | calls: " << g_can_read_calls
+                                  << " | is_unrestricted: "
+                                  << g_can_read_unrestricted.milliseconds() << "ms"
+                                  << " | atom_exists: " << g_can_read_exists.milliseconds() << "ms"
+                                  << " | get_atom: " << g_can_read_get_atom.milliseconds() << "ms"
+                                  << " | is_granted: " << g_can_read_is_granted.milliseconds()
                                   << "ms");
 
     return authorized_handle_set;

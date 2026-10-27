@@ -1,7 +1,9 @@
+#define LOG_LEVEL DEBUG_LEVEL
 #include "RedisMongoDBAPITypes.h"
 
 #include <cstring>
 
+#include "Logger.h"
 #include "Utils.h"
 #include "expression_hasher.h"
 
@@ -110,16 +112,32 @@ char* HandleSetRedisIterator::next() {
         RAISE_ERROR("Non-null link_schema requires a decoder to be matched against handles");
         return NULL;
     }
-    while ((candidate = _next()) != NULL) {
+    while (true) {
+        timer_raw_next.start();
+        candidate = _next();
+        timer_raw_next.stop();
+        if (candidate == NULL) {
+            LOG_DEBUG("HandleSetRedisIterator::next exhausted"
+                      << " | candidates: " << this->candidates << " | matches: " << this->matches
+                      << " | _next: " << this->timer_raw_next.milliseconds() << "ms"
+                      << " | match: " << this->timer_match.milliseconds() << "ms");
+            return NULL;
+        }
+        this->candidates++;
         handle = string(candidate);
-        if ((this->handle_set->link_schema == nullptr) ||
-            this->handle_set->link_schema->match(handle, assignment, *decoder)) {
+        bool matched = (this->handle_set->link_schema == nullptr);
+        if (!matched) {
+            timer_match.start();
+            matched = this->handle_set->link_schema->match(handle, assignment, *decoder);
+            timer_match.stop();
+        }
+        if (matched) {
+            this->matches++;
             this->handle_set->assignments_by_handle[handle] = assignment;
             return candidate;
         }
         assignment.clear();
     }
-    return NULL;
 }
 
 RedisStringBundle::RedisStringBundle(redisReply* reply) : HandleList() {

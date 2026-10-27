@@ -210,13 +210,7 @@ class ProtectedAtomDB : public AtomDB, public KeySensitiveAtomDB {
      * existence is still required (atom_exists), so a missing handle is not readable.
      * Restricted profiles load the atom here and send it to the Manifest.
      */
-    inline bool can_read(const string& handle, const string& public_key) {
-        if (public_key.empty()) return false;
-        if (this->manifest->is_unrestricted(public_key)) {
-            return this->backend->atom_exists(handle);
-        }
-        return this->can_read(this->backend->get_atom(handle), public_key);
-    }
+    bool can_read(const string& handle, const string& public_key);
 
     /**
      * @brief Returns whether the caller may READ the specified atom.
