@@ -81,6 +81,38 @@ RUN if [ "$(uname -m)" = "aarch64" ] || [ "$(uname -m)" = "arm64" ]; then \
     done \
     && cp -f /etc/ssl/certs/ca-certificates.crt ${DAS_DIR}/syslibs/etc/ssl/certs/ 2>/dev/null || true
 
+# popen() runs /bin/sh. RAM checks also shell out to cat, grep, rev and cut.
+RUN set -eu \
+    && if [ "$(uname -m)" = "aarch64" ] || [ "$(uname -m)" = "arm64" ]; then \
+        LIB_SUBDIR="aarch64-linux-gnu"; \
+    else \
+        LIB_SUBDIR="x86_64-linux-gnu"; \
+    fi \
+    && mkdir -p ${DAS_DIR}/syslibs/bin \
+                ${DAS_DIR}/syslibs/lib/${LIB_SUBDIR} \
+                ${DAS_DIR}/syslibs/usr/lib/${LIB_SUBDIR} \
+    && for bin in sh cat grep rev cut; do \
+        src=$(command -v "$bin") || exit 1; \
+        cp -f "$(readlink -f "$src")" "${DAS_DIR}/syslibs/bin/$bin"; \
+        chmod 755 "${DAS_DIR}/syslibs/bin/$bin"; \
+    done \
+    && for bin in ${DAS_DIR}/syslibs/bin/*; do \
+        ldd "$bin" | awk '/=> \// {print $3} /^\t\// {print $1}' > /tmp/das-bin-libs; \
+        while read -r lib; do \
+            [ -n "$lib" ] || continue; \
+            base=$(basename "$lib"); \
+            case "$base" in \
+                libc.so.6|libdl.so.2|libm.so.6|libpthread.so.0|librt.so.1|ld-linux-*) continue ;; \
+            esac; \
+            if [ -e "/lib/${LIB_SUBDIR}/$base" ]; then \
+                cp -f "$lib" "${DAS_DIR}/syslibs/lib/${LIB_SUBDIR}/$base"; \
+            else \
+                cp -f "$lib" "${DAS_DIR}/syslibs/usr/lib/${LIB_SUBDIR}/$base"; \
+            fi; \
+        done < /tmp/das-bin-libs; \
+    done \
+    && rm -f /tmp/das-bin-libs
+
 FROM gcr.io/distroless/cc-debian12:nonroot AS runner
 
 WORKDIR /opt/das
@@ -92,6 +124,7 @@ COPY --chown=nonroot:nonroot --from=builder /opt/das/lib/ /opt/das/lib/
 
 COPY --from=builder /opt/das/syslibs/usr/lib/ /usr/lib/
 COPY --from=builder /opt/das/syslibs/lib/ /lib/
+COPY --chown=nonroot:nonroot --from=builder /opt/das/syslibs/bin/ /bin/
 COPY --from=builder /opt/das/syslibs/etc/ssl/certs/ /etc/ssl/certs/
 
 ENV LD_LIBRARY_PATH=/opt/das/lib:/usr/local/lib:/usr/lib/x86_64-linux-gnu:/usr/lib/aarch64-linux-gnu:/lib/x86_64-linux-gnu:/lib/aarch64-linux-gnu
