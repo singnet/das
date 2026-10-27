@@ -42,19 +42,35 @@ cc_library(
 )
 
 cc_library(
+    name = "atom_expression",
+    srcs = ["AtomExpression.cc"],
+    hdrs = ["AtomExpression.h"],
+    includes = ["."],
+    deps = [
+        "//atomdb",
+        "//commons/atoms:atoms_lib",
+        "//metta:metta_parser",
+    ],
+)
+
+cc_library(
     name = "bus_command_router_processor",
     srcs = ["BusCommandRouterProcessor.cc"],
     hdrs = ["BusCommandRouterProcessor.h"],
     includes = ["."],
     deps = [
+        ":atom_expression",
         ":bus_command_router_proxy",
         ":evolution_metta_parser",
         "//agents/evolution:query_evolution_proxy",
         "//agents/link_creation_agent:link_creation_proxy",
         "//agents/query_engine:pattern_matching_query_proxy",
         "//agents/query_engine:query_answer",
+        "//atomdb:atomdb_singleton",
+        "//commons/atoms:atoms_lib",
         "//service_bus:bus_command_processor",
         "//service_bus:service_bus_lib",
         "//service_bus:service_bus_singleton",
+        "@nlohmann_json//:json",
     ],
 )

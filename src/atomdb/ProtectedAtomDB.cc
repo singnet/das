@@ -1,9 +1,8 @@
+#define LOG_LEVEL INFO_LEVEL
 #include "ProtectedAtomDB.h"
 
-#include "InMemoryDBAPITypes.h"
-
-#define LOG_LEVEL INFO_LEVEL
 #include "Atom.h"
+#include "InMemoryDBAPITypes.h"
 #include "Link.h"
 #include "Logger.h"
 #include "Node.h"
@@ -199,15 +198,27 @@ void ProtectedAtomDB::re_index_patterns(shared_ptr<Keychain> keychain, bool flus
 }
 
 size_t ProtectedAtomDB::node_count(shared_ptr<Keychain> keychain) const {
-    RAISE_ERROR("ProtectedAtomDB::node_count(public_key) is not implemented yet");
+    size_t node_count = 0;
+    size_t link_count = 0;
+    size_t atom_count = 0;
+    this->manifest->count_matching_atoms(node_count, link_count, atom_count, keychain);
+    return node_count;
 }
 
 size_t ProtectedAtomDB::link_count(shared_ptr<Keychain> keychain) const {
-    RAISE_ERROR("ProtectedAtomDB::link_count(public_key) is not implemented yet");
+    size_t node_count = 0;
+    size_t link_count = 0;
+    size_t atom_count = 0;
+    this->manifest->count_matching_atoms(node_count, link_count, atom_count, keychain);
+    return link_count;
 }
 
 size_t ProtectedAtomDB::atom_count(shared_ptr<Keychain> keychain) const {
-    RAISE_ERROR("ProtectedAtomDB::atom_count(public_key) is not implemented yet");
+    size_t node_count = 0;
+    size_t link_count = 0;
+    size_t atom_count = 0;
+    this->manifest->count_matching_atoms(node_count, link_count, atom_count, keychain);
+    return atom_count;
 }
 
 bool ProtectedAtomDB::composite_type_enabled() const { return this->backend->composite_type_enabled(); }

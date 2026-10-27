@@ -27,6 +27,32 @@ void AtomDBUtils::reachable_terminal_set(set<string>& output, const string& hand
     }
 }
 
+void AtomDBUtils::count_reachable_atoms(const string& handle,
+                                        size_t& node_count,
+                                        size_t& link_count,
+                                        size_t& atom_count,
+                                        shared_ptr<Keychain> keychain,
+                                        set<string>& visited) {
+    if (!visited.insert(handle).second) {
+        return;
+    }
+    auto atomdb = AtomDBSingleton::get_instance();
+    auto key_sensitive_atomdb = dynamic_pointer_cast<KeySensitiveAtomDB>(atomdb);
+    auto atom = key_sensitive_atomdb ? key_sensitive_atomdb->get_atom(handle, keychain)
+                                     : atomdb->get_atom(handle);
+    if (atom != nullptr) {
+        auto link = dynamic_pointer_cast<Link>(atom);
+        if (link == nullptr) {
+            node_count++;
+        } else {
+            AtomDBUtils::count_reachable_atoms_recursive(
+                link, node_count, link_count, atom_count, keychain, visited);
+            link_count++;
+        }
+    }
+    atom_count++;
+}
+
 string AtomDBUtils::handle_to_metta(const string& handle, shared_ptr<Keychain> keychain) {
     STACK_TRACE();
     map<string, string> not_used;
@@ -91,6 +117,35 @@ void AtomDBUtils::reachable_terminal_set_recursive(set<string>& output,
     }
 }
 
+void AtomDBUtils::count_reachable_atoms_recursive(shared_ptr<Link> link,
+                                                  size_t& node_count,
+                                                  size_t& link_count,
+                                                  size_t& atom_count,
+                                                  shared_ptr<Keychain> keychain,
+                                                  set<string>& visited) {
+    auto atomdb = AtomDBSingleton::get_instance();
+    auto key_sensitive_atomdb = dynamic_pointer_cast<KeySensitiveAtomDB>(atomdb);
+
+    for (string& target_handle : link->targets) {
+        if (!visited.insert(target_handle).second) {
+            continue;
+        }
+        auto atom = key_sensitive_atomdb ? key_sensitive_atomdb->get_atom(target_handle, keychain)
+                                         : atomdb->get_atom(target_handle);
+        if (atom != nullptr) {
+            auto link = dynamic_pointer_cast<Link>(atom);
+            if (link == nullptr) {
+                node_count++;
+            } else {
+                AtomDBUtils::count_reachable_atoms_recursive(
+                    link, node_count, link_count, atom_count, keychain, visited);
+                link_count++;
+            }
+        }
+        atom_count++;
+    }
+}
+
 string AtomDBUtils::handle_to_metta_recursion(const string& handle,
                                               map<string, string>& mapping,
                                               bool populate_map,
@@ -104,16 +159,17 @@ string AtomDBUtils::handle_to_metta_recursion(const string& handle,
     } else {
         shared_ptr<Atom> atom = nullptr;
 
-        if (key_sensitive_atomdb == nullptr) {
-            // AtomDB is not protected. Disregard keychain.
-            atom = atomdb->get_atom(handle);
-        } else {
+        if (key_sensitive_atomdb != nullptr &&
+            atomdb->get_protection_mode() != atomdb_api_types::ProtectionMode::UNPROTECTED) {
             // AtomDB is protected. Keychain must be forwarded.
             if (keychain != nullptr) {
                 atom = key_sensitive_atomdb->get_atom(handle, keychain);
             } else {
                 RAISE_ERROR("AtomDB is protected and requires a keychain");
             }
+        } else {
+            // AtomDB is not protected. Disregard keychain.
+            atom = atomdb->get_atom(handle);
         }
 
         if (atom != nullptr) {

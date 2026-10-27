@@ -9,24 +9,10 @@ These are the Github repos we're currently using in the project:
 
 * [Source code (this repo)](https://github.com/singnet/das) - Main DAS source code
 * [Simplified MeTTa parser](https://github.com/singnet/das-metta-parser) - Simple parser to load knowledge bases (no actual MeTTa command interpretation/execution)
-* [Database adapter](https://github.com/singnet/das-database-adapter) - Adapter to use DBMSs as atomspaces
 * [Command line tools](https://github.com/singnet/das-toolbox)  - Tools to configure and deploy DAS components
 * [Protobuf definitions](https://github.com/singnet/das-proto) - Remote API used all along DAS' components
-* [Github actions library](https://github.com/singnet/das-cicd) - CI/CD scripts used in DAS repos
-* [NuNET/Rejuve PoC](https://github.com/singnet/das-nunet-rejuve-poc) - Simple use case to assess DAS cognitive capabilities
 * Vultr [pre-infra](https://github.com/singnet/das-pre-infra-vultr) and [infra](https://github.com/singnet/das-infra-stack-vultr) - Infra deployment/setup in Vultr
 * AWS [pre-infra](https://github.com/singnet/das-pre-infra-aws) and [infra](https://github.com/singnet/das-infra-stack-aws) - Infra deployment/setup in AWS
-
-These repos are frozen and deprecated:
-
-* https://github.com/singnet/das-atom-db
-* https://github.com/singnet/das-query-engine
-* https://github.com/singnet/das-serverless-functions
-* https://github.com/singnet/das-attention-broker
-* https://github.com/singnet/das-node
-* https://github.com/singnet/das-postgres-lobe
-* https://github.com/singnet/das-openfaas-templates
-* https://github.com/singnet/das-poc
 
 Issues for project management are kept in two boards:
 
@@ -75,11 +61,8 @@ To configure your DAS environment, just run
 das-cli config set
 ```
 
-If you are setting up a new environment, it's safe to hit `<ENTER>` and accept all suggested default values. Just make sure
-you don't have any other tool listening to the PORT numbers we are using.
-
 By default, `das-cli` uses `/usr/share/das/config.json` as the active config file (when this file exists in your installation).
-So, in most cases you can run `das-cli config set` and keep `Use default config`.
+So, in most cases you can run `das-cli config set` and keep `Use default config`. Just make sure you don't have any other tool listening to the PORT numbers we are using.
 
 ### 2. Starting an AtomDB
 
@@ -121,7 +104,7 @@ feature for the (near to) mid future.
 
 Currently we support [Postgresql](https://www.postgresql.org) and 
 [Mork](https://github.com/trueagi-io/MORK/blob/server/README.md) but we are working to extend this list. 
-Look [here](https://github.com/singnet/das/blob/master/docs/database-adapter-users-guide.md)
+Look [here](./src/db_adapter/README.md)
 for complete documentation on how to use our Database Adapter.
 
 ### 3. Starting the AttentionBroker

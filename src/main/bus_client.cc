@@ -122,7 +122,11 @@ int main(int argc, char* argv[]) {
         if (is_router_client) {
             string router_cmd = props.get<string>(Helper::CMD);
             string router_arg = props.get<string>(Helper::ARG);
-            router_arg = ProxyFactory::parse_metta_expression(router_arg);
+            // add_atom and delete_atom carry JSON. A '%' in a name, handle, or MeTTa
+            // expression is literal text, so the argument is forwarded unchanged.
+            if (router_cmd != "add_atom" && router_cmd != "delete_atom") {
+                router_arg = ProxyFactory::parse_metta_expression(router_arg);
+            }
             proxy = make_shared<BusCommandRouterProxy>(router_cmd, router_arg);
         } else {
             proxy = ProxyFactory::create_proxy(cmd_args[Helper::CLIENT], props);
@@ -170,6 +174,15 @@ int main(int argc, char* argv[]) {
                     return 1;
                 }
                 cout << router_proxy->set_param_ack << endl;
+            } else if (router_cmd == "add_atom" || router_cmd == "delete_atom") {
+                while (router_proxy->atom_result.empty() && !router_finished_or_error() &&
+                       Helper::is_running) {
+                    Utils::sleep(100);
+                }
+                if (router_proxy->error_flag) {
+                    return 1;
+                }
+                cout << router_proxy->atom_result << endl;
             } else if (router_cmd == "query") {
                 while (!router_proxy->routed_flag && !router_finished_or_error() && Helper::is_running) {
                     Utils::sleep(100);
