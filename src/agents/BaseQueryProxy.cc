@@ -91,7 +91,8 @@ bool BaseQueryProxy::finished_cycle() {
 
 bool BaseQueryProxy::finished_cycle(bool disregard_answer_queue) {
     lock_guard<recursive_mutex> semaphore(this->api_mutex);
-    return (this->is_aborting() || (BaseProxy::finished_cycle() && (disregard_answer_queue || this->answer_queue.empty())));
+    return (this->is_aborting() ||
+            (BaseProxy::finished_cycle() && (disregard_answer_queue || this->answer_queue.empty())));
 }
 
 vector<string> BaseQueryProxy::get_supplementary_info(SUPPLEMENTARY_INFO_TAG tag) {

@@ -167,7 +167,10 @@ void QueryEvolutionProcessor::sample_population(
             Utils::sleep();
         }
     }
-    double renew_rate = ((population.size() == 0) ? 0.0 : (((double) this->visited_individuals.size() - visited_count) / population.size()));
+    double renew_rate =
+        ((population.size() == 0)
+             ? 0.0
+             : (((double) this->visited_individuals.size() - visited_count) / population.size()));
     LOG_INFO("Individuals with non-zero importance: " + std::to_string(positive_importance_count));
     LOG_INFO("Renew rate: " + std::to_string(std::lround(100 * renew_rate)) + "%");
     if (!pm_query->finished()) {
@@ -264,7 +267,8 @@ void QueryEvolutionProcessor::select_best_individuals(
     vector<std::pair<shared_ptr<QueryAnswer>, float>>& selected) {
     double selection_rate = proxy->parameters.get<double>(QueryEvolutionProxy::SELECTION_RATE);
     unsigned int population_size = population.size();
-    unsigned int max_population_size = proxy->parameters.get<unsigned int>(QueryEvolutionProxy::POPULATION_SIZE);
+    unsigned int max_population_size =
+        proxy->parameters.get<unsigned int>(QueryEvolutionProxy::POPULATION_SIZE);
     unsigned int max_count = (unsigned int) std::lround(selection_rate * max_population_size);
 
     // clang-format off
