@@ -210,7 +210,9 @@ void BaseProxy::allow_cycle_start(const vector<string>& args) {
 void BaseProxy::cycle_ended(const vector<string>& args) {
     lock_guard<mutex> semaphore(this->api_mutex);
     this->cycle_count++;
-    this->waiting_to_start_new_cycle = true;
+    if (this->orchestration_schema == SYNC_ON_CYCLE_START) {
+        this->waiting_to_start_new_cycle = true;
+    }
 }
 
 // ---------------------------------------------------------------------------------------------
