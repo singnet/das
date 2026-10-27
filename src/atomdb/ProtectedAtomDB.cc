@@ -95,9 +95,11 @@ vector<shared_ptr<Atom>> ProtectedAtomDB::get_matching_atoms(bool is_toplevel,
 
 shared_ptr<atomdb_api_types::HandleSet> ProtectedAtomDB::query_for_pattern(
     const LinkSchema& link_schema, shared_ptr<Keychain> keychain) {
+    StopWatch timer_total;
     StopWatch timer_keychain;
     StopWatch timer_filter;
 
+    timer_total.start();
     timer_keychain.start();
     auto public_key = this->try_get_public_key(keychain);
     timer_keychain.stop();
@@ -110,11 +112,19 @@ shared_ptr<atomdb_api_types::HandleSet> ProtectedAtomDB::query_for_pattern(
     auto result = this->filter_handle_set(
         public_key, [this, &link_schema] { return this->backend->query_for_pattern(link_schema); });
     timer_filter.stop();
+    timer_total.stop();
 
+    unsigned long total_ms = timer_total.milliseconds();
+    unsigned long keychain_ms = timer_keychain.milliseconds();
+    unsigned long filter_ms = timer_filter.milliseconds();
+    unsigned long leftover_ms =
+        total_ms > (keychain_ms + filter_ms) ? total_ms - (keychain_ms + filter_ms) : 0;
     LOG_DEBUG("[ProtectedAtomDB(" << this->uid_ << ")] query_for_pattern(" << link_schema.handle()
                                   << ") -> " << (result ? result->size() : 0) << " handles"
-                                  << " | try_get_public_key: " << timer_keychain.milliseconds() << "ms"
-                                  << " | filter_handle_set: " << timer_filter.milliseconds() << "ms");
+                                  << " | try_get_public_key: " << keychain_ms << "ms"
+                                  << " | filter_handle_set: " << filter_ms << "ms"
+                                  << " | leftover: " << leftover_ms << "ms"
+                                  << " | total: " << total_ms << "ms");
     return result;
 }
 
@@ -461,32 +471,41 @@ shared_ptr<atomdb_api_types::HandleSet> ProtectedAtomDB::filter_handle_set(
         return make_shared<atomdb_api_types::HandleSetInMemory>();
     }
 
+    StopWatch timer_total;
     StopWatch timer_backend;
+    timer_total.start();
     timer_backend.start();
-    LOG_DEBUG("[ProtectedAtomDB(" << this->uid_ << ")] filter_handle_set: querying backend");
     auto original_handle_set = query();
     timer_backend.stop();
-    LOG_DEBUG("[ProtectedAtomDB(" << this->uid_ << ")] filter_handle_set: backend returned "
-                                  << (original_handle_set ? original_handle_set->size() : 0)
-                                  << " handles | time: " << timer_backend.milliseconds() << "ms");
 
     if (original_handle_set == nullptr) {
+        timer_total.stop();
+        LOG_DEBUG("[ProtectedAtomDB(" << this->uid_
+                                      << ")] filter_handle_set: backend returned nullptr"
+                                      << " | backend: " << timer_backend.milliseconds() << "ms"
+                                      << " | leftover: 0ms"
+                                      << " | total: " << timer_total.milliseconds() << "ms");
         return make_shared<atomdb_api_types::HandleSetInMemory>();
     }
 
     if (this->manifest->is_unrestricted(*public_key)) {
+        timer_total.stop();
+        unsigned long total_ms = timer_total.milliseconds();
+        unsigned long backend_ms = timer_backend.milliseconds();
+        unsigned long leftover_ms = total_ms > backend_ms ? total_ms - backend_ms : 0;
         LOG_DEBUG("[ProtectedAtomDB(" << this->uid_
-                                      << ")] filter_handle_set: unrestricted, skipping authorization");
+                                      << ")] filter_handle_set: unrestricted, skipping authorization"
+                                      << " | backend: " << backend_ms << "ms"
+                                      << " | leftover: " << leftover_ms << "ms"
+                                      << " | total: " << total_ms << "ms");
         return original_handle_set;
     }
 
-    StopWatch timer_auth;
     StopWatch timer_next;
     StopWatch timer_can_read;
     StopWatch timer_add;
     reset_can_read_timing();
 
-    timer_auth.start();
     auto it = original_handle_set->get_iterator();
     auto authorized_handle_set = make_shared<atomdb_api_types::HandleSetInMemory>();
     unsigned long scanned = 0;
@@ -510,19 +529,30 @@ shared_ptr<atomdb_api_types::HandleSet> ProtectedAtomDB::filter_handle_set(
             timer_add.stop();
         }
     }
-    timer_auth.stop();
+    timer_total.stop();
 
-    unsigned long total_ms = timer_auth.milliseconds();
+    unsigned long total_ms = timer_total.milliseconds();
+    unsigned long backend_ms = timer_backend.milliseconds();
     unsigned long next_ms = timer_next.milliseconds();
     unsigned long can_read_ms = timer_can_read.milliseconds();
     unsigned long add_ms = timer_add.milliseconds();
+    unsigned long parts_ms = backend_ms + next_ms + can_read_ms + add_ms;
+    unsigned long leftover_ms = total_ms > parts_ms ? total_ms - parts_ms : 0;
+    unsigned long can_read_parts = g_can_read_unrestricted.milliseconds() +
+                                   g_can_read_exists.milliseconds() +
+                                   g_can_read_get_atom.milliseconds() +
+                                   g_can_read_is_granted.milliseconds();
+    unsigned long can_read_leftover =
+        can_read_ms > can_read_parts ? can_read_ms - can_read_parts : 0;
     LOG_DEBUG("[ProtectedAtomDB(" << this->uid_
                                   << ")] filter_handle_set: " << original_handle_set->size() << " -> "
                                   << authorized_handle_set->size() << " authorized"
                                   << " | scanned: " << scanned
+                                  << " | backend: " << backend_ms << "ms"
                                   << " | next: " << next_ms << "ms"
                                   << " | can_read: " << can_read_ms << "ms"
                                   << " | add_handle: " << add_ms << "ms"
+                                  << " | leftover: " << leftover_ms << "ms"
                                   << " | total: " << total_ms << "ms");
     LOG_DEBUG("[ProtectedAtomDB(" << this->uid_ << ")] can_read breakdown"
                                   << " | calls: " << g_can_read_calls
@@ -530,8 +560,9 @@ shared_ptr<atomdb_api_types::HandleSet> ProtectedAtomDB::filter_handle_set(
                                   << g_can_read_unrestricted.milliseconds() << "ms"
                                   << " | atom_exists: " << g_can_read_exists.milliseconds() << "ms"
                                   << " | get_atom: " << g_can_read_get_atom.milliseconds() << "ms"
-                                  << " | is_granted: " << g_can_read_is_granted.milliseconds()
-                                  << "ms");
+                                  << " | is_granted: " << g_can_read_is_granted.milliseconds() << "ms"
+                                  << " | leftover: " << can_read_leftover << "ms"
+                                  << " | total: " << can_read_ms << "ms");
 
     return authorized_handle_set;
 }

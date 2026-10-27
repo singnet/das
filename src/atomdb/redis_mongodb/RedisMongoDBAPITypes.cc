@@ -117,14 +117,22 @@ char* HandleSetRedisIterator::next() {
         candidate = _next();
         timer_raw_next.stop();
         if (candidate == NULL) {
+            unsigned long next_ms = this->timer_raw_next.milliseconds();
+            unsigned long match_ms = this->timer_match.milliseconds();
+            unsigned long other_ms = this->timer_other.milliseconds();
+            unsigned long parts_ms = next_ms + match_ms + other_ms;
             LOG_DEBUG("HandleSetRedisIterator::next exhausted"
                       << " | candidates: " << this->candidates << " | matches: " << this->matches
-                      << " | _next: " << this->timer_raw_next.milliseconds() << "ms"
-                      << " | match: " << this->timer_match.milliseconds() << "ms");
+                      << " | _next: " << next_ms << "ms"
+                      << " | match: " << match_ms << "ms"
+                      << " | other: " << other_ms << "ms"
+                      << " | sum: " << parts_ms << "ms");
             return NULL;
         }
         this->candidates++;
+        timer_other.start();
         handle = string(candidate);
+        timer_other.stop();
         bool matched = (this->handle_set->link_schema == nullptr);
         if (!matched) {
             timer_match.start();
@@ -133,7 +141,9 @@ char* HandleSetRedisIterator::next() {
         }
         if (matched) {
             this->matches++;
+            timer_other.start();
             this->handle_set->assignments_by_handle[handle] = assignment;
+            timer_other.stop();
             return candidate;
         }
         assignment.clear();

@@ -62,6 +62,7 @@ class HandleSetRedisIterator : public HandleSetIterator {
     unsigned int inner_idx;
     StopWatch timer_raw_next;
     StopWatch timer_match;
+    StopWatch timer_other;
     unsigned long candidates = 0;
     unsigned long matches = 0;
 };

@@ -67,9 +67,11 @@ STAGE_SUM_KEYS = (
     "local_persistence",
 )
 BREAKDOWN_KEYS = {
+    "backend",
     "next",
     "can_read",
     "add_handle",
+    "leftover",
     "remote",
     "feed_cache",
     "merge_remote",
@@ -77,6 +79,7 @@ BREAKDOWN_KEYS = {
     "local_persistence",
     "match",
     "_next",
+    "other",
     "get_atom",
     "is_granted",
     "atom_exists",
@@ -182,12 +185,40 @@ def nest(events: list[Event]) -> list[Event]:
                 child.assigned = True
                 parent.children.append(child)
         attach_field_children(parent)
+        rehome_details(parent)
 
     for event in events:
         if event.duration_ms is None:
             attach_field_children(event)
 
     return [event for event in events if not event.assigned]
+
+
+def field_child(event: Event, key: str) -> Optional[Event]:
+    prefix = f"{key}:"
+    for child in event.children:
+        if child.message.startswith(prefix):
+            return child
+    return None
+
+
+def rehome_details(event: Event) -> None:
+    """Put iterator/can_read detail logs under the exclusive field they explain."""
+    for child in event.children:
+        rehome_details(child)
+
+    kept: list[Event] = []
+    for child in event.children:
+        target = None
+        if "next exhausted" in child.message:
+            target = field_child(event, "next")
+        elif "can_read breakdown" in child.message:
+            target = field_child(event, "can_read")
+        if target is not None and target is not child:
+            target.children.append(child)
+        else:
+            kept.append(child)
+    event.children = kept
 
 
 def format_event(event: Event, indent: int = 0) -> list[str]:
