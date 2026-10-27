@@ -64,9 +64,13 @@ static bool consolidate_rent_and_wages(HandleTrie::TrieNode* node, void* data) {
 
     TokenSpreader::ImportanceChanges* changes =
         (TokenSpreader::ImportanceChanges*) ((DATA*) data)->importance_changes->lookup(node->suffix);
+    ImportanceType rent = 0;
+    ImportanceType wages = 0;
     if (changes != NULL) {
-        value->importance -= changes->rent;
-        value->importance += changes->wages;
+        rent = changes->rent;
+        wages = changes->wages;
+        value->importance -= rent;
+        value->importance += wages;
     }
 
     // Compute amount to be spread
@@ -82,8 +86,8 @@ static bool consolidate_rent_and_wages(HandleTrie::TrieNode* node, void* data) {
     LOG_LOCAL_DEBUG(\
         "Update " + node->suffix + ":" + \
         " " + std::to_string(original_importance) + \
-        " - " + std::to_string(changes->rent) + " (rent)"  + \
-        " + " + std::to_string(changes->wages) + " (wages)" + \
+        " - " + std::to_string(rent) + " (rent)"  + \
+        " + " + std::to_string(wages) + " (wages)" + \
         " - " + std::to_string(to_spread) + " (spread) " + \
         " = " + std::to_string(value->importance));
     // clang-format on

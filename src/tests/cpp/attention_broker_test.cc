@@ -23,6 +23,8 @@ bool importance_equals(ImportanceType importance, double v2) {
 
 TEST(AttentionBrokerTest, basics) {
     AttentionBrokerServer service;
+    unsigned int save_parameter = AttentionBrokerServer::EXTRA_ACTIVATION_CYCLES_PER_ROUND;
+    AttentionBrokerServer::EXTRA_ACTIVATION_CYCLES_PER_ROUND = 0;
     dasproto::Empty empty;
     dasproto::HandleCount handle_count;
     dasproto::HandleList handle_list;
@@ -41,13 +43,15 @@ TEST(AttentionBrokerTest, basics) {
     EXPECT_EQ(ack.msg(), "SET_DETERMINERS");
     service.get_importance(context, &handle_list, &importance_list);
     EXPECT_EQ(importance_list.list_size(), 0);
+    AttentionBrokerServer::EXTRA_ACTIVATION_CYCLES_PER_ROUND = save_parameter;
 }
 
-/*
 TEST(AttentionBrokerTest, get_importance) {
     string* handles = build_handle_space(4);
 
     AttentionBrokerServer service;
+    unsigned int save_parameter = AttentionBrokerServer::EXTRA_ACTIVATION_CYCLES_PER_ROUND;
+    AttentionBrokerServer::EXTRA_ACTIVATION_CYCLES_PER_ROUND = 0;
     dasproto::HandleList handle_list0;
     dasproto::HandleList handle_list1;
     dasproto::HandleList handle_list2;
@@ -95,9 +99,54 @@ TEST(AttentionBrokerTest, get_importance) {
     EXPECT_TRUE(importance_list3.list(0) > 0.4);
     EXPECT_TRUE(importance_list3.list(1) > 0.4);
     EXPECT_TRUE(importance_list4.list(0) < 0.1);
-    EXPECT_TRUE(importance_list4.list(1) > 0.4);
+    double avg = (importance_list3.list(0) + importance_list4.list(0)) / 2;
+    EXPECT_TRUE(Utils::is_zero(importance_list4.list(1) - avg));
+    AttentionBrokerServer::EXTRA_ACTIVATION_CYCLES_PER_ROUND = save_parameter;
 }
 
+TEST(AttentionBrokerTest, get_importance_multiple_cycle) {
+    string* handles = build_handle_space(4);
+
+    AttentionBrokerServer service;
+    unsigned int save_parameter = AttentionBrokerServer::EXTRA_ACTIVATION_CYCLES_PER_ROUND;
+    AttentionBrokerServer::EXTRA_ACTIVATION_CYCLES_PER_ROUND = 2;
+    dasproto::HandleList handle_list0;
+    dasproto::HandleList handle_list1;
+    dasproto::HandleList handle_list2;
+    dasproto::HandleCount handle_count;
+    dasproto::Ack ack;
+    dasproto::ImportanceList importance_list1;
+    dasproto::ImportanceList importance_list2;
+    ServerContext* context = NULL;
+
+    (*handle_count.mutable_map())[handles[0]] = 1;
+    (*handle_count.mutable_map())[handles[1]] = 1;
+    (*handle_count.mutable_map())["SUM"] = 2;
+
+    handle_list0.add_list(handles[0]);
+    handle_list0.add_list(handles[1]);
+    handle_list0.add_list(handles[2]);
+    handle_list0.add_list(handles[3]);
+    handle_list1.add_list(handles[0]);
+    handle_list1.add_list(handles[1]);
+    handle_list2.add_list(handles[2]);
+    handle_list2.add_list(handles[3]);
+
+    service.correlate(context, &handle_list0, &ack);
+    Utils::sleep(1000);
+    service.stimulate(context, &handle_count, &ack);
+    Utils::sleep(1000);
+    service.get_importance(context, &handle_list1, &importance_list1);
+    service.get_importance(context, &handle_list2, &importance_list2);
+
+    EXPECT_TRUE(importance_list1.list(0) > 0.41);
+    EXPECT_TRUE(importance_list1.list(1) > 0.41);
+    EXPECT_TRUE(importance_list2.list(0) < 0.09);
+    EXPECT_TRUE(importance_list2.list(1) < 0.09);
+    AttentionBrokerServer::EXTRA_ACTIVATION_CYCLES_PER_ROUND = save_parameter;
+}
+
+/*
 TEST(AttentionBrokerTest, save_and_load) {
     string* handles = build_handle_space(4);
 

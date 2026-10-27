@@ -8,7 +8,7 @@ using namespace attention_broker;
 double AttentionBrokerServer::RENT_RATE = 0.75;
 double AttentionBrokerServer::SPREADING_RATE_LOWERBOUND = 0.10;
 double AttentionBrokerServer::SPREADING_RATE_UPPERBOUND = 0.10;
-unsigned int AttentionBrokerServer::ACTIVATION_CYCLES_PER_ROUND = 10;
+unsigned int AttentionBrokerServer::EXTRA_ACTIVATION_CYCLES_PER_ROUND = 0;
 
 // --------------------------------------------------------------------------------
 // Public methods
@@ -67,7 +67,7 @@ Status AttentionBrokerServer::stimulate(ServerContext* grpc_context,
         dasproto::HandleCount empty_request;
         empty_request.set_hebbian_network((long) network);
         (*empty_request.mutable_map())["SUM"] = 0;
-        for (unsigned int i = 0; i < ACTIVATION_CYCLES_PER_ROUND; i++) {
+        for (unsigned int i = 0; i < EXTRA_ACTIVATION_CYCLES_PER_ROUND; i++) {
             this->stimulus_spreader->spread_stimuli(&empty_request, true);
         }
     }
