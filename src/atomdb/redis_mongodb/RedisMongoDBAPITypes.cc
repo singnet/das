@@ -103,6 +103,8 @@ char* HandleSetRedisIterator::_next() {
     return NULL;
 }
 
+char* HandleSetRedisIterator::next_raw() { return _next(); }
+
 char* HandleSetRedisIterator::next() {
     Assignment assignment;
     char* candidate;

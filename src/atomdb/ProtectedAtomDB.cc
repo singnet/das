@@ -95,37 +95,95 @@ vector<shared_ptr<Atom>> ProtectedAtomDB::get_matching_atoms(bool is_toplevel,
 
 shared_ptr<atomdb_api_types::HandleSet> ProtectedAtomDB::query_for_pattern(
     const LinkSchema& link_schema, shared_ptr<Keychain> keychain) {
-    StopWatch timer_total;
-    StopWatch timer_keychain;
-    StopWatch timer_filter;
-
-    timer_total.start();
-    timer_keychain.start();
     auto public_key = this->try_get_public_key(keychain);
-    timer_keychain.stop();
-    LOG_DEBUG("[ProtectedAtomDB(" << this->uid_ << ")] query_for_pattern(" << link_schema.handle()
-                                  << ") " << (public_key ? "start" : "skipped, no public key")
-                                  << " | try_get_public_key: " << timer_keychain.milliseconds()
-                                  << "ms");
+    if (!public_key) {
+        LOG_DEBUG("[ProtectedAtomDB(" << this->uid_ << ")] query_for_pattern: skipped, no public key");
+        return make_shared<atomdb_api_types::HandleSetInMemory>();
+    }
 
-    timer_filter.start();
-    auto result = this->filter_handle_set(
-        public_key, [this, &link_schema] { return this->backend->query_for_pattern(link_schema); });
-    timer_filter.stop();
+    StopWatch timer_total;
+    StopWatch timer_backend;
+    timer_total.start();
+    timer_backend.start();
+    auto original_handle_set = this->backend->query_for_pattern(link_schema);
+    timer_backend.stop();
+
+    auto authorized_handle_set = make_shared<atomdb_api_types::HandleSetInMemory>();
+    if (original_handle_set == nullptr) {
+        timer_total.stop();
+        LOG_DEBUG("[ProtectedAtomDB(" << this->uid_
+                                      << ")] query_for_pattern: backend returned nullptr"
+                                      << " | backend: " << timer_backend.milliseconds() << "ms"
+                                      << " | leftover: 0ms"
+                                      << " | total: " << timer_total.milliseconds() << "ms");
+        return authorized_handle_set;
+    }
+
+    StopWatch timer_next;
+    StopWatch timer_get_atom;
+    StopWatch timer_can_read;
+    StopWatch timer_match;
+    StopWatch timer_add;
+
+    auto it = original_handle_set->get_iterator();
+    unsigned long scanned = 0;
+    while (true) {
+        timer_next.start();
+        char* handle_cstr = it->next_raw();
+        timer_next.stop();
+        if (!handle_cstr) break;
+        scanned++;
+        string handle(handle_cstr);
+
+        timer_get_atom.start();
+        auto atom = this->backend->get_atom(handle);
+        timer_get_atom.stop();
+
+        timer_can_read.start();
+        bool granted = this->can_read(atom, *public_key);
+        timer_can_read.stop();
+        if (!granted) continue;
+
+        auto link = dynamic_pointer_cast<Link>(atom);
+        if (link == nullptr) continue;
+
+        Assignment assignment;
+        timer_match.start();
+        bool matched = const_cast<LinkSchema&>(link_schema).match(*link, assignment, *this->backend);
+        timer_match.stop();
+        if (!matched) continue;
+
+        timer_add.start();
+        authorized_handle_set->add_handle(
+            handle, original_handle_set->get_metta_expressions_by_handle(handle), assignment);
+        timer_add.stop();
+    }
     timer_total.stop();
 
     unsigned long total_ms = timer_total.milliseconds();
-    unsigned long keychain_ms = timer_keychain.milliseconds();
-    unsigned long filter_ms = timer_filter.milliseconds();
-    unsigned long leftover_ms =
-        total_ms > (keychain_ms + filter_ms) ? total_ms - (keychain_ms + filter_ms) : 0;
-    LOG_DEBUG("[ProtectedAtomDB(" << this->uid_ << ")] query_for_pattern(" << link_schema.handle()
-                                  << ") -> " << (result ? result->size() : 0) << " handles"
-                                  << " | try_get_public_key: " << keychain_ms << "ms"
-                                  << " | filter_handle_set: " << filter_ms << "ms"
+    unsigned long backend_ms = timer_backend.milliseconds();
+    unsigned long next_ms = timer_next.milliseconds();
+    unsigned long get_atom_ms = timer_get_atom.milliseconds();
+    unsigned long can_read_ms = timer_can_read.milliseconds();
+    unsigned long match_ms = timer_match.milliseconds();
+    unsigned long add_ms = timer_add.milliseconds();
+    unsigned long parts_ms =
+        backend_ms + next_ms + get_atom_ms + can_read_ms + match_ms + add_ms;
+    unsigned long leftover_ms = total_ms > parts_ms ? total_ms - parts_ms : 0;
+    LOG_DEBUG("[ProtectedAtomDB(" << this->uid_
+                                  << ")] query_for_pattern: " << original_handle_set->size() << " -> "
+                                  << authorized_handle_set->size() << " authorized"
+                                  << " | scanned: " << scanned
+                                  << " | backend: " << backend_ms << "ms"
+                                  << " | next: " << next_ms << "ms"
+                                  << " | get_atom: " << get_atom_ms << "ms"
+                                  << " | can_read: " << can_read_ms << "ms"
+                                  << " | match: " << match_ms << "ms"
+                                  << " | add_handle: " << add_ms << "ms"
                                   << " | leftover: " << leftover_ms << "ms"
                                   << " | total: " << total_ms << "ms");
-    return result;
+
+    return authorized_handle_set;
 }
 
 shared_ptr<atomdb_api_types::HandleList> ProtectedAtomDB::query_for_targets(
