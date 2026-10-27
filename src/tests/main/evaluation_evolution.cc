@@ -151,7 +151,7 @@ static shared_ptr<LinkCreationProxy> create_lca_proxy(
     proxy->parameters[LinkCreationProxy::LINK_CREATOR_EXTRA_PARAMETERS] = (string) link_creator.extra_parameters();
     proxy->parameters[LinkCreationProxy::MAX_SUCCESSFUL_CREATION_PER_ROUND] = (unsigned int) 10;
     proxy->parameters[LinkCreationProxy::MAX_UNPRODUCTIVE_VISITS_PER_ROUND] = (unsigned int) 500;
-    proxy->parameters[LinkCreationProxy::MAX_VISIT_ATTEMPTS_PER_ROUND] = (unsigned int) 0;
+    proxy->parameters[LinkCreationProxy::MAX_VISIT_ATTEMPTS_PER_ROUND] = (unsigned int) 20;
     proxy->parameters[LinkCreationProxy::MAX_ROUNDS] = (unsigned int) 0;
     proxy->parameters[LinkCreationProxy::LINK_CREATION_STRENGTH_THRESHOLD] = (double) 0.1;
     proxy->parameters[LinkCreationProxy::LINK_CREATION_LOG_FILE_NAME] = (string) "_new_links.txt";
@@ -194,7 +194,7 @@ static void flush_remote_link_template_cache(bool force = false) {
 }
 
 // clang-format off
-static void query_evolution(
+static shared_ptr<QueryEvolutionProxy> query_evolution(
     const vector<string>& query_to_evolve,
     const vector<vector<string>>& correlation_query_template,
     unsigned int iteration,
@@ -243,25 +243,7 @@ static void query_evolution(
     proxy->parameters[QueryEvolutionProxy::SELECTION_RATE] = (double) SELECTION_RATE;
 
     bus->issue_bus_command(proxy);
-
-    shared_ptr<QueryAnswer> query_answer;
-    unsigned int count_answers = 0;
-    static double best_fitness = 0.0;
-    static unsigned int count_iterations = 1;
-
-    while (!proxy->finished()) {
-        if ((query_answer = proxy->pop()) == NULL) {
-            Utils::sleep();
-        } else {
-            count_answers++;
-            if (query_answer->strength > best_fitness) {
-                best_fitness = query_answer->strength;
-                LOG_INFO("ANSWER: " + answer_to_string(query_answer));
-                recorded_answers.push_back({query_answer, iteration});
-            }
-        }
-    }
-    LOG_INFO("Total answers in iteration " << count_iterations++ << ": " << count_answers);
+    return proxy;
 }
 
 static void add_preset_links(const string& context) {
@@ -460,6 +442,7 @@ static vector<string> make_plain_equivalence_query() {
 static void sti_snapshot(const string& context, bool report_evaluation = false) {
 
     float sti_threshold = 0.001;
+    //float sti_threshold = 0.0;
     unsigned int index_count = 0;
     unsigned int predicate_index  = index_count++;
     unsigned int concept_index    = index_count++;
@@ -555,6 +538,39 @@ static void sti_snapshot(const string& context, bool report_evaluation = false) 
     LOG_INFO("................................................................................");
 }
 
+static vector<shared_ptr<LinkCreationProxy>> one_shot_lca_proxy;
+void start_one_shot_lca(const string& handle, const string& context, bool initial_links = false) {
+    CustomizableLinkCreator implication_to_handle_link_creator(true);
+    implication_to_handle_link_creator.add_link_specification(
+        {QueryAnswerElement(PREDICATE1), QueryAnswerElement(handle, true)},
+        {QueryAnswerElement(CONCEPT1), QueryAnswerElement(CONCEPT1)},
+        IMPLICATION_TAG,
+        CustomizableLinkCreator::INTERSECTION_OVER_A,
+        {make_implication_count_query("QueryAnswerElement($Predicate1)"), make_implication_count_query("QueryAnswerElement(#" + handle + ")")});
+    BaseProxy::ORCHESTRATION_SCHEMA_TYPE orchestration = (initial_links ? BaseProxy::SYNC_ON_CYCLE_START : BaseProxy::NONE);
+    shared_ptr<LinkCreationProxy> implication_to_handle = create_lca_proxy(make_implication_query(true), context, LinkCreatorRegistry::CUSTOMIZABLE, implication_to_handle_link_creator, orchestration);
+    implication_to_handle->parameters[LinkCreationProxy::MAX_ROUNDS] = (unsigned int) 1;
+    if (initial_links) {
+        implication_to_handle->parameters[LinkCreationProxy::MAX_SUCCESSFUL_CREATION_PER_ROUND] = (unsigned int) 100;
+        implication_to_handle->parameters[LinkCreationProxy::MAX_UNPRODUCTIVE_VISITS_PER_ROUND] = (unsigned int) 100000;
+        implication_to_handle->parameters[LinkCreationProxy::MAX_VISIT_ATTEMPTS_PER_ROUND] = (unsigned int) 100000;
+        implication_to_handle->parameters[PatternMatchingQueryProxy::DISREGARD_IMPORTANCE_FLAG] = (bool) true;
+        implication_to_handle->parameters[PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG] = (bool) false;
+        implication_to_handle->parameters[BaseQueryProxy::ATTENTION_FOCUS_STRICTNESS] = (double) 0.0;
+        implication_to_handle->parameters[LinkCreationProxy::LINK_CREATION_LOG_FILE_NAME] = (string) "_initial_links.txt";
+    }
+    one_shot_lca_proxy.push_back(implication_to_handle);
+    ServiceBusSingleton::get_instance()->issue_bus_command(implication_to_handle);
+    Utils::sleep(2000); // XXXXX
+    if (initial_links) {
+        implication_to_handle->allow_cycle_start();
+        Utils::sleep(2000); // XXXXX
+        while (! implication_to_handle->finished_cycle(true)) {
+            Utils::sleep();
+        }
+    }
+}
+
 static void run(const string& context_tag) {
     STACK_TRACE();
 
@@ -648,9 +664,9 @@ static void run(const string& context_tag) {
     };
     // clang-format on
 
+    AndTwoPredicates and_two_predicates;
     CustomizableLinkCreator implication_to_target_link_creator(true);
     CustomizableLinkCreator equivalence_to_target_link_creator;
-    AndTwoPredicates and_two_predicates;
     CustomizableLinkCreator implication_link_creator(true);
     CustomizableLinkCreator equivalence_link_creator;
     CustomizableLinkCreator evaluation_link_creator;
@@ -666,6 +682,7 @@ static void run(const string& context_tag) {
                                                     EQUIVALENCE_TAG,
                                                     CustomizableLinkCreator::INTERSECTION_OVER_UNION,
                                                     {make_equivalence_count_query("QueryAnswerElement($Concept1)"), make_equivalence_count_query("QueryAnswerElement(#" + TARGET_CONCEPT_HANDLE + ")")});
+
 
     // Implication and equivalence
     implication_link_creator.add_link_specification({QueryAnswerElement(PREDICATE1), QueryAnswerElement(PREDICATE2)},
@@ -686,8 +703,8 @@ static void run(const string& context_tag) {
                                                    CustomizableLinkCreator::PRODUCT,
                                                    {});
 
-    LOG_INFO("----- Adding initial links");
-    add_preset_links(context);
+    //LOG_INFO("----- Adding initial links");
+    //add_preset_links(context);
     //sti_snapshot(context, false); // XXXXX
     //exit(0); // XXXXX
     /*
@@ -706,93 +723,73 @@ static void run(const string& context_tag) {
         Utils::sleep();
     }
     */
-    LOG_INFO("--------------------------------------------------------------------------------");
+    //LOG_INFO("--------------------------------------------------------------------------------");
     //query_evolution(query_to_evolve, correlation_query_template, 1, context); // XXXXX
     //exit(0); // XXXXX
 
-    //shared_ptr<LinkCreationProxy> and2predicates = create_lca_proxy(make_implication_query(), context, LinkCreatorRegistry::AND_TWO_PREDICATES, and_two_predicates, BaseProxy::NONE);
-    shared_ptr<LinkCreationProxy> implication = create_lca_proxy(make_implication_query(), context, LinkCreatorRegistry::CUSTOMIZABLE, implication_link_creator, BaseProxy::SYNC_ON_CYCLE_START);
-    shared_ptr<LinkCreationProxy> equivalence = create_lca_proxy(make_equivalence_query(), context, LinkCreatorRegistry::CUSTOMIZABLE, equivalence_link_creator, BaseProxy::SYNC_ON_CYCLE_START);
-    shared_ptr<LinkCreationProxy> evaluation_predicate = create_lca_proxy(make_evaluation_predicate_query(), context, LinkCreatorRegistry::CUSTOMIZABLE, evaluation_link_creator, BaseProxy::SYNC_ON_CYCLE_START);
-    shared_ptr<LinkCreationProxy> evaluation_concept = create_lca_proxy(make_evaluation_concept_query(), context, LinkCreatorRegistry::CUSTOMIZABLE, evaluation_link_creator, BaseProxy::SYNC_ON_CYCLE_START);
-    vector<shared_ptr<LinkCreationProxy>> lca_proxy = {
-        //and2predicates,
-        implication,
-        equivalence,
-        evaluation_predicate,
-        evaluation_concept
-    };
+    start_one_shot_lca(TARGET_PREDICATE_HANDLE, context, true);
+    start_one_shot_lca(TARGET_CONCEPT_HANDLE, context, true);
+    //sti_snapshot(context, false); // XXXXX
+    //exit(0); // XXXXX
 
-    /*
-    and2predicates->parameters[LinkCreationProxy::MAX_SUCCESSFUL_CREATION_PER_ROUND] = (unsigned int) 5000;
-    and2predicates->parameters[LinkCreationProxy::MAX_UNPRODUCTIVE_VISITS_PER_ROUND] = (unsigned int) 500;
-    and2predicates->parameters[LinkCreationProxy::MAX_VISIT_ATTEMPTS_PER_ROUND] = (unsigned int) 10;
-    and2predicates->parameters[LinkCreationProxy::LINK_CREATION_STRENGTH_THRESHOLD] = (double) 0.5;
-    and2predicates->parameters[LinkCreationProxy::LINK_CREATION_LOG_FILE_NAME] = (string) "_new_and2predicates_links.txt";
-    and2predicates->parameters[LinkCreationProxy::LINK_CREATION_SPREAD_ACTIVATION] = (bool) false;
-    ServiceBusSingleton::get_instance()->issue_bus_command(and2predicates);
-    Utils::sleep(2000); // XXXXX
-    */
+    shared_ptr<LinkCreationProxy> and2predicates = create_lca_proxy(make_implication_query(), context, LinkCreatorRegistry::AND_TWO_PREDICATES, and_two_predicates, BaseProxy::NONE);
+    shared_ptr<LinkCreationProxy> implication = create_lca_proxy(make_implication_query(), context, LinkCreatorRegistry::CUSTOMIZABLE, implication_link_creator, BaseProxy::NONE);
+    shared_ptr<LinkCreationProxy> equivalence = create_lca_proxy(make_equivalence_query(), context, LinkCreatorRegistry::CUSTOMIZABLE, equivalence_link_creator, BaseProxy::NONE);
+    shared_ptr<LinkCreationProxy> evaluation_predicate = create_lca_proxy(make_evaluation_predicate_query(), context, LinkCreatorRegistry::CUSTOMIZABLE, evaluation_link_creator, BaseProxy::NONE);
+    shared_ptr<LinkCreationProxy> evaluation_concept = create_lca_proxy(make_evaluation_concept_query(), context, LinkCreatorRegistry::CUSTOMIZABLE, evaluation_link_creator, BaseProxy::NONE);
 
-    evaluation_predicate->parameters[LinkCreationProxy::MAX_SUCCESSFUL_CREATION_PER_ROUND] = (unsigned int) 10;
-    evaluation_predicate->parameters[LinkCreationProxy::MAX_UNPRODUCTIVE_VISITS_PER_ROUND] = (unsigned int) 500;
-    evaluation_predicate->parameters[LinkCreationProxy::MAX_VISIT_ATTEMPTS_PER_ROUND] = (unsigned int) 20;
     evaluation_predicate->parameters[LinkCreationProxy::LINK_CREATION_STRENGTH_THRESHOLD] = (double) 0.05;
-    evaluation_predicate->parameters[LinkCreationProxy::LINK_CREATION_LOG_FILE_NAME] = (string) "_new_path_links.txt";
+    evaluation_predicate->parameters[LinkCreationProxy::LINK_CREATION_LOG_FILE_NAME] = (string) "_new_weak_evaluation_links.txt";
     evaluation_predicate->parameters[LinkCreationProxy::LINK_CREATION_SPREAD_ACTIVATION] = (bool) false;
 
-    evaluation_concept->parameters[LinkCreationProxy::MAX_SUCCESSFUL_CREATION_PER_ROUND] = (unsigned int) 10;
-    evaluation_concept->parameters[LinkCreationProxy::MAX_UNPRODUCTIVE_VISITS_PER_ROUND] = (unsigned int) 500;
-    evaluation_concept->parameters[LinkCreationProxy::MAX_VISIT_ATTEMPTS_PER_ROUND] = (unsigned int) 20;
     evaluation_concept->parameters[LinkCreationProxy::LINK_CREATION_STRENGTH_THRESHOLD] = (double) 0.05;
-    evaluation_concept->parameters[LinkCreationProxy::LINK_CREATION_LOG_FILE_NAME] = (string) "_new_path_links.txt";
+    evaluation_concept->parameters[LinkCreationProxy::LINK_CREATION_LOG_FILE_NAME] = (string) "_new_weak_evaluation_links.txt";
     evaluation_concept->parameters[LinkCreationProxy::LINK_CREATION_SPREAD_ACTIVATION] = (bool) false;
 
-    for (auto proxy : lca_proxy) {
-        ServiceBusSingleton::get_instance()->issue_bus_command(proxy);
-        Utils::sleep(2000); // XXXXX
-    }
-    Utils::sleep(5000); // XXXXX
+    ServiceBusSingleton::get_instance()->issue_bus_command(and2predicates);
+    Utils::sleep(2000); // XXXXX
+    ServiceBusSingleton::get_instance()->issue_bus_command(implication);
+    Utils::sleep(2000); // XXXXX
+    ServiceBusSingleton::get_instance()->issue_bus_command(equivalence);
+    Utils::sleep(2000); // XXXXX
+    ServiceBusSingleton::get_instance()->issue_bus_command(evaluation_predicate);
+    Utils::sleep(2000); // XXXXX
+    ServiceBusSingleton::get_instance()->issue_bus_command(evaluation_concept);
+    Utils::sleep(2000); // XXXXX
 
+    Utils::sleep(180000); // XXXXX
+    //Utils::sleep(300000); // XXXXX
+
+    double best_fitness = 0.0;
     for (unsigned int iteration = 1; iteration <= NUM_ITERATIONS; iteration++) {
         LOG_INFO("--------------------------------------------------------------------------------");
         LOG_INFO("Iteration " + to_string(iteration));
         LOG_INFO("--------------------------------------------------------------------------------");
-        sti_snapshot(context, false); // XXXXX
-        LOG_INFO("----- Building links");
-        //AttentionBrokerClient::stimulate({{TARGET_PREDICATE_HANDLE, 1}, {TARGET_CONCEPT_HANDLE, 1}}, context);
-        /*
-        for (auto proxy : lca_proxy) {
-            proxy->allow_cycle_start();
-            //Utils::sleep(40000); // XXXXX
-        }
-        bool finished_flag = false;
-        while (!finished_flag) {
-            finished_flag = true;
-            for (auto proxy : lca_proxy) {
-                if (! proxy->finished_cycle(true)) {
-                    finished_flag = false;
-                    break;
+        shared_ptr<QueryEvolutionProxy> qe_proxy = query_evolution(query_to_evolve, correlation_query_template, iteration, context);
+
+        shared_ptr<QueryAnswer> query_answer;
+        unsigned int count_answers = 0;
+
+        while (!qe_proxy->finished()) {
+            if ((query_answer = qe_proxy->pop()) == NULL) {
+                Utils::sleep();
+            } else {
+                count_answers++;
+                if (query_answer->strength > best_fitness) {
+                    best_fitness = query_answer->strength;
+                    LOG_INFO("ANSWER: " + answer_to_string(query_answer));
+                    recorded_answers.push_back({query_answer, iteration});
+                }
+                for (unsigned int path_index = 0; path_index < query_answer->get_paths_size(); path_index++) {
+                    QueryAnswerElement hops(path_index, 1, 2, false, false, false);
+                    vector<string> hop_handles = query_answer->get_all(hops, db);
+                    for (auto& handle : hop_handles) {
+                        start_one_shot_lca(handle, context);
+                    }
                 }
             }
-            if (!finished_flag) {
-                Utils::sleep();
-            }
         }
-        */
-        // Sequential LC
-        for (auto proxy : lca_proxy) {
-            proxy->allow_cycle_start();
-            Utils::sleep(2000); // XXXXX
-            while (! proxy->finished_cycle(true)) {
-                Utils::sleep();
-            }
-        }
-        //exit(0);
-        sti_snapshot(context, false); // XXXXX
-        exit(0); // XXXXX
-        LOG_INFO("----- Evolving query");
-        query_evolution(query_to_evolve, correlation_query_template, iteration, context);
+        LOG_INFO("Total answers in iteration " << iteration << ": " << count_answers);
         flush_remote_link_template_cache();
     }
 

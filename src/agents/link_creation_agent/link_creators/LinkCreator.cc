@@ -31,14 +31,18 @@ LinkCreator::AddLinkStatus LinkCreator::add_or_update_link(const vector<string>&
             return REJECTED;
         } else {
             // Default merger (NULL) upserts/replaces the existing atom.
+            for (auto& target_handle : new_link->targets) {
+                add_stimulus(target_handle, strength);
+            }
             db->add_link(new_link.get());
-            add_stimulus(handle, strength);
             return UPDATED;
         }
     } else if (strength >= this->_strength_threshold) {
         LOG_DEBUG("Adding new Link to AtomDB");
+        for (auto& target_handle : new_link->targets) {
+            add_stimulus(target_handle, strength);
+        }
         db->add_link(new_link.get());
-        add_stimulus(handle, strength);
         this->newly_created_links.push_back(handle);
         if (log_new_links()) {
             LOG_INFO("ADD LINK: [" + std::to_string(strength) + "] " +

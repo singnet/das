@@ -232,6 +232,7 @@ void QueryEvolutionProxy::new_population_sampled(
             }
         }
     }
+    flush_answer_bundle();
 }
 
 void QueryEvolutionProxy::set_fitness_function_tag(const string& tag) {
