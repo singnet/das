@@ -244,14 +244,6 @@ class Chain : public Operator<1>, public ThreadMethod {
     void report_path(Path& path);
 
     /**
-     * Path Finder thread.
-     * Called after all possible paths between source and targetr has been explored. Basically,
-     * notifies that the Chain Operator has ended the job of trying to find paths
-     * (complete or incomplete).
-     */
-    void set_all_paths_explored(bool flag);
-
-    /**
      * Chain Operator AND Path Finder threads.
      * Check if the Chain Operator has ended the search for new paths
      * (see set_all_paths_explored()).

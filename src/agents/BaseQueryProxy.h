@@ -176,6 +176,14 @@ class BaseQueryProxy : public BaseProxy {
      */
     vector<string> get_supplementary_info(SUPPLEMENTARY_INFO_TAG tag);
 
+    /**
+     * Clears the supplementary info values related to the passed tag or clears everything
+     * if UNDEFINED is passed.
+     *
+     * @param tag The supplementary info tag to be cleared.
+     */
+    void clear_supplementary_info(SUPPLEMENTARY_INFO_TAG tag = UNDEFINED);
+
     // ---------------------------------------------------------------------------------------------
     // Server-side API
 
@@ -198,8 +206,8 @@ class BaseQueryProxy : public BaseProxy {
     /**
      * Push a handle into the tag's vector as a supplementary info. This info will end up
      * in the peer proxy but it may not happen immediatelly because of the buffering algorithm.
-     * However, whenever a QueryAnswer is actually delivered, any supplementary info pushed so
-     * far is also delivered.
+     * However, whenever a QueryAnswer is actually delivered, it's guaranteed that any supplementary
+     * info pushed so far is delivered first.
      *
      * @param answer Answer to push.
      */

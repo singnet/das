@@ -99,6 +99,18 @@ vector<string> BaseQueryProxy::get_supplementary_info(SUPPLEMENTARY_INFO_TAG tag
     }
 }
 
+void BaseQueryProxy::clear_supplementary_info(SUPPLEMENTARY_INFO_TAG tag) {
+    lock_guard<recursive_mutex> semaphore(this->api_mutex);
+    if (tag == UNDEFINED) {
+        this->_supplementary_info.clear();
+    } else {
+        string key = supplementary_info_tag_to_string(tag);
+        if (this->_supplementary_info.find(key) != this->_supplementary_info.end()) {
+            this->_supplementary_info[key].clear();
+        }
+    }
+}
+
 // -------------------------------------------------------------------------------------------------
 // Server-side API
 
