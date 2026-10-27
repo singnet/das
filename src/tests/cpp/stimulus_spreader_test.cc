@@ -148,7 +148,7 @@ TEST(TokenSpreader, spread_stimuli) {
     (*request->mutable_map())[handles[5]] = 1;
     (*request->mutable_map())["SUM"] = 6;
     unsigned int SUM = (*request->mutable_map())["SUM"];
-    spreader->spread_stimuli(request);
+    spreader->spread_stimuli(request, false);
 
     // ----------------------------------------------------------
     // Compute expected value for importance of each node

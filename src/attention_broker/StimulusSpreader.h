@@ -54,7 +54,7 @@ class StimulusSpreader {
      * the magnitude of such boost. The actual way importance is boosted and then spread among
      * HebbianNetwork links are delegated to the concrete subclasses.
      */
-    virtual void spread_stimuli(const dasproto::HandleCount* request) = 0;
+    virtual void spread_stimuli(const dasproto::HandleCount* request, bool spread_only_flag) = 0;
 
    protected:
     StimulusSpreader();  /// Basic empty constructor.
@@ -124,7 +124,7 @@ class TokenSpreader : public StimulusSpreader {
      * @param request A list of handles to be boosted and respective counts which are used to determine
      * the magnitude of such boost.
      */
-    void spread_stimuli(const dasproto::HandleCount* request);
+    void spread_stimuli(const dasproto::HandleCount* request, bool spread_only_flag);
 
     // Used only in "visit" functions during trie traversals. Such functions aren't methods so this
     // method must be public.

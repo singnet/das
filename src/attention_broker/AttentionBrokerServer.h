@@ -62,6 +62,7 @@ class AttentionBrokerServer final : public AttentionBroker::Service {
     static double RENT_RATE;                  /// double in [0..1] range.
     static double SPREADING_RATE_LOWERBOUND;  /// double in [0..1] range.
     static double SPREADING_RATE_UPPERBOUND;  /// double in [0..1] range.
+    static unsigned int ACTIVATION_CYCLES_PER_ROUND;
 
     // RPC API
 

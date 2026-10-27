@@ -8,6 +8,7 @@ using namespace attention_broker;
 double AttentionBrokerServer::RENT_RATE = 0.75;
 double AttentionBrokerServer::SPREADING_RATE_LOWERBOUND = 0.10;
 double AttentionBrokerServer::SPREADING_RATE_UPPERBOUND = 0.10;
+unsigned int AttentionBrokerServer::ACTIVATION_CYCLES_PER_ROUND = 10;
 
 // --------------------------------------------------------------------------------
 // Public methods
@@ -62,7 +63,13 @@ Status AttentionBrokerServer::stimulate(ServerContext* grpc_context,
         HebbianNetwork* network = select_hebbian_network(request->context());
         ((dasproto::HandleCount*) request)->set_hebbian_network((long) network);
         // this->stimulus_requests->enqueue((void *) request);
-        this->stimulus_spreader->spread_stimuli(request);
+        this->stimulus_spreader->spread_stimuli(request, false);
+        dasproto::HandleCount empty_request;
+        empty_request.set_hebbian_network((long) network);
+        (*empty_request.mutable_map())["SUM"] = 0;
+        for (unsigned int i = 0; i < ACTIVATION_CYCLES_PER_ROUND; i++) {
+            this->stimulus_spreader->spread_stimuli(&empty_request, true);
+        }
     }
     reply->set_msg("STIMULATE");
 #if LOG_LEVEL >= DEBUG_LEVEL
@@ -351,7 +358,7 @@ Status AttentionBrokerServer::drop_and_load_context(ServerContext* grpc_context,
             LOG_LOCAL_DEBUG("SUM: " + std::to_string(activation_request.map().find("SUM")->second));
 #endif
             LOG_DEBUG("Spreading " + std::to_string(sum_activation) + " tokens of activation");
-            this->stimulus_spreader->spread_stimuli(&activation_request);
+            this->stimulus_spreader->spread_stimuli(&activation_request, false);
         }
         LOG_DEBUG("Finished loading context file");
     } catch (const std::exception& e) {
