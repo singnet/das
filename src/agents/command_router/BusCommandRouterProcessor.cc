@@ -6,6 +6,7 @@
 
 #include "BaseQueryProxy.h"
 #include "EvolutionMettaParser.h"
+#include "LinkCreationProxy.h"
 #include "PatternMatchingQueryProxy.h"
 #include "PortPool.h"
 #include "QueryEvolutionProxy.h"
@@ -19,6 +20,7 @@
 using namespace command_router;
 using namespace query_engine;
 using namespace evolution;
+using namespace link_creation_agent;
 using namespace service_bus;
 using namespace commons;
 
@@ -37,6 +39,22 @@ void apply_direct_evolution_parameters(Properties& evo_parameters, const Propert
     for (const auto& entry : router_parameters) {
         if (allowed.find(entry.first) != allowed.end()) {
             evo_parameters[entry.first] = entry.second;
+        }
+    }
+}
+
+// Keep link-creation defaults, then overlay query + link-creation keys. Context-agent
+// keys (use_cache, initial_rent_rate, ...) stay off the downstream proxy.
+void apply_direct_link_creation_parameters(Properties& lc_parameters,
+                                           const Properties& router_parameters) {
+    Properties allowed = SystemParametersSingleton::get_instance()->get_link_creation_agent_params() +
+                         SystemParametersSingleton::get_instance()->get_query_agent_params();
+    allowed[LinkCreationProxy::LOG_NEW_LINKS] = true;
+    allowed[LinkCreationProxy::LINK_CREATION_LOG_FILE_NAME] = string("");
+    allowed[LinkCreationProxy::LINK_CREATOR_EXTRA_PARAMETERS] = string("");
+    for (const auto& entry : router_parameters) {
+        if (allowed.find(entry.first) != allowed.end()) {
+            lc_parameters[entry.first] = entry.second;
         }
     }
 }
@@ -134,6 +152,8 @@ void BusCommandRouterProcessor::run_command_internal(shared_ptr<BusCommandRouter
             handle_query(router_proxy, arg);
         } else if (command == "evolution") {
             handle_evolution(router_proxy, arg);
+        } else if (command == "link_creation") {
+            handle_link_creation(router_proxy, arg);
         } else {
             RAISE_ERROR("Unknown router command: " + command);
         }
@@ -311,4 +331,28 @@ void BusCommandRouterProcessor::handle_evolution(shared_ptr<BusCommandRouterProx
                                                       fitness_tag);
     apply_direct_evolution_parameters(evo_proxy->parameters, proxy->parameters);
     this->forward_to_service(proxy, evo_proxy);
+}
+
+void BusCommandRouterProcessor::handle_link_creation(shared_ptr<BusCommandRouterProxy> proxy,
+                                                     const string& arg) {
+    string context = proxy->parameters.get<string>(CONTEXT_KEY);
+
+    LinkCreationMettaArgs metta_args;
+    if (!try_parse_link_creation_metta_arg(arg, metta_args)) {
+        RAISE_ERROR(
+            "Link creation ARG must be a labeled MeTTa form ((query ...) (lc <link-creator-tag>))");
+    }
+
+    const bool use_metta = proxy->parameters.get<bool>(BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS);
+    vector<string> query_tokens;
+    if (use_metta) {
+        query_tokens = {normalize_metta_percent_variables(metta_args.query)};
+    } else {
+        query_tokens = Utils::split(metta_args.query, ' ');
+    }
+
+    auto lc_proxy = make_shared<LinkCreationProxy>(
+        query_tokens, context, metta_args.link_creator_tag, BaseProxy::NONE);
+    apply_direct_link_creation_parameters(lc_proxy->parameters, proxy->parameters);
+    this->forward_to_service(proxy, lc_proxy);
 }

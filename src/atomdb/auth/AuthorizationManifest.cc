@@ -62,6 +62,36 @@ bool AuthorizationManifest::ensure_profile_loaded(const string& public_key) {
     return true;
 }
 
+void AuthorizationManifest::count_matching_atoms(size_t& node_count,
+                                                 size_t& link_count,
+                                                 size_t& atom_count,
+                                                 shared_ptr<Keychain> keychain) {
+    if (keychain == nullptr) {
+        return;
+    }
+
+    string public_key = keychain->get_public_key(this->atomdb->get_uid());
+    if (!this->ensure_profile_loaded(public_key)) {
+        LOG_ERROR("No authorization profile found for public key: " + public_key);
+        return;
+    }
+
+    shared_ptr<AuthorizationProfile> profile;
+    {
+        lock_guard<mutex> lock(this->profiles_mutex);
+        profile = this->profiles.at(public_key);
+    }
+
+    if (profile->is_unrestricted()) {
+        node_count += this->atomdb->node_count();
+        link_count += this->atomdb->link_count();
+        atom_count += this->atomdb->atom_count();
+        return;
+    }
+
+    profile->count_matching_atoms(node_count, link_count, atom_count, keychain);
+}
+
 // --------------------------------------------------------------------------------
 // Private methods
 

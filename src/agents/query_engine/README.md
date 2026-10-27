@@ -14,7 +14,7 @@ This will generate the binaries for all components in the `das/bin` directory.
 
 ## **Prerequisites**
 
-Before running the Query Agent, you need to start the Attention Broker. For more information on how to set up and run the Attention Broker, refer to [attention-broker.md](../attention_broker/README.md).
+Before running the Query Agent, you need to start the Attention Broker. For more information on how to set up and run the Attention Broker, refer to [attention-broker.md](../../attention_broker/README.md).
 
 
 ## **Usage**

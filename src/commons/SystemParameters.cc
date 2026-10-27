@@ -57,5 +57,5 @@ Properties SystemParameters::get_context_agent_params() const {
 
 Properties SystemParameters::get_command_router_params() const {
     return get_base_query_params() + get_agent_params("query") + get_agent_params("evolution") +
-           get_agent_params("context");
+           get_agent_params("link_creation") + get_agent_params("context");
 }

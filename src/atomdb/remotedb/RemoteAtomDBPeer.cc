@@ -8,6 +8,7 @@
 #include <sstream>
 #include <thread>
 #include <unordered_map>
+#include <unordered_set>
 
 #include "Atom.h"
 #include "InMemoryDBAPITypes.h"
@@ -180,12 +181,31 @@ void RemoteAtomDBPeer::feed_cache_from_handle_set(shared_ptr<HandleSet> handle_s
 
     LOG_DEBUG("[RemoteDB(" << uid_ << ")] feed_cache_from_handle_set: warming cache with "
                            << handle_set->size() << " handles");
+
+    // The read cache is later asked to re-match these links. Match decodes nested
+    // targets, so those atoms have to be in this peer's cache too, not only the hits.
+    // Walk iteratively so a deep link chain does not grow the C++ stack.
+    unordered_set<string> warmed;
+    deque<string> pending;
     while (true) {
         char* handle_cstr = it->next();
         if (!handle_cstr) break;
-
-        string handle(handle_cstr);
-        get_atom(handle, keychain);
+        pending.push_back(string(handle_cstr));
+    }
+    while (!pending.empty()) {
+        string handle = pending.front();
+        pending.pop_front();
+        if (!warmed.insert(handle).second) {
+            continue;
+        }
+        auto atom = get_atom(handle, keychain);
+        auto link = dynamic_pointer_cast<Link>(atom);
+        if (link == nullptr) {
+            continue;
+        }
+        for (const auto& target : link->targets) {
+            pending.push_back(target);
+        }
     }
 }
 
@@ -373,29 +393,11 @@ void RemoteAtomDBPeer::re_index_patterns(bool flush_patterns) {
 // Note: a staged update of an atom that already exists locally is still counted twice; the
 // result is an upper bound, not an exact distinct count.
 
-size_t RemoteAtomDBPeer::node_count() const {
-    size_t count = write_buffer()->node_count();
-    if (local_persistence_) {
-        count += local_persistence_->node_count();
-    }
-    return count;
-}
+size_t RemoteAtomDBPeer::node_count() const { return this->node_count(nullptr); }
 
-size_t RemoteAtomDBPeer::link_count() const {
-    size_t count = write_buffer()->link_count();
-    if (local_persistence_) {
-        count += local_persistence_->link_count();
-    }
-    return count;
-}
+size_t RemoteAtomDBPeer::link_count() const { return this->link_count(nullptr); }
 
-size_t RemoteAtomDBPeer::atom_count() const {
-    size_t count = write_buffer()->atom_count();
-    if (local_persistence_) {
-        count += local_persistence_->atom_count();
-    }
-    return count;
-}
+size_t RemoteAtomDBPeer::atom_count() const { return this->atom_count(nullptr); }
 
 void RemoteAtomDBPeer::fetch(const LinkSchema& link_schema, shared_ptr<Keychain> keychain) {
     {
@@ -1095,14 +1097,31 @@ void RemoteAtomDBPeer::re_index_patterns(shared_ptr<Keychain> keychain, bool flu
     RAISE_ERROR("RemoteAtomDBPeer::re_index_patterns(keychain) is not implemented");
 }
 
+// Count the peer write buffer directly instead of through the protected wrapper.
+// The protected wrapper's manifest counts the remote backend, not this buffer.
+// Authorization guards the knowledge base; atoms created in memory are shared, so this count stays open
+// until we find a better way.
+
 size_t RemoteAtomDBPeer::node_count(shared_ptr<Keychain> keychain) const {
-    RAISE_ERROR("RemoteAtomDBPeer::node_count(keychain) is not implemented");
+    size_t count = write_buffer()->node_count();
+    if (local_persistence_) {
+        count += local_persistence_->node_count();
+    }
+    return count;
 }
 
 size_t RemoteAtomDBPeer::link_count(shared_ptr<Keychain> keychain) const {
-    RAISE_ERROR("RemoteAtomDBPeer::link_count(keychain) is not implemented");
+    size_t count = write_buffer()->link_count();
+    if (local_persistence_) {
+        count += local_persistence_->link_count();
+    }
+    return count;
 }
 
 size_t RemoteAtomDBPeer::atom_count(shared_ptr<Keychain> keychain) const {
-    RAISE_ERROR("RemoteAtomDBPeer::atom_count(keychain) is not implemented");
+    size_t count = write_buffer()->atom_count();
+    if (local_persistence_) {
+        count += local_persistence_->atom_count();
+    }
+    return count;
 }

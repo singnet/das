@@ -43,8 +43,11 @@ cc_library(
     hdrs = ["AuthorizationTypes.h"],
     includes = ["."],
     deps = [
+        ":keychain",
         "//atomdb",
         "//atomdb:atomdb_api_types",
+        "//atomdb:atomdbutils",
+        "//atomdb:key_sensitive_atomdb",
         "//commons:commons_lib",
         "//commons/atoms:atoms_lib",
     ],
