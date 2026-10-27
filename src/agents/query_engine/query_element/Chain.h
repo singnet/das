@@ -1,5 +1,6 @@
 #pragma once
 
+#include "BaseQueryProxy.h"
 #include "DedicatedThread.h"
 #include "Link.h"
 #include "LinkTemplate.h"
@@ -199,7 +200,8 @@ class Chain : public Operator<1>, public ThreadMethod {
     /**
      * Constructor.
      */
-    Chain(const array<shared_ptr<QueryElement>, 1>& clauses,
+    Chain(shared_ptr<BaseQueryProxy> proxy,
+          const array<shared_ptr<QueryElement>, 1>& clauses,
           shared_ptr<LinkTemplate> link_template,
           const string& source_reference,
           const string& target_reference,
@@ -214,7 +216,8 @@ class Chain : public Operator<1>, public ThreadMethod {
      * the query answer and assuming a link like (disregarded $v1 $v2) where chaining will be made
      * assuming $v1 -> $v2.
      */
-    Chain(const array<shared_ptr<QueryElement>, 1>& clauses,
+    Chain(shared_ptr<BaseQueryProxy> proxy,
+          const array<shared_ptr<QueryElement>, 1>& clauses,
           const string& source_reference,
           const string& target_reference,
           bool allow_incomplete_chain_path = true);
@@ -241,27 +244,6 @@ class Chain : public Operator<1>, public ThreadMethod {
     void report_path(Path& path);
 
     /**
-     * Chain Operator thread.
-     * Called after antecedent query element notifies that input has been ended and after
-     * all input has already been acknowledged and properly turned into elementary Paths.
-     */
-    void set_all_input_acknowledged(bool flag);
-
-    /**
-     * Chain Operator AND Path Finder threads.
-     * Check if all input has already been aknowledged (see set_all_input_acknowledged()).
-     */
-    bool all_input_acknowledged();
-
-    /**
-     * Path Finder thread.
-     * Called after all possible paths between source and targetr has been explored. Basically,
-     * notifies that the Chain Operator has ended the job of trying to find paths
-     * (complete or incomplete).
-     */
-    void set_all_paths_explored(bool flag);
-
-    /**
      * Chain Operator AND Path Finder threads.
      * Check if the Chain Operator has ended the search for new paths
      * (see set_all_paths_explored()).
@@ -276,6 +258,8 @@ class Chain : public Operator<1>, public ThreadMethod {
     void refeed_paths_forward();
     void refeed_paths_backward();
 
+    void push_dead_end(const string& handle);
+
     // --------------------------------------------------------------------------------------------
     // QueryElement API
 
@@ -288,6 +272,7 @@ class Chain : public Operator<1>, public ThreadMethod {
     virtual bool thread_one_step();
 
     mutex thread_debug_mutex;
+    shared_ptr<BaseQueryProxy> proxy;
 
    private:
     class PathFinder : public ThreadMethod {
@@ -296,6 +281,7 @@ class Chain : public Operator<1>, public ThreadMethod {
         bool forward_flag;
         string origin;
         string destiny;
+        atomic<bool> all_paths_explored_flag;
         PathFinder(Chain* chain_operator, bool forward_flag) {
             this->chain_operator = chain_operator;
             this->forward_flag = forward_flag;
@@ -306,6 +292,7 @@ class Chain : public Operator<1>, public ThreadMethod {
                 origin = chain_operator->target_reference;
                 destiny = chain_operator->source_reference;
             }
+            this->all_paths_explored_flag = false;
         }
         ~PathFinder() {}
         bool thread_one_step();
@@ -340,16 +327,14 @@ class Chain : public Operator<1>, public ThreadMethod {
     set<string> reported_answers;
     map<string, shared_ptr<HeapType>> source_index;
     map<string, shared_ptr<HeapType>> target_index;
-    bool all_input_acknowledged_flag;
-    bool all_paths_explored_flag;
+    atomic<bool> all_input_acknowledged_flag;
     bool allow_incomplete_chain_path;
     mutex source_index_mutex;
     mutex target_index_mutex;
-    mutex all_input_acknowledged_mutex;
-    mutex all_paths_explored_mutex;
     mutex reported_answers_mutex;
     mutex refeed_paths_forward_mutex;
     mutex refeed_paths_backward_mutex;
+    mutex feeding_mutex;
 };
 
 }  // namespace query_element

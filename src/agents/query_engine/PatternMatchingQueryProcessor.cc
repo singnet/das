@@ -601,7 +601,8 @@ shared_ptr<QueryElement> PatternMatchingQueryProcessor::build_chain(
     element_stack.pop();
 
     auto chain_operator =
-        make_shared<Chain>(clauses,
+        make_shared<Chain>(static_pointer_cast<BaseQueryProxy>(proxy),
+                           clauses,
                            link_template,
                            source->is_variable ? source->name : source->compute_handle(),
                            target->is_variable ? target->name : target->compute_handle(),
