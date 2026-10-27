@@ -141,7 +141,7 @@ This processor manages AtomDB broker requests from the service bus.
                                                        {ProcessorType::COMMAND_ROUTER, string(R"(
 Bus Command Router:
 Gateway peer that accepts text commands as {COMMAND, ARG} over bus_command_router.
-Routes query, evolution, and link creation to other bus agents; get/set manage local default parameters.
+Routes query, evolution, and link creation to other bus agents; add_atom and delete_atom edit the local AtomDB; get/set manage local default parameters.
 )")},
                                                        {ProcessorType::UNKNOWN, string(R"(
 Usage:
@@ -217,12 +217,12 @@ This client interacts with the AtomDB Broker via the service bus.
  Optional arguments:
     - use-mork: Whether to use MorkDB as the backend (true/false)
 )")},
-                                                         {ProcessorType::COMMAND_ROUTER, string(R"(
+                                                         {ProcessorType::COMMAND_ROUTER, string(R"help(
 Bus Command Router Client:
 Sends {COMMAND, ARG} to the Bus Command Router peer via command_router.
 
 Required arguments:
-    - cmd: Router command (get, set, query, evolution, link_creation)
+    - cmd: Router command (get, set, query, evolution, link_creation, add_atom, delete_atom)
     - arg: Router argument; format depends on cmd:
 
         get  ARG: 'params'
@@ -265,12 +265,26 @@ Required arguments:
             ((q (and (Concept %C1) (Concept %C2)))
              (lc and_two_predicates))
 
+        add_atom  ARG: a JSON object.
+            node: {"kind":"node","atom_type":"Symbol","name":"\"human\""}
+            link: {"kind":"link","atom_type":"Expression","targets":["<handle>","<handle>"],"is_toplevel":true}
+            metta: {"metta":"(Similarity \"human\" \"monkey\")"}
+            Optional is_toplevel (node default false, link default true).
+            A MeTTa expression is inserted with the Symbol nodes it mentions.
+            The reply is the new atom handle (the expression, for MeTTa).
+
+        delete_atom  ARG: {"handle":"<handle>","delete_link_targets":false}
+            or {"metta":"(Similarity \"human\" \"monkey\")"}
+            MeTTa deletes that expression, not the Symbol nodes inside it,
+            unless delete_link_targets is true.
+            The reply is "deleted" or "not_found".
+
         Context for query/evolution/link_creation is taken from router params
         (set it once via: --cmd=set --arg='param context <name>').
 
  Optional arguments:
     - bus-endpoint: Overrides agents.router.endpoint from das.json (router listen address)
-)")},
+)help")},
                                                          {ProcessorType::UNKNOWN, string(R"(
 Usage:
 busclient --client=<name> [--config=<das.json>] [--endpoint=<this_client_host:port>] [--bus-endpoint=<remote_agent_host:port>] [--ports-range=<start_port:end_port>] [--use-mork=true|false]

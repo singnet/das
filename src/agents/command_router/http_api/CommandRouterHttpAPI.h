@@ -122,7 +122,7 @@ class CommandRouterHttpAPI : public processor::Processor, public processor::Thre
 
     string generate_execution_id();
 
-    /** @brief Check if the command is valid. (Allowed values: query, evolution, link_creation) */
+    /** @brief Check if the command is valid. (query, evolution, link_creation, add_atom, delete_atom) */
     bool is_valid_command(const string& command) const;
 
     /** @brief Check queue limit and register a pending execution. */

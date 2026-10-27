@@ -26,6 +26,7 @@ class BusCommandRouterProxy : public BaseQueryProxy {
     static string PARAMS_RESPONSE;
     static string SET_PARAM_ACK;
     static string ROUTED;
+    static string ATOM_RESULT;
 
     BusCommandRouterProxy();
     BusCommandRouterProxy(const string& router_command, const string& router_arg);
@@ -48,6 +49,7 @@ class BusCommandRouterProxy : public BaseQueryProxy {
 
     string params_response;
     string set_param_ack;
+    string atom_result;
     bool routed_flag;
     bool count_received = false;
 

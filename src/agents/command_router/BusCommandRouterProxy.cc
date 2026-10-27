@@ -17,6 +17,7 @@ using namespace link_creation_agent;
 string BusCommandRouterProxy::PARAMS_RESPONSE = "params_response";
 string BusCommandRouterProxy::SET_PARAM_ACK = "set_param_ack";
 string BusCommandRouterProxy::ROUTED = "routed";
+string BusCommandRouterProxy::ATOM_RESULT = "atom_result";
 
 BusCommandRouterProxy::BusCommandRouterProxy() : BaseQueryProxy() {
     lock_guard<mutex> semaphore(this->api_mutex);
@@ -75,6 +76,11 @@ bool BusCommandRouterProxy::from_remote_peer(const string& command, const vector
         return true;
     } else if (command == ROUTED) {
         this->routed_flag = true;
+        return true;
+    } else if (command == ATOM_RESULT) {
+        if (!args.empty()) {
+            this->atom_result = args[0];
+        }
         return true;
     } else if (command == PatternMatchingQueryProxy::COUNT) {
         count_answer(args);
