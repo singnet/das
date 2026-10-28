@@ -23,6 +23,7 @@ class AtomDBUtils {
    private:
     static void reachable_terminal_set_recursive(set<string>& output,
                                                  shared_ptr<Link> link,
+                                                 bool name_flag,
                                                  bool metta_mapping);
 
     static string handle_to_metta_recursion(const string& handle,
@@ -53,6 +54,7 @@ class AtomDBUtils {
      */
     static void reachable_terminal_set(set<string>& output,
                                        const string& handle,
+                                       bool name_flag = false,
                                        bool metta_mapping = false);
     static void count_reachable_atoms(const string& handle,
                                       size_t& node_count,
@@ -81,6 +83,23 @@ class AtomDBUtils {
     static string handle_to_metta(const string& handle,
                                   map<string, string>& mapping,
                                   shared_ptr<Keychain> keychain = nullptr);
+
+    /**
+     * Return a node's name or "" if it doesn't exist.
+     *
+     * @param handle Handle of the node whose name is to be returned.
+     * @return a node's name or "" if it doesn't exist.
+     */
+    static string get_node_name(const string& handle);
+
+    /**
+     * Return an atom's strength or raises if it doesn't exist.
+     *
+     * @param handle Handle of the atom whose strength is to be returned.
+     * @return an atom's strength or raises if it doesn't exist.
+     */
+    static double get_strength(const string& handle, const string& strength_tag = "strength");
+
 };
 
 }  // namespace atomdb
