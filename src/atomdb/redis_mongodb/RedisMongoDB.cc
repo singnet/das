@@ -547,14 +547,15 @@ shared_ptr<atomdb_api_types::AtomDocument> RedisMongoDB::get_document(
     timer_make_shared.stop();
     timer_total.stop();
 
-    LOG_DEBUG("[RedisMongoDB(" << this->uid_ << ")] get_document(" << handle << ", " <<
-    collection_name
-                               << ") " << (atom_document ? "found" : "not found")
-                               << " | acquire: " << timer_acquire.milliseconds() << "ms"
-                               << " | collection: " << timer_collection.milliseconds() << "ms"
-                               << " | find_one: " << timer_find_one.milliseconds() << "ms"
-                               << " | make_shared: " << timer_make_shared.milliseconds() << "ms"
-                               << " | total: " << timer_total.milliseconds() << "ms");
+    if (timer_total.milliseconds() != 0) {
+        LOG_DEBUG("[RedisMongoDB(" << this->uid_ << ")] get_document(" << handle << ", "
+                                   << collection_name << ") " << (atom_document ? "found" : "not found")
+                                   << " | acquire: " << timer_acquire.milliseconds() << "ms"
+                                   << " | collection: " << timer_collection.milliseconds() << "ms"
+                                   << " | find_one: " << timer_find_one.milliseconds() << "ms"
+                                   << " | make_shared: " << timer_make_shared.milliseconds() << "ms"
+                                   << " | total: " << timer_total.milliseconds() << "ms");
+    }
     return atom_document;
 }
 
@@ -566,18 +567,21 @@ shared_ptr<atomdb_api_types::AtomDocument> RedisMongoDB::get_atom_document(const
     auto node_document = get_node_document(handle);
     timer_node.stop();
     if (node_document != nullptr) {
-        // LOG_DEBUG("[RedisMongoDB(" << this->uid_ << ")] get_atom_document(" << handle
-        //                            << ") node | nodes: " << timer_node.milliseconds() << "ms");
+        if (timer_node.milliseconds() != 0) {
+            LOG_DEBUG("[RedisMongoDB(" << this->uid_ << ")] get_atom_document(" << handle
+                                       << ") node | nodes: " << timer_node.milliseconds() << "ms");
+        }
         return node_document;
     }
 
     timer_link.start();
     auto link_document = get_link_document(handle);
     timer_link.stop();
-    // LOG_DEBUG("[RedisMongoDB(" << this->uid_ << ")] get_atom_document(" << handle << ") "
-    //                            << (link_document ? "link" : "not found")
-    //                            << " | nodes: " << timer_node.milliseconds() << "ms"
-    //                            << " | links: " << timer_link.milliseconds() << "ms");
+    if ((timer_node.milliseconds() != 0) || (timer_link.milliseconds() != 0))
+        LOG_DEBUG("[RedisMongoDB(" << this->uid_ << ")] get_atom_document(" << handle << ") "
+                                   << (link_document ? "link" : "not found")
+                                   << " | nodes: " << timer_node.milliseconds() << "ms"
+                                   << " | links: " << timer_link.milliseconds() << "ms");
     if (link_document != nullptr) {
         return link_document;
     }
