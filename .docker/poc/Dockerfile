@@ -124,7 +124,7 @@ COPY --chown=nonroot:nonroot --from=builder /opt/das/lib/ /opt/das/lib/
 
 COPY --from=builder /opt/das/syslibs/usr/lib/ /usr/lib/
 COPY --from=builder /opt/das/syslibs/lib/ /lib/
-COPY --chown=nonroot:nonroot --from=builder /opt/das/syslibs/bin/ /bin/
+COPY --from=builder /opt/das/syslibs/bin/ /bin/
 COPY --from=builder /opt/das/syslibs/etc/ssl/certs/ /etc/ssl/certs/
 
 ENV LD_LIBRARY_PATH=/opt/das/lib:/usr/local/lib:/usr/lib/x86_64-linux-gnu:/usr/lib/aarch64-linux-gnu:/lib/x86_64-linux-gnu:/lib/aarch64-linux-gnu
