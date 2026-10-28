@@ -75,9 +75,29 @@ string AtomDBUtils::handle_to_metta(const string& handle,
     return handle_to_metta_recursive(handle, mapping, true, keychain, atomdb, key_sensitive_atomdb);
 }
 
-string AtomDBUtils::get_node_name(const string& handle) {
+shared_ptr<Atom> AtomDBUtils::get_atom(const string& handle, shared_ptr<Keychain> keychain) {
     STACK_TRACE();
-    auto node = AtomDBSingleton::get_instance()->get_node(handle);
+    shared_ptr<AtomDB> atomdb = AtomDBSingleton::get_instance();
+    shared_ptr<KeySensitiveAtomDB> key_sensitive_atomdb =
+        dynamic_pointer_cast<KeySensitiveAtomDB>(atomdb);
+    auto atom = (key_sensitive_atomdb ? key_sensitive_atomdb->get_atom(handle, keychain)
+                                      : atomdb->get_atom(handle));
+    return atom;
+}
+
+shared_ptr<Node> AtomDBUtils::get_node(const string& handle, shared_ptr<Keychain> keychain) {
+    STACK_TRACE();
+    shared_ptr<Node> node = nullptr;
+    auto atom = AtomDBUtils::get_atom(handle, keychain);
+    if (atom != nullptr) {
+        node = dynamic_pointer_cast<Node>(atom);
+    }
+    return node;
+}
+
+string AtomDBUtils::get_node_name(const string& handle, shared_ptr<Keychain> keychain) {
+    STACK_TRACE();
+    auto node = AtomDBUtils::get_node(handle, keychain);
     if (node == nullptr) {
         return "";
     } else {

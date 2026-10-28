@@ -85,12 +85,30 @@ class AtomDBUtils {
                                   shared_ptr<Keychain> keychain = nullptr);
 
     /**
+     * Return the Atom, given its handle. nullptr is returned if Atom doesn't exist.
+     *
+     * @param handle Handle of the atom to be returned.
+     * @param keychain Optional keychain to be passed to KeySentitive AtomDB.
+     * @return the Atom, given its handle. nullptr is returned if Atom doesn't exist.
+     */
+    static shared_ptr<Atom> get_atom(const string& handle, shared_ptr<Keychain> keychain);
+
+    /**
+     * Return the Node, given its handle. nullptr is returned if Node doesn't exist.
+     *
+     * @param handle Handle of the node to be returned.
+     * @param keychain Optional keychain to be passed to KeySentitive AtomDB.
+     * @return the Node, given its handle. nullptr is returned if Node doesn't exist.
+     */
+    static shared_ptr<Node> get_node(const string& handle, shared_ptr<Keychain> keychain);
+
+    /**
      * Return a node's name or "" if it doesn't exist.
      *
      * @param handle Handle of the node whose name is to be returned.
      * @return a node's name or "" if it doesn't exist.
      */
-    static string get_node_name(const string& handle);
+    static string get_node_name(const string& handle, shared_ptr<Keychain> keychain = nullptr);
 
     /**
      * Return an atom's strength or raises if it doesn't exist.
