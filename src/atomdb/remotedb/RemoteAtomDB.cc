@@ -378,8 +378,7 @@ shared_ptr<atomdb_api_types::HandleSet> RemoteAtomDB::query_for_pattern(const Li
     }
     timer_total.stop();
     LOG_DEBUG("query_for_pattern(" << link_schema.handle() << ") aggregated " << result->size()
-                                   << " unique handles | time: " << timer_total.milliseconds()
-                                   << "ms");
+                                   << " unique handles | time: " << timer_total.milliseconds() << "ms");
     return result;
 }
 

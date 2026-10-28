@@ -6,6 +6,7 @@
 #include "Link.h"
 #include "Logger.h"
 #include "Node.h"
+#include "RedisMongoDBAPITypes.h"
 #include "Utils.h"
 
 using namespace std;
@@ -111,8 +112,7 @@ shared_ptr<atomdb_api_types::HandleSet> ProtectedAtomDB::query_for_pattern(
     auto authorized_handle_set = make_shared<atomdb_api_types::HandleSetInMemory>();
     if (original_handle_set == nullptr) {
         timer_total.stop();
-        LOG_DEBUG("[ProtectedAtomDB(" << this->uid_
-                                      << ")] query_for_pattern: backend returned nullptr"
+        LOG_DEBUG("[ProtectedAtomDB(" << this->uid_ << ")] query_for_pattern: backend returned nullptr"
                                       << " | backend: " << timer_backend.milliseconds() << "ms"
                                       << " | leftover: 0ms"
                                       << " | total: " << timer_total.milliseconds() << "ms");
@@ -129,7 +129,8 @@ shared_ptr<atomdb_api_types::HandleSet> ProtectedAtomDB::query_for_pattern(
     unsigned long scanned = 0;
     while (true) {
         timer_next.start();
-        char* handle_cstr = it->next_raw();
+        auto redis_it = dynamic_pointer_cast<atomdb_api_types::HandleSetRedisIterator>(it);
+        char* handle_cstr = redis_it ? redis_it->next_candidate() : it->next();
         timer_next.stop();
         if (!handle_cstr) break;
         scanned++;
@@ -167,14 +168,12 @@ shared_ptr<atomdb_api_types::HandleSet> ProtectedAtomDB::query_for_pattern(
     unsigned long can_read_ms = timer_can_read.milliseconds();
     unsigned long match_ms = timer_match.milliseconds();
     unsigned long add_ms = timer_add.milliseconds();
-    unsigned long parts_ms =
-        backend_ms + next_ms + get_atom_ms + can_read_ms + match_ms + add_ms;
+    unsigned long parts_ms = backend_ms + next_ms + get_atom_ms + can_read_ms + match_ms + add_ms;
     unsigned long leftover_ms = total_ms > parts_ms ? total_ms - parts_ms : 0;
     LOG_DEBUG("[ProtectedAtomDB(" << this->uid_
                                   << ")] query_for_pattern: " << original_handle_set->size() << " -> "
                                   << authorized_handle_set->size() << " authorized"
-                                  << " | scanned: " << scanned
-                                  << " | backend: " << backend_ms << "ms"
+                                  << " | scanned: " << scanned << " | backend: " << backend_ms << "ms"
                                   << " | next: " << next_ms << "ms"
                                   << " | get_atom: " << get_atom_ms << "ms"
                                   << " | can_read: " << can_read_ms << "ms"
@@ -238,19 +237,19 @@ string ProtectedAtomDB::add_atom(const atoms::Atom* atom,
 }
 
 string ProtectedAtomDB::add_node(const atoms::Node* node,
-                                  shared_ptr<Keychain> keychain,
+                                 shared_ptr<Keychain> keychain,
                                  const atoms::Merger* merger) {
     return this->backend->add_node(node, merger);
 }
 
 string ProtectedAtomDB::add_link(const atoms::Link* link,
-                                  shared_ptr<Keychain> keychain,
+                                 shared_ptr<Keychain> keychain,
                                  const atoms::Merger* merger) {
     return this->backend->add_link(link, merger);
 }
 
 vector<string> ProtectedAtomDB::add_atoms(const vector<atoms::Atom*>& atom_list,
-                                            shared_ptr<Keychain> keychain,
+                                          shared_ptr<Keychain> keychain,
                                           bool is_transactional,
                                           const atoms::Merger* merger) {
     return this->backend->add_atoms(atom_list, is_transactional, merger);
@@ -538,8 +537,7 @@ shared_ptr<atomdb_api_types::HandleSet> ProtectedAtomDB::filter_handle_set(
 
     if (original_handle_set == nullptr) {
         timer_total.stop();
-        LOG_DEBUG("[ProtectedAtomDB(" << this->uid_
-                                      << ")] filter_handle_set: backend returned nullptr"
+        LOG_DEBUG("[ProtectedAtomDB(" << this->uid_ << ")] filter_handle_set: backend returned nullptr"
                                       << " | backend: " << timer_backend.milliseconds() << "ms"
                                       << " | leftover: 0ms"
                                       << " | total: " << timer_total.milliseconds() << "ms");
@@ -596,25 +594,21 @@ shared_ptr<atomdb_api_types::HandleSet> ProtectedAtomDB::filter_handle_set(
     unsigned long add_ms = timer_add.milliseconds();
     unsigned long parts_ms = backend_ms + next_ms + can_read_ms + add_ms;
     unsigned long leftover_ms = total_ms > parts_ms ? total_ms - parts_ms : 0;
-    unsigned long can_read_parts = g_can_read_unrestricted.milliseconds() +
-                                   g_can_read_exists.milliseconds() +
-                                   g_can_read_get_atom.milliseconds() +
-                                   g_can_read_is_granted.milliseconds();
-    unsigned long can_read_leftover =
-        can_read_ms > can_read_parts ? can_read_ms - can_read_parts : 0;
+    unsigned long can_read_parts =
+        g_can_read_unrestricted.milliseconds() + g_can_read_exists.milliseconds() +
+        g_can_read_get_atom.milliseconds() + g_can_read_is_granted.milliseconds();
+    unsigned long can_read_leftover = can_read_ms > can_read_parts ? can_read_ms - can_read_parts : 0;
     LOG_DEBUG("[ProtectedAtomDB(" << this->uid_
                                   << ")] filter_handle_set: " << original_handle_set->size() << " -> "
                                   << authorized_handle_set->size() << " authorized"
-                                  << " | scanned: " << scanned
-                                  << " | backend: " << backend_ms << "ms"
+                                  << " | scanned: " << scanned << " | backend: " << backend_ms << "ms"
                                   << " | next: " << next_ms << "ms"
                                   << " | can_read: " << can_read_ms << "ms"
                                   << " | add_handle: " << add_ms << "ms"
                                   << " | leftover: " << leftover_ms << "ms"
                                   << " | total: " << total_ms << "ms");
     LOG_DEBUG("[ProtectedAtomDB(" << this->uid_ << ")] can_read breakdown"
-                                  << " | calls: " << g_can_read_calls
-                                  << " | is_unrestricted: "
+                                  << " | calls: " << g_can_read_calls << " | is_unrestricted: "
                                   << g_can_read_unrestricted.milliseconds() << "ms"
                                   << " | atom_exists: " << g_can_read_exists.milliseconds() << "ms"
                                   << " | get_atom: " << g_can_read_get_atom.milliseconds() << "ms"

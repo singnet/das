@@ -54,10 +54,9 @@ class HandleSetRedisIterator : public HandleSetIterator {
     ~HandleSetRedisIterator();
 
     char* next();
-    char* next_raw() override;
+    char* next_candidate();
 
    private:
-    char* _next();
     HandleSetRedis* handle_set;
     unsigned int outer_idx;
     unsigned int inner_idx;

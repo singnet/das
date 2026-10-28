@@ -74,7 +74,7 @@ HandleSetRedisIterator::HandleSetRedisIterator(HandleSetRedis* handle_set) {
 
 HandleSetRedisIterator::~HandleSetRedisIterator(){};
 
-char* HandleSetRedisIterator::_next() {
+char* HandleSetRedisIterator::next_candidate() {
     if (this->outer_idx >= this->handle_set->replies.size()) {
         // No more elements, return NULL.
         return NULL;
@@ -103,8 +103,6 @@ char* HandleSetRedisIterator::_next() {
     return NULL;
 }
 
-char* HandleSetRedisIterator::next_raw() { return _next(); }
-
 char* HandleSetRedisIterator::next() {
     Assignment assignment;
     char* candidate;
@@ -116,7 +114,7 @@ char* HandleSetRedisIterator::next() {
     }
     while (true) {
         timer_raw_next.start();
-        candidate = _next();
+        candidate = next_candidate();
         timer_raw_next.stop();
         if (candidate == NULL) {
             unsigned long next_ms = this->timer_raw_next.milliseconds();
@@ -125,7 +123,7 @@ char* HandleSetRedisIterator::next() {
             unsigned long parts_ms = next_ms + match_ms + other_ms;
             LOG_DEBUG("HandleSetRedisIterator::next exhausted"
                       << " | candidates: " << this->candidates << " | matches: " << this->matches
-                      << " | _next: " << next_ms << "ms"
+                      << " | next_candidate: " << next_ms << "ms"
                       << " | match: " << match_ms << "ms"
                       << " | other: " << other_ms << "ms"
                       << " | sum: " << parts_ms << "ms");

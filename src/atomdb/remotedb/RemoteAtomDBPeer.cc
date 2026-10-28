@@ -753,7 +753,8 @@ shared_ptr<Atom> RemoteAtomDBPeer::get_atom(const string& handle, shared_ptr<Key
 
     if (atom) {
         // LOG_DEBUG("[RemoteDB(" << uid_ << ")] get_atom(" << handle
-        //                        << ") <- remote atomdb (warmed) | time: " << timer_remote.milliseconds()
+        //                        << ") <- remote atomdb (warmed) | time: " <<
+        //                        timer_remote.milliseconds()
         //                        << "ms");
         rc->add_atom(atom.get());
         return atom;

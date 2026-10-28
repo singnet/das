@@ -53,7 +53,7 @@ bool AuthorizationManifest::ensure_profile_loaded(const string& public_key) {
     timer_fetch.stop();
     if (access_document == nullptr) {
         LOG_DEBUG("ensure_profile_loaded: no access document | time: " << timer_fetch.milliseconds()
-                                                                      << "ms");
+                                                                       << "ms");
         return false;
     }
 

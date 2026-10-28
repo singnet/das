@@ -43,12 +43,6 @@ class HandleList {
 class HandleSetIterator {
    public:
     virtual char* next() = 0;
-    /**
-     * Raw candidate walk without LinkSchema::match.
-     * Redis ZRANGE is a coarse index; next() filters with match(handle).
-     * Default is next() for iterators that already yield exact handles.
-     */
-    virtual char* next_raw() { return next(); }
 };
 
 class HandleSet {

@@ -547,7 +547,8 @@ shared_ptr<atomdb_api_types::AtomDocument> RedisMongoDB::get_document(
     timer_make_shared.stop();
     timer_total.stop();
 
-    // LOG_DEBUG("[RedisMongoDB(" << this->uid_ << ")] get_document(" << handle << ", " << collection_name
+    // LOG_DEBUG("[RedisMongoDB(" << this->uid_ << ")] get_document(" << handle << ", " <<
+    // collection_name
     //                            << ") " << (atom_document ? "found" : "not found")
     //                            << " | acquire: " << timer_acquire.milliseconds() << "ms"
     //                            << " | collection: " << timer_collection.milliseconds() << "ms"
