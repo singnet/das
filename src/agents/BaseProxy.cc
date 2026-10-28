@@ -25,6 +25,7 @@ BaseProxy::BaseProxy() {
     this->waiting_to_start_new_cycle = true;
     this->waiting_log_flag = true;
     this->parameters = SystemParametersSingleton::get_instance()->get_base_proxy_params();
+    this->cycle_count = 0;
 
     set_orchestration_schema(
         (ORCHESTRATION_SCHEMA_TYPE) this->parameters.get<unsigned int>(ORCHESTRATION_SCHEMA));
@@ -72,25 +73,31 @@ void BaseProxy::tokenize(vector<string>& output) {
     output.insert(output.begin(), parameters_tokens.begin(), parameters_tokens.end());
 }
 
+unsigned int BaseProxy::get_cycle_count() {
+    lock_guard<mutex> semaphore(this->api_mutex);
+    return this->cycle_count;
+}
+
 // -------------------------------------------------------------------------------------------------
 // Server-side API
 
 void BaseProxy::cycle_ended() {
     lock_guard<mutex> semaphore(this->api_mutex);
     if (!this->command_finished_flag) {
+        this->cycle_count++;
         switch (this->orchestration_schema) {
             case NONE:
                 break;
             case SYNC_ON_CYCLE_START:
                 this->waiting_to_start_new_cycle = true;
                 this->waiting_log_flag = true;
-                to_remote_peer(CYCLE_ENDED, {});
                 break;
             default:
                 RAISE_ERROR("Invalid orchestration schema: " +
                             std::to_string(this->orchestration_schema));
                 break;
         }
+        to_remote_peer(CYCLE_ENDED, {});
     }
 }
 
@@ -202,7 +209,10 @@ void BaseProxy::allow_cycle_start(const vector<string>& args) {
 
 void BaseProxy::cycle_ended(const vector<string>& args) {
     lock_guard<mutex> semaphore(this->api_mutex);
-    this->waiting_to_start_new_cycle = true;
+    this->cycle_count++;
+    if (this->orchestration_schema == SYNC_ON_CYCLE_START) {
+        this->waiting_to_start_new_cycle = true;
+    }
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -214,6 +224,7 @@ void BaseProxy::set_orchestration_schema(ORCHESTRATION_SCHEMA_TYPE value) {
         RAISE_ERROR("Invalid orchestration tag: " + std::to_string(value));
     } else {
         this->orchestration_schema = value;
+        this->parameters[ORCHESTRATION_SCHEMA] = (unsigned int) value;
         if (value == NONE) {
             this->cycle_start_allowed_flag = true;
             this->waiting_to_start_new_cycle = false;

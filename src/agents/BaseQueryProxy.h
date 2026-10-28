@@ -170,6 +170,15 @@ class BaseQueryProxy : public BaseProxy {
     virtual bool finished_cycle();
 
     /**
+     * Returns true iff all QueryAnswer objects have been iterated AND is waiting for new cycle.
+     * If disregard_answer_queue is true, only 'is waiting for new cycle` will be checked.
+     *
+     * @return true iff all QueryAnswer objects have been iterated AND is waiting for new cycle.
+     * If disregard_answer_queue is true, only 'is waiting for new cycle` will be checked.
+     */
+    bool finished_cycle(bool disregard_answer_queue);
+
+    /**
      * Returns the attached supplementary info regarding a specific tag.
      *
      * @return the attached supplementary info regarding a specific tag.
@@ -279,7 +288,7 @@ class BaseQueryProxy : public BaseProxy {
     /**
      * Notifies remote proxy that a cycle just ended.
      */
-    void cycle_ended() override;
+    virtual void cycle_ended() override;
 
     /**
      * Piggyback method called by ANSWER_BUNDLE command
