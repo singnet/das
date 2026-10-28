@@ -185,11 +185,15 @@ TEST(AtomDBTest, atom_getters) {
     auto db = AtomDBSingleton::get_instance();
     auto A = new Node("Symbol", "A");
     auto B = new Node("Symbol", "B");
+    auto C = new Node("Symbol", "C");
     auto L1 = new Link("Expression", {A->handle(), B->handle()}, true, {{"strength", 0.3}});
     db->add_nodes({A, B});
     db->add_link(L1);
     EXPECT_EQ(AtomDBUtils::get_node_name(A->handle()), "A");
     EXPECT_EQ(AtomDBUtils::get_node_name(B->handle()), "B");
+    EXPECT_EQ(AtomDBUtils::get_node(A->handle())->name, "A");
+    EXPECT_EQ(AtomDBUtils::get_node(B->handle())->name, "B");
+    EXPECT_EQ(AtomDBUtils::get_node(C->handle()), nullptr);
     EXPECT_TRUE(Utils::epsilon_equals(AtomDBUtils::get_strength(L1->handle()), 0.3));
     db->delete_links({L1->handle()}, true);
 }
