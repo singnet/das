@@ -98,7 +98,9 @@ class AtomDBUtils {
      * @param handle Handle of the atom whose strength is to be returned.
      * @return an atom's strength or raises if it doesn't exist.
      */
-    static double get_strength(const string& handle, shared_ptr<Keychain> keychain = nullptr, const string& strength_tag = "strength");
+    static double get_strength(const string& handle,
+                               shared_ptr<Keychain> keychain = nullptr,
+                               const string& strength_tag = "strength");
 };
 
 }  // namespace atomdb
