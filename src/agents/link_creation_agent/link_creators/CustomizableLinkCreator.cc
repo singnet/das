@@ -41,9 +41,22 @@ void CustomizableLinkCreator::LinkSpecification::check() {
     }
 }
 
-CustomizableLinkCreator::CustomizableLinkCreator() {}
+CustomizableLinkCreator::CustomizableLinkCreator(bool check_nested_target_reference) : check_nested_target_reference(check_nested_target_reference) {}
 
 CustomizableLinkCreator::~CustomizableLinkCreator() {}
+
+bool CustomizableLinkCreator::check_targets(vector<string>& targets) {
+    if (this->check_nested_target_reference) {
+        if (targets.size() != 2) {
+            RAISE_ERROR("Nested target references check is only available for links of arity 2");
+        }
+        set<string> mentioned0, mentioned1;
+        AtomDBUtils::reachable_terminal_set(mentioned0, targets[0], true, true);
+        AtomDBUtils::reachable_terminal_set(mentioned1, targets[1], true, true);
+        return !Utils::intersects(mentioned0, mentioned1);
+    }
+    return true;
+}
 
 LinkCreationStats CustomizableLinkCreator::create(shared_ptr<QueryAnswer> query_answer) {
     STACK_TRACE();
@@ -53,20 +66,31 @@ LinkCreationStats CustomizableLinkCreator::create(shared_ptr<QueryAnswer> query_
             RAISE_ERROR("Invalid empty target elements or link_type");
             break;
         }
-        vector<string> handles;
+        vector<string> targets, handles;
         handles.push_back(Hasher::node_handle(SYMBOL, spec.link_type));
         for (QueryAnswerElement& element : spec.target_elements) {
-            handles.push_back(query_answer->get(element));
+            string handle = query_answer->get(element);
+            targets.push_back(handle);
+            handles.push_back(handle);
         }
-        string key = Utils::join(handles, ' ');
-        if (!visited(key)) {
+        string key = Utils::join(targets, ' ');
+        if (check_targets(targets) && !visited(key)) {
             visit(key);
             stats.visited = true;
-            AddLinkStatus add_status = add_or_update_link(handles, compute_strength(query_answer, spec));
+            vector<double> strengths = compute_strength(query_answer, spec);
+            AddLinkStatus add_status = add_or_update_link(handles, strengths[0]);
             if (add_status == CREATED) {
                 stats.created++;
             } else if (add_status == UPDATED) {
                 stats.updated++;
+            }
+            if (spec.create_reverse() && (strengths.size() == 2)) {
+                add_status = add_or_update_link({handles[0], handles[2], handles[1]}, strengths[1]);
+                if (add_status == CREATED) {
+                    stats.created++;
+                } else if (add_status == UPDATED) {
+                    stats.updated++;
+                }
             }
         }
     }
@@ -79,6 +103,12 @@ void CustomizableLinkCreator::extra_parameters(const string& extra_parameters) {
         vector<string> tokens = Utils::split(extra_parameters, EXTRA_PARAMETERS_SPLIT_CHAR);
         untokenize(tokens);
     }
+}
+
+string CustomizableLinkCreator::extra_parameters() {
+    vector<string> tokens;
+    tokenize(tokens);
+    return Utils::join(tokens, EXTRA_PARAMETERS_SPLIT_CHAR);
 }
 
 void CustomizableLinkCreator::add_link_specification(const vector<QueryAnswerElement>& target_elements,
@@ -98,6 +128,7 @@ void CustomizableLinkCreator::add_link_specification(const vector<QueryAnswerEle
 
 void CustomizableLinkCreator::tokenize(vector<string>& tokens) {
     STACK_TRACE();
+    tokens.push_back(this->check_nested_target_reference ? "1" : "0");
     tokens.push_back(std::to_string(this->link_specification.size()));
     for (LinkSpecification& spec : this->link_specification) {
         tokens.push_back(std::to_string(spec.target_elements.size()));
@@ -128,6 +159,8 @@ static inline string& safe_get_next_token(vector<string>& tokens, unsigned int& 
 void CustomizableLinkCreator::untokenize(vector<string>& tokens) {
     STACK_TRACE();
     unsigned int cursor = 0;
+    unsigned int flag = Utils::string_to_uint(safe_get_next_token(tokens, cursor));
+    this->check_nested_target_reference = (flag > 0);
     unsigned int num_specs = Utils::string_to_uint(safe_get_next_token(tokens, cursor));
     for (unsigned int i = 0; i < num_specs; i++) {
         vector<QueryAnswerElement> _target_elements;
@@ -234,7 +267,7 @@ void CustomizableLinkCreator::compute_counts(shared_ptr<QueryAnswer> base_query_
             } else {
                 d = 1;
                 for (string& h : query_answer->get_handles_vector()) {
-                    d *= get_strength(h);
+                    d *= AtomDBUtils::get_strength(h);
                 }
                 handle = query_answer->get(spec.strength_elements[i]);
                 insert_or_update(count_map[i], handle, d);
@@ -268,42 +301,48 @@ void CustomizableLinkCreator::compute_counts(shared_ptr<QueryAnswer> base_query_
               to_string(count_intersection) + " " + to_string(count_union));
 }
 
-double CustomizableLinkCreator::compute_strength(shared_ptr<QueryAnswer> query_answer,
-                                                 LinkSpecification& spec) {
+vector<double> CustomizableLinkCreator::compute_strength(shared_ptr<QueryAnswer> query_answer,
+                                                         LinkSpecification& spec) {
     STACK_TRACE();
-    double answer = 0.0;
+    vector<double> answer;
+    double strength;
     double count_A = 0.0;
     double count_B = 0.0;
     double count_intersection = 0.0;
     double count_union = 0.0;
 
     if ((spec.strength_composition == INTERSECTION_OVER_UNION) ||
-        (spec.strength_composition == INTERSECTION_OVER_A) ||
-        (spec.strength_composition == INTERSECTION_OVER_B)) {
+        (spec.strength_composition == INTERSECTION_OVER_A)) {
         compute_counts(query_answer, spec, count_A, count_B, count_intersection, count_union);
     }
 
     switch (spec.strength_composition) {
         case PRODUCT:
-            answer = 1.0;
+            strength = 1.0;
             for (QueryAnswerElement& element : spec.strength_elements) {
-                answer *= get_strength(query_answer->get(element));
+                strength *= AtomDBUtils::get_strength(query_answer->get(element));
             }
+            answer.push_back(strength);
             break;
         case INTERSECTION_OVER_UNION:
+            strength = 0.0;
             if (!Utils::is_zero(count_union)) {
-                answer = count_intersection / count_union;
+                strength = count_intersection / count_union;
             }
+            answer.push_back(strength);
+            answer.push_back(strength);
             break;
         case INTERSECTION_OVER_A:
+            strength = 0.0;
             if (!Utils::is_zero(count_A)) {
-                answer = count_intersection / count_A;
+                strength = count_intersection / count_A;
             }
-            break;
-        case INTERSECTION_OVER_B:
+            answer.push_back(strength);
+            strength = 0.0;
             if (!Utils::is_zero(count_B)) {
-                answer = count_intersection / count_B;
+                strength = count_intersection / count_B;
             }
+            answer.push_back(strength);
             break;
         default:
             RAISE_ERROR("Invalid strength composition: " + std::to_string(spec.strength_composition));
