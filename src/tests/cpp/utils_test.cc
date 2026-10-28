@@ -153,8 +153,7 @@ TEST(LocalFileTestSuite, uint_rand) {
 TEST(LocalFileTestSuite, double_rand) {
     double guard_epsilon = Utils::EPSILON;
     Utils::EPSILON = 10e-2;
-    for (pair<double, double> p : vector<pair<double, double>>(
-             {{0, 1}, {-1, 1}, {-100, 100}})) {
+    for (pair<double, double> p : vector<pair<double, double>>({{0, 1}, {-1, 1}, {-100, 100}})) {
         for (unsigned int i = 0; i < 10000; i++) {
             double closed_lower = p.first;
             double open_upper = p.second;

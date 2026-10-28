@@ -194,7 +194,6 @@ TEST(AtomDBTest, atom_getters) {
     db->delete_links({L1->handle()}, true);
 }
 
-
 int main(int argc, char** argv) {
     ::testing::InitGoogleTest(&argc, argv);
     Utils::init_random(0);

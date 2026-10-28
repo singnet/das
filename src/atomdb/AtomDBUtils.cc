@@ -13,7 +13,10 @@ AtomDBUtils::~AtomDBUtils() {}
 // -------------------------------------------------------------------------------------------------
 // Public methods
 
-void AtomDBUtils::reachable_terminal_set(set<string>& output, const string& handle, bool name_flag, bool metta_mapping) {
+void AtomDBUtils::reachable_terminal_set(set<string>& output,
+                                         const string& handle,
+                                         bool name_flag,
+                                         bool metta_mapping) {
     STACK_TRACE();
     auto atom = AtomDBSingleton::get_instance()->get_atom(handle);
     if (atom != nullptr) {

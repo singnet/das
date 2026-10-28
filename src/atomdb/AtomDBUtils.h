@@ -99,7 +99,6 @@ class AtomDBUtils {
      * @return an atom's strength or raises if it doesn't exist.
      */
     static double get_strength(const string& handle, const string& strength_tag = "strength");
-
 };
 
 }  // namespace atomdb

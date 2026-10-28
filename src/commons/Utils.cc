@@ -469,8 +469,7 @@ bool Utils::is_zero(double v) {
 
 bool Utils::epsilon_equals(double v1, double v2) {
     double delta;
-    return ((v1 == v2) ||
-            ((delta = abs(v1 - v2)) <= EPSILON) ||
+    return ((v1 == v2) || ((delta = abs(v1 - v2)) <= EPSILON) ||
             (delta <= (max(abs(v1), abs(v2)) * EPSILON)));
 }
 
