@@ -195,10 +195,12 @@ shared_ptr<Atom> RedisMongoDB::get_atom(const string& handle) {
     }
 
     timer_total.stop();
-    // LOG_DEBUG("[RedisMongoDB(" << this->uid_ << ")] get_atom(" << handle << ") "
-    //                            << (atom ? atom_kind : "not found")
-    //                            << " | get_atom_document: " << timer_get_atom_document.milliseconds()
-    //                            << "ms | total: " << timer_total.milliseconds() << "ms");
+    if (atom && timer_total.milliseconds() != 0) {
+        LOG_DEBUG("[RedisMongoDB(" << this->uid_ << ")] get_atom(" << handle << ") "
+                                << (atom ? atom_kind : "not found")
+                                << " | get_atom_document: " << timer_get_atom_document.milliseconds()
+                                << "ms | total: " << timer_total.milliseconds() << "ms");
+    }
     return atom;
 }
 
