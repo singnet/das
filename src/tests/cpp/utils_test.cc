@@ -152,7 +152,7 @@ TEST(LocalFileTestSuite, uint_rand) {
 
 TEST(LocalFileTestSuite, double_rand) {
     double guard_epsilon = Utils::EPSILON;
-    Utils::EPSILON = 10e-2;
+    Utils::EPSILON = 10e-4;
     for (pair<double, double> p : vector<pair<double, double>>({{0, 1}, {-1, 1}, {-100, 100}})) {
         for (unsigned int i = 0; i < 10000; i++) {
             double closed_lower = p.first;
@@ -169,10 +169,10 @@ TEST(LocalFileTestSuite, double_rand) {
         double number = Utils::double_rand();
         EXPECT_TRUE(number >= 0.0);
         EXPECT_TRUE(number <= 1.0);
-        if (number == 0.0) {
+        if (Utils::epsilon_equals(number, 0.0)) {
             exact_zero = true;
         }
-        if (number == 1.0) {
+        if (Utils::epsilon_equals(number, 1.0)) {
             exact_one = true;
         }
     }

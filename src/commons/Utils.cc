@@ -83,17 +83,18 @@ double Utils::double_rand(double closed_lower_bound, double open_upper_bound) {
     Random::lock_random_generator();
     double number = distribution(*Random::get_random_generator());
     Random::unlock_random_generator();
+    if (number >= open_upper_bound) {
+        number = std::nextafter(open_upper_bound, closed_lower_bound);
+    }
+
     return number;
 }
 
 double Utils::double_rand() {
-    double number = double_rand(0.0, 1.0 + EPSILON);
-    if (number > (1.0 - EPSILON)) {
-        number = 1.0;
-    }
-    if (number < EPSILON) {
-        number = 0.0;
-    }
+    std::uniform_real_distribution<double> distribution(0.0, 1.0);
+    Random::lock_random_generator();
+    double number = distribution(*Random::get_random_generator());
+    Random::unlock_random_generator();
     return number;
 }
 
