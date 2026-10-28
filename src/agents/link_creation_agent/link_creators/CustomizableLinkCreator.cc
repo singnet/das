@@ -41,7 +41,8 @@ void CustomizableLinkCreator::LinkSpecification::check() {
     }
 }
 
-CustomizableLinkCreator::CustomizableLinkCreator(bool check_nested_target_reference) : check_nested_target_reference(check_nested_target_reference) {}
+CustomizableLinkCreator::CustomizableLinkCreator(bool check_nested_target_reference)
+    : check_nested_target_reference(check_nested_target_reference) {}
 
 CustomizableLinkCreator::~CustomizableLinkCreator() {}
 

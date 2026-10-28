@@ -184,7 +184,8 @@ void export_and_predicates(ofstream& metta_file, vector<string>& _concept) {
             if (part1 < part2) {
                 string predicate1_exp = "(" + PREDICATE + " " + predicate_name("contains", part1) + ")";
                 string predicate2_exp = "(" + PREDICATE + " " + predicate_name("contains", part2) + ")";
-                string predicate_exp = "(" + LOGICAL_AND + " " + predicate1_exp + " " + predicate2_exp + ")";
+                string predicate_exp =
+                    "(" + LOGICAL_AND + " " + predicate1_exp + " " + predicate2_exp + ")";
                 string concept_exp = "(" + CONCEPT + " " + concept_name(_concept) + ")";
                 string evaluation_exp = "(" + EVALUATION + " " + predicate_exp + " " + concept_exp + ")";
                 metta_file << evaluation_exp << endl;
@@ -195,13 +196,19 @@ void export_and_predicates(ofstream& metta_file, vector<string>& _concept) {
         for (string& part2 : _concept) {
             for (string& part3 : _concept) {
                 if ((part1 < part2) && (part2 < part3)) {
-                    string predicate1_exp = "(" + PREDICATE + " " + predicate_name("contains", part1) + ")";
-                    string predicate2_exp = "(" + PREDICATE + " " + predicate_name("contains", part2) + ")";
-                    string predicate3_exp = "(" + PREDICATE + " " + predicate_name("contains", part3) + ")";
-                    string predicate_nested_exp = "(" + LOGICAL_AND + " " + predicate2_exp + " " + predicate3_exp + ")";
-                    string predicate_exp = "(" + LOGICAL_AND + " " + predicate1_exp + " " + predicate_nested_exp + ")";
+                    string predicate1_exp =
+                        "(" + PREDICATE + " " + predicate_name("contains", part1) + ")";
+                    string predicate2_exp =
+                        "(" + PREDICATE + " " + predicate_name("contains", part2) + ")";
+                    string predicate3_exp =
+                        "(" + PREDICATE + " " + predicate_name("contains", part3) + ")";
+                    string predicate_nested_exp =
+                        "(" + LOGICAL_AND + " " + predicate2_exp + " " + predicate3_exp + ")";
+                    string predicate_exp =
+                        "(" + LOGICAL_AND + " " + predicate1_exp + " " + predicate_nested_exp + ")";
                     string concept_exp = "(" + CONCEPT + " " + concept_name(_concept) + ")";
-                    string evaluation_exp = "(" + EVALUATION + " " + predicate_exp + " " + concept_exp + ")";
+                    string evaluation_exp =
+                        "(" + EVALUATION + " " + predicate_exp + " " + concept_exp + ")";
                     metta_file << evaluation_exp << endl;
                 }
             }
@@ -223,7 +230,8 @@ void export_metta(vector<vector<string>>& concepts) {
     string file_name = METTA_FILE_PREFIX + "_" + std::to_string(KB_SIZE) + "_" +
                        std::to_string(CONCEPT_SIZE) + "_" + std::to_string(CONCEPT_PART_SIZE) + "_" +
                        CHARSET + "_" + std::to_string(BCD_SORT_COUNT) + "_" +
-                       std::to_string(SORT_COUNT) + (CREATE_AND_PREDICATES ? string("_AND_PREDICATES") : string("")) + ".metta";
+                       std::to_string(SORT_COUNT) +
+                       (CREATE_AND_PREDICATES ? string("_AND_PREDICATES") : string("")) + ".metta";
     ofstream metta_file(file_name);
     if (!metta_file.is_open()) {
         RAISE_ERROR("Unable to open file: " + file_name);

@@ -148,7 +148,8 @@ void LinkCreationProxy::set_link_creator_function_tag(const string& tag) {
                 this->parameters.get<bool>(LOG_NEW_LINKS));
             this->link_creation_function_object->extra_parameters(
                 this->parameters.get_or<string>(LINK_CREATOR_EXTRA_PARAMETERS, ""));
-            this->link_creation_function_object->set_stimuli(this->parameters.get_or<bool>(LINK_CREATION_SPREAD_ACTIVATION, false));
+            this->link_creation_function_object->set_stimuli(
+                this->parameters.get_or<bool>(LINK_CREATION_SPREAD_ACTIVATION, false));
             this->link_creation_function_object->set_context(get_context());
         }
     }
@@ -178,8 +179,10 @@ void LinkCreationProxy::flush_determiners() {
 
 void LinkCreationProxy::flush_stimuli() {
     STACK_TRACE();
-    if ((this->link_creation_function_object != nullptr) && (this->link_creation_function_object->buffer_stimuli().size() > 0)) {
-        AttentionBrokerClient::stimulate(this->link_creation_function_object->buffer_stimuli(), get_context());
+    if ((this->link_creation_function_object != nullptr) &&
+        (this->link_creation_function_object->buffer_stimuli().size() > 0)) {
+        AttentionBrokerClient::stimulate(this->link_creation_function_object->buffer_stimuli(),
+                                         get_context());
         this->link_creation_function_object->clear_stimuli();
     }
 }

@@ -34,13 +34,13 @@ class LinkCreationProxy : public BaseQueryProxy {
     // Optional parameter which are not part of the configuration file
     static string LOG_NEW_LINKS;
 
-    static string LINK_CREATION_SPREAD_ACTIVATION; // Flag to indicate if activation spreading is
-                                                   // supposed to be performed at the end of each
-                                                   // link creation cycle.
+    static string LINK_CREATION_SPREAD_ACTIVATION;  // Flag to indicate if activation spreading is
+                                                    // supposed to be performed at the end of each
+                                                    // link creation cycle.
 
-    static string LINK_CREATOR_EXTRA_PARAMETERS;  // LINK_CREATOR_EXTRA_PARAMETERS is tipically
-                                                  // parsed as a list of tokens separated by a
-                                                  // character defined in
+    static string LINK_CREATOR_EXTRA_PARAMETERS;    // LINK_CREATOR_EXTRA_PARAMETERS is tipically
+                                                    // parsed as a list of tokens separated by a
+                                                    // character defined in
                                                   // CustomizableLinkCreator::EXTRA_PARAMETERS_SPLIT_CHAR
                                                   // If the separator character is used inside
                                                   // LINK_CREATOR_EXTRA_PARAMETERS, the parsing
@@ -140,7 +140,6 @@ class LinkCreationProxy : public BaseQueryProxy {
      * Notifies remote proxy that a cycle just ended.
      */
     virtual void cycle_ended() override;
-
 
    private:
     void set_link_creator_function_tag(const string& tag);

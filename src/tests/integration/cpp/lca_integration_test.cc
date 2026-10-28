@@ -155,9 +155,10 @@ static double get_strength(const string& handle) {
     return answer;
 }
 
-static vector<double> compute_expected_strength(const string& handle1,
-                                        const string& handle2,
-                                        CustomizableLinkCreator::StrengthComposition composition) {
+static vector<double> compute_expected_strength(
+    const string& handle1,
+    const string& handle2,
+    CustomizableLinkCreator::StrengthComposition composition) {
     auto db = AtomDBSingleton::get_instance();
     auto concept_link1 = db->get_link(handle1);
     auto concept_link2 = db->get_link(handle2);
@@ -198,7 +199,8 @@ static vector<double> compute_expected_strength(const string& handle1,
             double s;
             switch (composition) {
                 case CustomizableLinkCreator::INTERSECTION_OVER_UNION:
-                    s = (_intersection.size() == 0) ? 0 : ((double) _intersection.size() / _union.size());
+                    s = (_intersection.size() == 0) ? 0
+                                                    : ((double) _intersection.size() / _union.size());
                     answer.push_back(s);
                     answer.push_back(s);
                     break;
@@ -379,8 +381,7 @@ static bool test_customizable_counts() {
                                            queries);
 
     CustomizableLinkCreator::StrengthComposition composition[2] = {
-        CustomizableLinkCreator::INTERSECTION_OVER_UNION,
-        CustomizableLinkCreator::INTERSECTION_OVER_A};
+        CustomizableLinkCreator::INTERSECTION_OVER_UNION, CustomizableLinkCreator::INTERSECTION_OVER_A};
 
     vector<string> tokens;
     shared_ptr<LinkCreationProxy> proxy[2];
@@ -403,7 +404,8 @@ static bool test_customizable_counts() {
             }
             shared_ptr<QueryAnswer> answer = proxy[i]->pop();
             if (answer != nullptr) {
-                vector<double> expected_strength = compute_expected_strength(answer->get("v1"), answer->get("v2"), composition[i]);
+                vector<double> expected_strength =
+                    compute_expected_strength(answer->get("v1"), answer->get("v2"), composition[i]);
                 string handle =
                     proxy[i]->get_supplementary_info(BaseQueryProxy::BUILT_ATOMS)[count_answers++];
                 double strength = get_strength(handle);

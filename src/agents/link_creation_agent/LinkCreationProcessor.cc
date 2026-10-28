@@ -182,7 +182,8 @@ void LinkCreationProcessor::link_creation(shared_ptr<StoppableThread> monitor,
                     count_created += stats.created;
                     count_used_query_answers++;
                     count_query_answers_in_cycle++;
-                    LOG_DEBUG("Answers used to create links: " + std::to_string(count_query_answers_in_cycle));
+                    LOG_DEBUG("Answers used to create links: " +
+                              std::to_string(count_query_answers_in_cycle));
                     unproductive_visit = 0;
                     visit_attempts = 0;
                     proxy->push(query_answer);

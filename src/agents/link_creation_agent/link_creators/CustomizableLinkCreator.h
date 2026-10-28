@@ -42,7 +42,10 @@ class CustomizableLinkCreator : public LinkCreator {
         string link_type;
         StrengthComposition strength_composition;
         vector<string> queries;
-        bool create_reverse() { return (this->strength_composition == INTERSECTION_OVER_UNION) || (this->strength_composition == INTERSECTION_OVER_A); }
+        bool create_reverse() {
+            return (this->strength_composition == INTERSECTION_OVER_UNION) ||
+                   (this->strength_composition == INTERSECTION_OVER_A);
+        }
 
        private:
         void check();

@@ -1,6 +1,6 @@
 #include "AndTwoPredicates.h"
-#include "AtomDBUtils.h"
 
+#include "AtomDBUtils.h"
 #include "tags.h"
 
 using namespace link_creators;
@@ -23,7 +23,8 @@ LinkCreationStats AndTwoPredicates::create(shared_ptr<QueryAnswer> query_answer)
         strength *= AtomDBUtils::get_strength(h);
     }
     if (!Utils::epsilon_equals(strength, 1.0)) {
-        LOG_DEBUG("AndTwoPredicates discarding low strength (" + std::to_string(strength) + ") link. QueryAnswer: " + query_answer->to_string(true));
+        LOG_DEBUG("AndTwoPredicates discarding low strength (" + std::to_string(strength) +
+                  ") link. QueryAnswer: " + query_answer->to_string(true));
         return stats;
     }
     string concept_ = query_answer->get(CONCEPT);

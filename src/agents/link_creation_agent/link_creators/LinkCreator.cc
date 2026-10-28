@@ -1,8 +1,9 @@
 #include "LinkCreator.h"
-#include "AttentionBrokerClient.h"
-#include "Link.h"
 
 #include <fstream>
+
+#include "AttentionBrokerClient.h"
+#include "Link.h"
 
 using namespace link_creators;
 using namespace attention_broker;
@@ -26,7 +27,8 @@ LinkCreator::AddLinkStatus LinkCreator::add_or_update_link(const vector<string>&
     if (db->link_exists(handle)) {
         auto old_link = db->get_atom(handle);
         LOG_DEBUG("Link already exists: " + old_link->to_string() + ". Updating it.");
-        if (Utils::epsilon_equals(strength, old_link->custom_attributes.get_or<double>(STRENGTH_TAG, 1))) {
+        if (Utils::epsilon_equals(strength,
+                                  old_link->custom_attributes.get_or<double>(STRENGTH_TAG, 1))) {
             // No change in strength. No need to update.
             return REJECTED;
         } else {
