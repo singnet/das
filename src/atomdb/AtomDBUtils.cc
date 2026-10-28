@@ -110,11 +110,7 @@ double AtomDBUtils::get_strength(const string& handle,
                                  const string& strength_tag) {
     STACK_TRACE();
     double answer = 1.0;
-    shared_ptr<AtomDB> atomdb = AtomDBSingleton::get_instance();
-    shared_ptr<KeySensitiveAtomDB> key_sensitive_atomdb =
-        dynamic_pointer_cast<KeySensitiveAtomDB>(atomdb);
-    auto atom = (key_sensitive_atomdb ? key_sensitive_atomdb->get_atom(handle, keychain)
-                                      : atomdb->get_atom(handle));
+    auto atom = AtomDBUtils::get_atom(handle, keychain);
     if (atom == nullptr) {
         RAISE_ERROR("Atom does not exist: " + handle);
     } else {
