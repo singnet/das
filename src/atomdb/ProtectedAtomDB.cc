@@ -109,14 +109,13 @@ shared_ptr<atomdb_api_types::HandleSet> ProtectedAtomDB::query_for_pattern(
     auto original_handle_set = this->backend->query_for_pattern(link_schema);
     timer_backend.stop();
 
-    auto authorized_handle_set = make_shared<atomdb_api_types::HandleSetInMemory>();
     if (original_handle_set == nullptr) {
         timer_total.stop();
         LOG_DEBUG("[ProtectedAtomDB(" << this->uid_ << ")] query_for_pattern: backend returned nullptr"
                                       << " | backend: " << timer_backend.milliseconds() << "ms"
                                       << " | leftover: 0ms"
                                       << " | total: " << timer_total.milliseconds() << "ms");
-        return authorized_handle_set;
+        return make_shared<atomdb_api_types::HandleSetInMemory>();
     }
 
     StopWatch timer_next;
@@ -125,6 +124,7 @@ shared_ptr<atomdb_api_types::HandleSet> ProtectedAtomDB::query_for_pattern(
     StopWatch timer_match;
     StopWatch timer_add;
 
+    auto authorized_handle_set = make_shared<atomdb_api_types::HandleSetInMemory>();
     auto it = original_handle_set->get_iterator();
     unsigned long scanned = 0;
     while (true) {
