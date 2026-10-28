@@ -74,6 +74,27 @@ unsigned int Utils::uint_rand(unsigned int open_upper_bound) {
     return Utils::uint_rand(0, open_upper_bound);
 }
 
+double Utils::double_rand(double closed_lower_bound, double open_upper_bound) {
+    if (open_upper_bound <= closed_lower_bound) {
+        RAISE_ERROR("Invalid bounds: [" + std::to_string(closed_lower_bound) + ", " +
+                    std::to_string(open_upper_bound) + ")");
+    }
+    double delta = open_upper_bound - closed_lower_bound;
+    std::uniform_real_distribution<double> distribution(0, delta - EPSILON);
+    Random::lock_random_generator();
+    double number = distribution(*Random::get_random_generator());
+    Random::unlock_random_generator();
+    return closed_lower_bound + number;
+}
+
+double Utils::double_rand() {
+    double number = double_rand(0.0, 1.0 + EPSILON);
+    if (number > (1.0 - EPSILON)) {
+        number = 1.0;
+    }
+    return number;
+}
+
 string Utils::random_string(size_t length, const string& charset) {
     const size_t size = charset.size();
     string result;
@@ -444,6 +465,13 @@ bool Utils::is_zero(double v) {
     } else {
         return (v > -EPSILON);
     }
+}
+
+bool Utils::epsilon_equals(double v1, double v2) {
+    double delta;
+    return ((v1 == v2) ||
+            ((delta = abs(v1 - v2)) <= EPSILON) ||
+            (delta <= (max(abs(v1), abs(v2)) * EPSILON)));
 }
 
 // --------------------------------------------------------------------------------
