@@ -56,7 +56,7 @@ void WorkerThreads::worker_thread(unsigned int thread_id,
         if (request.second != NULL) {
             switch (request.first) {
                 case RequestType::STIMULUS: {
-                    stimulus_spreader->spread_stimuli((dasproto::HandleCount*) request.second);
+                    stimulus_spreader->spread_stimuli((dasproto::HandleCount*) request.second, false);
                     break;
                 }
                 case RequestType::CORRELATION: {

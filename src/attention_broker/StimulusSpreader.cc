@@ -64,8 +64,14 @@ static bool consolidate_rent_and_wages(HandleTrie::TrieNode* node, void* data) {
 
     TokenSpreader::ImportanceChanges* changes =
         (TokenSpreader::ImportanceChanges*) ((DATA*) data)->importance_changes->lookup(node->suffix);
-    value->importance -= changes->rent;
-    value->importance += changes->wages;
+    ImportanceType rent = 0;
+    ImportanceType wages = 0;
+    if (changes != NULL) {
+        rent = changes->rent;
+        wages = changes->wages;
+        value->importance -= rent;
+        value->importance += wages;
+    }
 
     // Compute amount to be spread
     ImportanceType largest_arity = ((DATA*) data)->largest_arity;
@@ -80,8 +86,8 @@ static bool consolidate_rent_and_wages(HandleTrie::TrieNode* node, void* data) {
     LOG_LOCAL_DEBUG(\
         "Update " + node->suffix + ":" + \
         " " + std::to_string(original_importance) + \
-        " - " + std::to_string(changes->rent) + " (rent)"  + \
-        " + " + std::to_string(changes->wages) + " (wages)" + \
+        " - " + std::to_string(rent) + " (rent)"  + \
+        " + " + std::to_string(wages) + " (wages)" + \
         " - " + std::to_string(to_spread) + " (spread) " + \
         " = " + std::to_string(value->importance));
     // clang-format on
@@ -134,17 +140,17 @@ static bool consolidate_stimulus(HandleTrie::TrieNode* node, void* data) {
 // Public methods
 
 void TokenSpreader::distribute_wages(const dasproto::HandleCount* handle_count,
-                                     ImportanceType& total_to_spread,
+                                     ImportanceType& total_to_distribute,
                                      DATA* data) {
     auto iterator = handle_count->map().find("SUM");
     if (iterator == handle_count->map().end()) {
         RAISE_ERROR("Missing 'SUM' key in HandleCount request");
     }
-    unsigned int total_wages = iterator->second;
-    LOG_DEBUG("Total wages: " + std::to_string(total_wages));
+    unsigned int sum = iterator->second;
+    LOG_DEBUG("Sum: " + std::to_string(sum));
     for (auto pair : handle_count->map()) {
         if (pair.first != "SUM") {
-            double normalized_amount = (((double) pair.second) * total_to_spread) / total_wages;
+            double normalized_amount = (((double) pair.second) * total_to_distribute) / sum;
             LOG_LOCAL_DEBUG("Normalized wage to handle " + pair.first + ": " +
                             std::to_string(normalized_amount));
             data->importance_changes->insert(
@@ -153,7 +159,7 @@ void TokenSpreader::distribute_wages(const dasproto::HandleCount* handle_count,
     }
 }
 
-void TokenSpreader::spread_stimuli(const dasproto::HandleCount* request) {
+void TokenSpreader::spread_stimuli(const dasproto::HandleCount* request, bool spread_only_flag) {
     HebbianNetwork* network = (HebbianNetwork*) request->hebbian_network();
     if (network == NULL) {
         return;
@@ -173,22 +179,26 @@ void TokenSpreader::spread_stimuli(const dasproto::HandleCount* request) {
     // clang-format on
     data.total_rent = 0.0;
 
-    // Collect rent
-    network->visit_nodes(true, &collect_rent, (void*) &data);
-    LOG_DEBUG("Collected rent: " + std::to_string(data.total_rent));
-
-    // Distribute wages
-    ImportanceType total_to_spread = network->alienate_tokens();
-    LOG_DEBUG("Alienated tokens: " + std::to_string(total_to_spread));
-    total_to_spread += data.total_rent;
-    LOG_DEBUG("Total do spread: " + std::to_string(total_to_spread));
-    distribute_wages(request, total_to_spread, &data);
+    if (!spread_only_flag) {
+        // Collect rent
+        network->visit_nodes(true, &collect_rent, (void*) &data);
+        LOG_DEBUG("Collected rent: " + std::to_string(data.total_rent));
+        // Distribute wages
+        ImportanceType total_to_distribute = network->alienate_tokens();
+        LOG_DEBUG("Alienated tokens: " + std::to_string(total_to_distribute));
+        total_to_distribute += data.total_rent;
+        LOG_DEBUG("Total do spread: " + std::to_string(total_to_distribute));
+        distribute_wages(request, total_to_distribute, &data);
+    }
 
     // Consolidate changes
 #if LOG_LEVEL >= LOCAL_DEBUG_LEVEL
     LOG_LOCAL_DEBUG("Importances before consolidate_rent_and_wages()");
     network->visit_nodes(true, &print_importance, (void*) &data);
 #endif
+    // Required regardless spread_only_flag because the amount each node will
+    // spread is computed here, just after consolidating rent and wage. We could
+    // separate it but it would require an unecessary extra tree traversal.
     network->visit_nodes(true, &consolidate_rent_and_wages, (void*) &data);
 #if LOG_LEVEL >= LOCAL_DEBUG_LEVEL
     LOG_LOCAL_DEBUG("Importances after consolidate_rent_and_wages()");
