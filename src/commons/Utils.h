@@ -138,6 +138,8 @@ class Utils {
     static bool flip_coin(double true_probability = 0.5);
     static unsigned int uint_rand(unsigned int open_upper_bound);
     static unsigned int uint_rand(unsigned int closed_lower_bound, unsigned int open_upper_bound);
+    static double double_rand();
+    static double double_rand(double closed_lower_bound, double open_upper_bound);
     static string random_string(size_t length);
     static string random_string(size_t length, const string& charset);
     template <class IteratorType>
@@ -179,6 +181,7 @@ class Utils {
     static bool read_and_split(vector<string>& output, ifstream& file, char delimiter = ' ');
     static bool starts_with(const string& s, const string& prefix);
     static bool is_zero(double v);
+    static bool epsilon_equals(double v1, double v2);
 
     template <class C>
     static bool intersects(const C& set1, const C& set2) {

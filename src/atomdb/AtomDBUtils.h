@@ -23,9 +23,10 @@ class AtomDBUtils {
    private:
     static void reachable_terminal_set_recursive(set<string>& output,
                                                  shared_ptr<Link> link,
-                                                 bool metta_mapping);
+                                                 bool metta_mapping,
+                                                 bool name_flag);
 
-    static string handle_to_metta_recursion(const string& handle,
+    static string handle_to_metta_recursive(const string& handle,
                                             map<string, string>& mapping,
                                             bool populate_mapping,
                                             shared_ptr<Keychain> keychain,
@@ -53,7 +54,8 @@ class AtomDBUtils {
      */
     static void reachable_terminal_set(set<string>& output,
                                        const string& handle,
-                                       bool metta_mapping = false);
+                                       bool metta_mapping = false,
+                                       bool name_flag = false);
     static void count_reachable_atoms(const string& handle,
                                       size_t& node_count,
                                       size_t& link_count,
@@ -81,6 +83,42 @@ class AtomDBUtils {
     static string handle_to_metta(const string& handle,
                                   map<string, string>& mapping,
                                   shared_ptr<Keychain> keychain = nullptr);
+
+    /**
+     * Return the Atom, given its handle. nullptr is returned if Atom doesn't exist.
+     *
+     * @param handle Handle of the atom to be returned.
+     * @param keychain Optional keychain to be passed to KeySentitive AtomDB.
+     * @return the Atom, given its handle. nullptr is returned if Atom doesn't exist.
+     */
+    static shared_ptr<Atom> get_atom(const string& handle, shared_ptr<Keychain> keychain = nullptr);
+
+    /**
+     * Return the Node, given its handle. nullptr is returned if Node doesn't exist.
+     *
+     * @param handle Handle of the node to be returned.
+     * @param keychain Optional keychain to be passed to KeySentitive AtomDB.
+     * @return the Node, given its handle. nullptr is returned if Node doesn't exist.
+     */
+    static shared_ptr<Node> get_node(const string& handle, shared_ptr<Keychain> keychain = nullptr);
+
+    /**
+     * Return a node's name or "" if it doesn't exist.
+     *
+     * @param handle Handle of the node whose name is to be returned.
+     * @return a node's name or "" if it doesn't exist.
+     */
+    static string get_node_name(const string& handle, shared_ptr<Keychain> keychain = nullptr);
+
+    /**
+     * Return an atom's strength or raises if it doesn't exist.
+     *
+     * @param handle Handle of the atom whose strength is to be returned.
+     * @return an atom's strength or raises if it doesn't exist.
+     */
+    static double get_strength(const string& handle,
+                               shared_ptr<Keychain> keychain = nullptr,
+                               const string& strength_tag = "strength");
 };
 
 }  // namespace atomdb
