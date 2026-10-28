@@ -98,19 +98,19 @@ TEST(AtomDBTest, reachable_terminal_set) {
     EXPECT_EQ(handles, set({a, b, c, d, e, f, g, h, i, j, k}));
 
     handles.clear();
-    AtomDBUtils::reachable_terminal_set(handles, L6->handle(), false, true);
+    AtomDBUtils::reachable_terminal_set(handles, L6->handle(), true, false);
     EXPECT_EQ(handles, set({j, k}));
 
     handles.clear();
-    AtomDBUtils::reachable_terminal_set(handles, L2->handle(), false, true);
+    AtomDBUtils::reachable_terminal_set(handles, L2->handle(), true);
     EXPECT_EQ(handles, set({h, j, k}));
 
     handles.clear();
-    AtomDBUtils::reachable_terminal_set(handles, L4->handle(), false, true);
+    AtomDBUtils::reachable_terminal_set(handles, L4->handle(), true, false);
     EXPECT_EQ(handles, set({d, e}));
 
     handles.clear();
-    AtomDBUtils::reachable_terminal_set(handles, L1->handle(), false, true);
+    AtomDBUtils::reachable_terminal_set(handles, L1->handle(), true, false);
     EXPECT_EQ(handles, set({b, d, e, f}));
 
     handles.clear();

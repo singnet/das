@@ -160,17 +160,23 @@ TEST(LocalFileTestSuite, double_rand) {
             double number = Utils::double_rand(closed_lower, open_upper);
             EXPECT_TRUE(number >= closed_lower);
             EXPECT_TRUE(number < open_upper);
+            EXPECT_FALSE(number == open_upper);
         }
     }
+    bool exact_zero = false;
     bool exact_one = false;
-    for (unsigned int i = 0; i < 10000; i++) {
+    for (unsigned int i = 0; i < 100000; i++) {
         double number = Utils::double_rand();
         EXPECT_TRUE(number >= 0.0);
         EXPECT_TRUE(number <= 1.0);
+        if (number == 0.0) {
+            exact_zero = true;
+        }
         if (number == 1.0) {
             exact_one = true;
         }
     }
+    EXPECT_TRUE(exact_zero);
     EXPECT_TRUE(exact_one);
     Utils::EPSILON = guard_epsilon;
     EXPECT_THROW(Utils::double_rand(0, 0), runtime_error);
