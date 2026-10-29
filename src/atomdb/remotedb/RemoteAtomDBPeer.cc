@@ -112,7 +112,57 @@ shared_ptr<Link> RemoteAtomDBPeer::get_link(const string& handle) {
 }
 
 vector<shared_ptr<Atom>> RemoteAtomDBPeer::get_atoms(const vector<string>& handles) {
-    RAISE_ERROR("RemoteAtomDBPeer::get_atoms is not implemented");
+    return this->get_atoms(handles, nullptr);
+}
+
+vector<shared_ptr<Atom>> RemoteAtomDBPeer::get_atoms(const vector<string>& handles,
+                                                     shared_ptr<Keychain> keychain) {
+    vector<shared_ptr<Atom>> result;
+    vector<string> pending;
+    unordered_set<string> seen;
+    pending.reserve(handles.size());
+    for (const auto& handle : handles) {
+        if (seen.insert(handle).second) pending.push_back(handle);
+    }
+    if (pending.empty()) return result;
+
+    auto rc = read_cache();
+    auto take = [&](const vector<shared_ptr<Atom>>& found, bool warm) {
+        if (found.empty()) return;
+        unordered_set<string> hit;
+        for (const auto& atom : found) {
+            if (!atom) continue;
+            hit.insert(atom->handle());
+            if (warm) rc->add_atom(atom.get());
+            result.push_back(atom);
+        }
+        if (hit.empty()) return;
+        vector<string> still;
+        still.reserve(pending.size());
+        for (const auto& handle : pending) {
+            if (!hit.count(handle)) still.push_back(handle);
+        }
+        pending.swap(still);
+    };
+
+    auto pwb = protected_write_buffer();
+    take(pwb ? pwb->get_atoms(pending, keychain) : write_buffer()->get_atoms(pending), false);
+
+    if (local_persistence_ && !pending.empty()) {
+        take(local_persistence_->get_atoms(pending), true);
+    }
+
+    if (!pending.empty()) {
+        auto prc = protected_read_cache();
+        take(prc ? prc->get_atoms(pending, keychain) : read_cache()->get_atoms(pending), false);
+    }
+
+    if (atomdb_ && !pending.empty()) {
+        take(protected_atomdb_ ? protected_atomdb_->get_atoms(pending, keychain)
+                               : atomdb_->get_atoms(pending),
+             true);
+    }
+    return result;
 }
 
 vector<shared_ptr<Node>> RemoteAtomDBPeer::get_nodes(const vector<string>& handles) {
@@ -207,18 +257,18 @@ void RemoteAtomDBPeer::feed_cache_from_handle_set(shared_ptr<HandleSet> handle_s
         pending.push_back(string(handle_cstr));
     }
     while (!pending.empty()) {
-        string handle = pending.front();
-        pending.pop_front();
-        if (!warmed.insert(handle).second) {
-            continue;
+        vector<string> batch;
+        while (!pending.empty()) {
+            string handle = pending.front();
+            pending.pop_front();
+            if (warmed.insert(handle).second) batch.push_back(std::move(handle));
         }
-        auto atom = get_atom(handle, keychain);
-        auto link = dynamic_pointer_cast<Link>(atom);
-        if (link == nullptr) {
-            continue;
-        }
-        for (const auto& target : link->targets) {
-            pending.push_back(target);
+        for (const auto& atom : get_atoms(batch, keychain)) {
+            auto link = dynamic_pointer_cast<Link>(atom);
+            if (link == nullptr) continue;
+            for (const auto& target : link->targets) {
+                pending.push_back(target);
+            }
         }
     }
     timer_feed.stop();
