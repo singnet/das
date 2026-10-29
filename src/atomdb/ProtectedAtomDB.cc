@@ -128,24 +128,58 @@ shared_ptr<atomdb_api_types::HandleSet> ProtectedAtomDB::query_for_pattern(
     auto it = original_handle_set->get_iterator();
     unsigned long scanned = 0;
 
-    vector<string> handles;
+    // vector<string> handles;
     
+    // while (true) {
+    //     timer_next.start();
+    //     auto redis_it = dynamic_pointer_cast<atomdb_api_types::HandleSetRedisIterator>(it);
+    //     char* handle_cstr = redis_it ? redis_it->next_candidate() : it->next();
+    //     timer_next.stop();
+    //     scanned++;
+    //     if (!handle_cstr) break;
+    //     string handle(handle_cstr);
+    //     handles.push_back(handle);
+    // }
+
+    // timer_get_atom.start();
+    // auto atoms = this->backend->get_atoms(handles);
+    // timer_get_atom.stop();
+
+    // for (auto atom : atoms) {
+    //     timer_can_read.start();
+    //     bool granted = this->can_read(atom, *public_key);
+    //     timer_can_read.stop();
+    //     if (!granted) continue;
+
+    //     auto link = dynamic_pointer_cast<Link>(atom);
+    //     if (link == nullptr) continue;
+
+    //     Assignment assignment;
+    //     timer_match.start();
+    //     bool matched = const_cast<LinkSchema&>(link_schema).match(*link, assignment, *this->backend);
+    //     timer_match.stop();
+    //     if (!matched) continue;
+
+    //     timer_add.start();
+    //     string handle = atom->handle();
+    //     authorized_handle_set->add_handle(
+    //         handle, original_handle_set->get_metta_expressions_by_handle(handle), assignment);
+    //     timer_add.stop();
+    // }
+
     while (true) {
         timer_next.start();
         auto redis_it = dynamic_pointer_cast<atomdb_api_types::HandleSetRedisIterator>(it);
         char* handle_cstr = redis_it ? redis_it->next_candidate() : it->next();
         timer_next.stop();
-        scanned++;
         if (!handle_cstr) break;
+        scanned++;
         string handle(handle_cstr);
-        handles.push_back(handle);
-    }
 
-    timer_get_atom.start();
-    auto atoms = this->backend->get_atoms(handles);
-    timer_get_atom.stop();
+        timer_get_atom.start();
+        auto atom = this->backend->get_atom(handle);
+        timer_get_atom.stop();
 
-    for (auto atom : atoms) {
         timer_can_read.start();
         bool granted = this->can_read(atom, *public_key);
         timer_can_read.stop();
@@ -161,7 +195,6 @@ shared_ptr<atomdb_api_types::HandleSet> ProtectedAtomDB::query_for_pattern(
         if (!matched) continue;
 
         timer_add.start();
-        string handle = atom->handle();
         authorized_handle_set->add_handle(
             handle, original_handle_set->get_metta_expressions_by_handle(handle), assignment);
         timer_add.stop();
