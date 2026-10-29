@@ -74,7 +74,7 @@ LinkCreationStats CustomizableLinkCreator::create(shared_ptr<QueryAnswer> query_
             targets.push_back(handle);
             handles.push_back(handle);
         }
-        string key = Utils::join(targets, ' ');
+        string key = spec.link_type + " " + Utils::join(targets, ' ');
         if (check_targets(targets) && !visited(key)) {
             visit(key);
             stats.visited = true;

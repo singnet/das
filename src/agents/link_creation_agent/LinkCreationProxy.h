@@ -41,10 +41,10 @@ class LinkCreationProxy : public BaseQueryProxy {
     static string LINK_CREATOR_EXTRA_PARAMETERS;    // LINK_CREATOR_EXTRA_PARAMETERS is tipically
                                                     // parsed as a list of tokens separated by a
                                                     // character defined in
-    // CustomizableLinkCreator::EXTRA_PARAMETERS_SPLIT_CHAR
-    // If the separator character is used inside
-    // LINK_CREATOR_EXTRA_PARAMETERS, the parsing
-    // will fail, even if it's quoted or escaped.
+                                                    // EXTRA_PARAMETERS_SPLIT_CHAR
+                                                    // If the separator character is used inside
+                                                    // LINK_CREATOR_EXTRA_PARAMETERS, the parsing
+                                                    // will fail, even if it's quoted or escaped.
 
     LinkCreationProxy();
 

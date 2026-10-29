@@ -540,6 +540,26 @@ static void sti_snapshot(const string& context, bool report_evaluation = false) 
 }
 
 static vector<shared_ptr<LinkCreationProxy>> one_shot_lca_proxy;
+// TODO XXX FIXME
+// start_one_shot_lca ignores handle in its query and always builds implication links.
+//
+// make_implication_query(true) always binds the second evaluation to
+// TARGET_PREDICATE_HANDLE. The function does not use handle in the query.
+// handle appears only in the link specification and in the second count query.
+// This causes two problems:
+//
+// start_one_shot_lca(TARGET_CONCEPT_HANDLE, context, true) at Line 760 creates
+// IMPLICATION links of the form Predicate1 -> <target concept>. The candidates
+// come from co-occurrence with the target predicate. A concept target needs an
+// EQUIVALENCE link and a concept-based query.
+//
+// For hop handles at Line 844, candidate predicates are still selected by
+// co-occurrence with the target predicate, not with handle.
+//
+// equivalence_to_target_link_creator and implication_to_target_link_creator are
+// configured at Lines 692-705 but never used. This suggests the concept case
+// was meant to use the equivalence creator. Pass the handle into the query
+// builder, and pick the creator by target kind.
 void start_one_shot_lca(const string& handle, const string& context, bool initial_links = false) {
     CustomizableLinkCreator implication_to_handle_link_creator(true);
     implication_to_handle_link_creator.add_link_specification(
@@ -825,6 +845,7 @@ static void run(const string& context_tag) {
 
         shared_ptr<QueryAnswer> query_answer;
         unsigned int count_answers = 0;
+        set<string> hop_handles_to_process;
 
         while (!qe_proxy->finished()) {
             if ((query_answer = qe_proxy->pop()) == NULL) {
@@ -840,11 +861,12 @@ static void run(const string& context_tag) {
                      path_index++) {
                     QueryAnswerElement hops(path_index, 1, 2, false, false, false);
                     vector<string> hop_handles = query_answer->get_all(hops, db);
-                    for (auto& handle : hop_handles) {
-                        start_one_shot_lca(handle, context);
-                    }
+                    hop_handles_to_process.insert(hop_handles.begin(), hop_handles.end());
                 }
             }
+        }
+        for (const string& handle : hop_handles_to_process) {
+            start_one_shot_lca(handle, context);
         }
         LOG_INFO("Total answers in iteration " << iteration << ": " << count_answers);
         flush_remote_link_template_cache();

@@ -75,7 +75,8 @@ void LinkCreator::strength_threshold(double value) {
 void LinkCreator::add_stimulus(const string& handle, double strength) {
     if (this->_activation_spreading_flag && (strength > _strength_threshold)) {
         double rescaled = (strength - _strength_threshold) / (1.0 - _strength_threshold);
-        this->_buffer_stimuli[handle] = (unsigned int) std::lround(rescaled * 1000);
+        this->_buffer_stimuli[handle] =
+            max((unsigned int) std::lround(rescaled * 1000), this->_buffer_stimuli[handle]);
     }
 }
 
