@@ -194,6 +194,17 @@ cc_binary(
 )
 
 cc_binary(
+    name = "link_schema_handle",
+    srcs = [],
+    defines = ["BAZEL_BUILD"],
+    linkstatic = 1,
+    deps = [
+        "//tests/main:link_schema_handle_main_lib",
+        "@mbedtls",
+    ],
+)
+
+cc_binary(
     name = "lca_integration_test",
     srcs = [],
     defines = ["BAZEL_BUILD"],

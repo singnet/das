@@ -105,3 +105,12 @@ cc_library(
         "//commons:commons_lib",
     ],
 )
+
+cc_library(
+    name = "link_schema_handle_main_lib",
+    srcs = ["link_schema_handle_main.cc"],
+    deps = [
+        "//commons/atoms:atoms_lib",
+        "//metta:metta_mapping",
+    ],
+)
