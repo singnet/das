@@ -195,12 +195,12 @@ shared_ptr<Atom> RedisMongoDB::get_atom(const string& handle) {
     }
 
     timer_total.stop();
-    if (atom && timer_total.milliseconds() != 0) {
-        LOG_DEBUG("[RedisMongoDB(" << this->uid_ << ")] get_atom(" << handle << ") "
-                                << (atom ? atom_kind : "not found")
-                                << " | get_atom_document: " << timer_get_atom_document.milliseconds()
-                                << "ms | total: " << timer_total.milliseconds() << "ms");
-    }
+    // if (atom && timer_total.milliseconds() != 0) {
+    //     LOG_DEBUG("[RedisMongoDB(" << this->uid_ << ")] get_atom(" << handle << ") "
+    //                             << (atom ? atom_kind : "not found")
+    //                             << " | get_atom_document: " << timer_get_atom_document.milliseconds()
+    //                             << "ms | total: " << timer_total.milliseconds() << "ms");
+    // }
     return atom;
 }
 
@@ -619,11 +619,11 @@ shared_ptr<atomdb_api_types::AtomDocument> RedisMongoDB::get_atom_document(const
     timer_link.start();
     auto link_document = get_link_document(handle);
     timer_link.stop();
-    if ((timer_node.milliseconds() != 0) || (timer_link.milliseconds() != 0))
-        LOG_DEBUG("[RedisMongoDB(" << this->uid_ << ")] get_atom_document(" << handle << ") "
-                                   << (link_document ? "link" : "not found")
-                                   << " | nodes: " << timer_node.milliseconds() << "ms"
-                                   << " | links: " << timer_link.milliseconds() << "ms");
+    // if ((timer_node.milliseconds() != 0) || (timer_link.milliseconds() != 0))
+    //     LOG_DEBUG("[RedisMongoDB(" << this->uid_ << ")] get_atom_document(" << handle << ") "
+    //                                << (link_document ? "link" : "not found")
+    //                                << " | nodes: " << timer_node.milliseconds() << "ms"
+    //                                << " | links: " << timer_link.milliseconds() << "ms");
     if (link_document != nullptr) {
         return link_document;
     }
