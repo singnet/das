@@ -178,7 +178,20 @@ shared_ptr<Link> InMemoryDB::get_link(const string& handle) {
 }
 
 vector<shared_ptr<Atom>> InMemoryDB::get_atoms(const vector<string>& handles) {
-    RAISE_ERROR("InMemoryDB::get_atoms is not implemented");
+    auto trie = load_tries()->atoms;
+    vector<shared_ptr<Atom>> atoms;
+    atoms.reserve(handles.size());
+    for (const auto& handle : handles) {
+        auto atom = lookup_atom(*trie, handle);
+        if (atom == nullptr) {
+            continue;
+        }
+        auto cloned = clone_atom(atom.get());
+        if (cloned != nullptr) {
+            atoms.push_back(cloned);
+        }
+    }
+    return atoms;
 }
 
 vector<shared_ptr<Node>> InMemoryDB::get_nodes(const vector<string>& handles) {
