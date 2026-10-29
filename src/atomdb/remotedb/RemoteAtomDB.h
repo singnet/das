@@ -39,6 +39,10 @@ class RemoteAtomDB : public AtomDB, public KeySensitiveAtomDB {
     shared_ptr<Link> get_link(const string& handle) override;
     shared_ptr<Link> get_link(const string& handle, shared_ptr<Keychain> keychain) override;
 
+    vector<shared_ptr<Atom>> get_atoms(const vector<string>& handles) override;
+    vector<shared_ptr<Node>> get_nodes(const vector<string>& handles) override;
+    vector<shared_ptr<Link>> get_links(const vector<string>& handles) override;
+
     vector<shared_ptr<Atom>> get_matching_atoms(bool is_toplevel, Atom& key) override;
     vector<shared_ptr<Atom>> get_matching_atoms(bool is_toplevel,
                                                 Atom& key,

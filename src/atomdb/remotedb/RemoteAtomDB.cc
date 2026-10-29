@@ -79,6 +79,18 @@ shared_ptr<Link> RemoteAtomDB::get_link(const string& handle) {
     return dynamic_pointer_cast<Link>(atom);
 }
 
+vector<shared_ptr<Atom>> RemoteAtomDB::get_atoms(const vector<string>& handles) {
+    RAISE_ERROR("RemoteAtomDB::get_atoms is not implemented");
+}
+
+vector<shared_ptr<Node>> RemoteAtomDB::get_nodes(const vector<string>& handles) {
+    RAISE_ERROR("RemoteAtomDB::get_nodes is not implemented");
+}
+
+vector<shared_ptr<Link>> RemoteAtomDB::get_links(const vector<string>& handles) {
+    RAISE_ERROR("RemoteAtomDB::get_links is not implemented");
+}
+
 vector<shared_ptr<Atom>> RemoteAtomDB::get_matching_atoms(bool is_toplevel, Atom& key) {
     return this->get_matching_atoms(is_toplevel, key, nullptr);
 }

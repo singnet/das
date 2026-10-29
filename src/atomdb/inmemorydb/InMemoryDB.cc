@@ -177,6 +177,18 @@ shared_ptr<Link> InMemoryDB::get_link(const string& handle) {
     return dynamic_pointer_cast<Link>(atom);
 }
 
+vector<shared_ptr<Atom>> InMemoryDB::get_atoms(const vector<string>& handles) {
+    RAISE_ERROR("InMemoryDB::get_atoms is not implemented");
+}
+
+vector<shared_ptr<Node>> InMemoryDB::get_nodes(const vector<string>& handles) {
+    RAISE_ERROR("InMemoryDB::get_nodes is not implemented");
+}
+
+vector<shared_ptr<Link>> InMemoryDB::get_links(const vector<string>& handles) {
+    RAISE_ERROR("InMemoryDB::get_links is not implemented");
+}
+
 shared_ptr<HandleSet> InMemoryDB::query_for_pattern(const LinkSchema& link_schema) {
     auto handle_set = make_shared<HandleSetInMemory>();
     auto handles = lookup_handle_set(*load_tries()->patterns, link_schema.handle());

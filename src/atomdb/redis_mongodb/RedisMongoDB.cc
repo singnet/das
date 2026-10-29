@@ -212,6 +212,46 @@ shared_ptr<Link> RedisMongoDB::get_link(const string& handle) {
     return dynamic_pointer_cast<Link>(get_atom(handle));
 }
 
+vector<shared_ptr<Atom>> RedisMongoDB::get_atoms(const vector<string>& handles) {
+    auto atom_documents = this->get_atom_documents(handles, {});
+    vector<shared_ptr<Atom>> atoms;
+    if (!atom_documents.empty()) {
+        for (auto atom_doc : atom_documents) {
+            auto atom_document = dynamic_pointer_cast<atomdb_api_types::MongodbDocument>(atom_doc);
+            if (atom_document != NULL) {
+                Properties custom_attributes;
+                if (atom_document->contains("custom_attributes")) {
+                    custom_attributes = atom_document->extract_custom_attributes(atom_document->get_object("custom_attributes"));
+                }
+                bool is_toplevel = false;
+                if (atom_document->contains("is_toplevel")) {
+                    is_toplevel = atom_document->get_bool("is_toplevel");
+                }
+                if (atom_document->contains(MONGODB_FIELD_NAME[MONGODB_FIELD::TARGETS])) {
+                    unsigned int arity = atom_document->get_size(MONGODB_FIELD_NAME[MONGODB_FIELD::TARGETS]);
+                    vector<string> targets;
+                    for (unsigned int i = 0; i < arity; i++) {
+                        targets.push_back(string(atom_document->get(MONGODB_FIELD_NAME[MONGODB_FIELD::TARGETS], i)));
+                    }
+                    atoms.push_back(make_shared<Link>(atom_document->get("named_type"), targets, is_toplevel, custom_attributes));
+                } else {
+                    atoms.push_back(make_shared<Node>(atom_document->get("named_type"), atom_document->get("name"), is_toplevel, custom_attributes));
+                }
+            }
+        }
+    }
+
+    return atoms;
+}
+
+vector<shared_ptr<Node>> RedisMongoDB::get_nodes(const vector<string>& handles) {
+    RAISE_ERROR("RedisMongoDB::get_nodes is not implemented");
+}
+
+vector<shared_ptr<Link>> RedisMongoDB::get_links(const vector<string>& handles) {
+    RAISE_ERROR("RedisMongoDB::get_links is not implemented");
+}
+
 shared_ptr<atomdb_api_types::HandleSet> RedisMongoDB::query_for_pattern(const LinkSchema& link_schema) {
     if (skip_redis_) return nullptr;
 

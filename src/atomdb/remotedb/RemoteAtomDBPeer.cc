@@ -111,6 +111,18 @@ shared_ptr<Link> RemoteAtomDBPeer::get_link(const string& handle) {
     return dynamic_pointer_cast<Link>(atom);
 }
 
+vector<shared_ptr<Atom>> RemoteAtomDBPeer::get_atoms(const vector<string>& handles) {
+    RAISE_ERROR("RemoteAtomDBPeer::get_atoms is not implemented");
+}
+
+vector<shared_ptr<Node>> RemoteAtomDBPeer::get_nodes(const vector<string>& handles) {
+    RAISE_ERROR("RemoteAtomDBPeer::get_nodes is not implemented");
+}
+
+vector<shared_ptr<Link>> RemoteAtomDBPeer::get_links(const vector<string>& handles) {
+    RAISE_ERROR("RemoteAtomDBPeer::get_links is not implemented");
+}
+
 shared_ptr<Atom> RemoteAtomDBPeer::get_cached_atom(const string& handle, shared_ptr<Keychain> keychain) {
     auto pwb = protected_write_buffer();
     if (auto atom = pwb ? pwb->get_atom(handle, keychain) : write_buffer()->get_atom(handle)) {

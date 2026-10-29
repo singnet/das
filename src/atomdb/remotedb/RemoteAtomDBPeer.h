@@ -55,6 +55,10 @@ class RemoteAtomDBPeer : public AtomDB, public processor::ThreadMethod, public K
     shared_ptr<Link> get_link(const string& handle) override;
     shared_ptr<Link> get_link(const string& handle, shared_ptr<Keychain> keychain) override;
 
+    vector<shared_ptr<Atom>> get_atoms(const vector<string>& handles) override;
+    vector<shared_ptr<Node>> get_nodes(const vector<string>& handles) override;
+    vector<shared_ptr<Link>> get_links(const vector<string>& handles) override;
+
     // In-memory lookups only (write_buffer + read_cache). Used by the RemoteAtomDB facade
     // to probe every peer's cache before escalating any peer to its backend.
     shared_ptr<Atom> get_cached_atom(const string& handle, shared_ptr<Keychain> keychain = nullptr);
