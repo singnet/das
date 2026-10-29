@@ -264,15 +264,15 @@ const string& QueryAnswer::tokenize() {
         + importance.size() + 1  // importance + space
         + 4                      // (up to 3 digits) to represent this->assignment.size + space
         + this->assignment.table.size() *
-              (MAX_VARIABLE_NAME_SIZE + HANDLE_HASH_SIZE + 2)  // label<space>handle<space>
+              (MAX_VARIABLE_NAME_SIZE + ATOM_HANDLE_LENGTH + 2)  // label<space>handle<space>
         + 4               // (up to 3 digits) to represent this->metta_expression.size + space
         + 4;              // (up to 3 digits) to represent this->handles.size() + space
     for (auto& vector : this->handles) {
         char_count += 4;  // (up to 3 digits) to represent this->handles[i].size() + space
-        char_count += vector.size() * (HANDLE_HASH_SIZE + 1);  // handles[i] + spaces
+        char_count += vector.size() * (ATOM_HANDLE_LENGTH + 1);  // handles[i] + spaces
     }
     for (auto pair : this->metta_expression) {
-        char_count += HANDLE_HASH_SIZE + 1;    // handle + space
+        char_count += ATOM_HANDLE_LENGTH + 1;  // handle + space
         char_count += pair.second.size() + 1;  // MeTTa expression + space
     }
 
@@ -404,7 +404,7 @@ void QueryAnswer::untokenize(const string& tokens) {
     char number[4];
     char strength[13];
     char importance[13];
-    char handle[HANDLE_HASH_SIZE];
+    char handle[ATOM_HANDLE_LENGTH + 1];
     char label[MAX_VARIABLE_NAME_SIZE];
 
     unsigned int cursor = 0;
@@ -430,7 +430,7 @@ void QueryAnswer::untokenize(const string& tokens) {
                 path_index = this->add_path();
             }
             for (unsigned int j = 0; j < vector_size; j++) {
-                read_token(token_string, cursor, handle, HANDLE_HASH_SIZE);
+                read_token(token_string, cursor, handle, ATOM_HANDLE_LENGTH);
                 if (i == 0) {
                     // handles vector
                     this->add_handle(handle);
@@ -452,7 +452,7 @@ void QueryAnswer::untokenize(const string& tokens) {
 
     for (unsigned int i = 0; i < assignment_size; i++) {
         read_token(token_string, cursor, label, MAX_VARIABLE_NAME_SIZE);
-        read_token(token_string, cursor, handle, HANDLE_HASH_SIZE);
+        read_token(token_string, cursor, handle, ATOM_HANDLE_LENGTH);
         this->assignment.assign(string(label), string(handle));
     }
 
@@ -461,7 +461,7 @@ void QueryAnswer::untokenize(const string& tokens) {
     string metta_expression;
     if (metta_mapping_size > 0) {
         for (unsigned int i = 0; i < metta_mapping_size; i++) {
-            read_token(token_string, cursor, handle, HANDLE_HASH_SIZE);
+            read_token(token_string, cursor, handle, ATOM_HANDLE_LENGTH);
             metta_expression = read_metta_expression(token_string, cursor);
             this->metta_expression[string(handle)] = metta_expression;
         }
@@ -562,6 +562,9 @@ vector<string> QueryAnswer::get_all(const QueryAnswerElement& key,
             auto& path = get_path_vector(key.path_index);
             bool first_handle = true;
             for (string& handle : path) {
+                if (!Hasher::is_link_handle(handle)) {
+                    RAISE_ERROR("Non-link atom in QueryAnswer path: " + handle);
+                }
                 shared_ptr<Atom> atom = nullptr;
                 if (keychain == nullptr) {
                     atom = atomdb->get_atom(handle);

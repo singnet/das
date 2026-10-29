@@ -123,7 +123,7 @@ char* HandleSetRedisIterator::next() {
 }
 
 RedisStringBundle::RedisStringBundle(redisReply* reply) : HandleList() {
-    unsigned int handle_length = (HANDLE_HASH_SIZE - 1);
+    unsigned int handle_length = ATOM_HANDLE_LENGTH;
     this->redis_reply = reply;
     this->handles_size = reply->len / handle_length;
     this->handles = new char*[this->handles_size];

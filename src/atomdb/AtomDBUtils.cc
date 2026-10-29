@@ -1,10 +1,12 @@
 #include "AtomDBUtils.h"
 
 #include "AtomDBSingleton.h"
+#include "Hasher.h"
 #include "Logger.h"
 #include "MettaMapping.h"
 
 using namespace atomdb;
+using namespace commons;
 
 AtomDBUtils::AtomDBUtils() {}
 
@@ -18,14 +20,26 @@ void AtomDBUtils::reachable_terminal_set(set<string>& output,
                                          bool metta_mapping,
                                          bool name_flag) {
     STACK_TRACE();
-    auto atom = AtomDBSingleton::get_instance()->get_atom(handle);
-    if (atom != nullptr) {
-        auto node = dynamic_pointer_cast<Node>(atom);
-        if (node != nullptr) {
-            output.insert(name_flag ? node->name : handle);
+    if (Hasher::is_node_handle(handle)) {
+        auto atom = AtomDBSingleton::get_instance()->get_atom(handle);
+        if (atom == nullptr) {
+            return;
+        }
+        if (name_flag) {
+            auto node = dynamic_pointer_cast<Node>(atom);
+            if (node != nullptr) {
+                output.insert(node->name);
+            }
         } else {
-            AtomDBUtils::reachable_terminal_set_recursive(
-                output, dynamic_pointer_cast<Link>(atom), metta_mapping, name_flag);
+            output.insert(handle);
+        }
+        return;
+    }
+    if (Hasher::is_link_handle(handle)) {
+        auto atom = AtomDBSingleton::get_instance()->get_atom(handle);
+        auto link = dynamic_pointer_cast<Link>(atom);
+        if (link != nullptr) {
+            AtomDBUtils::reachable_terminal_set_recursive(output, link, metta_mapping, name_flag);
         }
     }
 }
@@ -44,13 +58,15 @@ void AtomDBUtils::count_reachable_atoms(const string& handle,
     auto atom = key_sensitive_atomdb ? key_sensitive_atomdb->get_atom(handle, keychain)
                                      : atomdb->get_atom(handle);
     if (atom != nullptr) {
-        auto link = dynamic_pointer_cast<Link>(atom);
-        if (link == nullptr) {
-            node_count++;
+        if (Hasher::is_link_handle(handle)) {
+            auto link = dynamic_pointer_cast<Link>(atom);
+            if (link != nullptr) {
+                AtomDBUtils::count_reachable_atoms_recursive(
+                    link, node_count, link_count, atom_count, keychain, visited);
+                link_count++;
+            }
         } else {
-            AtomDBUtils::count_reachable_atoms_recursive(
-                link, node_count, link_count, atom_count, keychain, visited);
-            link_count++;
+            node_count++;
         }
     }
     atom_count++;
@@ -87,12 +103,8 @@ shared_ptr<Atom> AtomDBUtils::get_atom(const string& handle, shared_ptr<Keychain
 
 shared_ptr<Node> AtomDBUtils::get_node(const string& handle, shared_ptr<Keychain> keychain) {
     STACK_TRACE();
-    shared_ptr<Node> node = nullptr;
-    auto atom = AtomDBUtils::get_atom(handle, keychain);
-    if (atom != nullptr) {
-        node = dynamic_pointer_cast<Node>(atom);
-    }
-    return node;
+    if (!Hasher::is_node_handle(handle)) return nullptr;
+    return dynamic_pointer_cast<Node>(AtomDBUtils::get_atom(handle, keychain));
 }
 
 string AtomDBUtils::get_node_name(const string& handle, shared_ptr<Keychain> keychain) {
@@ -128,15 +140,27 @@ void AtomDBUtils::reachable_terminal_set_recursive(set<string>& output,
                                                    bool name_flag) {
     bool first_target = true;
     for (string& target_handle : link->targets) {
-        auto atom = AtomDBSingleton::get_instance()->get_atom(target_handle);
-        auto node = dynamic_pointer_cast<Node>(atom);
-        if (node != nullptr) {
+        if (Hasher::is_node_handle(target_handle)) {
             if (!(metta_mapping && first_target)) {
-                output.insert(name_flag ? node->name : node->handle());
+                auto atom = AtomDBSingleton::get_instance()->get_atom(target_handle);
+                if (atom != nullptr) {
+                    if (name_flag) {
+                        auto node = dynamic_pointer_cast<Node>(atom);
+                        if (node != nullptr) {
+                            output.insert(node->name);
+                        }
+                    } else {
+                        output.insert(target_handle);
+                    }
+                }
             }
-        } else {
-            AtomDBUtils::reachable_terminal_set_recursive(
-                output, dynamic_pointer_cast<Link>(atom), metta_mapping, name_flag);
+        } else if (Hasher::is_link_handle(target_handle)) {
+            auto atom = AtomDBSingleton::get_instance()->get_atom(target_handle);
+            auto nested_link = dynamic_pointer_cast<Link>(atom);
+            if (nested_link != nullptr) {
+                AtomDBUtils::reachable_terminal_set_recursive(
+                    output, nested_link, metta_mapping, name_flag);
+            }
         }
         first_target = false;
     }
@@ -158,13 +182,15 @@ void AtomDBUtils::count_reachable_atoms_recursive(shared_ptr<Link> link,
         auto atom = key_sensitive_atomdb ? key_sensitive_atomdb->get_atom(target_handle, keychain)
                                          : atomdb->get_atom(target_handle);
         if (atom != nullptr) {
-            auto link = dynamic_pointer_cast<Link>(atom);
-            if (link == nullptr) {
-                node_count++;
+            if (Hasher::is_link_handle(target_handle)) {
+                auto nested_link = dynamic_pointer_cast<Link>(atom);
+                if (nested_link != nullptr) {
+                    AtomDBUtils::count_reachable_atoms_recursive(
+                        nested_link, node_count, link_count, atom_count, keychain, visited);
+                    link_count++;
+                }
             } else {
-                AtomDBUtils::count_reachable_atoms_recursive(
-                    link, node_count, link_count, atom_count, keychain, visited);
-                link_count++;
+                node_count++;
             }
         }
         atom_count++;
@@ -181,6 +207,8 @@ string AtomDBUtils::handle_to_metta_recursive(const string& handle,
     auto iterator = mapping.find(handle);
     if (iterator != mapping.end()) {
         answer = iterator->second;
+    } else if (!Hasher::is_atom_handle(handle)) {
+        RAISE_ERROR("Unknown handle in handle_to_metta(): " + handle);
     } else {
         shared_ptr<Atom> atom = nullptr;
 
@@ -199,7 +227,7 @@ string AtomDBUtils::handle_to_metta_recursive(const string& handle,
 
         if (atom != nullptr) {
             string expression_tag = atom->type;
-            if (Atom::is_node(*atom)) {
+            if (Hasher::is_node_handle(handle)) {
                 if (expression_tag == MettaMapping::SYMBOL_NODE_TYPE) {
                     answer = dynamic_pointer_cast<Node>(atom)->name;
                 } else {
