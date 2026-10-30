@@ -1,6 +1,7 @@
 #include "ProtectedAtomDB.h"
 
 #include "Atom.h"
+#include "AtomDBUtils.h"
 #include "InMemoryDBAPITypes.h"
 #include "Link.h"
 #include "Logger.h"
@@ -39,6 +40,8 @@ shared_ptr<ProtectedAtomDB> ProtectedAtomDB::wrap(shared_ptr<AtomDB> atomdb) {
 // --------------------------------------------------------------------------------
 // Public methods
 
+// HandleDecoder methods ----------------------------------------------------------
+
 shared_ptr<Atom> ProtectedAtomDB::get_atom(const string& handle, shared_ptr<Keychain> keychain) {
     auto atom = this->backend->get_atom(handle);
     if (this->authorize_read(atom, keychain)) {
@@ -46,6 +49,16 @@ shared_ptr<Atom> ProtectedAtomDB::get_atom(const string& handle, shared_ptr<Keyc
     }
     return nullptr;
 }
+
+string get_name(const string& handle, shared_ptr<Keychain> keychain) {
+    return AtomDBUtils::get_node_name(handle, keychain);
+}
+
+vector<string> get_targets(const string& handle, shared_ptr<Keychain> keychain) {
+    return AtomDBUtils::get_link_targets(handle, keychain);
+}
+
+// --------------------------------------------------------------------------------
 
 shared_ptr<Node> ProtectedAtomDB::get_node(const string& handle, shared_ptr<Keychain> keychain) {
     return dynamic_pointer_cast<Node>(this->get_atom(handle, keychain));

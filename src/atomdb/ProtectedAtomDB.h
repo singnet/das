@@ -47,8 +47,9 @@ class ProtectedAtomDB : public AtomDB, public KeySensitiveAtomDB {
     bool composite_type_enabled() const override;
     atomdb_api_types::ProtectionMode get_protection_mode() const override;
 
-    shared_ptr<Atom> get_atom(const string& handle) override;
-    shared_ptr<Atom> get_atom(const string& handle, shared_ptr<Keychain> keychain) override;
+    shared_ptr<Atom> get_atom(const string& handle, shared_ptr<Keychain> keychain = nullptr) override;
+    string get_name(const string& handle, shared_ptr<Keychain> keychain = nullptr) override;
+    vector<string> get_targets(const string& handle, shared_ptr<Keychain> keychain = nullptr) override;
 
     shared_ptr<Node> get_node(const string& handle) override;
     shared_ptr<Node> get_node(const string& handle, shared_ptr<Keychain> keychain) override;

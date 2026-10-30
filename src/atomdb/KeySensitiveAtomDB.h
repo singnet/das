@@ -28,7 +28,6 @@ class KeySensitiveAtomDB {
    public:
     virtual ~KeySensitiveAtomDB() = default;
 
-    virtual shared_ptr<Atom> get_atom(const string& handle, shared_ptr<Keychain> keychain) = 0;
     virtual shared_ptr<Node> get_node(const string& handle, shared_ptr<Keychain> keychain) = 0;
     virtual shared_ptr<Link> get_link(const string& handle, shared_ptr<Keychain> keychain) = 0;
 

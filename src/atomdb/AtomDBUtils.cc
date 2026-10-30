@@ -39,10 +39,7 @@ void AtomDBUtils::count_reachable_atoms(const string& handle,
     if (!visited.insert(handle).second) {
         return;
     }
-    auto atomdb = AtomDBSingleton::get_instance();
-    auto key_sensitive_atomdb = dynamic_pointer_cast<KeySensitiveAtomDB>(atomdb);
-    auto atom = key_sensitive_atomdb ? key_sensitive_atomdb->get_atom(handle, keychain)
-                                     : atomdb->get_atom(handle);
+    auto atom = kAtomDBSingleton::get_instance()->get_atom(handle, keychain);
     if (atom != nullptr) {
         auto link = dynamic_pointer_cast<Link>(atom);
         if (link == nullptr) {

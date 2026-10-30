@@ -63,7 +63,9 @@ class AtomDB : public HandleDecoder {
     virtual bool composite_type_enabled() const = 0;
     virtual atomdb_api_types::ProtectionMode get_protection_mode() const = 0;
 
-    virtual shared_ptr<Atom> get_atom(const string& handle) = 0;  // HandleDecoder interface
+    virtual shared_ptr<Atom> get_atom(const string& handle, shared_ptr<Keychain> keychain = nullptr) = 0; // HandleDecoder interface
+    virtual string get_name(const string& handle, shared_ptr<Keychain> keychain = nullptr) = 0; // HandleDecoder interface
+    virtual vector<string> get_targets(const string& handle, shared_ptr<Keychain> keychain = nullptr) = 0; // HandleDecoder interface
     virtual shared_ptr<Node> get_node(const string& handle) = 0;
     virtual shared_ptr<Link> get_link(const string& handle) = 0;
 

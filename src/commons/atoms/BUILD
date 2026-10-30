@@ -27,6 +27,9 @@ cc_library(
     srcs = [],
     hdrs = ["HandleDecoder.h"],
     includes = ["."],
+    deps = [
+        "//atomdb/auth:keychain",
+    ],
 )
 
 cc_library(
