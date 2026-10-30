@@ -56,6 +56,17 @@ class AtomDBUtils {
                                        const string& handle,
                                        bool metta_mapping = false,
                                        bool name_flag = false);
+
+    /**
+     * Counts the number of nodes/links/atoms which can be reachable by the passed handle.
+     *
+     * @param handle The starting point for the count.
+     * @param node_count Output for the number of nodes.
+     * @param link_count Output for the number of links.
+     * @param atom_count Output for the number of atoms.
+     * @param keychain Optional keychain.
+     * @param visited A record of atom which has already been visited (thus, are disregarded).
+     */
     static void count_reachable_atoms(const string& handle,
                                       size_t& node_count,
                                       size_t& link_count,
@@ -103,12 +114,29 @@ class AtomDBUtils {
     static shared_ptr<Node> get_node(const string& handle, shared_ptr<Keychain> keychain = nullptr);
 
     /**
+     * Return the Link, given its handle. nullptr is returned if Link doesn't exist.
+     *
+     * @param handle Handle of the link to be returned.
+     * @param keychain Optional keychain to be passed to KeySentitive AtomDB.
+     * @return the Link, given its handle. nullptr is returned if Link doesn't exist.
+     */
+    static shared_ptr<Link> get_link(const string& handle, shared_ptr<Keychain> keychain = nullptr);
+
+    /**
      * Return a node's name or "" if it doesn't exist.
      *
      * @param handle Handle of the node whose name is to be returned.
      * @return a node's name or "" if it doesn't exist.
      */
     static string get_node_name(const string& handle, shared_ptr<Keychain> keychain = nullptr);
+
+    /**
+     * Return a link's targets.
+     *
+     * @param handle Handle of the link whose targets are to be returned.
+     * @return a link's targets.
+     */
+    static vector<string> get_link_targets(const string& handle, shared_ptr<Keychain> keychain = nullptr);
 
     /**
      * Return an atom's strength or raises if it doesn't exist.

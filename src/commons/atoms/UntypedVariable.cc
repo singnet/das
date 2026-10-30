@@ -41,7 +41,7 @@ string UntypedVariable::handle() const { return Hasher::node_handle(this->type, 
 
 string UntypedVariable::metta_representation(HandleDecoder& decoder) const { return "$" + this->name; }
 
-bool UntypedVariable::match(const string& handle, Assignment& assignment, HandleDecoder& decoder) {
+bool UntypedVariable::match(const string& handle, Assignment& assignment, HandleDecoder& decoder, shared_ptr<Keychain> keychain) {
     return assignment.assign(this->name, handle);
 }
 

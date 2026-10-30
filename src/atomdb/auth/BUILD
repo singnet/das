@@ -49,7 +49,7 @@ cc_library(
         "//atomdb:atomdbutils",
         "//atomdb:key_sensitive_atomdb",
         "//commons:commons_lib",
-        "//commons/atoms:atoms_lib",
+        "//commons/atoms:link_schema",
     ],
 )
 

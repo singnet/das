@@ -7,9 +7,11 @@
 
 #include "AtomDBAPITypes.h"
 #include "HandleDecoder.h"
-#include "LinkSchema.h"
-#include "Merger.h"
 #include "Properties.h"
+#include "Node.h"
+#include "Link.h"
+#include "LinkSchemaInterface.h"
+#include "Merger.h"
 
 using namespace std;
 using namespace commons;
@@ -67,7 +69,7 @@ class AtomDB : public HandleDecoder {
 
     virtual vector<shared_ptr<Atom>> get_matching_atoms(bool is_toplevel, Atom& key) = 0;
 
-    virtual shared_ptr<atomdb_api_types::HandleSet> query_for_pattern(const LinkSchema& link_schema) = 0;
+    virtual shared_ptr<atomdb_api_types::HandleSet> query_for_pattern(const LinkSchemaInterface& link_schema) = 0;
     virtual shared_ptr<atomdb_api_types::HandleList> query_for_targets(const string& handle) = 0;
     virtual shared_ptr<atomdb_api_types::HandleSet> query_for_incoming_set(const string& handle) = 0;
 

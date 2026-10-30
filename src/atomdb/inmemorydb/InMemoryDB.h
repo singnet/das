@@ -13,7 +13,6 @@
 #include "HandleTrie.h"
 #include "InMemoryDBAPITypes.h"
 #include "JsonConfig.h"
-#include "LinkSchema.h"
 
 using namespace std;
 using namespace commons;

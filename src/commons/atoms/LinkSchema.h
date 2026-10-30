@@ -20,7 +20,7 @@ class LinkSchema : public Wildcard {
         bool is_link;
         bool is_wildcard;
         SchemaElement() : is_link(false), is_wildcard(false) {}
-        bool match(const string& handle, Assignment& assignment, HandleDecoder& decoder, Atom* atom_ptr);
+        bool match(const string& handle, Assignment& assignment, HandleDecoder& decoder, Atom* atom_ptr, shared_ptr<Keychain> keychain);
     };
     bool _frozen;
     unsigned int _arity;
@@ -162,8 +162,8 @@ class LinkSchema : public Wildcard {
      */
     const vector<string>& targets() const;
 
-    bool match(Link& link, Assignment& assignment, HandleDecoder& decoder);
-    bool match(const string& handle, Assignment& assignment, HandleDecoder& decoder) override;
+    bool match(Link& link, Assignment& assignment, HandleDecoder& decoder, shared_ptr<Keychain> keychain = nullptr);
+    bool match(const string& handle, Assignment& assignment, HandleDecoder& decoder, shared_ptr<Keychain> keychain = nullptr) override;
 
     // ---------------------------------------------------------------------------------------------
     // Public API to build LinkSchema objects

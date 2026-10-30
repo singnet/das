@@ -1,4 +1,3 @@
-#define LOG_LEVEL INFO_LEVEL
 #include "ProtectedAtomDB.h"
 
 #include "Atom.h"
@@ -67,7 +66,7 @@ vector<shared_ptr<Atom>> ProtectedAtomDB::get_matching_atoms(bool is_toplevel,
 }
 
 shared_ptr<atomdb_api_types::HandleSet> ProtectedAtomDB::query_for_pattern(
-    const LinkSchema& link_schema, shared_ptr<Keychain> keychain) {
+    const LinkSchemaInterface& link_schema, shared_ptr<Keychain> keychain) {
     return this->filter_handle_set(this->try_get_public_key(keychain), [this, &link_schema] {
         return this->backend->query_for_pattern(link_schema);
     });
@@ -241,7 +240,7 @@ vector<shared_ptr<Atom>> ProtectedAtomDB::get_matching_atoms(bool is_toplevel, A
 }
 
 shared_ptr<atomdb_api_types::HandleSet> ProtectedAtomDB::query_for_pattern(
-    const LinkSchema& link_schema) {
+    const LinkSchemaInterface& link_schema) {
     raise_keychain_required("query_for_pattern");
 }
 

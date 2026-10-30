@@ -5,7 +5,6 @@
 #include <vector>
 
 #include "Link.h"
-#include "LinkSchema.h"
 #include "Node.h"
 #include "Utils.h"
 

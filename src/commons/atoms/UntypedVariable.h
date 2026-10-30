@@ -89,8 +89,9 @@ class UntypedVariable : public Wildcard {
      * @param assignment Assignment object which will be used to validade the assigment of this
      * variable to the passed handle. THIS OBJECT IS MODIFIED BY SIDE-EFFECT.
      * @param decoder disregarded
+     * @param keychain Optional Keychain
      */
-    virtual bool match(const string& handle, Assignment& assignment, HandleDecoder& decoder) override;
+    virtual bool match(const string& handle, Assignment& assignment, HandleDecoder& decoder, shared_ptr<Keychain> keychain = nullptr) override;
 
     virtual void tokenize(vector<string>& output);
     virtual void untokenize(vector<string>& tokens);

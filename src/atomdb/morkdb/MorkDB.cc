@@ -18,6 +18,7 @@
 #include "MettaParser.h"
 #include "MettaParserActions.h"
 #include "Utils.h"
+#include "LinkSchema.h"
 
 using namespace atomdb;
 using namespace atoms;

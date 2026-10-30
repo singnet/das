@@ -6,12 +6,13 @@
 #include <unordered_set>
 #include <vector>
 
-#include "Atom.h"
+//#include "Atom.h"
 #include "AtomDBAPITypes.h"
 #include "HandleDecoder.h"
 #include "Keychain.h"
+#include "Node.h"
 #include "Link.h"
-#include "LinkSchema.h"
+#include "LinkSchemaInterface.h"
 #include "Merger.h"
 #include "Utils.h"
 
@@ -35,7 +36,7 @@ class KeySensitiveAtomDB {
                                                         Atom& key,
                                                         shared_ptr<Keychain> keychain) = 0;
 
-    virtual shared_ptr<atomdb_api_types::HandleSet> query_for_pattern(const LinkSchema& link_schema,
+    virtual shared_ptr<atomdb_api_types::HandleSet> query_for_pattern(const LinkSchemaInterface& link_schema,
                                                                       shared_ptr<Keychain> keychain) = 0;
     virtual shared_ptr<atomdb_api_types::HandleList> query_for_targets(
         const string& handle, shared_ptr<Keychain> keychain) = 0;

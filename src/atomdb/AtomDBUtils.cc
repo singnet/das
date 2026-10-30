@@ -95,6 +95,16 @@ shared_ptr<Node> AtomDBUtils::get_node(const string& handle, shared_ptr<Keychain
     return node;
 }
 
+shared_ptr<Link> AtomDBUtils::get_link(const string& handle, shared_ptr<Keychain> keychain) {
+    STACK_TRACE();
+    shared_ptr<Link> link = nullptr;
+    auto atom = AtomDBUtils::get_atom(handle, keychain);
+    if (atom != nullptr) {
+        link = dynamic_pointer_cast<Link>(atom);
+    }
+    return link;
+}
+
 string AtomDBUtils::get_node_name(const string& handle, shared_ptr<Keychain> keychain) {
     STACK_TRACE();
     auto node = AtomDBUtils::get_node(handle, keychain);
@@ -103,6 +113,20 @@ string AtomDBUtils::get_node_name(const string& handle, shared_ptr<Keychain> key
     } else {
         return node->name;
     }
+}
+
+vector<string> AtomDBUtils::get_link_targets(const string& handle, shared_ptr<Keychain> keychain) {
+    STACK_TRACE();
+    shared_ptr<AtomDB> atomdb = AtomDBSingleton::get_instance();
+    shared_ptr<KeySensitiveAtomDB> key_sensitive_atomdb =
+        dynamic_pointer_cast<KeySensitiveAtomDB>(atomdb);
+    auto targets = (key_sensitive_atomdb ? key_sensitive_atomdb->query_for_targets(handle, keychain) : atomdb->query_for_targets(handle));
+    unsigned int arity = targets->size();
+    vector<string> answer(arity);
+    for (unsigned int i = 0; i < arity; i++) {
+        answer[i] = targets->get_handle(i);
+    }
+    return answer;
 }
 
 double AtomDBUtils::get_strength(const string& handle,

@@ -44,7 +44,10 @@ cc_library(
     includes = ["."],
     deps = [
         ":atomdb_api_types",
-        "//commons/atoms:atoms_lib",
+        "//commons/atoms:node",
+        "//commons/atoms:link",
+        "//commons/atoms:merger",
+        "//commons/atoms:link_schema",
     ],
 )
 
@@ -56,7 +59,8 @@ cc_library(
         ":atomdb_api_types",
         "//atomdb/auth:keychain",
         "//commons:commons_lib",
-        "//commons/atoms:atoms_lib",
+        "//commons/atoms:node",
+        "//commons/atoms:link",
     ],
 )
 
@@ -79,7 +83,8 @@ cc_library(
     includes = ["."],
     deps = [
         "//commons:commons_lib",
-        "//commons/atoms:atoms_lib",
+        "//commons/atoms:node",
+        "//commons/atoms:link",
         "//hasher:hasher_lib",
     ],
 )

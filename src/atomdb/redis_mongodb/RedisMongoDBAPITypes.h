@@ -9,12 +9,10 @@
 #include <mongocxx/uri.hpp>
 #include <vector>
 
-#include "Atom.h"
 #include "AtomDBAPITypes.h"
 #include "HandleDecoder.h"
-#include "Node.h"
+#include "LinkSchema.h"
 #include "Properties.h"
-#include "Utils.h"
 
 using namespace std;
 using namespace commons;

@@ -2,6 +2,7 @@
 
 #include "AtomDBAPITypes.h"
 #include "Utils.h"
+#include "LinkSchema.h"
 #include "atomdb/AtomDBUtils.h"
 
 using namespace std;

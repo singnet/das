@@ -1,5 +1,4 @@
 #include "AtomDBSingleton.h"
-
 #include "Utils.h"
 
 using namespace atomdb;
