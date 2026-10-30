@@ -124,7 +124,7 @@ string Link::metta_representation(HandleDecoder& decoder) const {
 
 unsigned int Link::arity() const { return this->targets.size(); }
 
-bool Link::match(const string& handle, Assignment& assignment, HandleDecoder& decoder) {
+bool Link::match(const string& handle, Assignment& assignment, HandleDecoder& decoder, shared_ptr<Keychain> keychain) {
     return this->handle() == handle;
 }
 

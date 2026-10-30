@@ -5,8 +5,7 @@
 #include "Link.h"
 #include "Node.h"
 #include "UntypedVariable.h"
-
-#define LOG_LEVEL INFO_LEVEL
+//#include "AtomDBUtils.h"
 #include "Logger.h"
 
 using namespace atoms;
@@ -154,25 +153,24 @@ unsigned int LinkSchema::arity() const { return this->_arity; }
 bool LinkSchema::SchemaElement::match(const string& handle,
                                       Assignment& assignment,
                                       HandleDecoder& decoder,
-                                      Atom* atom_ptr) {
+                                      Atom* atom_ptr,
+                                      shared_ptr<Keychain> keychain) {
     LOG_DEBUG((handle != "" ? "Matching handle: " + handle : "Matching atom " + atom_ptr->to_string()));
-    shared_ptr<Atom> atom;
     if (this->is_link) {
+        unsigned int atom_arity;
+        vector<string> atom_targets;
         LOG_DEBUG("Schema is link");
+        // if (atom_ptr is not Link return false) TODO XXX
         if (atom_ptr == NULL) {
-            LOG_DEBUG("Decoding handle...");
-            atom = decoder.get_atom(handle);
-            if (atom == nullptr) {
-                LOG_DEBUG("Decoding handle... Done. But atom is nullptr.");
-                return false;
-            }
-            LOG_DEBUG("Decoding handle... Done. Atom: " + atom->to_string());
-            atom_ptr = (Link*) atom.get();
+            //atom_targets = decoder.get_targets(handle, keychain);
+            atom_arity = atom_targets.size();
+        } else {
+            atom_arity = ((Link*) atom_ptr)->targets.size();
         }
-        if (Atom::is_link(*atom_ptr) && (atom_ptr->arity() == this->targets.size())) {
+        if (atom_arity == this->targets.size()) {
             unsigned int cursor = 0;
-            for (string target_handle : ((Link*) atom_ptr)->targets) {
-                if (!this->targets[cursor++].match(target_handle, assignment, decoder, NULL)) {
+            for (string target_handle : ((atom_ptr == NULL) ? atom_targets : ((Link*) atom_ptr)->targets)) {
+                if (!this->targets[cursor++].match(target_handle, assignment, decoder, NULL, keychain)) {
                     LOG_DEBUG("Target[" + std::to_string(cursor - 1) + "] mismatches. NO MATCH.");
                     return false;
                 }
@@ -195,12 +193,12 @@ bool LinkSchema::SchemaElement::match(const string& handle,
     }
 }
 
-bool LinkSchema::match(Link& link, Assignment& assignment, HandleDecoder& decoder) {
-    return this->_schema_element.match("", assignment, decoder, &link);
+bool LinkSchema::match(Link& link, Assignment& assignment, HandleDecoder& decoder, shared_ptr<Keychain> keychain) {
+    return this->_schema_element.match("", assignment, decoder, &link, keychain);
 }
 
-bool LinkSchema::match(const string& handle, Assignment& assignment, HandleDecoder& decoder) {
-    return this->_schema_element.match(handle, assignment, decoder, NULL);
+bool LinkSchema::match(const string& handle, Assignment& assignment, HandleDecoder& decoder, shared_ptr<Keychain> keychain) {
+    return this->_schema_element.match(handle, assignment, decoder, NULL, keychain);
 }
 
 // -------------------------------------------------------------------------------------------------
