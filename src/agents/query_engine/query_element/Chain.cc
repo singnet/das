@@ -14,10 +14,12 @@ Chain::Path::ImportanceCompositionStrategy Chain::Path::importance_composer = Ch
 
 static string convert_handle(const string& handle) {
 #if LOG_LEVEL >= DEBUG_LEVEL
-    shared_ptr<Node> node =
-        dynamic_pointer_cast<Node>(AtomDBSingleton::get_instance()->get_atom(handle));
-    if (node != nullptr) {
-        return node->name;
+    if (Hasher::is_node_handle(handle)) {
+        shared_ptr<Node> node =
+            dynamic_pointer_cast<Node>(AtomDBSingleton::get_instance()->get_atom(handle));
+        if (node != nullptr) {
+            return node->name;
+        }
     }
 #endif
     return handle;
@@ -344,6 +346,9 @@ bool Chain::thread_one_step() {
             auto iterator = this->known_links.find(handle);
             if (iterator == this->known_links.end()) {
                 this->known_links.insert(iterator, handle);
+                if (!Hasher::is_link_handle(handle)) {
+                    RAISE_ERROR("Invalid query answer in Chain operator.");
+                }
                 shared_ptr<Link> link =
                     dynamic_pointer_cast<Link>(AtomDBSingleton::get_instance()->get_atom(handle));
                 if (link == nullptr) {

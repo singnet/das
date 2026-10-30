@@ -586,6 +586,16 @@ TEST(PatternMatchingQuery, queries) {
     check_query("AF strictness 4", q1, q1m, 1, client_bus, "PatternMatchingQuery.strictness", false, false, false, false, false, 1.0);
 
     // Metta expression in QueryAnswer
+    string inheritance_ent_plant = Hasher::link_handle(
+        "Expression",
+        {Hasher::node_handle("Symbol", "Inheritance"),
+         Hasher::node_handle("Symbol", "\"ent\""),
+         Hasher::node_handle("Symbol", "\"plant\"")});
+    string similarity_ent_human = Hasher::link_handle(
+        "Expression",
+        {Hasher::node_handle("Symbol", "Similarity"),
+         Hasher::node_handle("Symbol", "\"ent\""),
+         Hasher::node_handle("Symbol", "\"human\"")});
     shared_ptr<PatternMatchingQueryProxy> proxy(new PatternMatchingQueryProxy(q3, "PatternMatchingQuery.queries"));
     proxy->parameters[BaseQueryProxy::POPULATE_METTA_MAPPING] = true;
     client_bus->issue_bus_command(proxy);
@@ -601,8 +611,8 @@ TEST(PatternMatchingQuery, queries) {
         }
         if (answer) {
             count++;
-            EXPECT_EQ(answer->metta_expression["434d4303c556d94d2774ff70a5140b23"], "(Inheritance \"ent\" \"plant\")");
-            EXPECT_EQ(answer->metta_expression["d610ca5aa289bf532010cb6fe79f754e"], "(Similarity \"ent\" \"human\")");
+            EXPECT_EQ(answer->metta_expression[inheritance_ent_plant], "(Inheritance \"ent\" \"plant\")");
+            EXPECT_EQ(answer->metta_expression[similarity_ent_human], "(Similarity \"ent\" \"human\")");
             EXPECT_EQ(answer->metta_expression[answer->assignment.get("v1")], "\"ent\"");
         }
     }

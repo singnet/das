@@ -5,6 +5,7 @@
 #include "AtomDBAPITypes.h"
 #include "AtomDBInitializer.h"
 #include "AtomDBSingleton.h"
+#include "Hasher.h"
 #include "LinkTemplate.h"
 #include "QueryAnswer.h"
 #include "QueryNode.h"
@@ -89,9 +90,9 @@ TEST(Iterator, link_template_integration) {
     link_template->build();
     Iterator query_answer_iterator(link_template->get_source_element());
 
-    string monkey_handle = string(terminal_hash((char*) symbol.c_str(), (char*) "\"monkey\""));
-    string chimp_handle = string(terminal_hash((char*) symbol.c_str(), (char*) "\"chimp\""));
-    string ent_handle = string(terminal_hash((char*) symbol.c_str(), (char*) "\"ent\""));
+    string monkey_handle = commons::Hasher::node_handle(symbol, "\"monkey\"");
+    string chimp_handle = commons::Hasher::node_handle(symbol, "\"chimp\"");
+    string ent_handle = commons::Hasher::node_handle(symbol, "\"ent\"");
     bool monkey_flag = false;
     bool chimp_flag = false;
     bool ent_flag = false;

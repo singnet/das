@@ -88,13 +88,12 @@ class RedisMongoDBTest : public ::testing::Test {
     void TearDown() override {}
 
     string exp_hash(vector<string> targets) {
-        char* symbol = (char*) "Symbol";
-        char** targets_handles = new char*[targets.size()];
-        for (size_t i = 0; i < targets.size(); i++) {
-            targets_handles[i] = terminal_hash(symbol, (char*) targets[i].c_str());
+        vector<string> target_handles;
+        target_handles.reserve(targets.size());
+        for (const auto& target : targets) {
+            target_handles.push_back(Hasher::node_handle("Symbol", target));
         }
-        char* expression = named_type_hash((char*) "Expression");
-        return string(expression_hash(expression, targets_handles, targets.size()));
+        return Hasher::link_handle("Expression", target_handles);
     }
 
     shared_ptr<RedisMongoDB> db;
@@ -122,7 +121,13 @@ TEST_F(RedisMongoDBTest, ConcurrentQueryForPattern) {
 
     auto worker = [&](int thread_id) {
         try {
-            auto link_schema = new LinkSchemaHandle("e8ca47108af6d35664f8813e1f96c5fa");
+            // (Similarity "human" *)
+            auto link_schema =
+                new LinkSchemaHandle(Hasher::link_handle("Expression",
+                                                         {Hasher::node_handle("Symbol", "Similarity"),
+                                                          Hasher::node_handle("Symbol", "\"human\""),
+                                                          Atom::WILDCARD_STRING})
+                                         .c_str());
             auto handle_set = db->query_for_pattern(*link_schema);
             ASSERT_NE(handle_set, nullptr);
             ASSERT_EQ(handle_set->size(), 3);
@@ -157,7 +162,7 @@ TEST_F(RedisMongoDBTest, ConcurrentQueryForTargets) {
 
     auto worker = [&](int thread_id) {
         try {
-            auto targets = db->query_for_targets("68ea071c32d4dbf0a7d8e8e00f2fb823");
+            auto targets = db->query_for_targets(exp_hash({"Similarity", "\"chimp\"", "\"human\""}));
             ASSERT_NE(targets, nullptr);
             ASSERT_EQ(targets->size(), 3);
             success_count++;
@@ -186,10 +191,10 @@ TEST_F(RedisMongoDBTest, ConcurrentGetAtomDocument) {
     vector<thread> threads;
     atomic<int> success_count{0};
 
-    string human_handle = terminal_hash((char*) "Symbol", (char*) "\"human\"");
-    string monkey_handle = terminal_hash((char*) "Symbol", (char*) "\"monkey\"");
-    string chimp_handle = terminal_hash((char*) "Symbol", (char*) "\"chimp\"");
-    string ent_handle = terminal_hash((char*) "Symbol", (char*) "\"ent\"");
+    string human_handle = Hasher::node_handle("Symbol", "\"human\"");
+    string monkey_handle = Hasher::node_handle("Symbol", "\"monkey\"");
+    string chimp_handle = Hasher::node_handle("Symbol", "\"chimp\"");
+    string ent_handle = Hasher::node_handle("Symbol", "\"ent\"");
 
     vector<string> doc_handles;
     while (doc_handles.size() < num_threads) {
@@ -221,7 +226,7 @@ TEST_F(RedisMongoDBTest, ConcurrentGetAtomDocument) {
     EXPECT_EQ(success_count, num_threads);
 
     // Test non-existing handle
-    string non_existing_handle = terminal_hash((char*) "Symbol", (char*) "\"non-existing\"");
+    string non_existing_handle = Hasher::node_handle("Symbol", "\"non-existing\"");
     auto doc = db->get_atom_document(non_existing_handle);
     EXPECT_EQ(doc, nullptr);
 }
@@ -270,7 +275,7 @@ TEST_F(RedisMongoDBTest, ConcurrentLinkExists) {
 
     auto worker = [&](int thread_id) {
         try {
-            auto link_exists = db->link_exists("68ea071c32d4dbf0a7d8e8e00f2fb823");
+            auto link_exists = db->link_exists(exp_hash({"Similarity", "\"chimp\"", "\"human\""}));
             ASSERT_TRUE(link_exists);
             success_count++;
         } catch (const exception& e) {
@@ -300,9 +305,9 @@ TEST_F(RedisMongoDBTest, ConcurrentLinksExist) {
 
     auto worker = [&](int thread_id) {
         try {
-            auto links_exist = db->links_exist({"68ea071c32d4dbf0a7d8e8e00f2fb823",
+            auto links_exist = db->links_exist({exp_hash({"Similarity", "\"chimp\"", "\"human\""}),
                                                 "00000000000000000000000000000000",
-                                                "7ec8526b8c8f15a6ac55273fedbf694f"});
+                                                exp_hash({"Similarity", "\"human\"", "\"monkey\""})});
             ASSERT_EQ(links_exist.size(), 2);
             success_count++;
         } catch (const exception& e) {
@@ -733,7 +738,11 @@ TEST_F(RedisMongoDBTest, AddLinkAndQueryForSimilarityPattern) {
     vector<string> handles;
 
     // (Similarity * *)
-    auto similarity_link_schema = new LinkSchemaHandle("dabd1f087cf4a9739911c0385fae0819");
+    auto similarity_link_schema = new LinkSchemaHandle(
+        Hasher::link_handle(
+            "Expression",
+            {Hasher::node_handle("Symbol", "Similarity"), Atom::WILDCARD_STRING, Atom::WILDCARD_STRING})
+            .c_str());
     auto handle_set = db->query_for_pattern(*similarity_link_schema);
     EXPECT_EQ(handle_set->size(), 14);
 

@@ -41,7 +41,7 @@ TEST(TokenSpreader, distribute_wages) {
         (*request->mutable_map())[handles[3]] = 1;
         (*request->mutable_map())[handles[4]] = 2;
         (*request->mutable_map())["SUM"] = 8;
-        data.importance_changes = new HandleTrie(HANDLE_HASH_SIZE - 1);
+        data.importance_changes = new HandleTrie(ATOM_HANDLE_LENGTH);
         spreader->distribute_wages(request, tokens_to_spread, &data);
 
         EXPECT_TRUE(importance_equals(
