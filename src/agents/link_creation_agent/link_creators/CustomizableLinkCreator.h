@@ -19,15 +19,15 @@ class CustomizableLinkCreator : public LinkCreator {
         PRODUCT,
         INTERSECTION_OVER_UNION,
         INTERSECTION_OVER_A,
-        INTERSECTION_OVER_B
     };
     static char EXTRA_PARAMETERS_SPLIT_CHAR;
 
-    CustomizableLinkCreator();
+    CustomizableLinkCreator(bool check_nested_target_reference = false);
     ~CustomizableLinkCreator();
 
     LinkCreationStats create(shared_ptr<QueryAnswer> query_answer);
     virtual void extra_parameters(const string& extra_parameters);
+    virtual string extra_parameters();
 
    private:
     class LinkSpecification {
@@ -42,12 +42,17 @@ class CustomizableLinkCreator : public LinkCreator {
         string link_type;
         StrengthComposition strength_composition;
         vector<string> queries;
+        bool create_reverse() {
+            return (this->strength_composition == INTERSECTION_OVER_UNION) ||
+                   (this->strength_composition == INTERSECTION_OVER_A);
+        }
 
        private:
         void check();
     };
 
     vector<LinkSpecification> link_specification;
+    bool check_nested_target_reference;
 
     void insert_or_update(map<string, double>& count_map, const string& key, double value);
     shared_ptr<PatternMatchingQueryProxy> issue_link_count_query(const string& query_str);
@@ -57,7 +62,10 @@ class CustomizableLinkCreator : public LinkCreator {
                         double& count_B,
                         double& count_intersection,
                         double& count_union);
-    double compute_strength(shared_ptr<QueryAnswer> query_answer, LinkSpecification& spec);
+    vector<double> compute_strength(shared_ptr<QueryAnswer> query_answer, LinkSpecification& spec);
+
+   protected:
+    virtual bool check_targets(vector<string>& targets);
 
    public:
     void tokenize(vector<string>& tokens);

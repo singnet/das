@@ -114,7 +114,7 @@ TEST(LinkCreation, customizable_tokenization) {
         copy2[i].extra_parameters(tokens_string);
         copy2[i].tokenize(tokens3);
         if (i == 0) {
-            ASSERT_EQ(tokens_string, "1,2,_1,_2,2,$v1,$v2,type0,2,2,blah,bleh  blih");
+            ASSERT_EQ(tokens_string, "0,1,2,_1,_2,2,$v1,$v2,type0,2,2,blah,bleh  blih");
         }
         ASSERT_EQ(tokens1, tokens2);
         ASSERT_EQ(tokens1, tokens3);
