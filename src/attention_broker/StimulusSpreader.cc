@@ -165,7 +165,7 @@ void TokenSpreader::spread_stimuli(const dasproto::HandleCount* request, bool sp
         return;
     }
     DATA data;
-    data.importance_changes = new HandleTrie(HANDLE_HASH_SIZE - 1);
+    data.importance_changes = new HandleTrie(ATOM_HANDLE_LENGTH);
     data.rent_rate = AttentionBrokerServer::RENT_RATE;
     data.spreading_rate_lowerbound = AttentionBrokerServer::SPREADING_RATE_LOWERBOUND;
     data.spreading_rate_range_size = AttentionBrokerServer::SPREADING_RATE_UPPERBOUND -

@@ -75,7 +75,7 @@ class HebbianNetwork : public Serializable {
             count = 1;
             importance = 0.0;
             stimuli_to_spread = 0.0;
-            neighbors = new HandleTrie(HANDLE_HASH_SIZE - 1);
+            neighbors = new HandleTrie(ATOM_HANDLE_LENGTH);
         }
         inline void merge(HandleTrie::TrieValue* other) {
             count += ((Node*) other)->count;

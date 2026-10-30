@@ -63,7 +63,7 @@ jobs:
         run: das-cli metta load /tmp/animals.metta
 
       - name: Starting Attention Broker
-        run: das-cli attention-broker start
+        run: .github/scripts/start_attention_broker.sh
 
       - name: Starting MORK Server and Load Knowledge Base
         run: |-

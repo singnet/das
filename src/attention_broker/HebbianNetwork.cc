@@ -18,7 +18,7 @@ HebbianNetwork::HebbianNetwork() { init(); }
 HebbianNetwork::~HebbianNetwork() { delete nodes; }
 
 void HebbianNetwork::init() {
-    nodes = new HandleTrie(HANDLE_HASH_SIZE - 1);
+    nodes = new HandleTrie(ATOM_HANDLE_LENGTH);
     largest_arity = 0;
     tokens_mutex.lock();
     tokens_to_distribute = 1.0;
@@ -150,7 +150,7 @@ static bool visit_find_handle(HandleTrie::TrieNode* trie_node, void* data) {
 static bool visit_serialize_node(HandleTrie::TrieNode* trie_node, void* data) {
     HebbianNetwork::Node* node = (HebbianNetwork::Node*) trie_node->value;
     VisitData* visit_data = (VisitData*) data;
-    visit_data->stream->write(trie_node->suffix.c_str(), HANDLE_HASH_SIZE - 1);
+    visit_data->stream->write(trie_node->suffix.c_str(), ATOM_HANDLE_LENGTH);
     visit_data->stream->write(reinterpret_cast<const char*>(&node->count), sizeof(node->count));
     visit_data->stream->write(reinterpret_cast<const char*>(&node->importance),
                               sizeof(node->importance));
@@ -168,7 +168,7 @@ static bool visit_serialize_determiners(HandleTrie::TrieNode* trie_node, void* d
     HebbianNetwork::Node* node = (HebbianNetwork::Node*) trie_node->value;
     VisitData* visit_data = (VisitData*) data;
     for (auto determiner : node->determiners) {
-        visit_data->stream->write(trie_node->suffix.c_str(), HANDLE_HASH_SIZE - 1);
+        visit_data->stream->write(trie_node->suffix.c_str(), ATOM_HANDLE_LENGTH);
         visit_data->handle = "";
         visit_data->node = determiner;
         trie_node->trie_node_mutex.unlock();
@@ -177,7 +177,7 @@ static bool visit_serialize_determiners(HandleTrie::TrieNode* trie_node, void* d
         if (visit_data->handle == "") {
             RAISE_ERROR("Invalid determiner");
         }
-        visit_data->stream->write(visit_data->handle.c_str(), HANDLE_HASH_SIZE - 1);
+        visit_data->stream->write(visit_data->handle.c_str(), ATOM_HANDLE_LENGTH);
     }
     return false;
 }
@@ -191,8 +191,8 @@ static bool visit_serialize_edge(HandleTrie::TrieNode* trie_node, void* data) {
     if (visit_data->handle == "") {
         RAISE_ERROR("Invalid neighbor");
     }
-    visit_data->stream->write(visit_data->handle.c_str(), HANDLE_HASH_SIZE - 1);
-    visit_data->stream->write(trie_node->suffix.c_str(), HANDLE_HASH_SIZE - 1);
+    visit_data->stream->write(visit_data->handle.c_str(), ATOM_HANDLE_LENGTH);
+    visit_data->stream->write(trie_node->suffix.c_str(), ATOM_HANDLE_LENGTH);
     visit_data->stream->write(reinterpret_cast<const char*>(&edge->count), sizeof(edge->count));
     return false;
 }
@@ -209,8 +209,8 @@ void HebbianNetwork::deserialize_node(istream& is,
                                       unsigned int& determiner_count,
                                       unsigned int& neighbors_count) {
     string key;
-    key.resize(HANDLE_HASH_SIZE - 1);
-    is.read(&key[0], HANDLE_HASH_SIZE - 1);
+    key.resize(ATOM_HANDLE_LENGTH);
+    is.read(&key[0], ATOM_HANDLE_LENGTH);
     HebbianNetwork::Node* node = add_node(key);
     is.read(reinterpret_cast<char*>(&node->count), sizeof(node->count));
     is.read(reinterpret_cast<char*>(&node->importance), sizeof(node->importance));
@@ -247,13 +247,13 @@ void HebbianNetwork::deserialize(istream& is) {
         deserialize_node(is, determiner_count, neighbors_count);
     }
     string key1, key2;
-    key1.resize(HANDLE_HASH_SIZE - 1);
-    key2.resize(HANDLE_HASH_SIZE - 1);
+    key1.resize(ATOM_HANDLE_LENGTH);
+    key2.resize(ATOM_HANDLE_LENGTH);
     string last_key1 = "";
     HebbianNetwork::Node* node = NULL;
     for (unsigned int i = 0; i < determiner_count; i++) {
-        is.read(&key1[0], HANDLE_HASH_SIZE - 1);
-        is.read(&key2[0], HANDLE_HASH_SIZE - 1);
+        is.read(&key1[0], ATOM_HANDLE_LENGTH);
+        is.read(&key2[0], ATOM_HANDLE_LENGTH);
         if (key1 != last_key1) {
             node = (HebbianNetwork::Node*) this->nodes->lookup(key1);
             last_key1 = key1;
@@ -265,8 +265,8 @@ void HebbianNetwork::deserialize(istream& is) {
     HebbianNetwork::Node* node2;
     HebbianNetwork::Edge* edge = NULL;
     for (unsigned int i = 0; i < neighbors_count; i++) {
-        is.read(&key1[0], HANDLE_HASH_SIZE - 1);
-        is.read(&key2[0], HANDLE_HASH_SIZE - 1);
+        is.read(&key1[0], ATOM_HANDLE_LENGTH);
+        is.read(&key2[0], ATOM_HANDLE_LENGTH);
         if (key1 != last_key1) {
             node1 = (HebbianNetwork::Node*) nodes->lookup(key1);
             last_key1 = key1;
