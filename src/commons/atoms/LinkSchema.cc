@@ -5,7 +5,7 @@
 #include "Link.h"
 #include "Node.h"
 #include "UntypedVariable.h"
-#include "AtomDBUtils.h"
+//#include "AtomDBUtils.h"
 
 #define LOG_LEVEL INFO_LEVEL
 #include "Logger.h"
@@ -164,7 +164,7 @@ bool LinkSchema::SchemaElement::match(const string& handle,
         LOG_DEBUG("Schema is link");
         // if (atom_ptr is not Link return false) TODO XXX
         if (atom_ptr == NULL) {
-            atom_targets = AtomDBUtils::get_link_targets(handle, keychain);
+            //atom_targets = AtomDBUtils::get_link_targets(handle, keychain);
             atom_arity = atom_targets.size();
         } else {
             atom_arity = ((Link*) atom_ptr)->targets.size();

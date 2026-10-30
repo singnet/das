@@ -100,7 +100,7 @@ cc_library(
         ":node",
         ":link",
         ":untyped_variable",
-        "//atomdb:atomdbutils",
+        #"//atomdb:atomdbutils",
     ],
 )
 
