@@ -1,9 +1,7 @@
 #include "Keychain.h"
-
 #include "Utils.h"
 
 using namespace std;
-using namespace atomdb;
 using namespace commons;
 
 // -------------------------------------------------------------------------------------------------

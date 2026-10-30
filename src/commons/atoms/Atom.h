@@ -9,7 +9,6 @@
 #include "expression_hasher.h"
 #include "Keychain.h"
 
-using namespace atomdb;
 using namespace commons;
 
 namespace atoms {

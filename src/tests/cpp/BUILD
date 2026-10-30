@@ -942,7 +942,6 @@ cc_test(
     deps = [
         "//atomdb:protected_atomdb",
         "//atomdb/auth:auth_lib",
-        "//atomdb/auth:keychain",
         "//atomdb/inmemorydb:inmemorydb_lib",
         "//atomdb/redis_mongodb:redis_mongodb_lib",
         "//commons/atoms:atoms_lib",
@@ -975,7 +974,6 @@ cc_test(
         "//atomdb:atomdb_singleton",
         "//atomdb:protected_atomdb",
         "//atomdb/auth:auth_lib",
-        "//atomdb/auth:keychain",
         "//atomdb/redis_mongodb:redis_mongodb_lib",
         "//commons/atoms:atoms_lib",
         "//hasher:hasher_lib",
@@ -996,7 +994,7 @@ cc_test(
     ],
     linkstatic = 1,
     deps = [
-        "//atomdb/auth:keychain",
+        "//commons:commons_lib",
         "@com_github_google_googletest//:gtest_main",
     ],
 )
@@ -1159,7 +1157,6 @@ cc_test(
     linkstatic = 1,
     deps = [
         "//atomdb:protected_atomdb",
-        "//atomdb/auth:keychain",
         "//atomdb/inmemorydb:inmemorydb_lib",
         "//atomdb/remotedb:remotedb_lib",
         "//commons/atoms:atoms_lib",

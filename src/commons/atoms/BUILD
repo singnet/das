@@ -28,7 +28,6 @@ cc_library(
     hdrs = ["HandleDecoder.h"],
     includes = ["."],
     deps = [
-        "//atomdb/auth:keychain",
     ],
 )
 
@@ -47,7 +46,6 @@ cc_library(
     deps = [
         "//commons:commons_lib",
         "//commons:handle_trie",
-        "//atomdb/auth:keychain",
     ],
 )
 
@@ -103,7 +101,6 @@ cc_library(
         ":node",
         ":link",
         ":untyped_variable",
-        #"//atomdb:atomdbutils",
     ],
 )
 

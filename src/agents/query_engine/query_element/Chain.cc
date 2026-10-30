@@ -336,7 +336,7 @@ bool Chain::thread_one_step() {
     }
     {
 #if LOG_LEVEL >= DEBUG_LEVEL
-        lock_guard<mutex> semaphore(this->thread_debug_mutex);
+        lock_guard<mutex> semaphore_debug(this->thread_debug_mutex);
 #endif
         lock_guard<mutex> semaphore(this->feeding_mutex);
         if ((answer = dynamic_cast<QueryAnswer*>(this->input_buffer[0]->pop_query_answer())) != NULL) {
