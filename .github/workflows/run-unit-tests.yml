@@ -60,7 +60,7 @@ jobs:
         run: BAZELISK_HOME="$HOME/.cache/das/bazelisk" ./scripts/bazel_exec.sh --output_user_root="$HOME/.cache/das/bazel" run --noshow_progress //:db_loader -- --config="${GITHUB_WORKSPACE}/config/das.json" --file=/tmp/animals.metta --threads=8 --chunk=5000
 
       - name: Starting Attention Broker
-        run: das-cli attention-broker restart
+        run: BAZELISK_HOME="$HOME/.cache/das/bazelisk" .github/scripts/start_attention_broker.sh --output_user_root="$HOME/.cache/das/bazel"
 
       - name: Starting MORK Servers
         run: |-
