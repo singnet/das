@@ -42,8 +42,12 @@ jobs:
       - name: Starting Redis and MongoDB
         run: das-cli db restart
 
-      - name: Loading Load Knowledge Base
-        run: das-cli metta load /tmp/animals.metta
+      - name: Setup bazel
+        run: .github/scripts/setup_bazel.sh
+
+      - name: Load Knowledge Base
+        working-directory: ./src
+        run: ./scripts/bazel_exec.sh run --noshow_progress //:db_loader -- --config="${GITHUB_WORKSPACE}/config/das.json" --file=/tmp/animals.metta --threads=8 --chunk=5000
 
       - name: Starting Attention Broker
         run: das-cli attention-broker restart
@@ -96,9 +100,6 @@ jobs:
           done
 
           docker exec -i pg_test psql -U postgres -d postgres_wrapper_test < src/scripts/postgres_setup.sql
-
-      - name: Setup bazel
-        run: .github/scripts/setup_bazel.sh
 
       - name: Execute Unit Test Suite
         working-directory: ./src
