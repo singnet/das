@@ -43,7 +43,7 @@ shared_ptr<ProtectedAtomDB> ProtectedAtomDB::wrap(shared_ptr<AtomDB> atomdb) {
 
 shared_ptr<Atom> ProtectedAtomDB::get_atom(const string& handle, shared_ptr<Keychain> keychain) {
     auto atom = this->backend->get_atom(handle);
-    if (this->authorize_read(atom, keychain)) {
+    if (Hasher::is_node_handle(handle) || this->authorize_read(atom, keychain)) {
         return atom;
     }
     return nullptr;

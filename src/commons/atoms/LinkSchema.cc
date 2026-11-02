@@ -156,18 +156,13 @@ bool LinkSchema::SchemaElement::match(const string& handle,
                                       Atom* atom_ptr,
                                       shared_ptr<Keychain> keychain) {
     LOG_DEBUG((handle != "" ? "Matching handle: " + handle : "Matching atom " + atom_ptr->to_string()));
-    shared_ptr<Atom> atom_XXX;
-    if (atom_ptr == NULL) { // XXX
-        atom_XXX = decoder.get_atom(handle); // XXX
-        atom_ptr = atom_XXX.get(); // XXX
-    } // XXX
     if (this->is_link) {
         unsigned int atom_arity;
         vector<string> atom_targets;
         LOG_DEBUG("Schema is link");
         // if (atom_ptr is not Link return false) TODO XXX
         if (atom_ptr == NULL) {
-            //atom_targets = decoder.get_targets(handle, keychain);
+            atom_targets = decoder.decode_link_targets(handle, keychain);
             atom_arity = atom_targets.size();
         } else {
             atom_arity = ((Link*) atom_ptr)->targets.size();

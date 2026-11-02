@@ -17,7 +17,9 @@ using namespace atoms;
 class TestDecoder : public HandleDecoder {
    public:
     map<string, shared_ptr<Atom>> atoms;
-    shared_ptr<Atom> get_atom(const string& handle) { return this->atoms[handle]; }
+    shared_ptr<Atom> decode_atom(const string& handle, shared_ptr<Keychain> keychain = nullptr) { return this->atoms[handle]; }
+    string decode_node_name(const string& handle, shared_ptr<Keychain> keychain = nullptr) { return ""; }
+    vector<string> decode_link_targets(const string& handle, shared_ptr<Keychain> keychain = nullptr) { return {}; }
     shared_ptr<Atom> add_atom(shared_ptr<Atom> atom) {
         this->atoms[atom->handle()] = atom;
         return atom;

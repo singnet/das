@@ -14,7 +14,6 @@ HandleSetRedis::HandleSetRedis(bool delete_replies_on_destruction) : HandleSet()
     this->handles_size = 0;
     this->delete_replies_on_destruction = delete_replies_on_destruction;
     this->link_schema = nullptr;
-    this->decoder = NULL;
 }
 
 HandleSetRedis::HandleSetRedis(redisReply* reply, bool delete_replies_on_destruction) : HandleSet() {
@@ -22,7 +21,6 @@ HandleSetRedis::HandleSetRedis(redisReply* reply, bool delete_replies_on_destruc
     this->handles_size = reply->elements;
     this->delete_replies_on_destruction = delete_replies_on_destruction;
     this->link_schema = nullptr;
-    this->decoder = NULL;
 }
 
 HandleSetRedis::~HandleSetRedis() {
@@ -105,15 +103,10 @@ char* HandleSetRedisIterator::next() {
     Assignment assignment;
     char* candidate;
     string handle;
-    HandleDecoder* decoder = this->handle_set->decoder;
-    if ((this->handle_set->link_schema != nullptr) && (decoder == NULL)) {
-        RAISE_ERROR("Non-null link_schema requires a decoder to be matched against handles");
-        return NULL;
-    }
     while ((candidate = _next()) != NULL) {
         handle = string(candidate);
         if ((this->handle_set->link_schema == nullptr) ||
-            this->handle_set->link_schema->match(handle, assignment, *decoder)) {
+            this->handle_set->link_schema->match(handle, assignment, this->_decoder)) {
             this->handle_set->assignments_by_handle[handle] = assignment;
             return candidate;
         }

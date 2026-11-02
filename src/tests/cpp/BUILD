@@ -902,6 +902,9 @@ cc_test(
     deps = [
         "//atomdb/redis_mongodb:redis_mongodb_api_types",
         "//commons/atoms:atoms_lib",
+        "//atomdb:atomdb_initializer",
+        "//tests/cpp/test_commons:test_atomdb_json_config",
+        "//tests/cpp/test_commons:test_system_params",
         "@com_github_google_googletest//:gtest",
         "@mbedtls",
     ],
@@ -915,10 +918,20 @@ cc_test(
         "-Iexternal/gtest/googletest/include",
         "-Iexternal/gtest/googletest",
     ],
+    linkopts = [
+        "-L/usr/local/lib",
+        "-lhiredis_cluster",
+        "-lhiredis",
+        "-lmongocxx",
+        "-lbsoncxx",
+    ],
     linkstatic = 1,
     deps = [
         "//atomdb/inmemorydb:inmemorydb_lib",
+        "//atomdb:atomdb_initializer",
         "//commons/atoms:atoms_lib",
+        "//tests/cpp/test_commons:test_atomdb_json_config",
+        "//tests/cpp/test_commons:test_system_params",
         "@com_github_google_googletest//:gtest",
     ],
 )
@@ -1018,9 +1031,11 @@ cc_test(
     deps = [
         "//atomdb/auth:auth_lib",
         "//atomdb/inmemorydb:inmemorydb_lib",
+        "//atomdb:atomdb_initializer",
         "//commons/atoms:atoms_lib",
         "//tests/cpp/test_commons:in_memory_access_permission_types",
         "//tests/cpp/test_commons:test_atomdb_json_config",
+        "//tests/cpp/test_commons:test_system_params",
         "@com_github_google_googletest//:gtest_main",
         "@mbedtls",
     ],

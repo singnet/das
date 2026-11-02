@@ -8,12 +8,17 @@
 #include <vector>
 
 #include "Assignment.h"
+#include "AtomDBInitializer.h"
 #include "Link.h"
 #include "LinkSchema.h"
 #include "Node.h"
 #include "RedisMongoDBAPITypes.h"
+#include "TestAtomDBJsonConfig.h"
+#include "TestSystemParams.h"
 
+using das_test::init_test_system_parameters_singleton;
 using namespace atomdb::atomdb_api_types;
+using namespace atomdb;
 using namespace atoms;
 using namespace commons;
 using namespace std;
@@ -22,9 +27,15 @@ namespace {
 
 class MapDecoder : public HandleDecoder {
    public:
-    shared_ptr<Atom> get_atom(const string& handle) override {
+    shared_ptr<Atom> decode_atom(const string& handle, shared_ptr<Keychain> keychain = nullptr) override {
         auto it = atoms.find(handle);
         return it == atoms.end() ? nullptr : it->second;
+    }
+    string decode_node_name(const string& handle, shared_ptr<Keychain> keychain = nullptr) override {
+        return "";
+    }
+    vector<string> decode_link_targets(const string& handle, shared_ptr<Keychain> keychain = nullptr) override {
+        return {};
     }
 
     void add(const shared_ptr<Atom>& atom) { atoms[atom->handle()] = atom; }
@@ -83,8 +94,6 @@ TEST(HandleSetRedisIteratorTest, FiltersCandidatesAndStoresAssignmentForEachMatc
                                                                      "NODE",
                                                                      "Symbol",
                                                                      "\"mammal\""});
-    handle_set->decoder = &decoder;
-
     auto it = handle_set->get_iterator();
     char* handle = it->next();
     ASSERT_NE(handle, nullptr);
@@ -105,5 +114,6 @@ TEST(HandleSetRedisIteratorTest, FiltersCandidatesAndStoresAssignmentForEachMatc
 
 int main(int argc, char** argv) {
     ::testing::InitGoogleTest(&argc, argv);
+    AtomDBInitializer::init(test_atomdb_json_config());
     return RUN_ALL_TESTS();
 }

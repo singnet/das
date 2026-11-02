@@ -2,7 +2,6 @@
 
 #include "AtomDBAPITypes.h"
 #include "Utils.h"
-#include "atomdb/AtomDBUtils.h"
 
 using namespace std;
 using namespace atomdb;
@@ -46,13 +45,13 @@ bool AuthorizationSchema::is_granted(shared_ptr<Atom> atom, AuthorizationOperati
     shared_ptr<Link> link = dynamic_pointer_cast<Link>(atom);
 
     if (link != nullptr) {
-        return this->schema_.match(*link, assignment, *this->atomdb_);
+        return this->schema_.match(*link, assignment, this->decoder_);
     } else {
         shared_ptr<Node> node = dynamic_pointer_cast<Node>(atom);
         if (node == nullptr) {
             RAISE_ERROR("Atom must be a Link or a Node.");
         }
-        return this->schema_.match(node->handle(), assignment, *this->atomdb_);
+        return this->schema_.match(node->handle(), assignment, this->decoder_);
     }
 }
 

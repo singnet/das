@@ -23,7 +23,10 @@
 #include "Node.h"
 #include "RedisMongoDBAPITypes.h"
 #include "TestAtomDBJsonConfig.h"
+#include "AtomDBInitializer.h"
+#include "TestSystemParams.h"
 
+using das_test::init_test_system_parameters_singleton;
 using namespace atomdb;
 using namespace atomdb_api_types;
 using namespace atoms;
@@ -389,4 +392,10 @@ TEST(MongodbAuthorizationPersistenceTest, RemoveAllRaisesOnUnacknowledgedDelete)
         runtime_error);
 
     setup->revoke(public_key);
+}
+
+int main(int argc, char** argv) {
+    ::testing::InitGoogleTest(&argc, argv);
+    AtomDBInitializer::init(test_atomdb_json_config());
+    return RUN_ALL_TESTS();
 }

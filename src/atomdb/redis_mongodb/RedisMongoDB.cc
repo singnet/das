@@ -209,7 +209,6 @@ shared_ptr<atomdb_api_types::HandleSet> RedisMongoDB::query_for_pattern(const Li
 
     auto handle_set = make_shared<atomdb_api_types::HandleSetRedis>();
     handle_set->link_schema = make_shared<LinkSchema>(link_schema);
-    handle_set->decoder = this;
 
     while (redis_has_more) {
         command = ("ZRANGE " + REDIS_PATTERNS_PREFIX + ":" + pattern_handle + " " +
@@ -679,7 +678,7 @@ vector<shared_ptr<Atom>> RedisMongoDB::get_matching_atoms(bool is_toplevel, Atom
         auto documents = get_filtered_documents(collection_name, filter_builder, {});
         for (const auto& document : documents) {
             Assignment assignment;
-            if (key.match(document->get(MONGODB_FIELD_NAME[MONGODB_FIELD::ID]), assignment, *this)) {
+            if (key.match(document->get(MONGODB_FIELD_NAME[MONGODB_FIELD::ID]), assignment, this->decoder)) {
                 auto atom = this->get_atom(document->get(MONGODB_FIELD_NAME[MONGODB_FIELD::ID]));
                 if (atom != nullptr) {
                     matching_atoms.push_back(atom);
@@ -1118,7 +1117,7 @@ vector<string> RedisMongoDB::add_links(const vector<atoms::Link*>& links,
                 Hasher::composite_handle(composite_type_entries_map[link_handle]);
             mongodb_doc.emplace(to_store, composite_type_hash, composite_type_entries_map[link_handle]);
         } else {
-            mongodb_doc.emplace(to_store, *this);
+            mongodb_doc.emplace(to_store, this->decoder);
         }
 
         if (static_cast<uint>(ctx->get_pending_commands_count()) >= REDIS_CHUNK_SIZE) {
@@ -1393,7 +1392,7 @@ vector<string> RedisMongoDB::match_pattern_index_schema(const Link* link) {
         auto link_schema = LinkSchema(get<0>(value));
         auto index_entries = get<1>(value);
         Assignment assignment;
-        bool match = link_schema.match(*(Link*) link, assignment, *this);
+        bool match = link_schema.match(*(Link*) link, assignment, this->decoder);
         if (match) {
             for (const auto& index_entry : index_entries) {
                 size_t index = 0;

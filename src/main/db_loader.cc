@@ -8,6 +8,7 @@
 #include <vector>
 
 #include "AtomDBFactory.h"
+#include "AtomDBInitializer.h"
 #include "JsonConfig.h"
 #include "JsonConfigParser.h"
 #include "MettaParser.h"
@@ -67,8 +68,10 @@ int main(int argc, char* argv[]) {
 
     JsonConfig json_config = JsonConfigParser::load(config_path);
     auto atomdb_config = json_config.at_path("atomdb").get_or<JsonConfig>(JsonConfig());
+    AtomDBInitializer::init(atomdb_config);
 
     auto atomdb = AtomDBFactory::create(atomdb_config);
+
 
     signal(SIGINT, &ctrl_c_handler);
     signal(SIGTERM, &ctrl_c_handler);

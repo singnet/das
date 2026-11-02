@@ -9,6 +9,7 @@
 #include "AtomDBAPITypes.h"
 #include "Keychain.h"
 #include "LinkSchema.h"
+#include "atomdb/AtomDBUtils.h"
 
 using namespace commons;
 using namespace atoms;
@@ -48,6 +49,7 @@ class AuthorizationSchema {
 
    private:
     shared_ptr<AtomDB> atomdb_;
+    AtomDBUtils decoder_;
     LinkSchema schema_;
     bool read_;
     bool write_;
