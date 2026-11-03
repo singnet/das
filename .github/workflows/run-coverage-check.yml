@@ -59,12 +59,11 @@ jobs:
       - name: Starting Redis and MongoDB
         run: das-cli db start
 
-      - name: Build db_loader and attention broker
-        working-directory: ./src
-        run: ./scripts/bazel_exec.sh build --noshow_progress //:db_loader //:attention_broker_service
+      - name: Load Knowledge Base
+        run: das-cli metta load /tmp/animals.metta
 
-      - name: Load knowledge base and start attention broker
-        run: .github/scripts/run_bazel_services.sh /tmp/animals.metta
+      - name: Starting Attention Broker
+        run: das-cli attention-broker start
 
       - name: Starting MORK Server and Load Knowledge Base
         run: |-

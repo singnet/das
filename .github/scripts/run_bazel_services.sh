@@ -52,7 +52,10 @@ if [[ -f "${ATTENTION_PID}" ]]; then
   old_pid="$(cat "${ATTENTION_PID}")"
   kill "${old_pid}" >/dev/null 2>&1 || true
 fi
-pkill -x attention_broker_service >/dev/null 2>&1 || true
+if (echo >/dev/tcp/127.0.0.1/"${ATTENTION_PORT}") >/dev/null 2>&1; then
+  echo "[ERROR] Port ${ATTENTION_PORT} is already in use by another process." >&2
+  exit 1
+fi
 
 echo "[INFO] Starting ${ATTENTION_BROKER} on 0.0.0.0:${ATTENTION_PORT}"
 : > "${ATTENTION_LOG}"
