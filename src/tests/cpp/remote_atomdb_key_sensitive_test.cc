@@ -246,6 +246,161 @@ TEST_F(RemoteAtomDBKeySensitiveTest, NullptrKeychainReadsOnlyTheUnprotectedPeer)
         set<string>({this->similarity_human_chimp_handle}));
 }
 
+TEST_F(RemoteAtomDBKeySensitiveTest, GetAtomsNodesAndLinksWithoutKeychain) {
+    vector<string> handles = {this->similarity_human_monkey_handle,
+                              this->similarity_human_chimp_handle,
+                              this->similarity_snake_vine_handle,
+                              this->inheritance_human_mammal_handle,
+                              this->human_handle,
+                              this->mammal_handle};
+
+    set<string> atoms;
+    for (const auto& atom : this->db->get_atoms(handles)) atoms.insert(atom->handle());
+    set<string> atoms_with_null_keychain;
+    for (const auto& atom : this->db->get_atoms(handles, nullptr)) {
+        atoms_with_null_keychain.insert(atom->handle());
+    }
+    EXPECT_EQ(atoms,
+              set<string>({this->similarity_human_chimp_handle,
+                           this->similarity_snake_vine_handle,
+                           this->human_handle}));
+    EXPECT_EQ(atoms_with_null_keychain, atoms);
+
+    set<string> nodes;
+    for (const auto& node : this->db->get_nodes(handles)) nodes.insert(node->handle());
+    set<string> nodes_with_null_keychain;
+    for (const auto& node : this->db->get_nodes(handles, nullptr)) nodes_with_null_keychain.insert(node->handle());
+    EXPECT_EQ(nodes, set<string>({this->human_handle}));
+    EXPECT_EQ(nodes_with_null_keychain, nodes);
+
+    set<string> links;
+    for (const auto& link : this->db->get_links(handles)) links.insert(link->handle());
+    set<string> links_with_null_keychain;
+    for (const auto& link : this->db->get_links(handles, nullptr)) links_with_null_keychain.insert(link->handle());
+    EXPECT_EQ(links, set<string>({this->similarity_human_chimp_handle, this->similarity_snake_vine_handle}));
+    EXPECT_EQ(links_with_null_keychain, links);
+}
+
+TEST_F(RemoteAtomDBKeySensitiveTest, GetAtomsNodesAndLinksWithKeychain) {
+    auto similarity_key = this->similarity_keychain();
+    auto full_access_key = this->full_access_keychain();
+    vector<string> handles = {this->similarity_human_monkey_handle,
+                              this->similarity_human_chimp_handle,
+                              this->similarity_snake_vine_handle,
+                              this->inheritance_human_mammal_handle,
+                              this->human_handle,
+                              this->mammal_handle};
+
+    set<string> similarity_atoms;
+    for (const auto& atom : this->db->get_atoms(handles, similarity_key)) {
+        similarity_atoms.insert(atom->handle());
+    }
+    EXPECT_EQ(similarity_atoms,
+              set<string>({this->similarity_human_monkey_handle,
+                           this->similarity_human_chimp_handle,
+                           this->similarity_snake_vine_handle,
+                           this->human_handle}));
+
+    set<string> similarity_nodes;
+    for (const auto& node : this->db->get_nodes(handles, similarity_key)) {
+        similarity_nodes.insert(node->handle());
+    }
+    EXPECT_EQ(similarity_nodes, set<string>({this->human_handle}));
+
+    set<string> similarity_links;
+    for (const auto& link : this->db->get_links(handles, similarity_key)) {
+        similarity_links.insert(link->handle());
+    }
+    EXPECT_EQ(similarity_links,
+              set<string>({this->similarity_human_monkey_handle,
+                           this->similarity_human_chimp_handle,
+                           this->similarity_snake_vine_handle}));
+
+    set<string> full_access_atoms;
+    for (const auto& atom : this->db->get_atoms(handles, full_access_key)) {
+        full_access_atoms.insert(atom->handle());
+    }
+    EXPECT_EQ(full_access_atoms,
+              set<string>({this->similarity_human_chimp_handle,
+                           this->similarity_snake_vine_handle,
+                           this->inheritance_human_mammal_handle,
+                           this->human_handle,
+                           this->mammal_handle}));
+
+    set<string> full_access_nodes;
+    for (const auto& node : this->db->get_nodes(handles, full_access_key)) {
+        full_access_nodes.insert(node->handle());
+    }
+    EXPECT_EQ(full_access_nodes, set<string>({this->human_handle, this->mammal_handle}));
+
+    set<string> full_access_links;
+    for (const auto& link : this->db->get_links(handles, full_access_key)) {
+        full_access_links.insert(link->handle());
+    }
+    EXPECT_EQ(full_access_links,
+              set<string>({this->similarity_human_chimp_handle,
+                           this->similarity_snake_vine_handle,
+                           this->inheritance_human_mammal_handle}));
+}
+
+TEST_F(RemoteAtomDBKeySensitiveTest, PeerGetAtomsNodesAndLinksRespectKeychain) {
+    auto* similarity_peer = this->db->get_peer("similarity_peer");
+    auto* full_access_peer = this->db->get_peer("full_access_peer");
+    auto* unprotected_peer = this->db->get_peer("unprotected_peer");
+    auto similarity_key = this->similarity_keychain();
+    auto full_access_key = this->full_access_keychain();
+
+    vector<string> handles = {this->similarity_human_monkey_handle,
+                              this->similarity_snake_vine_handle,
+                              this->human_handle,
+                              this->similarity_human_chimp_handle};
+
+    EXPECT_TRUE(similarity_peer->get_atoms(handles).empty());
+    EXPECT_TRUE(similarity_peer->get_atoms(handles, nullptr).empty());
+    EXPECT_TRUE(similarity_peer->get_nodes(handles).empty());
+    EXPECT_TRUE(similarity_peer->get_links(handles).empty());
+
+    set<string> granted;
+    for (const auto& atom : similarity_peer->get_atoms(handles, similarity_key)) {
+        granted.insert(atom->handle());
+    }
+    EXPECT_EQ(granted, set<string>({this->similarity_human_monkey_handle}));
+    EXPECT_TRUE(similarity_peer->get_nodes(handles, similarity_key).empty());
+    ASSERT_EQ(similarity_peer->get_links(handles, similarity_key).size(), 1u);
+    EXPECT_EQ(similarity_peer->get_links(handles, similarity_key)[0]->handle(),
+              this->similarity_human_monkey_handle);
+
+    set<string> unprotected_atoms;
+    for (const auto& atom : unprotected_peer->get_atoms(handles)) unprotected_atoms.insert(atom->handle());
+    set<string> unprotected_atoms_with_keychain;
+    for (const auto& atom : unprotected_peer->get_atoms(handles, similarity_key)) {
+        unprotected_atoms_with_keychain.insert(atom->handle());
+    }
+    EXPECT_EQ(unprotected_atoms,
+              set<string>({this->similarity_snake_vine_handle,
+                           this->human_handle,
+                           this->similarity_human_chimp_handle}));
+    EXPECT_EQ(unprotected_atoms_with_keychain, unprotected_atoms);
+
+    vector<string> full_handles = {this->inheritance_human_mammal_handle,
+                                   this->mammal_handle,
+                                   this->similarity_human_monkey_handle};
+    EXPECT_TRUE(full_access_peer->get_atoms(full_handles, similarity_key).empty());
+    EXPECT_TRUE(full_access_peer->get_nodes(full_handles).empty());
+    EXPECT_TRUE(full_access_peer->get_links(full_handles, nullptr).empty());
+
+    set<string> full_atoms;
+    for (const auto& atom : full_access_peer->get_atoms(full_handles, full_access_key)) {
+        full_atoms.insert(atom->handle());
+    }
+    EXPECT_EQ(full_atoms, set<string>({this->inheritance_human_mammal_handle, this->mammal_handle}));
+    ASSERT_EQ(full_access_peer->get_nodes(full_handles, full_access_key).size(), 1u);
+    EXPECT_EQ(full_access_peer->get_nodes(full_handles, full_access_key)[0]->handle(), this->mammal_handle);
+    ASSERT_EQ(full_access_peer->get_links(full_handles, full_access_key).size(), 1u);
+    EXPECT_EQ(full_access_peer->get_links(full_handles, full_access_key)[0]->handle(),
+              this->inheritance_human_mammal_handle);
+}
+
 TEST_F(RemoteAtomDBKeySensitiveTest, SimilarityKeyDoesNotOpenTheFullAccessDatabase) {
     auto keychain = this->similarity_keychain();
 

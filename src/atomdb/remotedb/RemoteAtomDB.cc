@@ -3,6 +3,7 @@
 
 #include <algorithm>
 #include <fstream>
+#include <map>
 #include <nlohmann/json.hpp>
 #include <optional>
 #include <sstream>
@@ -77,6 +78,18 @@ shared_ptr<Node> RemoteAtomDB::get_node(const string& handle) {
 shared_ptr<Link> RemoteAtomDB::get_link(const string& handle) {
     auto atom = get_atom(handle);
     return dynamic_pointer_cast<Link>(atom);
+}
+
+vector<shared_ptr<Atom>> RemoteAtomDB::get_atoms(const vector<string>& handles) {
+    return this->get_atoms(handles, nullptr);
+}
+
+vector<shared_ptr<Node>> RemoteAtomDB::get_nodes(const vector<string>& handles) {
+    return this->get_nodes(handles, nullptr);
+}
+
+vector<shared_ptr<Link>> RemoteAtomDB::get_links(const vector<string>& handles) {
+    return this->get_links(handles, nullptr);
 }
 
 vector<shared_ptr<Atom>> RemoteAtomDB::get_matching_atoms(bool is_toplevel, Atom& key) {
@@ -324,6 +337,87 @@ shared_ptr<Node> RemoteAtomDB::get_node(const string& handle, shared_ptr<Keychai
 
 shared_ptr<Link> RemoteAtomDB::get_link(const string& handle, shared_ptr<Keychain> keychain) {
     return dynamic_pointer_cast<Link>(this->get_atom(handle, keychain));
+}
+
+vector<shared_ptr<Atom>> RemoteAtomDB::get_atoms(const vector<string>& handles,
+                                                 shared_ptr<Keychain> keychain) {
+    if (handles.empty()) {
+        return {};
+    }
+
+    vector<shared_ptr<Atom>> atoms;
+    unordered_set<string> found;
+    vector<string> pending = handles;
+
+    // Adds the atom to the result only if it hasn't been found yet
+    auto add_if_new = [&](const shared_ptr<Atom>& atom, const string& uid) {
+        if (!atom || !found.insert(atom->handle()).second) return;
+        LOG_DEBUG("get_atoms(" << atom->handle() << ") fetched from peer [" << uid << "]");
+        atoms.push_back(atom);
+    };
+
+    // Recomputes which handles are still missing
+    auto update_pending = [&]() {
+        pending.clear();
+        for (const auto& h : handles) {
+            if (found.find(h) == found.end()) {
+                pending.push_back(h);
+            }
+        }
+    };
+
+    for (auto& [uid, peer] : writable_peers_) {
+        for (const auto& atom : peer->get_atoms(pending, keychain)) {
+            add_if_new(atom, uid);
+        }
+        update_pending();
+    }
+    if (pending.empty()) {
+        return atoms;
+    }
+
+    for (auto& [uid, peer] : readonly_peers_) {
+        for (const auto& h : pending) {
+            add_if_new(peer->get_cached_atom(h, keychain), uid);
+        }
+        update_pending();
+    }
+    if (pending.empty()) {
+        return atoms;
+    }
+
+    for (auto& [uid, peer] : readonly_peers_) {
+        for (const auto& atom : peer->get_atoms(pending, keychain)) {
+            add_if_new(atom, uid);
+        }
+        update_pending();
+    }
+
+    return atoms;
+}
+
+vector<shared_ptr<Node>> RemoteAtomDB::get_nodes(const vector<string>& handles,
+                                                 shared_ptr<Keychain> keychain) {
+    auto atoms = this->get_atoms(handles, keychain);
+    vector<shared_ptr<Node>> nodes;
+    for (const auto& atom : atoms) {
+        if (auto node = dynamic_pointer_cast<Node>(atom)) {
+            nodes.push_back(node);
+        }
+    }
+    return nodes;
+}
+
+vector<shared_ptr<Link>> RemoteAtomDB::get_links(const vector<string>& handles,
+                                                 shared_ptr<Keychain> keychain) {
+    auto atoms = this->get_atoms(handles, keychain);
+    vector<shared_ptr<Link>> links;
+    for (const auto& atom : atoms) {
+        if (auto link = dynamic_pointer_cast<Link>(atom)) {
+            links.push_back(link);
+        }
+    }
+    return links;
 }
 
 vector<shared_ptr<Atom>> RemoteAtomDB::get_matching_atoms(bool is_toplevel,
