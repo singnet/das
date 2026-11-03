@@ -165,7 +165,7 @@ shared_ptr<Atom> RedisMongoDB::get_atom(const string& handle) {
         if (atom_document->contains("is_toplevel")) {
             is_toplevel = atom_document->get_bool("is_toplevel");
         }
-        if (atom_document->contains(MONGODB_FIELD_NAME[MONGODB_FIELD::TARGETS])) {
+        if (Hasher::is_link_handle(handle)) {
             unsigned int arity = atom_document->get_size(MONGODB_FIELD_NAME[MONGODB_FIELD::TARGETS]);
             vector<string> targets;
             for (unsigned int i = 0; i < arity; i++) {
@@ -186,10 +186,12 @@ shared_ptr<Atom> RedisMongoDB::get_atom(const string& handle) {
 }
 
 shared_ptr<Node> RedisMongoDB::get_node(const string& handle) {
+    if (!Hasher::is_node_handle(handle)) return nullptr;
     return dynamic_pointer_cast<Node>(get_atom(handle));
 }
 
 shared_ptr<Link> RedisMongoDB::get_link(const string& handle) {
+    if (!Hasher::is_link_handle(handle)) return nullptr;
     return dynamic_pointer_cast<Link>(get_atom(handle));
 }
 
@@ -508,14 +510,8 @@ shared_ptr<atomdb_api_types::AtomDocument> RedisMongoDB::get_document(
 }
 
 shared_ptr<atomdb_api_types::AtomDocument> RedisMongoDB::get_atom_document(const string& handle) {
-    auto node_document = get_node_document(handle);
-    if (node_document != nullptr) {
-        return node_document;
-    }
-    auto link_document = get_link_document(handle);
-    if (link_document != nullptr) {
-        return link_document;
-    }
+    if (Hasher::is_node_handle(handle)) return get_node_document(handle);
+    if (Hasher::is_link_handle(handle)) return get_link_document(handle);
     return nullptr;
 }
 
@@ -625,17 +621,23 @@ vector<shared_ptr<atomdb_api_types::AtomDocument>> RedisMongoDB::get_documents(
 
 vector<shared_ptr<atomdb_api_types::AtomDocument>> RedisMongoDB::get_atom_documents(
     const vector<string>& handles, const vector<string>& fields) {
-    auto documents = get_node_documents(handles, fields);
-    if (documents.size() == handles.size()) return documents;
-
-    vector<string> missing_handles = handles;
-    for (const auto& document : documents) {
-        auto handle = document->get(MONGODB_FIELD_NAME[MONGODB_FIELD::ID]);
-        missing_handles.erase(find(missing_handles.begin(), missing_handles.end(), handle));
+    vector<string> node_handles;
+    vector<string> link_handles;
+    node_handles.reserve(handles.size());
+    link_handles.reserve(handles.size());
+    for (const auto& handle : handles) {
+        if (Hasher::is_node_handle(handle)) {
+            node_handles.push_back(handle);
+        } else if (Hasher::is_link_handle(handle)) {
+            link_handles.push_back(handle);
+        }
     }
 
-    auto link_documents = get_link_documents(missing_handles, fields);
-    documents.insert(documents.end(), link_documents.begin(), link_documents.end());
+    auto documents = get_node_documents(node_handles, fields);
+    if (!link_handles.empty()) {
+        auto link_documents = get_link_documents(link_handles, fields);
+        documents.insert(documents.end(), link_documents.begin(), link_documents.end());
+    }
     return documents;
 }
 
@@ -698,14 +700,18 @@ bool RedisMongoDB::document_exists(const string& handle, const string& collectio
 }
 
 bool RedisMongoDB::atom_exists(const string& atom_handle) {
-    return node_exists(atom_handle) || link_exists(atom_handle);
+    if (Hasher::is_node_handle(atom_handle)) return node_exists(atom_handle);
+    if (Hasher::is_link_handle(atom_handle)) return link_exists(atom_handle);
+    return false;
 }
 
 bool RedisMongoDB::node_exists(const string& node_handle) {
+    if (!Hasher::is_node_handle(node_handle)) return false;
     return document_exists(node_handle, MONGODB_NODES_COLLECTION_NAME);
 }
 
 bool RedisMongoDB::link_exists(const string& link_handle) {
+    if (!Hasher::is_link_handle(link_handle)) return false;
     return document_exists(link_handle, MONGODB_LINKS_COLLECTION_NAME);
 }
 
@@ -746,19 +752,37 @@ set<string> RedisMongoDB::documents_exist(const vector<string>& handles, const s
 }
 
 set<string> RedisMongoDB::atoms_exist(const vector<string>& handles) {
-    auto nodes = nodes_exist(handles);
-    if (nodes.size() == handles.size()) return nodes;
-    auto links = links_exist(handles);
-    nodes.insert(links.begin(), links.end());
-    return nodes;
+    vector<string> node_handles;
+    vector<string> link_handles;
+    for (const auto& handle : handles) {
+        if (Hasher::is_node_handle(handle)) {
+            node_handles.push_back(handle);
+        } else if (Hasher::is_link_handle(handle)) {
+            link_handles.push_back(handle);
+        }
+    }
+    auto existing = nodes_exist(node_handles);
+    auto links = links_exist(link_handles);
+    existing.insert(links.begin(), links.end());
+    return existing;
 }
 
 set<string> RedisMongoDB::nodes_exist(const vector<string>& node_handles) {
-    return documents_exist(node_handles, MONGODB_NODES_COLLECTION_NAME);
+    vector<string> filtered;
+    filtered.reserve(node_handles.size());
+    for (const auto& handle : node_handles) {
+        if (Hasher::is_node_handle(handle)) filtered.push_back(handle);
+    }
+    return documents_exist(filtered, MONGODB_NODES_COLLECTION_NAME);
 }
 
 set<string> RedisMongoDB::links_exist(const vector<string>& link_handles) {
-    return documents_exist(link_handles, MONGODB_LINKS_COLLECTION_NAME);
+    vector<string> filtered;
+    filtered.reserve(link_handles.size());
+    for (const auto& handle : link_handles) {
+        if (Hasher::is_link_handle(handle)) filtered.push_back(handle);
+    }
+    return documents_exist(filtered, MONGODB_LINKS_COLLECTION_NAME);
 }
 
 string RedisMongoDB::add_atom(const atoms::Atom* atom, const atoms::Merger* merger) {
@@ -1157,8 +1181,9 @@ bool RedisMongoDB::delete_document(const string& handle,
 }
 
 bool RedisMongoDB::delete_atom(const string& handle, bool delete_targets) {
-    if (delete_node(handle, delete_targets)) return true;
-    return delete_link(handle, delete_targets);
+    if (Hasher::is_node_handle(handle)) return delete_node(handle, delete_targets);
+    if (Hasher::is_link_handle(handle)) return delete_link(handle, delete_targets);
+    return false;
 }
 
 bool RedisMongoDB::delete_node(const string& handle, bool delete_targets) {

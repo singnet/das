@@ -11,6 +11,7 @@
 #include <unordered_set>
 
 #include "Atom.h"
+#include "Hasher.h"
 #include "InMemoryDBAPITypes.h"
 #include "Link.h"
 #include "Logger.h"
@@ -102,13 +103,13 @@ shared_ptr<Atom> RemoteAtomDBPeer::get_atom(const string& handle) {
 }
 
 shared_ptr<Node> RemoteAtomDBPeer::get_node(const string& handle) {
-    auto atom = get_atom(handle);
-    return dynamic_pointer_cast<Node>(atom);
+    if (!Hasher::is_node_handle(handle)) return nullptr;
+    return dynamic_pointer_cast<Node>(get_atom(handle));
 }
 
 shared_ptr<Link> RemoteAtomDBPeer::get_link(const string& handle) {
-    auto atom = get_atom(handle);
-    return dynamic_pointer_cast<Link>(atom);
+    if (!Hasher::is_link_handle(handle)) return nullptr;
+    return dynamic_pointer_cast<Link>(get_atom(handle));
 }
 
 shared_ptr<Atom> RemoteAtomDBPeer::get_cached_atom(const string& handle, shared_ptr<Keychain> keychain) {
@@ -730,10 +731,12 @@ shared_ptr<Atom> RemoteAtomDBPeer::get_atom(const string& handle, shared_ptr<Key
 }
 
 shared_ptr<Node> RemoteAtomDBPeer::get_node(const string& handle, shared_ptr<Keychain> keychain) {
+    if (!Hasher::is_node_handle(handle)) return nullptr;
     return dynamic_pointer_cast<Node>(this->get_atom(handle, keychain));
 }
 
 shared_ptr<Link> RemoteAtomDBPeer::get_link(const string& handle, shared_ptr<Keychain> keychain) {
+    if (!Hasher::is_link_handle(handle)) return nullptr;
     return dynamic_pointer_cast<Link>(this->get_atom(handle, keychain));
 }
 

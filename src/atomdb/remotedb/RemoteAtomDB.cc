@@ -8,6 +8,7 @@
 #include <sstream>
 #include <utility>
 
+#include "Hasher.h"
 #include "InMemoryDB.h"
 #include "InMemoryDBAPITypes.h"
 #include "Link.h"
@@ -70,13 +71,13 @@ bool RemoteAtomDB::composite_type_enabled() const {
 shared_ptr<Atom> RemoteAtomDB::get_atom(const string& handle) { return this->get_atom(handle, nullptr); }
 
 shared_ptr<Node> RemoteAtomDB::get_node(const string& handle) {
-    auto atom = get_atom(handle);
-    return dynamic_pointer_cast<Node>(atom);
+    if (!Hasher::is_node_handle(handle)) return nullptr;
+    return dynamic_pointer_cast<Node>(get_atom(handle));
 }
 
 shared_ptr<Link> RemoteAtomDB::get_link(const string& handle) {
-    auto atom = get_atom(handle);
-    return dynamic_pointer_cast<Link>(atom);
+    if (!Hasher::is_link_handle(handle)) return nullptr;
+    return dynamic_pointer_cast<Link>(get_atom(handle));
 }
 
 vector<shared_ptr<Atom>> RemoteAtomDB::get_matching_atoms(bool is_toplevel, Atom& key) {
@@ -319,10 +320,12 @@ shared_ptr<Atom> RemoteAtomDB::get_atom(const string& handle, shared_ptr<Keychai
 }
 
 shared_ptr<Node> RemoteAtomDB::get_node(const string& handle, shared_ptr<Keychain> keychain) {
+    if (!Hasher::is_node_handle(handle)) return nullptr;
     return dynamic_pointer_cast<Node>(this->get_atom(handle, keychain));
 }
 
 shared_ptr<Link> RemoteAtomDB::get_link(const string& handle, shared_ptr<Keychain> keychain) {
+    if (!Hasher::is_link_handle(handle)) return nullptr;
     return dynamic_pointer_cast<Link>(this->get_atom(handle, keychain));
 }
 

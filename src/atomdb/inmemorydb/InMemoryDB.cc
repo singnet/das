@@ -81,7 +81,7 @@ shared_ptr<Atom> clone_atom(const Atom* atom) {
     return nullptr;
 }
 
-shared_ptr<HandleTrie> make_trie() { return make_shared<HandleTrie>(HANDLE_HASH_SIZE - 1); }
+shared_ptr<HandleTrie> make_trie() { return make_shared<HandleTrie>(ATOM_HANDLE_LENGTH); }
 
 // Snapshots the atom stored at `handle`. The owning reference is taken under the trie
 // node lock, so concurrent upserts/deletes cannot free the atom mid-read.
@@ -159,6 +159,7 @@ InMemoryDB::~InMemoryDB() = default;
 // ---------------------------------------------------------------------------
 
 shared_ptr<Atom> InMemoryDB::get_atom(const string& handle) {
+    if (!Hasher::is_atom_handle(handle)) return nullptr;
     auto atom = lookup_atom(*load_tries()->atoms, handle);
     if (atom == nullptr) {
         return nullptr;
@@ -168,13 +169,13 @@ shared_ptr<Atom> InMemoryDB::get_atom(const string& handle) {
 }
 
 shared_ptr<Node> InMemoryDB::get_node(const string& handle) {
-    auto atom = get_atom(handle);
-    return dynamic_pointer_cast<Node>(atom);
+    if (!Hasher::is_node_handle(handle)) return nullptr;
+    return dynamic_pointer_cast<Node>(get_atom(handle));
 }
 
 shared_ptr<Link> InMemoryDB::get_link(const string& handle) {
-    auto atom = get_atom(handle);
-    return dynamic_pointer_cast<Link>(atom);
+    if (!Hasher::is_link_handle(handle)) return nullptr;
+    return dynamic_pointer_cast<Link>(get_atom(handle));
 }
 
 shared_ptr<HandleSet> InMemoryDB::query_for_pattern(const LinkSchema& link_schema) {
@@ -193,16 +194,18 @@ shared_ptr<HandleSet> InMemoryDB::query_for_pattern(const LinkSchema& link_schem
 }
 
 shared_ptr<HandleList> InMemoryDB::query_for_targets(const string& handle) {
+    if (!Hasher::is_link_handle(handle)) return nullptr;
     auto atom = lookup_atom(*load_tries()->atoms, handle);
-    if (atom == nullptr || !Atom::is_link(*atom)) {
-        return nullptr;  // Absent or not a link, so no targets
+    auto link = dynamic_cast<Link*>(atom.get());
+    if (link == nullptr) {
+        return nullptr;
     }
-    Link* link = dynamic_cast<Link*>(atom.get());
     return make_shared<HandleListInMemory>(link->targets);
 }
 
 shared_ptr<HandleSet> InMemoryDB::query_for_incoming_set(const string& handle) {
     auto handle_set = make_shared<HandleSetInMemory>();
+    if (!Hasher::is_atom_handle(handle)) return handle_set;
     auto handles = lookup_handle_set(*load_tries()->incoming, handle);
     if (handles != nullptr) {
         for (const auto& link_handle : *handles) {
@@ -226,24 +229,25 @@ vector<shared_ptr<Atom>> InMemoryDB::get_matching_atoms(bool is_toplevel, Atom& 
 }
 
 bool InMemoryDB::atom_exists(const string& handle) {
+    if (!Hasher::is_atom_handle(handle)) return false;
     return load_tries()->atoms->lookup(handle) != NULL;
 }
 
 bool InMemoryDB::node_exists(const string& handle) {
-    auto atom = lookup_atom(*load_tries()->atoms, handle);
-    return atom != nullptr && Atom::is_node(*atom);
+    if (!Hasher::is_node_handle(handle)) return false;
+    return load_tries()->atoms->lookup(handle) != NULL;
 }
 
 bool InMemoryDB::link_exists(const string& handle) {
-    auto atom = lookup_atom(*load_tries()->atoms, handle);
-    return atom != nullptr && Atom::is_link(*atom);
+    if (!Hasher::is_link_handle(handle)) return false;
+    return load_tries()->atoms->lookup(handle) != NULL;
 }
 
 set<string> InMemoryDB::atoms_exist(const vector<string>& handles) {
     set<string> existing;
     auto trie = load_tries()->atoms;
     for (const auto& handle : handles) {
-        if (trie->lookup(handle) != NULL) {
+        if (Hasher::is_atom_handle(handle) && trie->lookup(handle) != NULL) {
             existing.insert(handle);
         }
     }
@@ -254,8 +258,7 @@ set<string> InMemoryDB::nodes_exist(const vector<string>& handles) {
     set<string> existing;
     auto trie = load_tries()->atoms;
     for (const auto& handle : handles) {
-        auto atom = lookup_atom(*trie, handle);
-        if (atom != nullptr && Atom::is_node(*atom)) {
+        if (Hasher::is_node_handle(handle) && trie->lookup(handle) != NULL) {
             existing.insert(handle);
         }
     }
@@ -266,8 +269,7 @@ set<string> InMemoryDB::links_exist(const vector<string>& handles) {
     set<string> existing;
     auto trie = load_tries()->atoms;
     for (const auto& handle : handles) {
-        auto atom = lookup_atom(*trie, handle);
-        if (atom != nullptr && Atom::is_link(*atom)) {
+        if (Hasher::is_link_handle(handle) && trie->lookup(handle) != NULL) {
             existing.insert(handle);
         }
     }
@@ -470,10 +472,13 @@ bool InMemoryDB::delete_atom(const string& handle, bool delete_link_targets) {
 bool InMemoryDB::delete_atom_unlocked(const Tries& tries,
                                       const string& handle,
                                       bool delete_link_targets) {
-    if (this->delete_node_unlocked(tries, handle, delete_link_targets)) {
-        return true;
+    if (Hasher::is_node_handle(handle)) {
+        return this->delete_node_unlocked(tries, handle, delete_link_targets);
     }
-    return this->delete_link_unlocked(tries, handle, delete_link_targets);
+    if (Hasher::is_link_handle(handle)) {
+        return this->delete_link_unlocked(tries, handle, delete_link_targets);
+    }
+    return false;
 }
 
 bool InMemoryDB::delete_node(const string& handle, bool delete_link_targets) {
@@ -484,13 +489,13 @@ bool InMemoryDB::delete_node(const string& handle, bool delete_link_targets) {
 bool InMemoryDB::delete_node_unlocked(const Tries& tries,
                                       const string& handle,
                                       bool delete_link_targets) {
+    if (!Hasher::is_node_handle(handle)) return false;
+
     const auto& trie = tries.atoms;
     const auto& incoming_trie = tries.incoming;
 
     auto atom = lookup_atom(*trie, handle);
-    if (atom == nullptr || !Atom::is_node(*atom)) {
-        return false;
-    }
+    if (atom == nullptr) return false;
 
     vector<string> link_handles_to_delete;
 
@@ -522,13 +527,13 @@ bool InMemoryDB::delete_link(const string& handle, bool delete_link_targets) {
 bool InMemoryDB::delete_link_unlocked(const Tries& tries,
                                       const string& handle,
                                       bool delete_link_targets) {
+    if (!Hasher::is_link_handle(handle)) return false;
+
     const auto& trie = tries.atoms;
     const auto& incoming_trie = tries.incoming;
 
     auto atom = lookup_atom(*trie, handle);
-    if (atom == nullptr || !Atom::is_link(*atom)) {
-        return false;
-    }
+    if (atom == nullptr) return false;
 
     auto link = dynamic_cast<Link*>(atom.get());
     const auto& targets = link->targets;

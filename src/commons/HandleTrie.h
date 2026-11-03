@@ -6,7 +6,8 @@
 
 #include "Utils.h"
 
-#define TRIE_ALPHABET_SIZE ((unsigned int) 16)
+// 0-9a-f plus the atom-handle type tags 'n' and 'l'.
+#define TRIE_ALPHABET_SIZE ((unsigned int) 18)
 
 using namespace std;
 
@@ -222,6 +223,8 @@ class HandleTrie {
         TLB[(unsigned char) 'd'] = TLB[(unsigned char) 'D'] = 13;
         TLB[(unsigned char) 'e'] = TLB[(unsigned char) 'E'] = 14;
         TLB[(unsigned char) 'f'] = TLB[(unsigned char) 'F'] = 15;
+        TLB[(unsigned char) 'n'] = TLB[(unsigned char) 'N'] = 16;
+        TLB[(unsigned char) 'l'] = TLB[(unsigned char) 'L'] = 17;
         TLB_INITIALIZED = true;
     }
 

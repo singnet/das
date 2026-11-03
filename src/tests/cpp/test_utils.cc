@@ -43,18 +43,21 @@ string random_handle() {
 string sequential_label(unsigned int& count, string prefix) { return prefix + std::to_string(count++); }
 
 string prefixed_random_handle(string prefix) {
-    char buffer[HANDLE_HASH_SIZE];
-    unsigned int key_size = HANDLE_HASH_SIZE - 1;
-    for (unsigned int i = 0; i < key_size; i++) {
+    string handle;
+    handle.reserve(ATOM_HANDLE_LENGTH);
+    for (unsigned int i = 0; i < ATOM_HANDLE_LENGTH; i++) {
         if (i < prefix.size()) {
-            buffer[i] = prefix[i];
+            handle.push_back(prefix[i]);
         } else {
-            buffer[i] = REVERSE_TLB[(rand() % 16)];
+            handle.push_back(REVERSE_TLB[(rand() % 16)]);
         }
     }
-    buffer[key_size] = 0;
-    string s = buffer;
-    return s;
+    return handle;
+}
+
+string random_atom_handle() {
+    string prefix(1, (rand() % 2) == 0 ? NODE_HANDLE_PREFIX : LINK_HANDLE_PREFIX);
+    return prefixed_random_handle(prefix);
 }
 
 static bool str_comp(string& a, string& b) { return a.compare(b) < 0; }
@@ -62,7 +65,7 @@ static bool str_comp(string& a, string& b) { return a.compare(b) < 0; }
 string* build_handle_space(unsigned int size, bool sort) {
     string* answer = new string[size];
     for (unsigned int i = 0; i < size; i++) {
-        answer[i] = random_handle();
+        answer[i] = random_atom_handle();
     }
     if (sort) {
         std::sort(answer, answer + size, str_comp);
