@@ -42,6 +42,26 @@ if [[ ! -f "${METTA_FILE}" ]]; then
   exit 1
 fi
 
+# /proc/<pid>/stat field 22 (starttime). Paired with the PID, this stays valid
+# when the broker executable is replaced and rejects a reused PID.
+broker_start_ticks() {
+  local pid=$1
+  [[ "${pid}" =~ ^[0-9]+$ ]] || return 1
+  [[ -r "/proc/${pid}/stat" ]] || return 1
+  awk '
+    {
+      rest = $0
+      sub(/^.*\) /, "", rest)
+      n = split(rest, f, " ")
+      if (n >= 20 && f[20] ~ /^[0-9]+$/) {
+        print f[20]
+        exit 0
+      }
+      exit 1
+    }
+  ' "/proc/${pid}/stat"
+}
+
 echo "[INFO] Loading ${METTA_FILE} with ${DB_LOADER}"
 "${DB_LOADER}" --config="${LOADER_CONFIG}" --file="${METTA_FILE}"
 
@@ -49,10 +69,14 @@ if command -v das-cli >/dev/null 2>&1; then
   das-cli attention-broker stop >/dev/null 2>&1 || true
 fi
 if [[ -f "${ATTENTION_PID}" ]]; then
-  old_pid="$(cat "${ATTENTION_PID}")"
-  if [[ "${old_pid}" =~ ^[0-9]+$ ]] &&
-     [[ "$(readlink -f "/proc/${old_pid}/exe" 2>/dev/null || true)" == "$(readlink -f "${ATTENTION_BROKER}")" ]]; then
-    kill -TERM "${old_pid}" >/dev/null 2>&1 || true
+  old_pid=""
+  old_start=""
+  read -r old_pid old_start _ < "${ATTENTION_PID}" || true
+  if [[ "${old_pid}" =~ ^[0-9]+$ && "${old_start}" =~ ^[0-9]+$ ]]; then
+    current_start="$(broker_start_ticks "${old_pid}" || true)"
+    if [[ -n "${current_start}" && "${current_start}" == "${old_start}" ]]; then
+      kill -TERM "${old_pid}" >/dev/null 2>&1 || true
+    fi
   fi
   rm -f "${ATTENTION_PID}"
 fi
@@ -70,14 +94,21 @@ done
 echo "[INFO] Starting ${ATTENTION_BROKER} on 0.0.0.0:${ATTENTION_PORT}"
 : > "${ATTENTION_LOG}"
 setsid "${ATTENTION_BROKER}" "0.0.0.0:${ATTENTION_PORT}" >>"${ATTENTION_LOG}" 2>&1 </dev/null &
-echo $! > "${ATTENTION_PID}"
+broker_pid=$!
+broker_start="$(broker_start_ticks "${broker_pid}" || true)"
+if [[ -z "${broker_start}" ]]; then
+  echo "[ERROR] Attention broker exited before listening." >&2
+  cat "${ATTENTION_LOG}" >&2 || true
+  exit 1
+fi
+printf '%s %s\n' "${broker_pid}" "${broker_start}" > "${ATTENTION_PID}"
 
 for _ in $(seq 1 30); do
   if (echo >/dev/tcp/127.0.0.1/"${ATTENTION_PORT}") >/dev/null 2>&1; then
     echo "[INFO] Attention broker is listening on port ${ATTENTION_PORT}"
     exit 0
   fi
-  if ! kill -0 "$(cat "${ATTENTION_PID}")" >/dev/null 2>&1; then
+  if [[ "$(broker_start_ticks "${broker_pid}" || true)" != "${broker_start}" ]]; then
     echo "[ERROR] Attention broker exited before listening." >&2
     cat "${ATTENTION_LOG}" >&2 || true
     exit 1
