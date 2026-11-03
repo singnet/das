@@ -62,6 +62,19 @@ broker_start_ticks() {
   ' "/proc/${pid}/stat"
 }
 
+# Legacy pid files stored only a PID. /proc/<pid>/exe stays readable after the
+# binary is replaced; the kernel appends " (deleted)" to that path.
+broker_pid_matches_executable() {
+  local pid=$1
+  local running_exe broker_exe
+  [[ "${pid}" =~ ^[0-9]+$ ]] || return 1
+  [[ -L "/proc/${pid}/exe" ]] || return 1
+  running_exe="$(readlink "/proc/${pid}/exe" 2>/dev/null || true)"
+  running_exe="${running_exe% (deleted)}"
+  broker_exe="$(readlink -f "${ATTENTION_BROKER}" 2>/dev/null || true)"
+  [[ -n "${running_exe}" && "${running_exe}" == "${broker_exe}" ]]
+}
+
 echo "[INFO] Loading ${METTA_FILE} with ${DB_LOADER}"
 "${DB_LOADER}" --config="${LOADER_CONFIG}" --file="${METTA_FILE}"
 
@@ -77,8 +90,13 @@ if [[ -f "${ATTENTION_PID}" ]]; then
     if [[ -n "${current_start}" && "${current_start}" == "${old_start}" ]]; then
       kill -TERM "${old_pid}" >/dev/null 2>&1 || true
     fi
+    rm -f "${ATTENTION_PID}"
+  elif [[ "${old_pid}" =~ ^[0-9]+$ && -z "${old_start}" ]]; then
+    if broker_pid_matches_executable "${old_pid}"; then
+      kill -TERM "${old_pid}" >/dev/null 2>&1 || true
+      rm -f "${ATTENTION_PID}"
+    fi
   fi
-  rm -f "${ATTENTION_PID}"
 fi
 for _ in $(seq 1 30); do
   if ! (echo >/dev/tcp/127.0.0.1/"${ATTENTION_PORT}") >/dev/null 2>&1; then
