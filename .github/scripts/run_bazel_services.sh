@@ -50,12 +50,18 @@ if command -v das-cli >/dev/null 2>&1; then
 fi
 if [[ -f "${ATTENTION_PID}" ]]; then
   old_pid="$(cat "${ATTENTION_PID}")"
-  kill "${old_pid}" >/dev/null 2>&1 || true
+  kill -TERM "${old_pid}" >/dev/null 2>&1 || true
 fi
-if (echo >/dev/tcp/127.0.0.1/"${ATTENTION_PORT}") >/dev/null 2>&1; then
-  echo "[ERROR] Port ${ATTENTION_PORT} is already in use by another process." >&2
-  exit 1
-fi
+for _ in $(seq 1 30); do
+  if ! (echo >/dev/tcp/127.0.0.1/"${ATTENTION_PORT}") >/dev/null 2>&1; then
+    break
+  fi
+  if [[ "${_}" -eq 30 ]]; then
+    echo "[ERROR] Port ${ATTENTION_PORT} is already in use by another process." >&2
+    exit 1
+  fi
+  sleep 1
+done
 
 echo "[INFO] Starting ${ATTENTION_BROKER} on 0.0.0.0:${ATTENTION_PORT}"
 : > "${ATTENTION_LOG}"
