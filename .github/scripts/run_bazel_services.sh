@@ -76,7 +76,7 @@ broker_pid_matches_executable() {
 }
 
 echo "[INFO] Loading ${METTA_FILE} with ${DB_LOADER}"
-"${DB_LOADER}" --config="${LOADER_CONFIG}" --file="${METTA_FILE}"
+"${DB_LOADER}" --config="${LOADER_CONFIG}" --file="${METTA_FILE}" --threads=1
 
 if command -v das-cli >/dev/null 2>&1; then
   das-cli attention-broker stop >/dev/null 2>&1 || true
