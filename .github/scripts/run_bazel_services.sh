@@ -50,7 +50,11 @@ if command -v das-cli >/dev/null 2>&1; then
 fi
 if [[ -f "${ATTENTION_PID}" ]]; then
   old_pid="$(cat "${ATTENTION_PID}")"
-  kill -TERM "${old_pid}" >/dev/null 2>&1 || true
+  if [[ "${old_pid}" =~ ^[0-9]+$ ]] &&
+     [[ "$(readlink -f "/proc/${old_pid}/exe" 2>/dev/null || true)" == "$(readlink -f "${ATTENTION_BROKER}")" ]]; then
+    kill -TERM "${old_pid}" >/dev/null 2>&1 || true
+  fi
+  rm -f "${ATTENTION_PID}"
 fi
 for _ in $(seq 1 30); do
   if ! (echo >/dev/tcp/127.0.0.1/"${ATTENTION_PORT}") >/dev/null 2>&1; then
