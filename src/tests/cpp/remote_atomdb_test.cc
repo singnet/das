@@ -137,26 +137,30 @@ TEST_F(RemoteAtomDBPeerTest, GetAtomsNodesAndLinks) {
     string local_human_handle = local_->add_node(local_human);
     string local_monkey_handle = local_->add_node(local_monkey);
     string similarity_handle = local_->add_node(similarity);
-    auto local_link = new Link("Expression", {similarity_handle, local_human_handle, local_monkey_handle});
+    auto local_link =
+        new Link("Expression", {similarity_handle, local_human_handle, local_monkey_handle});
     string local_link_handle = local_->add_link(local_link);
 
     auto dirty = new Node("Symbol", "\"dirty-node\"");
     string dirty_handle = peer_->add_node(dirty);
     string missing_handle = "missing" + Utils::random_string(25);
 
-    vector<string> handles = {dirty_handle, local_link_handle, remote_handle, missing_handle, local_human_handle};
+    vector<string> handles = {
+        dirty_handle, local_link_handle, remote_handle, missing_handle, local_human_handle};
 
     set<string> atoms;
     for (const auto& atom : peer_->get_atoms(handles)) atoms.insert(atom->handle());
     set<string> atoms_with_null_keychain;
-    for (const auto& atom : peer_->get_atoms(handles, nullptr)) atoms_with_null_keychain.insert(atom->handle());
+    for (const auto& atom : peer_->get_atoms(handles, nullptr))
+        atoms_with_null_keychain.insert(atom->handle());
     EXPECT_EQ(atoms, set<string>({dirty_handle, local_link_handle, remote_handle, local_human_handle}));
     EXPECT_EQ(atoms_with_null_keychain, atoms);
 
     set<string> nodes;
     for (const auto& node : peer_->get_nodes(handles)) nodes.insert(node->handle());
     set<string> nodes_with_null_keychain;
-    for (const auto& node : peer_->get_nodes(handles, nullptr)) nodes_with_null_keychain.insert(node->handle());
+    for (const auto& node : peer_->get_nodes(handles, nullptr))
+        nodes_with_null_keychain.insert(node->handle());
     EXPECT_EQ(nodes, set<string>({dirty_handle, remote_handle, local_human_handle}));
     EXPECT_EQ(nodes_with_null_keychain, nodes);
 
@@ -717,14 +721,16 @@ TEST_F(RemoteAtomDBTest, GetAtomsNodesAndLinks) {
     set<string> atoms;
     for (const auto& atom : db_->get_atoms(handles)) atoms.insert(atom->handle());
     set<string> atoms_with_null_keychain;
-    for (const auto& atom : db_->get_atoms(handles, nullptr)) atoms_with_null_keychain.insert(atom->handle());
+    for (const auto& atom : db_->get_atoms(handles, nullptr))
+        atoms_with_null_keychain.insert(atom->handle());
     EXPECT_EQ(atoms, set<string>({human_handle, monkey_handle, link_handle}));
     EXPECT_EQ(atoms_with_null_keychain, atoms);
 
     set<string> nodes;
     for (const auto& node : db_->get_nodes(handles)) nodes.insert(node->handle());
     set<string> nodes_with_null_keychain;
-    for (const auto& node : db_->get_nodes(handles, nullptr)) nodes_with_null_keychain.insert(node->handle());
+    for (const auto& node : db_->get_nodes(handles, nullptr))
+        nodes_with_null_keychain.insert(node->handle());
     EXPECT_EQ(nodes, set<string>({human_handle, monkey_handle}));
     EXPECT_EQ(nodes_with_null_keychain, nodes);
 

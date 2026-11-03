@@ -269,15 +269,18 @@ TEST_F(RemoteAtomDBKeySensitiveTest, GetAtomsNodesAndLinksWithoutKeychain) {
     set<string> nodes;
     for (const auto& node : this->db->get_nodes(handles)) nodes.insert(node->handle());
     set<string> nodes_with_null_keychain;
-    for (const auto& node : this->db->get_nodes(handles, nullptr)) nodes_with_null_keychain.insert(node->handle());
+    for (const auto& node : this->db->get_nodes(handles, nullptr))
+        nodes_with_null_keychain.insert(node->handle());
     EXPECT_EQ(nodes, set<string>({this->human_handle}));
     EXPECT_EQ(nodes_with_null_keychain, nodes);
 
     set<string> links;
     for (const auto& link : this->db->get_links(handles)) links.insert(link->handle());
     set<string> links_with_null_keychain;
-    for (const auto& link : this->db->get_links(handles, nullptr)) links_with_null_keychain.insert(link->handle());
-    EXPECT_EQ(links, set<string>({this->similarity_human_chimp_handle, this->similarity_snake_vine_handle}));
+    for (const auto& link : this->db->get_links(handles, nullptr))
+        links_with_null_keychain.insert(link->handle());
+    EXPECT_EQ(links,
+              set<string>({this->similarity_human_chimp_handle, this->similarity_snake_vine_handle}));
     EXPECT_EQ(links_with_null_keychain, links);
 }
 
@@ -371,7 +374,8 @@ TEST_F(RemoteAtomDBKeySensitiveTest, PeerGetAtomsNodesAndLinksRespectKeychain) {
               this->similarity_human_monkey_handle);
 
     set<string> unprotected_atoms;
-    for (const auto& atom : unprotected_peer->get_atoms(handles)) unprotected_atoms.insert(atom->handle());
+    for (const auto& atom : unprotected_peer->get_atoms(handles))
+        unprotected_atoms.insert(atom->handle());
     set<string> unprotected_atoms_with_keychain;
     for (const auto& atom : unprotected_peer->get_atoms(handles, similarity_key)) {
         unprotected_atoms_with_keychain.insert(atom->handle());
@@ -395,7 +399,8 @@ TEST_F(RemoteAtomDBKeySensitiveTest, PeerGetAtomsNodesAndLinksRespectKeychain) {
     }
     EXPECT_EQ(full_atoms, set<string>({this->inheritance_human_mammal_handle, this->mammal_handle}));
     ASSERT_EQ(full_access_peer->get_nodes(full_handles, full_access_key).size(), 1u);
-    EXPECT_EQ(full_access_peer->get_nodes(full_handles, full_access_key)[0]->handle(), this->mammal_handle);
+    EXPECT_EQ(full_access_peer->get_nodes(full_handles, full_access_key)[0]->handle(),
+              this->mammal_handle);
     ASSERT_EQ(full_access_peer->get_links(full_handles, full_access_key).size(), 1u);
     EXPECT_EQ(full_access_peer->get_links(full_handles, full_access_key)[0]->handle(),
               this->inheritance_human_mammal_handle);
