@@ -63,6 +63,12 @@ void DistributedAlgorithmNode::send(const string& command,
     this->message_broker->send(command, args, recipient);
 }
 
+void DistributedAlgorithmNode::send_stream(const string& command,
+                                           const vector<string>& args,
+                                           const string& recipient) {
+    this->message_broker->send_stream(command, args, recipient);
+}
+
 std::shared_ptr<Message> DistributedAlgorithmNode::message_factory(string& command,
                                                                    vector<string>& args) {
     if (command == this->known_commands.NODE_JOINED_NETWORK) {

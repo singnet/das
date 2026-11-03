@@ -1,5 +1,8 @@
 #include "SharedQueue.h"
 
+#include <chrono>
+
+using namespace std;
 using namespace commons;
 
 // --------------------------------------------------------------------------------
@@ -40,6 +43,23 @@ void SharedQueue::enqueue(void* request) {
     end = (end + 1) % allocated_size;
     count++;
     shared_queue_mutex.unlock();
+    shared_queue_cv.notify_one();
+}
+
+bool SharedQueue::wait_while_empty(unsigned int timeout_ms) {
+    unique_lock<mutex> lock(this->shared_queue_mutex);
+    const unsigned int seen = this->wake_gen;
+    this->shared_queue_cv.wait_for(lock, chrono::milliseconds(timeout_ms), [this, seen] {
+        return this->count > 0 || this->wake_gen != seen;
+    });
+    return this->count > 0;
+}
+
+void SharedQueue::wake() {
+    this->shared_queue_mutex.lock();
+    this->wake_gen++;
+    this->shared_queue_mutex.unlock();
+    this->shared_queue_cv.notify_all();
 }
 
 void* SharedQueue::dequeue() {

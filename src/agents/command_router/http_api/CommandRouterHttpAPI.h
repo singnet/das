@@ -115,7 +115,8 @@ class CommandRouterHttpAPI : public processor::Processor, public processor::Thre
                                             const function<void(const json& chunk)>& on_chunk,
                                             const function<void(const string& error)>& on_error,
                                             const function<void()>& on_aborted,
-                                            const EvalFitnessHandler& on_eval_fitness = nullptr);
+                                            const EvalFitnessHandler& on_eval_fitness,
+                                            shared_ptr<BusCommandRouterProxy>& proxy_keepalive);
 
     /** @brief Remove finished executions from the executions map. */
     void cleanup_finished_executions();

@@ -169,10 +169,7 @@ unsigned int LinkTemplate::report_attention_focus(
 }
 
 void LinkTemplate::processor_method(shared_ptr<StoppableThread> monitor) {
-    while (!this->source_element->buffers_set_up() && !monitor->stopped()) {
-        Utils::sleep();
-    }
-    if (monitor->stopped()) {
+    if (!this->source_element->wait_for_buffers(monitor)) {
         return;
     }
     shared_ptr<AtomDB> atomdb = AtomDBSingleton::get_instance();
@@ -259,7 +256,6 @@ void LinkTemplate::processor_method(shared_ptr<StoppableThread> monitor) {
         reported = report_attention_focus(attention_focus_candidates);
     }
     LOG_INFO("Reported " + std::to_string(reported) + " atoms in " + link_schema_handle);
-    Utils::sleep();
     this->source_element->query_answers_finished();
     LOG_DEBUG("LinkTemplate " + link_schema_handle + " finished processing. It's going to sleep.");
     while (!monitor->stopped()) {

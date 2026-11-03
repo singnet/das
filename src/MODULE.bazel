@@ -11,7 +11,8 @@ will be fixed by the end of 2025 and it'll be possible to list only the direct
 dependencies. TODO: https://github.com/singnet/das/issues/180
 
 Additionally, this file configures:
-- an `http_archive` to get `das-proto` repo content.
+- a local vendored `das-proto` (src/third_party/das_proto) until message_stream
+  lands upstream. Swap back to the http_archive tag when das-proto is released.
 """
 
 module(name = "das")
@@ -74,12 +75,12 @@ bazel_dep(name = "mbedtls", version = "3.6.0.bcr.1")
 # nanobind
 bazel_dep(name = "nanobind_bazel", version = "2.4.0")
 
-http_archive = use_repo_rule("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
+local_repository = use_repo_rule("@bazel_tools//tools/build_defs/repo:local.bzl", "local_repository")
 
-http_archive(
+# Local override of das-proto with message_stream. No commit/tag required.
+local_repository(
     name = "com_github_singnet_das_proto",
-    strip_prefix = "das-proto-0.1.20",
-    urls = ["https://github.com/singnet/das-proto/archive/refs/tags/0.1.20.tar.gz"],
+    path = "third_party/das_proto",
 )
 
 # Deps for formatting and linting BUILD files

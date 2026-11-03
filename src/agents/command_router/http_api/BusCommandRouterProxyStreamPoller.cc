@@ -11,6 +11,8 @@ using namespace query_engine;
 
 namespace {
 
+constexpr unsigned int POLL_IDLE_MS = 5;
+
 void emit_chunk(const function<void(const json& chunk)>& on_chunk, json& chunk_data) {
     if (chunk_data.empty()) {
         return;
@@ -126,7 +128,7 @@ PollStreamResult BusCommandRouterProxyStreamPoller::poll_stream(
             if (handle_abort()) {
                 return {};
             }
-            Utils::sleep(100);
+            Utils::sleep(POLL_IDLE_MS);
         }
         if (router_proxy->error_flag) {
             if (on_error) {
@@ -151,7 +153,7 @@ PollStreamResult BusCommandRouterProxyStreamPoller::poll_stream(
             if (handle_abort()) {
                 return {};
             }
-            Utils::sleep(100);
+            Utils::sleep(POLL_IDLE_MS);
         }
         if (router_proxy->error_flag) {
             if (on_error) {
@@ -176,7 +178,7 @@ PollStreamResult BusCommandRouterProxyStreamPoller::poll_stream(
             if (handle_abort()) {
                 return {};
             }
-            Utils::sleep(100);
+            Utils::sleep(POLL_IDLE_MS);
         }
         if (router_proxy->error_flag) {
             if (on_error) {
@@ -201,7 +203,7 @@ PollStreamResult BusCommandRouterProxyStreamPoller::poll_stream(
             if (handle_abort()) {
                 return {};
             }
-            Utils::sleep(100);
+            Utils::sleep(POLL_IDLE_MS);
         }
         if (router_proxy->error_flag) {
             if (on_error) {
@@ -242,7 +244,10 @@ PollStreamResult BusCommandRouterProxyStreamPoller::poll_stream(
 
             append_answer_chunk(
                 router_proxy, populate_metta_mapping, items_per_chunk, emit_answer_chunk, chunk_data);
-            Utils::sleep(100);
+            if (finished_or_error()) {
+                break;
+            }
+            Utils::sleep(POLL_IDLE_MS);
         }
 
         if (command_type == "evolution") {

@@ -1,5 +1,9 @@
 #include "MessageBroker.h"
 
+#include <chrono>
+#include <exception>
+#include <memory>
+
 #include <grpcpp/channel.h>
 #include <grpcpp/client_context.h>
 #include <grpcpp/create_channel.h>
@@ -55,6 +59,12 @@ MessageBroker::MessageBroker(shared_ptr<MessageFactory> host_node, const string&
 }
 
 MessageBroker::~MessageBroker() {}
+
+void MessageBroker::send_stream(const string& command,
+                                const vector<string>& args,
+                                const string& recipient) {
+    this->send(command, args, recipient);
+}
 
 SynchronousSharedRAM::SynchronousSharedRAM(shared_ptr<MessageFactory> host_node, const string& node_id)
     : MessageBroker(host_node, node_id) {}
@@ -176,7 +186,7 @@ void SynchronousSharedRAM::inbox_thread_method(shared_ptr<StoppableThread> monit
             if (monitor->stopped()) {
                 stop_thread_loop = true;
             } else {
-                Utils::sleep();
+                this->incoming_messages.wait_while_empty(100);
             }
         }
     } while (!stop_thread_loop);
@@ -237,7 +247,7 @@ void SynchronousGRPC::inbox_thread_method(shared_ptr<StoppableThread> monitor) {
             if (monitor->stopped()) {
                 stop_thread_loop = true;
             } else {
-                Utils::sleep();
+                this->incoming_messages.wait_while_empty(100);
             }
         }
     } while (!stop_thread_loop);
@@ -374,6 +384,122 @@ void SynchronousGRPC::send(const string& command, const vector<string>& args, co
     stub->execute_message(&context, message_data, &reply);
 }
 
+void SynchronousGRPC::close_peer_stream(const shared_ptr<PeerStream>& stream) {
+    if (!stream) {
+        return;
+    }
+    lock_guard<mutex> write_lock(stream->write_mutex);
+    if (stream->writer) {
+        stream->writer->WritesDone();
+        stream->writer->Finish();
+        stream->writer.reset();
+        stream->context.reset();
+        stream->stub.reset();
+        stream->channel.reset();
+    }
+}
+
+shared_ptr<SynchronousGRPC::PeerStream> SynchronousGRPC::get_or_open_peer_stream(
+    const string& recipient) {
+    lock_guard<mutex> streams_lock(this->peer_streams_mutex);
+    auto it = this->peer_streams.find(recipient);
+    if (it != this->peer_streams.end()) {
+        return it->second;
+    }
+
+    auto stream = make_shared<PeerStream>();
+    stream->channel = grpc::CreateChannel(recipient, grpc::InsecureChannelCredentials());
+    stream->stub = dasproto::DistributedAlgorithmNode::NewStub(stream->channel);
+
+    // Probe with an empty stream so UNIMPLEMENTED surfaces on Finish() before we
+    // keep a long-lived writer (Write alone can appear to succeed against old peers).
+    {
+        grpc::ClientContext probe_context;
+        probe_context.set_deadline(std::chrono::system_clock::now() + std::chrono::seconds(2));
+        dasproto::Empty probe_response;
+        unique_ptr<grpc::ClientWriter<dasproto::MessageData>> probe_writer =
+            stream->stub->message_stream(&probe_context, &probe_response);
+        probe_writer->WritesDone();
+        grpc::Status probe_status = probe_writer->Finish();
+        if (!probe_status.ok()) {
+            stream->unary_fallback = true;
+            LOG_INFO("message_stream unavailable for " << recipient << " ("
+                                                       << probe_status.error_message()
+                                                       << "); using execute_message");
+            this->peer_streams[recipient] = stream;
+            return stream;
+        }
+    }
+
+    stream->context = make_unique<grpc::ClientContext>();
+    stream->writer = stream->stub->message_stream(stream->context.get(), &stream->response);
+    this->peer_streams[recipient] = stream;
+    return stream;
+}
+
+void SynchronousGRPC::send_stream(const string& command,
+                                  const vector<string>& args,
+                                  const string& recipient) {
+    if (!is_peer(recipient)) {
+        RAISE_ERROR("Unknown peer: " + recipient);
+    }
+
+    auto stream = this->get_or_open_peer_stream(recipient);
+    if (stream->unary_fallback) {
+        this->send(command, args, recipient);
+        return;
+    }
+
+    dasproto::MessageData message_data;
+    message_data.set_command(command);
+    for (auto arg : args) {
+        message_data.add_args(arg);
+    }
+    message_data.set_sender(this->node_id);
+    message_data.set_is_broadcast(false);
+
+    bool wrote = false;
+    {
+        lock_guard<mutex> write_lock(stream->write_mutex);
+        if (stream->unary_fallback || !stream->writer) {
+            stream->unary_fallback = true;
+        } else {
+            wrote = stream->writer->Write(message_data);
+            if (!wrote) {
+                grpc::Status status = stream->writer->Finish();
+                stream->writer.reset();
+                stream->context.reset();
+                stream->stub.reset();
+                stream->channel.reset();
+                stream->unary_fallback = true;
+                LOG_INFO("message_stream unavailable for " << recipient << " ("
+                                                           << status.error_message()
+                                                           << "); falling back to execute_message");
+            }
+        }
+    }
+
+    if (!wrote) {
+        this->send(command, args, recipient);
+    }
+}
+
+void SynchronousGRPC::act_message_data(const dasproto::MessageData& message_data) {
+    string command = message_data.command();
+    vector<string> args;
+    int num_args = message_data.args_size();
+    for (int i = 0; i < num_args; i++) {
+        args.push_back(message_data.args(i));
+    }
+    shared_ptr<Message> message = this->host_node->message_factory(command, args);
+    if (message) {
+        LOG_DEBUG("Acting streamed command: " << command << " at node " << this->node_id);
+        message->act(this->host_node);
+    } else {
+        RAISE_ERROR("Invalid NULL Message");
+    }
+}
+
 void SynchronousGRPC::broadcast(const string& command, const vector<string>& args) {
     this->peers_mutex.lock();
     unsigned int num_peers = this->peers.size();
@@ -435,6 +561,13 @@ bool SynchronousGRPC::inbox_setup_finished() {
 
 void SynchronousGRPC::stop() {
     MessageBroker::stop();
+    {
+        lock_guard<mutex> streams_lock(this->peer_streams_mutex);
+        for (auto& entry : this->peer_streams) {
+            this->close_peer_stream(entry.second);
+        }
+        this->peer_streams.clear();
+    }
     for (auto thread : this->inbox_threads) {
         thread->stop();
     }
@@ -464,6 +597,28 @@ grpc::Status SynchronousGRPC::execute_message(grpc::ServerContext* grpc_context,
     } else {
         return grpc::Status::CANCELLED;
     }
+}
+
+grpc::Status SynchronousGRPC::message_stream(grpc::ServerContext* grpc_context,
+                                             grpc::ServerReader<dasproto::MessageData>* reader,
+                                             dasproto::Empty* reply) {
+    if (this->stopped()) {
+        return grpc::Status::CANCELLED;
+    }
+
+    dasproto::MessageData message_data;
+    while (reader->Read(&message_data)) {
+        if (this->stopped()) {
+            return grpc::Status::CANCELLED;
+        }
+        try {
+            this->act_message_data(message_data);
+        } catch (const exception& e) {
+            LOG_ERROR("message_stream act failed: " << e.what());
+            return grpc::Status(grpc::StatusCode::INTERNAL, e.what());
+        }
+    }
+    return grpc::Status::OK;
 }
 
 // -------------------------------------------------------------------------------------------------

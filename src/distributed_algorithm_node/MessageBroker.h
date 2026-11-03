@@ -1,8 +1,10 @@
 #ifndef _DISTRIBUTED_ALGORITHM_NODE_MESSAGEBROKER_H
 #define _DISTRIBUTED_ALGORITHM_NODE_MESSAGEBROKER_H
 
+#include <memory>
 #include <mutex>
 #include <string>
+#include <unordered_map>
 #include <unordered_set>
 #include <vector>
 
@@ -119,6 +121,14 @@ class MessageBroker : public Stoppable {
      * @recipient The target node for the command.
      */
     virtual void send(const string& command, const vector<string>& args, const string& recipient) = 0;
+
+    /**
+     * Sends a command on a per-peer ordered stream when the broker supports it.
+     * Default implementation falls back to send().
+     */
+    virtual void send_stream(const string& command,
+                             const vector<string>& args,
+                             const string& recipient);
 
     shared_ptr<MessageFactory> host_node;
     unordered_set<string> peers;
@@ -305,6 +315,14 @@ class SynchronousGRPC : public MessageBroker, public dasproto::DistributedAlgori
     virtual void send(const string& command, const vector<string>& args, const string& recipient);
 
     /**
+     * Ordered per-peer client stream. Falls back to unary execute_message when the
+     * peer does not implement message_stream or the stream breaks.
+     */
+    virtual void send_stream(const string& command,
+                             const vector<string>& args,
+                             const string& recipient) override;
+
+    /**
      * Gracefully shuts down threads or any other resources being used in communication.
      */
     void stop();
@@ -328,7 +346,24 @@ class SynchronousGRPC : public MessageBroker, public dasproto::DistributedAlgori
                                  const dasproto::MessageData* request,
                                  dasproto::Empty* reply) override;
 
+    /**
+     * Ordered delivery: process each frame with act() on this RPC thread.
+     */
+    grpc::Status message_stream(grpc::ServerContext* grpc_context,
+                                grpc::ServerReader<dasproto::MessageData>* reader,
+                                dasproto::Empty* reply) override;
+
    private:
+    struct PeerStream {
+        shared_ptr<grpc::Channel> channel;
+        unique_ptr<dasproto::DistributedAlgorithmNode::Stub> stub;
+        unique_ptr<grpc::ClientContext> context;
+        unique_ptr<grpc::ClientWriter<dasproto::MessageData>> writer;
+        dasproto::Empty response;
+        mutex write_mutex;
+        bool unary_fallback = false;
+    };
+
     static unsigned int MESSAGE_THREAD_COUNT;
     static mutex GRPC_BUILDER_MUTEX;
     unique_ptr<grpc::Server> grpc_server;
@@ -336,6 +371,9 @@ class SynchronousGRPC : public MessageBroker, public dasproto::DistributedAlgori
     vector<shared_ptr<StoppableThread>> inbox_threads;
     SharedQueue incoming_messages;  // Thread safe container
     SharedQueue outgoing_messages;  // Thread safe container
+
+    unordered_map<string, shared_ptr<PeerStream>> peer_streams;
+    mutex peer_streams_mutex;
 
     bool grpc_server_started_flag;
     mutex grpc_server_started_flag_mutex;
@@ -345,6 +383,10 @@ class SynchronousGRPC : public MessageBroker, public dasproto::DistributedAlgori
     bool grpc_server_started();
     void set_inbox_setup_finished();
     bool inbox_setup_finished();
+
+    shared_ptr<PeerStream> get_or_open_peer_stream(const string& recipient);
+    void close_peer_stream(const shared_ptr<PeerStream>& stream);
+    void act_message_data(const dasproto::MessageData& message_data);
 
     // Methods used to start threads
     void grpc_thread_teardown(shared_ptr<StoppableThread> monitor);

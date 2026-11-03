@@ -1,0 +1,9 @@
+syntax = "proto3";
+package dasproto;
+
+message Empty {}
+
+message Ack {
+    bool error = 1;
+    string msg = 2;
+}

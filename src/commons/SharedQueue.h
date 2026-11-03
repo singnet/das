@@ -1,5 +1,6 @@
 #pragma once
 
+#include <condition_variable>
 #include <mutex>
 
 namespace commons {
@@ -33,6 +34,16 @@ class SharedQueue {
     void* dequeue();
 
     /**
+     * Blocks until the queue is non-empty, wake() is called, or @p timeout_ms elapses.
+     *
+     * @return true when the queue is non-empty.
+     */
+    bool wait_while_empty(unsigned int timeout_ms);
+
+    /** @brief Wake all wait_while_empty() callers even when the queue is still empty. */
+    void wake();
+
+    /**
      * Returns true iff the queue is empty.
      *
      * @return true iff the queue is empty.
@@ -54,12 +65,14 @@ class SharedQueue {
 
    private:
     std::mutex shared_queue_mutex;
+    std::condition_variable shared_queue_cv;
 
     void** requests;  // GRPC documentation states that request types should not be inherited
     unsigned int allocated_size;
     unsigned int count;
     unsigned int start;
     unsigned int end;
+    unsigned int wake_gen = 0;
 
     void enlarge_shared_queue();
 };

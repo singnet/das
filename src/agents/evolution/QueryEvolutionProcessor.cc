@@ -675,7 +675,6 @@ void QueryEvolutionProcessor::evolve_query(shared_ptr<StoppableThread> monitor,
     }
     STOP_WATCH_FINISH(evolution, "QueryEvolution");
     RAM_FOOTPRINT_FINISH(evolution, "");
-    Utils::sleep(1000);
     proxy->query_processing_finished();
 }
 

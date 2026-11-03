@@ -67,6 +67,7 @@ void QueryNode::query_answers_finished() {
     this->query_answers_finished_flag_mutex.lock();
     this->query_answers_finished_flag = true;
     this->query_answers_finished_flag_mutex.unlock();
+    this->query_answer_queue.wake();
 }
 
 bool QueryNode::is_query_answers_finished() {
@@ -104,6 +105,10 @@ QueryAnswer* QueryNode::pop_query_answer() { return (QueryAnswer*) this->query_a
 
 bool QueryNode::is_query_answers_empty() { return this->query_answer_queue.empty(); }
 
+bool QueryNode::wait_for_answers(unsigned int timeout_ms) {
+    return this->query_answer_queue.wait_while_empty(timeout_ms);
+}
+
 QueryNodeServer::QueryNodeServer(const string& node_id, MessageBrokerType messaging_backend)
     : QueryNode(node_id, true, messaging_backend) {
     this->join_network();
@@ -125,7 +130,9 @@ void QueryNodeClient::query_answer_processor_method() {
     vector<string> args;
     bool answers_finished_flag = false;
     while (!this->is_shutting_down()) {
+        bool made_progress = false;
         while ((query_answer = (QueryAnswer*) this->query_answer_queue.dequeue()) != NULL) {
+            made_progress = true;
             if (this->requires_serialization) {
                 string tokens = query_answer->tokenize();
                 args.push_back(tokens);
@@ -138,19 +145,23 @@ void QueryNodeClient::query_answer_processor_method() {
             // The order of the AND clauses below matters
             if (!answers_finished_flag && this->is_query_answers_finished() &&
                 this->query_answer_queue.empty()) {
-                this->send(QueryNode::QUERY_ANSWERS_FINISHED_COMMAND, args, this->server_id);
+                this->send_stream(QueryNode::QUERY_ANSWERS_FINISHED_COMMAND, args, this->server_id);
                 answers_finished_flag = true;
                 this->work_done_flag = true;
+                made_progress = true;
             }
         } else {
             if (this->requires_serialization) {
-                this->send(QueryNode::QUERY_ANSWER_TOKENS_FLOW_COMMAND, args, this->server_id);
+                this->send_stream(QueryNode::QUERY_ANSWER_TOKENS_FLOW_COMMAND, args, this->server_id);
             } else {
-                this->send(QueryNode::QUERY_ANSWER_FLOW_COMMAND, args, this->server_id);
+                this->send_stream(QueryNode::QUERY_ANSWER_FLOW_COMMAND, args, this->server_id);
             }
             args.clear();
+            made_progress = true;
         }
-        Utils::sleep();
+        if (!made_progress) {
+            this->query_answer_queue.wait_while_empty(100);
+        }
     }
 }
 

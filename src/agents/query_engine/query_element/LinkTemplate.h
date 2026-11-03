@@ -1,5 +1,7 @@
 #pragma once
 
+#include <chrono>
+#include <condition_variable>
 #include <map>
 #include <mutex>
 #include <string>
@@ -50,6 +52,7 @@ class LinkTemplate : public QueryElement {
        public:
         bool buffers_set_up_flag;
         mutex api_mutex;
+        condition_variable buffers_cv;
         SourceElement() { buffers_set_up_flag = false; }
         void add_handle(char* handle,
                         float importance,
@@ -65,9 +68,17 @@ class LinkTemplate : public QueryElement {
             lock_guard<mutex> semaphore(this->api_mutex);
             Source::setup_buffers();
             this->buffers_set_up_flag = true;
+            this->buffers_cv.notify_all();
         }
         bool buffers_set_up() {
             lock_guard<mutex> semaphore(this->api_mutex);
+            return this->buffers_set_up_flag;
+        }
+        bool wait_for_buffers(const shared_ptr<StoppableThread>& monitor) {
+            unique_lock<mutex> lock(this->api_mutex);
+            while (!this->buffers_set_up_flag && !monitor->stopped()) {
+                this->buffers_cv.wait_for(lock, chrono::milliseconds(100));
+            }
             return this->buffers_set_up_flag;
         }
     };

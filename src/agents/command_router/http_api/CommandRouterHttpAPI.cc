@@ -395,6 +395,7 @@ void CommandRouterHttpAPI::run_execution_inner(const shared_ptr<CommandExecution
         return true;
     };
 
+    shared_ptr<BusCommandRouterProxy> proxy_keepalive;
     const PollStreamResult poll_result = this->execute_router_command(
         exec->command,
         exec->params,
@@ -403,7 +404,8 @@ void CommandRouterHttpAPI::run_execution_inner(const shared_ptr<CommandExecution
         on_error,
         on_aborted,
         exec->command == HttpCommandProxyFactory::EVOLUTION ? EvalFitnessHandler(on_eval_fitness)
-                                                            : nullptr);
+                                                            : nullptr,
+        proxy_keepalive);
     if (!poll_result.ok) {
         return;
     }
@@ -416,6 +418,9 @@ void CommandRouterHttpAPI::run_execution_inner(const shared_ptr<CommandExecution
     LOG_INFO("CommandRouter HTTP API execution completed id=" << exec->execution_id
                                                               << " duration_ms=" << timer.milliseconds()
                                                               << " items=" << total_items);
+    // Drop the proxy after the client has been told the run is complete. Its destructor
+    // sleeps to let the proxy port leave TIME_WAIT, which must not sit on this timer.
+    proxy_keepalive.reset();
 }
 
 PollStreamResult CommandRouterHttpAPI::execute_router_command(
@@ -425,7 +430,8 @@ PollStreamResult CommandRouterHttpAPI::execute_router_command(
     const function<void(const json& chunk)>& on_chunk,
     const function<void(const string& error)>& on_error,
     const function<void()>& on_aborted,
-    const EvalFitnessHandler& on_eval_fitness) {
+    const EvalFitnessHandler& on_eval_fitness,
+    shared_ptr<BusCommandRouterProxy>& proxy_keepalive) {
     if (this->router_processor == nullptr) {
         if (on_error) {
             on_error("Command router processor is not configured for HTTP execution");
@@ -445,6 +451,7 @@ PollStreamResult CommandRouterHttpAPI::execute_router_command(
 
         if (command == HttpCommandProxyFactory::QUERY) {
             this->router_processor->dispatch_http_query(router_proxy, this->http_requestor_id);
+            proxy_keepalive = router_proxy;
             return BusCommandRouterProxyStreamPoller::poll_stream(router_proxy,
                                                                   command,
                                                                   this->settings.stream_items_per_chunk,
@@ -468,11 +475,13 @@ PollStreamResult CommandRouterHttpAPI::execute_router_command(
             if (on_chunk) {
                 on_chunk(json::array({json(result)}));
             }
+            proxy_keepalive = router_proxy;
             return {true, false, 0};
         }
 
         this->router_processor->dispatch_http_command(router_proxy, this->http_requestor_id);
 
+        proxy_keepalive = router_proxy;
         return BusCommandRouterProxyStreamPoller::poll_stream(router_proxy,
                                                               command,
                                                               this->settings.stream_items_per_chunk,

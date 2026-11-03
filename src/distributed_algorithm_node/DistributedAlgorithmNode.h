@@ -137,6 +137,12 @@ class DistributedAlgorithmNode : public MessageFactory {
     void send(const string& command, const vector<string>& args, const string& recipient);
 
     /**
+     * Ordered send for long-lived peer sessions (proxy / query-node). Falls back to send()
+     * when the broker has no stream support.
+     */
+    void send_stream(const string& command, const vector<string>& args, const string& recipient);
+
+    /**
      * Build the Message object which is supposed to execute the passed command.
      *
      * @param command The command to be remotely executed.

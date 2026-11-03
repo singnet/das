@@ -229,7 +229,10 @@ void PatternMatchingQueryProcessor::thread_process_one_query(
                 LOG_DEBUG("Processing QueryAnswer objects");
                 while (!(query_sink->finished() || proxy->is_aborting())) {
                     process_query_answers(proxy, query_sink, joint_answer, answer_count);
-                    Utils::sleep();
+                    if (query_sink->finished() || proxy->is_aborting()) {
+                        break;
+                    }
+                    query_sink->input_buffer->wait_for_answers(100);
                 }
                 proxy->flush_answer_bundle();
                 STOP_WATCH_FINISH(benchmark_query_thread, "Benchmark::PatternMatchingQuery");
@@ -240,14 +243,12 @@ void PatternMatchingQueryProcessor::thread_process_one_query(
                     proxy->to_remote_peer(PatternMatchingQueryProxy::COUNT,
                                           {std::to_string(answer_count)});
                 }
-                Utils::sleep(500);
                 proxy->query_processing_finished();
                 if (proxy->parameters.get<unsigned int>(BaseQueryProxy::ATTENTION_UPDATE) !=
                     BaseQueryProxy::NONE) {
                     LOG_DEBUG("Updating AttentionBroker (stimulate)");
                     update_attention_broker_joint_answer(proxy, joint_answer);
                 }
-                Utils::sleep(500);
                 LOG_INFO("Total processed answers: " << answer_count);
                 query_sink->graceful_shutdown();
             } else {

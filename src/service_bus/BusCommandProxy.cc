@@ -136,7 +136,7 @@ void ProxyNode::to_remote_peer(const string& command, const vector<string>& args
     }
     vector<string> new_args(args);
     new_args.push_back(command);
-    send(PROXY_COMMAND, new_args, this->peer_id);
+    send_stream(PROXY_COMMAND, new_args, this->peer_id);
 }
 
 void ProxyNode::node_joined_network(const string& node_id) {
