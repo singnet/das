@@ -160,7 +160,7 @@ void QueryNodeClient::query_answer_processor_method() {
             made_progress = true;
         }
         if (!made_progress) {
-            this->query_answer_queue.wait_while_empty(100);
+            this->query_answer_queue.wait_while_empty(10);
         }
     }
 }

@@ -127,9 +127,9 @@ class UnaryOnlyService : public dasproto::DistributedAlgorithmNode::Service {
 // Test cases
 
 TEST(DistributedAlgorithmNode, basics) {
-    string server_id = "localhost:40032";
-    string client1_id = "localhost:40033";
-    string client2_id = "localhost:40034";
+    string server_id = "localhost:40132";
+    string client1_id = "localhost:40133";
+    string client2_id = "localhost:40134";
     TestNode* server;
     TestNode* client1;
     TestNode* client2;
@@ -180,9 +180,9 @@ TEST(DistributedAlgorithmNode, basics) {
 }
 
 TEST(DistributedAlgorithmNode, communication) {
-    string server_id = "localhost:40035";
-    string client1_id = "localhost:40036";
-    string client2_id = "localhost:40037";
+    string server_id = "localhost:40135";
+    string client1_id = "localhost:40136";
+    string client2_id = "localhost:40137";
     TestNode* server;
     TestNode* client1;
     TestNode* client2;
@@ -240,8 +240,8 @@ TEST(DistributedAlgorithmNode, communication) {
 }
 
 TEST(DistributedAlgorithmNode, grpc_stream_preserves_order) {
-    string server_id = "localhost:40038";
-    string client_id = "localhost:40039";
+    string server_id = "localhost:40138";
+    string client_id = "localhost:40139";
 
     auto* server = new TestNode(
         server_id, server_id, LeadershipBrokerType::SINGLE_MASTER_SERVER, MessageBrokerType::GRPC, true);
@@ -275,8 +275,8 @@ TEST(DistributedAlgorithmNode, grpc_stream_preserves_order) {
 }
 
 TEST(DistributedAlgorithmNode, grpc_stream_and_unary_coexist) {
-    string server_id = "localhost:40040";
-    string client_id = "localhost:40041";
+    string server_id = "localhost:40140";
+    string client_id = "localhost:40141";
 
     auto* server = new TestNode(
         server_id, server_id, LeadershipBrokerType::SINGLE_MASTER_SERVER, MessageBrokerType::GRPC, true);
@@ -324,8 +324,8 @@ TEST(DistributedAlgorithmNode, grpc_stream_and_unary_coexist) {
 }
 
 TEST(DistributedAlgorithmNode, grpc_stream_falls_back_to_unary) {
-    string unary_server_id = "localhost:40042";
-    string client_id = "localhost:40043";
+    string unary_server_id = "localhost:40142";
+    string client_id = "localhost:40143";
 
     UnaryOnlyService unary_service;
     grpc::ServerBuilder builder;

@@ -232,7 +232,7 @@ void PatternMatchingQueryProcessor::thread_process_one_query(
                     if (query_sink->finished() || proxy->is_aborting()) {
                         break;
                     }
-                    query_sink->input_buffer->wait_for_answers(100);
+                    query_sink->input_buffer->wait_for_answers(10);
                 }
                 proxy->flush_answer_bundle();
                 STOP_WATCH_FINISH(benchmark_query_thread, "Benchmark::PatternMatchingQuery");
