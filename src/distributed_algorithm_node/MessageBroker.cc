@@ -349,8 +349,9 @@ void SynchronousSharedRAM::stop() {
 void SynchronousGRPC::join_network() {
     this->grpc_thread = make_shared<StoppableThread>("Thread_GRPC<" + this->node_id + ">");
     this->grpc_thread->attach(new thread(&SynchronousGRPC::grpc_thread_method, this, this->grpc_thread));
-    while (!this->grpc_server_started()) {
-        Utils::sleep();
+    {
+        unique_lock<mutex> lock(this->grpc_server_started_flag_mutex);
+        this->grpc_server_started_cv.wait(lock, [this] { return this->grpc_server_started_flag; });
     }
     for (unsigned int i = 0; i < MESSAGE_THREAD_COUNT; i++) {
         shared_ptr<StoppableThread> stoppable_thread = make_shared<StoppableThread>(
@@ -359,8 +360,9 @@ void SynchronousGRPC::join_network() {
             new thread(&SynchronousGRPC::inbox_thread_method, this, stoppable_thread));
         this->inbox_threads.push_back(stoppable_thread);
     }
-    while (!this->inbox_setup_finished()) {
-        Utils::sleep();
+    {
+        unique_lock<mutex> lock(this->inbox_setup_finished_flag_mutex);
+        this->inbox_setup_finished_cv.wait(lock, [this] { return this->inbox_setup_finished_flag; });
     }
 }
 
@@ -531,6 +533,7 @@ void SynchronousGRPC::set_grpc_server_started() {
     this->grpc_server_started_flag_mutex.lock();
     this->grpc_server_started_flag = true;
     this->grpc_server_started_flag_mutex.unlock();
+    this->grpc_server_started_cv.notify_all();
 }
 
 bool SynchronousGRPC::grpc_server_started() {
@@ -547,6 +550,7 @@ void SynchronousGRPC::set_inbox_setup_finished() {
     this->inbox_setup_finished_flag_mutex.lock();
     this->inbox_setup_finished_flag = true;
     this->inbox_setup_finished_flag_mutex.unlock();
+    this->inbox_setup_finished_cv.notify_all();
 }
 
 bool SynchronousGRPC::inbox_setup_finished() {

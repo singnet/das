@@ -1,6 +1,7 @@
 #ifndef _DISTRIBUTED_ALGORITHM_NODE_MESSAGEBROKER_H
 #define _DISTRIBUTED_ALGORITHM_NODE_MESSAGEBROKER_H
 
+#include <condition_variable>
 #include <memory>
 #include <mutex>
 #include <string>
@@ -377,8 +378,10 @@ class SynchronousGRPC : public MessageBroker, public dasproto::DistributedAlgori
 
     bool grpc_server_started_flag;
     mutex grpc_server_started_flag_mutex;
+    condition_variable grpc_server_started_cv;
     bool inbox_setup_finished_flag;
     mutex inbox_setup_finished_flag_mutex;
+    condition_variable inbox_setup_finished_cv;
     void set_grpc_server_started();
     bool grpc_server_started();
     void set_inbox_setup_finished();
