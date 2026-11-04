@@ -1780,6 +1780,7 @@ TEST(RedisMongoDBPrefixIsolation, InstancesKeepIndependentNamespaces) {
     AtomDBSingleton::provide(db_b, true);
     EXPECT_EQ(db_b->query_for_targets(link_a.handle()), nullptr);
 
+    auto record_db = AtomDBSingleton::get_instance();
     AtomDBSingleton::provide(db_a, true);
     db_a->drop_all();
     EXPECT_FALSE(db_a->node_exists(human_a.handle()));
@@ -1792,6 +1793,7 @@ TEST(RedisMongoDBPrefixIsolation, InstancesKeepIndependentNamespaces) {
     db_b->drop_all();
     EXPECT_FALSE(db_b->node_exists(human_b.handle()));
     EXPECT_FALSE(db_b->link_exists(link_b.handle()));
+    AtomDBSingleton::provide(record_db, true);
 }
 
 int main(int argc, char** argv) {

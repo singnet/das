@@ -1444,15 +1444,26 @@ vector<vector<string>> RedisMongoDB::index_entries_combinations(unsigned int ari
 
 void RedisMongoDB::re_index_patterns(bool flush_patterns) {
     vector<Link*> links;
-    auto conn = this->mongodb_pool->acquire();
-    auto mongodb_collection = (*conn)[MONGODB_DB_NAME][MONGODB_LINKS_COLLECTION_NAME];
-    auto cursor = mongodb_collection.find({});
-    for (const auto& view : cursor) {
-        vector<string> targets;
-        for (const auto& target : view["targets"].get_array().value) {
-            targets.push_back(target.get_string().value.data());
+
+    {
+        // The block allows conn to be released before the call to
+        // match_pattern_index_schema() below which could use the
+        // passed decoder (which will end up calling methods of
+        // this AtomDB) which may make nested requests that requires
+        // acquiring more conns. Releasing it after this blocks may
+        // prevent a deadlock in a situation where a lot of concurrent
+        // callers (e.g. more than the size of mongodb pool)
+        // makes nested calls that acuires more than one conn.
+        auto conn = this->mongodb_pool->acquire();
+        auto mongodb_collection = (*conn)[MONGODB_DB_NAME][MONGODB_LINKS_COLLECTION_NAME];
+        auto cursor = mongodb_collection.find({});
+        for (const auto& view : cursor) {
+            vector<string> targets;
+            for (const auto& target : view["targets"].get_array().value) {
+                targets.push_back(target.get_string().value.data());
+            }
+            links.push_back(new Link(view["named_type"].get_string().value.data(), targets));
         }
-        links.push_back(new Link(view["named_type"].get_string().value.data(), targets));
     }
 
     // Load pattern index schema

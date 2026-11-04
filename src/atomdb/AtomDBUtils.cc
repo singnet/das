@@ -116,6 +116,9 @@ vector<string> AtomDBUtils::get_link_targets(const string& handle, shared_ptr<Ke
     vector<string> answer;
     if (Hasher::is_link_handle(handle)) {
         shared_ptr<AtomDB> atomdb = AtomDBSingleton::get_instance();
+        if (atomdb == nullptr) {
+            RAISE_ERROR("AtomDB is not available");
+        }
         shared_ptr<KeySensitiveAtomDB> key_sensitive_atomdb =
             dynamic_pointer_cast<KeySensitiveAtomDB>(atomdb);
         shared_ptr<atomdb_api_types::HandleList> targets;

@@ -27,8 +27,7 @@ cc_library(
     srcs = [],
     hdrs = ["HandleDecoder.h"],
     includes = ["."],
-    deps = [
-    ],
+    deps = [":atom"],
 )
 
 cc_library(
@@ -36,6 +35,7 @@ cc_library(
     srcs = [],
     hdrs = ["Merger.h"],
     includes = ["."],
+    deps = [":atom"],
 )
 
 cc_library(

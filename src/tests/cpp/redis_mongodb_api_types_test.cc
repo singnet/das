@@ -127,6 +127,5 @@ TEST(HandleSetRedisIteratorTest, FiltersCandidatesAndStoresAssignmentForEachMatc
 
 int main(int argc, char** argv) {
     ::testing::InitGoogleTest(&argc, argv);
-    AtomDBInitializer::init(test_atomdb_json_config());
     return RUN_ALL_TESTS();
 }

@@ -106,6 +106,7 @@ shared_ptr<AtomDB> AtomDBFactory::create_composite_atomdb(const JsonConfig& conf
         auto basic_atomdb = create_basic_atomdb(atomdb_backend_config);
         AtomDBSingleton::provide(basic_atomdb);
         atomdb = make_shared<AdapterDB>(config, basic_atomdb);
+        AtomDBSingleton::provide(nullptr, true);
     } else {
         RAISE_ERROR("AtomDBFactory: '" + atomdb_type + "' is not a composite AtomDB type");
     }

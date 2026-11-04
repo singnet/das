@@ -120,7 +120,7 @@ class InMemoryDB : public AtomDB, public HandleDecoder {
     string decode_node_name(const string& handle, shared_ptr<Keychain> keychain = nullptr) override {
         auto node = dynamic_pointer_cast<Node>(get_atom(handle));
         if (node == nullptr) {
-            RAISE_ERROR("Handle doesn't map to a node: " + handle);
+            return "";
         }
         return node->name;
     }
@@ -128,7 +128,7 @@ class InMemoryDB : public AtomDB, public HandleDecoder {
                                        shared_ptr<Keychain> keychain = nullptr) override {
         auto link = dynamic_pointer_cast<Link>(get_atom(handle));
         if (link == nullptr) {
-            RAISE_ERROR("Handle doesn't map to a link: " + handle);
+            return vector<string>();
         }
         return link->targets;
     }

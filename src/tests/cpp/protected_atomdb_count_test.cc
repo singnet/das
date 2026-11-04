@@ -100,7 +100,7 @@ struct ProtectedRedisMongo {
             this->backend->MONGODB_DB_NAME,
             this->backend->MONGODB_ACCESS_PERMISSIONS_COLLECTION_NAME);
         this->db = make_shared<ProtectedAtomDB>(this->backend);
-        AtomDBSingleton::provide(this->backend);
+        AtomDBSingleton::provide(this->backend, true);
     }
 
     ~ProtectedRedisMongo() { this->backend->drop_all(); }

@@ -166,7 +166,7 @@ class MorkDBDecoder : public HandleDecoder {
     string decode_node_name(const string& handle, shared_ptr<Keychain> keychain = nullptr) override {
         auto node = dynamic_pointer_cast<Node>(this->decode_atom(handle, keychain));
         if (node == nullptr) {
-            RAISE_ERROR("Handle does not map to a node: " + handle);
+            return "";
         }
         return node->name;
     }
@@ -175,7 +175,7 @@ class MorkDBDecoder : public HandleDecoder {
                                        shared_ptr<Keychain> keychain = nullptr) override {
         auto link = dynamic_pointer_cast<Link>(this->decode_atom(handle, keychain));
         if (link == nullptr) {
-            RAISE_ERROR("Handle does not map to a link: " + handle);
+            return vector<string>();
         }
         return link->targets;
     }

@@ -108,20 +108,21 @@ bool AuthorizationManifest::is_granted(const string& public_key,
                                        shared_ptr<Atom> atom,
                                        const string& handle,
                                        shared_ptr<Keychain> keychain) {
-    this->profiles_mutex.lock();
-    auto it = this->profiles.find(public_key);
-    if (it == this->profiles.end() || it->second == nullptr) {
-        this->profiles_mutex.unlock();
-        return false;
+    shared_ptr<AuthorizationProfile> profile;
+    {
+        lock_guard<mutex> lock(this->profiles_mutex);
+        auto it = this->profiles.find(public_key);
+        if (it == this->profiles.end() || it->second == nullptr) {
+            return false;
+        }
+        profile = it->second;
     }
 
     if (atom == nullptr) {
         atom = this->atomdb->get_atom(handle);
         if (atom == nullptr) {
-            this->profiles_mutex.unlock();
             return false;
         }
     }
-    this->profiles_mutex.unlock();
-    return it->second->is_granted(atom, operation, keychain);
+    return profile->is_granted(atom, operation, keychain);
 }
