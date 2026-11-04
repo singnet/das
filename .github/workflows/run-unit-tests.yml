@@ -55,12 +55,12 @@ jobs:
       - name: Setup bazel
         run: .github/scripts/setup_bazel.sh --toolchain-cache-dir "$HOME/.cache/das/toolchain"
 
-      - name: Load Knowledge Base
+      - name: Build db_loader and attention broker
         working-directory: ./src
-        run: BAZELISK_HOME="$HOME/.cache/das/bazelisk" ./scripts/bazel_exec.sh --output_user_root="$HOME/.cache/das/bazel" run --noshow_progress //:db_loader -- --config="${GITHUB_WORKSPACE}/config/das.json" --file=/tmp/animals.metta --threads=8 --chunk=5000
+        run: BAZELISK_HOME="$HOME/.cache/das/bazelisk" ./scripts/bazel_exec.sh --output_user_root="$HOME/.cache/das/bazel" build --noshow_progress //:db_loader //:attention_broker_service
 
-      - name: Starting Attention Broker
-        run: BAZELISK_HOME="$HOME/.cache/das/bazelisk" .github/scripts/start_attention_broker.sh --output_user_root="$HOME/.cache/das/bazel"
+      - name: Load knowledge base and start attention broker
+        run: .github/scripts/run_bazel_services.sh /tmp/animals.metta
 
       - name: Starting MORK Servers
         run: |-
