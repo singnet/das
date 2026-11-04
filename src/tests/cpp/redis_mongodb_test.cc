@@ -8,6 +8,7 @@
 #include <map>
 #include <memory>
 #include <nlohmann/json.hpp>
+#include <set>
 #include <stdexcept>
 #include <thread>
 #include <vector>
@@ -24,12 +25,14 @@
 #include "RedisMongoDB.h"
 #include "TestAtomDBJsonConfig.h"
 #include "UntypedVariable.h"
+#include "Utils.h"
 #include "Wildcard.h"
 #include "expression_hasher.h"
 
 using namespace atomdb;
 using namespace atomdb::atomdb_api_types;
 using namespace atoms;
+using namespace commons;
 using namespace std;
 
 namespace {
@@ -472,6 +475,38 @@ TEST_F(RedisMongoDBTest, AddGetAndDeleteLink) {
     EXPECT_TRUE(db->delete_atom(handle));
     EXPECT_TRUE(db->delete_atom(test_1_node_handle));
     EXPECT_TRUE(db->delete_atom(test_2_node_handle));
+}
+
+TEST_F(RedisMongoDBTest, GetAtomsNodesAndLinks) {
+    auto human = new Node("Symbol", "\"get-atoms-human\"");
+    auto monkey = new Node("Symbol", "\"get-atoms-monkey\"");
+    auto similarity = new Node("Symbol", "GetAtomsSimilarity");
+
+    string human_handle = db->add_node(human);
+    string monkey_handle = db->add_node(monkey);
+    string similarity_handle = db->add_node(similarity);
+    auto link = new Link("Expression", {similarity_handle, human_handle, monkey_handle});
+    string link_handle = db->add_link(link);
+    auto missing = new Node("Symbol", "\"missing\"");
+
+    vector<string> handles = {human_handle, link_handle, missing->handle(), monkey_handle};
+
+    set<string> atoms;
+    for (const auto& atom : db->get_atoms(handles)) atoms.insert(atom->handle());
+    EXPECT_EQ(atoms, set<string>({human_handle, monkey_handle, link_handle}));
+
+    set<string> nodes;
+    for (const auto& node : db->get_nodes(handles)) nodes.insert(node->handle());
+    EXPECT_EQ(nodes, set<string>({human_handle, monkey_handle}));
+
+    set<string> links;
+    for (const auto& fetched_link : db->get_links(handles)) links.insert(fetched_link->handle());
+    EXPECT_EQ(links, set<string>({link_handle}));
+
+    EXPECT_TRUE(db->delete_atom(link_handle));
+    EXPECT_TRUE(db->delete_atom(human_handle));
+    EXPECT_TRUE(db->delete_atom(monkey_handle));
+    EXPECT_TRUE(db->delete_atom(similarity_handle));
 }
 
 TEST_F(RedisMongoDBTest, AddAndDeleteLinks) {
@@ -1783,5 +1818,6 @@ TEST(RedisMongoDBPrefixIsolation, InstancesKeepIndependentNamespaces) {
 int main(int argc, char** argv) {
     ::testing::InitGoogleTest(&argc, argv);
     ::testing::AddGlobalTestEnvironment(new RedisMongoDBTestEnvironment());
+    Utils::init_random(0);
     return RUN_ALL_TESTS();
 }

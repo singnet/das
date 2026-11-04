@@ -7,6 +7,7 @@
 #include <iostream>
 #include <memory>
 #include <nlohmann/json.hpp>
+#include <set>
 #include <string>
 #include <vector>
 
@@ -343,6 +344,44 @@ TEST_P(AdapterDBTest, AddGetAndQueryTargetsLink) {
     delete link;
 }
 
+TEST_P(AdapterDBTest, GetAtomsNodesAndLinks) {
+    auto db = create_current_adapter();
+    ASSERT_NE(db, nullptr);
+
+    auto n1 = new Node("Symbol", "AdapterGetAtomsNode1");
+    auto n2 = new Node("Symbol", "AdapterGetAtomsNode2");
+    auto n3 = new Node("Symbol", "AdapterGetAtomsNode3");
+    auto h1 = db->add_node(n1);
+    auto h2 = db->add_node(n2);
+    auto h3 = db->add_node(n3);
+    auto link = new Link("Expression", {h1, h2, h3});
+    auto link_handle = db->add_link(link);
+    auto missing = new Node("Symbol", "\"missing\"");
+
+    vector<string> handles = {h1, link_handle, missing->handle(), h2};
+
+    set<string> atoms;
+    for (const auto& atom : db->get_atoms(handles)) atoms.insert(atom->handle());
+    EXPECT_EQ(atoms, set<string>({h1, h2, link_handle}));
+
+    set<string> nodes;
+    for (const auto& node : db->get_nodes(handles)) nodes.insert(node->handle());
+    EXPECT_EQ(nodes, set<string>({h1, h2}));
+
+    set<string> links;
+    for (const auto& fetched_link : db->get_links(handles)) links.insert(fetched_link->handle());
+    EXPECT_EQ(links, set<string>({link_handle}));
+
+    EXPECT_TRUE(db->delete_link(link_handle));
+    EXPECT_TRUE(db->delete_node(h1));
+    EXPECT_TRUE(db->delete_node(h2));
+    EXPECT_TRUE(db->delete_node(h3));
+    delete n1;
+    delete n2;
+    delete n3;
+    delete link;
+}
+
 TEST_P(AdapterDBTest, AddLinkFailsWhenTargetsDoNotExist) {
     auto db = create_current_adapter();
     ASSERT_NE(db, nullptr);
@@ -541,5 +580,6 @@ TEST_F(AdapterDBConstructorFailureTest, ConstructorFailsWhenMappingFileDoesNotEx
 
 int main(int argc, char** argv) {
     ::testing::InitGoogleTest(&argc, argv);
+    Utils::init_random(0);
     return RUN_ALL_TESTS();
 }
