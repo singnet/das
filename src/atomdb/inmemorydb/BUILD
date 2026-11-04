@@ -28,7 +28,7 @@ cc_library(
     includes = ["."],
     deps = [
         ":inmemorydb_api_types",
-        "//atomdb:atomdb",
+        "//atomdb",
         "//commons:commons_lib",
         "//commons/atoms:atoms_lib",
         "//commons/atoms:handle_decoder",

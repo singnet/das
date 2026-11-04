@@ -5,9 +5,9 @@
 #include <string>
 
 #include "AtomDB.h"
+#include "HandleDecoder.h"
 #include "KeySensitiveAtomDB.h"
 #include "Keychain.h"
-#include "HandleDecoder.h"
 
 using namespace std;
 
@@ -115,7 +115,8 @@ class AtomDBUtils : public HandleDecoder {
      * @param handle Handle of the link whose targets are to be returned.
      * @return a link's targets.
      */
-    static vector<string> get_link_targets(const string& handle, shared_ptr<Keychain> keychain = nullptr);
+    static vector<string> get_link_targets(const string& handle,
+                                           shared_ptr<Keychain> keychain = nullptr);
 
     /**
      * Return an atom's strength or raises if it doesn't exist.
@@ -131,7 +132,8 @@ class AtomDBUtils : public HandleDecoder {
 
     shared_ptr<Atom> decode_atom(const string& handle, shared_ptr<Keychain> keychain = nullptr) override;
     string decode_node_name(const string& handle, shared_ptr<Keychain> keychain = nullptr) override;
-    vector<string> decode_link_targets(const string& handle, shared_ptr<Keychain> keychain = nullptr) override;
+    vector<string> decode_link_targets(const string& handle,
+                                       shared_ptr<Keychain> keychain = nullptr) override;
 
    private:
     static string handle_to_metta_recursive(const string& handle,

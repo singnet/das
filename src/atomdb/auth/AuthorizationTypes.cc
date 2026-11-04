@@ -1,4 +1,5 @@
 #include "AuthorizationTypes.h"
+
 #include "AtomDBAPITypes.h"
 #include "Utils.h"
 
@@ -37,8 +38,9 @@ AuthorizationSchema::AuthorizationSchema(shared_ptr<AtomDB> atomdb,
 // -------------------------------------------------------------------------------------------------
 // Public methods
 
-bool AuthorizationSchema::is_granted(shared_ptr<Atom> atom, AuthorizationOperation operation, shared_ptr<Keychain> keychain) {
-
+bool AuthorizationSchema::is_granted(shared_ptr<Atom> atom,
+                                     AuthorizationOperation operation,
+                                     shared_ptr<Keychain> keychain) {
     if (!this->allows(operation) || atom == nullptr) return false;
 
     Assignment assignment;
@@ -118,7 +120,9 @@ shared_ptr<AuthorizationProfile> AuthorizationProfile::from_document(
     return make_shared<AuthorizationProfile>(document->get_full_access(), move(schemas));
 }
 
-bool AuthorizationProfile::is_granted(shared_ptr<Atom> atom, AuthorizationOperation operation, shared_ptr<Keychain> keychain) {
+bool AuthorizationProfile::is_granted(shared_ptr<Atom> atom,
+                                      AuthorizationOperation operation,
+                                      shared_ptr<Keychain> keychain) {
     if (this->is_unrestricted()) return true;
     for (const auto& schema : this->schemas_) {
         if (schema->is_granted(atom, operation, keychain)) return true;

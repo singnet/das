@@ -900,9 +900,9 @@ cc_test(
     ],
     linkstatic = 1,
     deps = [
+        "//atomdb:atomdb_initializer",
         "//atomdb/redis_mongodb:redis_mongodb_api_types",
         "//commons/atoms:atoms_lib",
-        "//atomdb:atomdb_initializer",
         "//tests/cpp/test_commons:test_atomdb_json_config",
         "//tests/cpp/test_commons:test_system_params",
         "@com_github_google_googletest//:gtest",
@@ -927,8 +927,8 @@ cc_test(
     ],
     linkstatic = 1,
     deps = [
-        "//atomdb/inmemorydb:inmemorydb_lib",
         "//atomdb:atomdb_initializer",
+        "//atomdb/inmemorydb:inmemorydb_lib",
         "//commons/atoms:atoms_lib",
         "//tests/cpp/test_commons:test_atomdb_json_config",
         "//tests/cpp/test_commons:test_system_params",
@@ -1033,9 +1033,9 @@ cc_test(
     ],
     linkstatic = 1,
     deps = [
+        "//atomdb:atomdb_initializer",
         "//atomdb/auth:auth_lib",
         "//atomdb/inmemorydb:inmemorydb_lib",
-        "//atomdb:atomdb_initializer",
         "//commons/atoms:atoms_lib",
         "//tests/cpp/test_commons:in_memory_access_permission_types",
         "//tests/cpp/test_commons:test_atomdb_json_config",

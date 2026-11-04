@@ -559,42 +559,60 @@ void load_animals_related_data(AtomDB& db) {
     vector<Link*> links;
 
     bool is_toplevel = true;
-    links.push_back(new Link("Expression", {similarity->handle(), human->handle(), monkey->handle()}, is_toplevel));
-    links.push_back(new Link("Expression", {similarity->handle(), human->handle(), chimp->handle()}, is_toplevel));
-    links.push_back(new Link("Expression", {similarity->handle(), chimp->handle(), monkey->handle()}, is_toplevel));
     links.push_back(
-        new Link("Expression", {similarity->handle(), snake->handle(), earthworm->handle()}, is_toplevel));
+        new Link("Expression", {similarity->handle(), human->handle(), monkey->handle()}, is_toplevel));
     links.push_back(
-        new Link("Expression", {similarity->handle(), rhino->handle(), triceratops->handle()}, is_toplevel));
-    links.push_back(new Link("Expression", {similarity->handle(), snake->handle(), vine->handle()}, is_toplevel));
-    links.push_back(new Link("Expression", {similarity->handle(), human->handle(), ent->handle()}, is_toplevel));
-    links.push_back(new Link("Expression", {similarity->handle(), monkey->handle(), human->handle()}, is_toplevel));
-    links.push_back(new Link("Expression", {similarity->handle(), chimp->handle(), human->handle()}, is_toplevel));
-    links.push_back(new Link("Expression", {similarity->handle(), monkey->handle(), chimp->handle()}, is_toplevel));
+        new Link("Expression", {similarity->handle(), human->handle(), chimp->handle()}, is_toplevel));
     links.push_back(
-        new Link("Expression", {similarity->handle(), earthworm->handle(), snake->handle()}, is_toplevel));
+        new Link("Expression", {similarity->handle(), chimp->handle(), monkey->handle()}, is_toplevel));
+    links.push_back(new Link(
+        "Expression", {similarity->handle(), snake->handle(), earthworm->handle()}, is_toplevel));
+    links.push_back(new Link(
+        "Expression", {similarity->handle(), rhino->handle(), triceratops->handle()}, is_toplevel));
     links.push_back(
-        new Link("Expression", {similarity->handle(), triceratops->handle(), rhino->handle()}, is_toplevel));
-    links.push_back(new Link("Expression", {similarity->handle(), vine->handle(), snake->handle()}, is_toplevel));
-    links.push_back(new Link("Expression", {similarity->handle(), ent->handle(), human->handle()}, is_toplevel));
+        new Link("Expression", {similarity->handle(), snake->handle(), vine->handle()}, is_toplevel));
+    links.push_back(
+        new Link("Expression", {similarity->handle(), human->handle(), ent->handle()}, is_toplevel));
+    links.push_back(
+        new Link("Expression", {similarity->handle(), monkey->handle(), human->handle()}, is_toplevel));
+    links.push_back(
+        new Link("Expression", {similarity->handle(), chimp->handle(), human->handle()}, is_toplevel));
+    links.push_back(
+        new Link("Expression", {similarity->handle(), monkey->handle(), chimp->handle()}, is_toplevel));
+    links.push_back(new Link(
+        "Expression", {similarity->handle(), earthworm->handle(), snake->handle()}, is_toplevel));
+    links.push_back(new Link(
+        "Expression", {similarity->handle(), triceratops->handle(), rhino->handle()}, is_toplevel));
+    links.push_back(
+        new Link("Expression", {similarity->handle(), vine->handle(), snake->handle()}, is_toplevel));
+    links.push_back(
+        new Link("Expression", {similarity->handle(), ent->handle(), human->handle()}, is_toplevel));
 
     // Same Inheritance links as load_animals_data().
-    links.push_back(new Link("Expression", {inheritance->handle(), human->handle(), mammal->handle()}, is_toplevel));
-    links.push_back(new Link("Expression", {inheritance->handle(), monkey->handle(), mammal->handle()}, is_toplevel));
-    links.push_back(new Link("Expression", {inheritance->handle(), chimp->handle(), mammal->handle()}, is_toplevel));
-    links.push_back(new Link("Expression", {inheritance->handle(), mammal->handle(), animal->handle()}, is_toplevel));
     links.push_back(
-        new Link("Expression", {inheritance->handle(), reptile->handle(), animal->handle()}, is_toplevel));
-    links.push_back(new Link("Expression", {inheritance->handle(), snake->handle(), reptile->handle()}, is_toplevel));
+        new Link("Expression", {inheritance->handle(), human->handle(), mammal->handle()}, is_toplevel));
+    links.push_back(new Link(
+        "Expression", {inheritance->handle(), monkey->handle(), mammal->handle()}, is_toplevel));
     links.push_back(
-        new Link("Expression", {inheritance->handle(), dinosaur->handle(), reptile->handle()}, is_toplevel));
+        new Link("Expression", {inheritance->handle(), chimp->handle(), mammal->handle()}, is_toplevel));
+    links.push_back(new Link(
+        "Expression", {inheritance->handle(), mammal->handle(), animal->handle()}, is_toplevel));
+    links.push_back(new Link(
+        "Expression", {inheritance->handle(), reptile->handle(), animal->handle()}, is_toplevel));
+    links.push_back(new Link(
+        "Expression", {inheritance->handle(), snake->handle(), reptile->handle()}, is_toplevel));
+    links.push_back(new Link(
+        "Expression", {inheritance->handle(), dinosaur->handle(), reptile->handle()}, is_toplevel));
+    links.push_back(new Link(
+        "Expression", {inheritance->handle(), triceratops->handle(), dinosaur->handle()}, is_toplevel));
+    links.push_back(new Link(
+        "Expression", {inheritance->handle(), earthworm->handle(), animal->handle()}, is_toplevel));
     links.push_back(
-        new Link("Expression", {inheritance->handle(), triceratops->handle(), dinosaur->handle()}, is_toplevel));
+        new Link("Expression", {inheritance->handle(), rhino->handle(), mammal->handle()}, is_toplevel));
     links.push_back(
-        new Link("Expression", {inheritance->handle(), earthworm->handle(), animal->handle()}, is_toplevel));
-    links.push_back(new Link("Expression", {inheritance->handle(), rhino->handle(), mammal->handle()}, is_toplevel));
-    links.push_back(new Link("Expression", {inheritance->handle(), vine->handle(), plant->handle()}, is_toplevel));
-    links.push_back(new Link("Expression", {inheritance->handle(), ent->handle(), plant->handle()}, is_toplevel));
+        new Link("Expression", {inheritance->handle(), vine->handle(), plant->handle()}, is_toplevel));
+    links.push_back(
+        new Link("Expression", {inheritance->handle(), ent->handle(), plant->handle()}, is_toplevel));
 
     LOG_INFO("Adding similarity and inheritance links to db...");
     db.add_links(links);
@@ -607,8 +625,8 @@ void load_animals_related_data(AtomDB& db) {
             if (!shares_concept_target(*links[i], *links[j])) {
                 continue;
             }
-            related_links.push_back(
-                new Link("Expression", {related->handle(), links[i]->handle(), links[j]->handle()}, is_toplevel));
+            related_links.push_back(new Link(
+                "Expression", {related->handle(), links[i]->handle(), links[j]->handle()}, is_toplevel));
         }
     }
 

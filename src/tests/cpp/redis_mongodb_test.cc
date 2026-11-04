@@ -54,9 +54,13 @@ bool mongodb_collection_exists(Database& database, const string& name) {
 class MockDecoder : public HandleDecoder {
    public:
     map<string, shared_ptr<Atom>> atoms;
-    shared_ptr<Atom> decode_atom(const string& handle, shared_ptr<Keychain> keychain = nullptr) { return this->atoms[handle]; }
+    shared_ptr<Atom> decode_atom(const string& handle, shared_ptr<Keychain> keychain = nullptr) {
+        return this->atoms[handle];
+    }
     string decode_node_name(const string& handle, shared_ptr<Keychain> keychain = nullptr) { return ""; }
-    vector<string> decode_link_targets(const string& handle, shared_ptr<Keychain> keychain = nullptr) { return {}; }
+    vector<string> decode_link_targets(const string& handle, shared_ptr<Keychain> keychain = nullptr) {
+        return {};
+    }
     shared_ptr<Atom> add_atom(shared_ptr<Atom> atom) {
         this->atoms[atom->handle()] = atom;
         return atom;
@@ -1277,7 +1281,8 @@ TEST_F(RedisMongoDBTest, CompositeTypeEnabledFlag) {
     ASSERT_NE(enabled_doc, nullptr);
     EXPECT_TRUE(enabled_doc->contains("composite_type_hash"));
     EXPECT_TRUE(enabled_doc->contains("composite_type"));
-    EXPECT_EQ(string(enabled_doc->get("composite_type_hash")), enabled_link->composite_type_hash(decoder));
+    EXPECT_EQ(string(enabled_doc->get("composite_type_hash")),
+              enabled_link->composite_type_hash(decoder));
     EXPECT_EQ(enabled_doc->get_size("composite_type"), 4);
 
     auto config_disabled = test_atomdb_json_config("redismongodb", "redis_mongodb_test_");

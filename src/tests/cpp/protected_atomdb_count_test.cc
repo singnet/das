@@ -135,7 +135,8 @@ TEST(ProtectedAtomDBTest, CountMethodsWalkGrantedSchemas) {
     protected_atomdb->grant_full_access(PKAdmin);
     expect_counts("3", protected_atomdb->db, protected_atomdb->keys(PKAdmin), 0, 0, 0);
     expect_counts("4", protected_atomdb->db, protected_atomdb->keys(PKUnknown), 0, 0, 0);
-    expect_counts("5", protected_atomdb->db, make_keychain(protected_atomdb->db->get_uid(), ""), 0, 0, 0);
+    expect_counts(
+        "5", protected_atomdb->db, make_keychain(protected_atomdb->db->get_uid(), ""), 0, 0, 0);
     expect_counts("6", protected_atomdb->db, make_keychain("other_uid", PKAdmin), 0, 0, 0);
 
     // (Similarity "human" V) matches 3 links. Targets are not readable, so node_count stays 0,

@@ -60,7 +60,9 @@ string AtomDBUtils::handle_to_metta(const string& handle, shared_ptr<Keychain> k
     return handle_to_metta_recursive(handle, not_used, false, keychain);
 }
 
-string AtomDBUtils::handle_to_metta(const string& handle, map<string, string>& mapping, shared_ptr<Keychain> keychain) {
+string AtomDBUtils::handle_to_metta(const string& handle,
+                                    map<string, string>& mapping,
+                                    shared_ptr<Keychain> keychain) {
     STACK_TRACE();
     return handle_to_metta_recursive(handle, mapping, true, keychain);
 }
@@ -70,8 +72,10 @@ shared_ptr<Atom> AtomDBUtils::get_atom(const string& handle, shared_ptr<Keychain
     shared_ptr<Atom> atom = nullptr;
     shared_ptr<AtomDB> atomdb = AtomDBSingleton::get_instance();
     if (atomdb != nullptr) {
-        shared_ptr<KeySensitiveAtomDB> key_sensitive_atomdb = dynamic_pointer_cast<KeySensitiveAtomDB>(atomdb);
-        atom = (key_sensitive_atomdb != nullptr ? key_sensitive_atomdb->get_atom(handle, keychain) : atomdb->get_atom(handle));
+        shared_ptr<KeySensitiveAtomDB> key_sensitive_atomdb =
+            dynamic_pointer_cast<KeySensitiveAtomDB>(atomdb);
+        atom = (key_sensitive_atomdb != nullptr ? key_sensitive_atomdb->get_atom(handle, keychain)
+                                                : atomdb->get_atom(handle));
     } else {
         RAISE_ERROR("AtomDB is not available");
     }
@@ -81,7 +85,7 @@ shared_ptr<Atom> AtomDBUtils::get_atom(const string& handle, shared_ptr<Keychain
 shared_ptr<Node> AtomDBUtils::get_node(const string& handle, shared_ptr<Keychain> keychain) {
     STACK_TRACE();
     if (!Hasher::is_node_handle(handle)) return nullptr;
-    auto atom =  AtomDBUtils::get_atom(handle, keychain);
+    auto atom = AtomDBUtils::get_atom(handle, keychain);
     if (atom == nullptr) return nullptr;
     return dynamic_pointer_cast<Node>(atom);
 }
@@ -112,7 +116,8 @@ vector<string> AtomDBUtils::get_link_targets(const string& handle, shared_ptr<Ke
     vector<string> answer;
     if (Hasher::is_link_handle(handle)) {
         shared_ptr<AtomDB> atomdb = AtomDBSingleton::get_instance();
-        shared_ptr<KeySensitiveAtomDB> key_sensitive_atomdb = dynamic_pointer_cast<KeySensitiveAtomDB>(atomdb);
+        shared_ptr<KeySensitiveAtomDB> key_sensitive_atomdb =
+            dynamic_pointer_cast<KeySensitiveAtomDB>(atomdb);
         shared_ptr<atomdb_api_types::HandleList> targets;
         if (key_sensitive_atomdb == nullptr) {
             targets = atomdb->query_for_targets(handle);

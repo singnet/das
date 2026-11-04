@@ -10,15 +10,15 @@ cc_library(
     ],
     includes = ["."],
     deps = [
-        ":handle_decoder",
-        ":merger",
         ":atom",
-        ":node",
+        ":handle_decoder",
         ":link",
-        ":wildcard",
-        ":untyped_variable",
         ":link_schema",
+        ":merger",
         ":metta_parser_actions",
+        ":node",
+        ":untyped_variable",
+        ":wildcard",
     ],
 )
 
@@ -98,8 +98,8 @@ cc_library(
     hdrs = ["LinkSchema.h"],
     includes = ["."],
     deps = [
-        ":node",
         ":link",
+        ":node",
         ":untyped_variable",
     ],
 )
@@ -110,8 +110,8 @@ cc_library(
     hdrs = ["MettaParserActions.h"],
     includes = ["."],
     deps = [
-        ":node",
         ":link",
+        ":node",
         ":untyped_variable",
         "//metta:parser_actions",
     ],

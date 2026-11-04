@@ -362,7 +362,7 @@ TEST(ProtectedAtomDBTest, ReadOperationsReturnOnlyAuthorizedAtoms) {
                            animals.similarity_human_ent,
                            animals.human}));
     EXPECT_EQ(protected_atomdb->db->nodes_exist({animals.human, animals.monkey}, similarity_human_keys),
-                    set<string>({animals.human, animals.monkey}));
+              set<string>({animals.human, animals.monkey}));
     EXPECT_EQ(protected_atomdb->db->nodes_exist({animals.human}, admin_keys),
               set<string>({animals.human}));
 }
@@ -458,8 +458,9 @@ TEST(ProtectedAtomDBTest, IncomingSetRequiresReadableHandleAndFiltersResults) {
                            animals.inheritance_human_mammal}));
 
     EXPECT_EQ(handles_from_set(
-                    protected_atomdb->db->query_for_incoming_set(animals.human, similarity_human_keys))
-                    .size(), 7);
+                  protected_atomdb->db->query_for_incoming_set(animals.human, similarity_human_keys))
+                  .size(),
+              7);
 
     auto admin_incoming_similarity_human_monkey = handles_from_set(
         protected_atomdb->db->query_for_incoming_set(animals.similarity_human_monkey, admin_keys));
@@ -500,8 +501,9 @@ TEST(ProtectedAtomDBTest, TargetsReturnOutgoingWithoutFiltering) {
     EXPECT_NE(protected_atomdb->db->get_node(animals.human, similarity_human_keys), nullptr);
 
     EXPECT_EQ(handles_from_list(protected_atomdb->db->query_for_targets(animals.similarity_snake_vine,
-                                                                          similarity_human_keys))
-                    .size(), 3);
+                                                                        similarity_human_keys))
+                  .size(),
+              3);
 
     auto missing_targets = protected_atomdb->db->query_for_targets("missing", admin_keys);
     if (missing_targets != nullptr) {
@@ -573,8 +575,8 @@ TEST(ProtectedAtomDBTest, ParentAndChildGrantsAreIndependent) {
     EXPECT_EQ(handles_from_list(protected_atomdb->db->query_for_targets(H, only_abc_keys)).size(), 3);
 
     EXPECT_EQ(handles_from_set(protected_atomdb->db->query_for_incoming_set(A, only_h_keys)).size(), 10);
-    EXPECT_EQ(
-        handles_from_set(protected_atomdb->db->query_for_incoming_set(A, only_abc_keys)).count(H), 1);
+    EXPECT_EQ(handles_from_set(protected_atomdb->db->query_for_incoming_set(A, only_abc_keys)).count(H),
+              1);
 }
 
 TEST(ProtectedAtomDBTest, NestedRelatedGrantDoesNotImplyInnerSimilarity) {

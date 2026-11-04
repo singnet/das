@@ -6,8 +6,8 @@
 #include <string>
 
 #include "AdapterDB.h"
-#include "AtomDBSingleton.h"
 #include "AtomDBFactory.h"
+#include "AtomDBSingleton.h"
 #include "InMemoryDB.h"
 #include "JsonConfig.h"
 #include "MorkDB.h"

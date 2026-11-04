@@ -678,7 +678,8 @@ vector<shared_ptr<Atom>> RedisMongoDB::get_matching_atoms(bool is_toplevel, Atom
         auto documents = get_filtered_documents(collection_name, filter_builder, {});
         for (const auto& document : documents) {
             Assignment assignment;
-            if (key.match(document->get(MONGODB_FIELD_NAME[MONGODB_FIELD::ID]), assignment, this->decoder)) {
+            if (key.match(
+                    document->get(MONGODB_FIELD_NAME[MONGODB_FIELD::ID]), assignment, this->decoder)) {
                 auto atom = this->get_atom(document->get(MONGODB_FIELD_NAME[MONGODB_FIELD::ID]));
                 if (atom != nullptr) {
                     matching_atoms.push_back(atom);

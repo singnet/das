@@ -72,7 +72,6 @@ int main(int argc, char* argv[]) {
 
     auto atomdb = AtomDBFactory::create(atomdb_config);
 
-
     signal(SIGINT, &ctrl_c_handler);
     signal(SIGTERM, &ctrl_c_handler);
 

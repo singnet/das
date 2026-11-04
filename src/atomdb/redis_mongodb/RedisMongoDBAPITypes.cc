@@ -1,5 +1,7 @@
-#include <cstring>
 #include "RedisMongoDBAPITypes.h"
+
+#include <cstring>
+
 #include "Utils.h"
 #include "expression_hasher.h"
 
@@ -118,7 +120,10 @@ char* HandleSetRedisIterator::next() {
     while ((candidate = _next()) != NULL) {
         handle = string(candidate);
         if ((this->handle_set->link_schema == nullptr) ||
-            this->handle_set->link_schema->match(handle, assignment, (this->use_custom_decoder ? *(this->custom_decoder) : this->default_decoder))) {
+            this->handle_set->link_schema->match(
+                handle,
+                assignment,
+                (this->use_custom_decoder ? *(this->custom_decoder) : this->default_decoder))) {
             this->handle_set->assignments_by_handle[handle] = assignment;
             return candidate;
         }

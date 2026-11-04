@@ -121,7 +121,10 @@ class Link : public Atom {
      * @param decoder disregarded
      * @param keychain Optional Keychain
      */
-    virtual bool match(const string& handle, Assignment& assignment, HandleDecoder& decoder, shared_ptr<Keychain> keychain = nullptr) override;
+    virtual bool match(const string& handle,
+                       Assignment& assignment,
+                       HandleDecoder& decoder,
+                       shared_ptr<Keychain> keychain = nullptr) override;
 
     virtual void tokenize(vector<string>& output);
     virtual void untokenize(vector<string>& tokens);

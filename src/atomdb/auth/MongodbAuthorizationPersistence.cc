@@ -6,9 +6,9 @@
 #include <utility>
 
 #include "Hasher.h"
+#include "Logger.h"
 #include "MongoInitializer.h"
 #include "Utils.h"
-#include "Logger.h"
 
 using namespace atomdb;
 using namespace commons;

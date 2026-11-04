@@ -354,8 +354,8 @@ TEST_F(RemoteAtomDBKeySensitiveTest, NestedSchemaDoesNotMatchWhenTheTargetLinkIs
     Node is_animal("Symbol", "\"is_animal\"");
     Node human("Symbol", "\"human\"");
     Link predicate_is_animal("Expression", {predicate.handle(), is_animal.handle()});
-    Link evaluation_is_animal_human("Expression",
-                                    {evaluation.handle(), predicate_is_animal.handle(), human.handle()}, true);
+    Link evaluation_is_animal_human(
+        "Expression", {evaluation.handle(), predicate_is_animal.handle(), human.handle()}, true);
 
     // (Evaluation (Predicate "is_animal") $C)
     // clang-format off

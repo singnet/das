@@ -8,10 +8,10 @@
 #include "InMemoryDBAPITypes.h"
 #include "Link.h"
 #include "LinkSchema.h"
+#include "Logger.h"
 #include "Merger.h"
 #include "Node.h"
 #include "Utils.h"
-#include "Logger.h"
 
 using namespace atomdb;
 using namespace atomdb_api_types;

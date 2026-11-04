@@ -10,8 +10,8 @@
 #include <vector>
 
 #include "AtomDB.h"
-#include "HandleTrie.h"
 #include "HandleDecoder.h"
+#include "HandleTrie.h"
 #include "InMemoryDBAPITypes.h"
 #include "JsonConfig.h"
 #include "LinkSchema.h"
@@ -113,7 +113,8 @@ class InMemoryDB : public AtomDB, public HandleDecoder {
     void add_pattern(const string& pattern_handle, const string& atom_handle);
     vector<string> match_pattern_index_schema(const Link* link);
 
-    shared_ptr<Atom> decode_atom(const string& handle, shared_ptr<Keychain> keychain = nullptr) override {
+    shared_ptr<Atom> decode_atom(const string& handle,
+                                 shared_ptr<Keychain> keychain = nullptr) override {
         return get_atom(handle);
     }
     string decode_node_name(const string& handle, shared_ptr<Keychain> keychain = nullptr) override {
@@ -123,7 +124,8 @@ class InMemoryDB : public AtomDB, public HandleDecoder {
         }
         return node->name;
     }
-    vector<string> decode_link_targets(const string& handle, shared_ptr<Keychain> keychain = nullptr) override {
+    vector<string> decode_link_targets(const string& handle,
+                                       shared_ptr<Keychain> keychain = nullptr) override {
         auto link = dynamic_pointer_cast<Link>(get_atom(handle));
         if (link == nullptr) {
             RAISE_ERROR("Handle doesn't map to a link: " + handle);

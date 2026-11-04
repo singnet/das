@@ -158,7 +158,8 @@ class MorkDBDecoder : public HandleDecoder {
 
     ~MorkDBDecoder() {}
 
-    shared_ptr<Atom> decode_atom(const string& handle, shared_ptr<Keychain> keychain = nullptr) override {
+    shared_ptr<Atom> decode_atom(const string& handle,
+                                 shared_ptr<Keychain> keychain = nullptr) override {
         return this->parser_actions->handle_to_atom[handle];
     }
 
@@ -170,7 +171,8 @@ class MorkDBDecoder : public HandleDecoder {
         return node->name;
     }
 
-    vector<string> decode_link_targets(const string& handle, shared_ptr<Keychain> keychain = nullptr) override {
+    vector<string> decode_link_targets(const string& handle,
+                                       shared_ptr<Keychain> keychain = nullptr) override {
         auto link = dynamic_pointer_cast<Link>(this->decode_atom(handle, keychain));
         if (link == nullptr) {
             RAISE_ERROR("Handle does not map to a link: " + handle);

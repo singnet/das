@@ -61,7 +61,10 @@ string Node::metta_representation(HandleDecoder& decoder) const {
     return this->name;
 }
 
-bool Node::match(const string& handle, Assignment& assignment, HandleDecoder& decoder, shared_ptr<Keychain> keychain) {
+bool Node::match(const string& handle,
+                 Assignment& assignment,
+                 HandleDecoder& decoder,
+                 shared_ptr<Keychain> keychain) {
     return this->handle() == handle;
 }
 

@@ -12,6 +12,8 @@
 #include <utility>
 #include <vector>
 
+#include "AtomDBInitializer.h"
+#include "AtomDBSingleton.h"
 #include "AuthorizationManifest.h"
 #include "AuthorizationPersistence.h"
 #include "AuthorizationTypes.h"
@@ -23,8 +25,6 @@
 #include "Node.h"
 #include "RedisMongoDBAPITypes.h"
 #include "TestAtomDBJsonConfig.h"
-#include "AtomDBInitializer.h"
-#include "AtomDBSingleton.h"
 #include "TestSystemParams.h"
 #include "test_utils.h"
 

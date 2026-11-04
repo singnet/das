@@ -1,13 +1,13 @@
 #include "AtomDBFactory.h"
 
 #include "AdapterDB.h"
+#include "AtomDBSingleton.h"
 #include "InMemoryDB.h"
 #include "MorkDB.h"
 #include "ProtectedAtomDB.h"
 #include "RedisMongoDB.h"
 #include "RemoteAtomDB.h"
 #include "Utils.h"
-#include "AtomDBSingleton.h"
 
 using namespace atomdb;
 using namespace commons;

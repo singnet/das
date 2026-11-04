@@ -14,7 +14,6 @@ using namespace std;
 using namespace commons;
 using namespace atoms;
 
-
 class TestDecoder : public HandleDecoder {
    public:
     map<string, shared_ptr<Atom>> atoms;

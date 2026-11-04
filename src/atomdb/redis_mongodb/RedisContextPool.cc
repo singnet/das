@@ -1,8 +1,8 @@
 #include "RedisContextPool.h"
 
+#include "Logger.h"
 #include "RedisContext.h"
 #include "Utils.h"
-#include "Logger.h"
 
 using namespace commons;
 

@@ -1,5 +1,7 @@
-#include <algorithm>
 #include "AuthorizationManifest.h"
+
+#include <algorithm>
+
 #include "Logger.h"
 #include "Utils.h"
 
