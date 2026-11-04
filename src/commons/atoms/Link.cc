@@ -62,6 +62,10 @@ string Link::to_string() const {
     }
     result += "], is_toplevel: " + string(this->is_toplevel ? "true" : "false") +
               ", custom_attributes: " + this->custom_attributes.to_string() + ")";
+    string metta_representation = this->custom_attributes.get_or<string>("metta_expression", "");
+    if (metta_representation != "") {
+        result += " " + metta_representation;
+    }
     return result;
 }
 

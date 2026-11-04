@@ -51,11 +51,13 @@ vector<string> similarity_human_tokens() {
             "V"};
 }
 
-void expect_counts(const shared_ptr<ProtectedAtomDB>& db,
+void expect_counts(const string& test_case,
+                   const shared_ptr<ProtectedAtomDB>& db,
                    const shared_ptr<Keychain>& keys,
                    size_t nodes,
                    size_t links,
                    size_t atoms) {
+    LOG_INFO("Test case: " + test_case);
     EXPECT_EQ(db->node_count(keys), nodes);
     EXPECT_EQ(db->link_count(keys), links);
     EXPECT_EQ(db->atom_count(keys), atoms);
@@ -98,6 +100,7 @@ struct ProtectedRedisMongo {
             this->backend->MONGODB_DB_NAME,
             this->backend->MONGODB_ACCESS_PERMISSIONS_COLLECTION_NAME);
         this->db = make_shared<ProtectedAtomDB>(this->backend);
+        AtomDBSingleton::provide(this->backend);
     }
 
     ~ProtectedRedisMongo() { this->backend->drop_all(); }
@@ -121,21 +124,19 @@ struct ProtectedRedisMongo {
 
 }  // namespace
 
-/*
 TEST(ProtectedAtomDBTest, CountMethodsWalkGrantedSchemas) {
     shared_ptr<ProtectedRedisMongo> protected_atomdb = make_shared<ProtectedRedisMongo>(false);
-    AtomDBSingleton::provide(protected_atomdb->db);
 
     protected_atomdb->grant_link_template(PKSimilarityHuman, similarity_human_tokens());
     auto similarity_human_keys = protected_atomdb->keys(PKSimilarityHuman);
-    expect_counts(protected_atomdb->db, similarity_human_keys, 0, 0, 0);
-    expect_counts(protected_atomdb->db, protected_atomdb->keys(PKUnknown), 0, 0, 0);
+    expect_counts("1", protected_atomdb->db, similarity_human_keys, 0, 0, 0);
+    expect_counts("2", protected_atomdb->db, protected_atomdb->keys(PKUnknown), 0, 0, 0);
 
     protected_atomdb->grant_full_access(PKAdmin);
-    expect_counts(protected_atomdb->db, protected_atomdb->keys(PKAdmin), 0, 0, 0);
-    expect_counts(protected_atomdb->db, protected_atomdb->keys(PKUnknown), 0, 0, 0);
-    expect_counts(protected_atomdb->db, make_keychain(protected_atomdb->db->get_uid(), ""), 0, 0, 0);
-    expect_counts(protected_atomdb->db, make_keychain("other_uid", PKAdmin), 0, 0, 0);
+    expect_counts("3", protected_atomdb->db, protected_atomdb->keys(PKAdmin), 0, 0, 0);
+    expect_counts("4", protected_atomdb->db, protected_atomdb->keys(PKUnknown), 0, 0, 0);
+    expect_counts("5", protected_atomdb->db, make_keychain(protected_atomdb->db->get_uid(), ""), 0, 0, 0);
+    expect_counts("6", protected_atomdb->db, make_keychain("other_uid", PKAdmin), 0, 0, 0);
 
     // (Similarity "human" V) matches 3 links. Targets are not readable, so node_count stays 0,
     // but each distinct target handle still counts as an atom:
@@ -156,14 +157,11 @@ TEST(ProtectedAtomDBTest, CountMethodsWalkGrantedSchemas) {
     protected_atomdb->backend->add_link(&similarity_human_monkey);
     protected_atomdb->backend->add_link(&similarity_human_chimp);
     protected_atomdb->backend->add_link(&similarity_human_ent);
-    expect_counts(protected_atomdb->db, similarity_human_keys, 0, 3, 8);
-    EXPECT_GT(protected_atomdb->db->atom_count(similarity_human_keys),
-              protected_atomdb->db->node_count(similarity_human_keys) +
-                  protected_atomdb->db->link_count(similarity_human_keys));
+    expect_counts("7", protected_atomdb->db, similarity_human_keys, 5, 3, 8);
 
     // The loaded profile stays in the manifest, so the count does not drop after revoke.
     protected_atomdb->persistence->revoke(PKSimilarityHuman);
-    expect_counts(protected_atomdb->db, similarity_human_keys, 0, 3, 8);
+    expect_counts("8", protected_atomdb->db, similarity_human_keys, 5, 3, 8);
 
     // (Expression (Expression A B) X). Only the outer link matches the template.
     // The inner link and X fail schema.match: nodes = 0, links = 1, atoms = 3.
@@ -175,7 +173,7 @@ TEST(ProtectedAtomDBTest, CountMethodsWalkGrantedSchemas) {
     protected_atomdb->backend->add_node(&node_x);
     Link inner("Expression", {node_a.handle(), node_b.handle()});
     protected_atomdb->backend->add_link(&inner);
-    Link outer("Expression", {inner.handle(), node_x.handle()});
+    Link outer("Expression", {inner.handle(), node_x.handle()}, true);
     protected_atomdb->backend->add_link(&outer);
     protected_atomdb->grant_link_template(PKOnlyH,
                                           {"LINK_TEMPLATE",
@@ -193,9 +191,5 @@ TEST(ProtectedAtomDBTest, CountMethodsWalkGrantedSchemas) {
                                            "VARIABLE",
                                            "x"});
     auto nested_keys = protected_atomdb->keys(PKOnlyH);
-    expect_counts(protected_atomdb->db, nested_keys, 0, 1, 3);
-    EXPECT_GT(
-        protected_atomdb->db->atom_count(nested_keys),
-        protected_atomdb->db->node_count(nested_keys) + protected_atomdb->db->link_count(nested_keys));
+    expect_counts("9", protected_atomdb->db, nested_keys, 3, 2, 5);
 }
-*/

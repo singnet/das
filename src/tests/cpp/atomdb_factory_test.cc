@@ -6,6 +6,7 @@
 #include <string>
 
 #include "AdapterDB.h"
+#include "AtomDBSingleton.h"
 #include "AtomDBFactory.h"
 #include "InMemoryDB.h"
 #include "JsonConfig.h"
@@ -204,6 +205,7 @@ TEST(AtomDBFactoryTest, CreateAdapterDBRequiresBackendType) {
     };
 
     auto db = AtomDBFactory::create(JsonConfig(json));
+    AtomDBSingleton::provide(db, true);
     ASSERT_NE(db, nullptr);
 
     auto adapter_db = dynamic_pointer_cast<AdapterDB>(db);

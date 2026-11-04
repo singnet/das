@@ -372,7 +372,7 @@ cc_test(
 
 cc_test(
     name = "unique_assignment_filter_test",
-    size = "medium",
+    size = "small",
     srcs = [
         "test_utils.cc",
         "test_utils.h",
@@ -938,7 +938,7 @@ cc_test(
 
 cc_test(
     name = "protected_atomdb_test",
-    size = "medium",
+    size = "small",
     srcs = ["protected_atomdb_test.cc"],
     copts = [
         "-Iexternal/gtest/googletest/include",
@@ -1015,7 +1015,11 @@ cc_test(
 cc_test(
     name = "authorization_test",
     size = "small",
-    srcs = ["authorization_test.cc"],
+    srcs = [
+        "authorization_test.cc",
+        "test_utils.cc",
+        "test_utils.h",
+    ],
     copts = [
         "-Iexternal/gtest/googletest/include",
         "-Iexternal/gtest/googletest",
@@ -1130,7 +1134,11 @@ cc_test(
 cc_test(
     name = "remote_atomdb_test",
     size = "medium",
-    srcs = ["remote_atomdb_test.cc"],
+    srcs = [
+        "remote_atomdb_test.cc",
+        "test_utils.cc",
+        "test_utils.h",
+    ],
     copts = [
         "-Iexternal/gtest/googletest/include",
         "-Iexternal/gtest/googletest",
@@ -1164,7 +1172,11 @@ cc_test(
 cc_test(
     name = "remote_atomdb_key_sensitive_test",
     size = "small",
-    srcs = ["remote_atomdb_key_sensitive_test.cc"],
+    srcs = [
+        "remote_atomdb_key_sensitive_test.cc",
+        "test_utils.cc",
+        "test_utils.h",
+    ],
     copts = [
         "-Iexternal/gtest/googletest/include",
         "-Iexternal/gtest/googletest",

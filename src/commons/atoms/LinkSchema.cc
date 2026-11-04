@@ -5,7 +5,6 @@
 #include "Link.h"
 #include "Node.h"
 #include "UntypedVariable.h"
-//#include "AtomDBUtils.h"
 #include "Logger.h"
 
 using namespace atoms;
@@ -160,14 +159,16 @@ bool LinkSchema::SchemaElement::match(const string& handle,
         unsigned int atom_arity;
         vector<string> atom_targets;
         LOG_DEBUG("Schema is link");
-        // if (atom_ptr is not Link return false) TODO XXX
         if (atom_ptr == NULL) {
             atom_targets = decoder.decode_link_targets(handle, keychain);
+            LOG_DEBUG("Decoded candidate targets: " + Utils::join(atom_targets));
             atom_arity = atom_targets.size();
         } else {
+            LOG_DEBUG("Candidate targets: " + Utils::join(((Link*) atom_ptr)->targets));
             atom_arity = ((Link*) atom_ptr)->targets.size();
         }
         if (atom_arity == this->targets.size()) {
+            LOG_DEBUG("Trying to match targets");
             unsigned int cursor = 0;
             for (string target_handle : ((atom_ptr == NULL) ? atom_targets : ((Link*) atom_ptr)->targets)) {
                 if (!this->targets[cursor++].match(target_handle, assignment, decoder, NULL, keychain)) {
@@ -194,10 +195,12 @@ bool LinkSchema::SchemaElement::match(const string& handle,
 }
 
 bool LinkSchema::match(Link& link, Assignment& assignment, HandleDecoder& decoder, shared_ptr<Keychain> keychain) {
+    LOG_DEBUG("Matching LinkSchema: " + this->to_string());
     return this->_schema_element.match("", assignment, decoder, &link, keychain);
 }
 
 bool LinkSchema::match(const string& handle, Assignment& assignment, HandleDecoder& decoder, shared_ptr<Keychain> keychain) {
+    LOG_DEBUG("Matching LinkSchema: " + this->to_string());
     return this->_schema_element.match(handle, assignment, decoder, NULL, keychain);
 }
 

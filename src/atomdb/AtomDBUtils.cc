@@ -119,9 +119,11 @@ vector<string> AtomDBUtils::get_link_targets(const string& handle, shared_ptr<Ke
         } else {
             targets = key_sensitive_atomdb->query_for_targets(handle, keychain);
         }
-        unsigned int arity = targets->size();
-        for (unsigned int i = 0; i < arity; i++) {
-            answer.push_back(targets->get_handle(i));
+        if (targets != nullptr) {
+            unsigned int arity = targets->size();
+            for (unsigned int i = 0; i < arity; i++) {
+                answer.push_back(targets->get_handle(i));
+            }
         }
     }
     return answer;

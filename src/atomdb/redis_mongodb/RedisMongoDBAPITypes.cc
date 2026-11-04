@@ -1,7 +1,5 @@
-#include "RedisMongoDBAPITypes.h"
-
 #include <cstring>
-
+#include "RedisMongoDBAPITypes.h"
 #include "Utils.h"
 #include "expression_hasher.h"
 
@@ -46,6 +44,11 @@ shared_ptr<HandleSetIterator> HandleSetRedis::get_iterator() {
     return it;
 }
 
+shared_ptr<HandleSetIterator> HandleSetRedis::get_iterator(HandleDecoder* custom_decoder) {
+    shared_ptr<HandleSetRedisIterator> it(new HandleSetRedisIterator(this, custom_decoder));
+    return it;
+}
+
 map<string, string> HandleSetRedis::get_metta_expressions_by_handle(const string& handle) {
     auto it = metta_expressions_by_handle.find(handle);
     if (it != metta_expressions_by_handle.end()) {
@@ -63,6 +66,15 @@ Assignment HandleSetRedis::get_assignments_by_handle(const string& handle) {
 }
 
 HandleSetRedisIterator::HandleSetRedisIterator(HandleSetRedis* handle_set) {
+    this->use_custom_decoder = false;
+    this->handle_set = handle_set;
+    this->outer_idx = 0;
+    this->inner_idx = 0;
+};
+
+HandleSetRedisIterator::HandleSetRedisIterator(HandleSetRedis* handle_set, HandleDecoder* decoder) {
+    this->use_custom_decoder = true;
+    this->custom_decoder = decoder;
     this->handle_set = handle_set;
     this->outer_idx = 0;
     this->inner_idx = 0;
@@ -106,7 +118,7 @@ char* HandleSetRedisIterator::next() {
     while ((candidate = _next()) != NULL) {
         handle = string(candidate);
         if ((this->handle_set->link_schema == nullptr) ||
-            this->handle_set->link_schema->match(handle, assignment, this->_decoder)) {
+            this->handle_set->link_schema->match(handle, assignment, (this->use_custom_decoder ? *(this->custom_decoder) : this->default_decoder))) {
             this->handle_set->assignments_by_handle[handle] = assignment;
             return candidate;
         }

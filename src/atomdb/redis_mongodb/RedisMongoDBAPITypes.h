@@ -34,6 +34,7 @@ class HandleSetRedis : public HandleSet {
     unsigned int size();
     void append(shared_ptr<HandleSet> other);
     shared_ptr<HandleSetIterator> get_iterator();
+    shared_ptr<HandleSetIterator> get_iterator(HandleDecoder* custom_decoder);
 
     map<string, string> get_metta_expressions_by_handle(const string& handle);
     Assignment get_assignments_by_handle(const string& handle);
@@ -50,6 +51,7 @@ class HandleSetRedis : public HandleSet {
 class HandleSetRedisIterator : public HandleSetIterator {
    public:
     HandleSetRedisIterator(HandleSetRedis* handle_set);
+    HandleSetRedisIterator(HandleSetRedis* handle_set, HandleDecoder* decoder);
     ~HandleSetRedisIterator();
 
     char* next();
@@ -57,7 +59,9 @@ class HandleSetRedisIterator : public HandleSetIterator {
    private:
     char* _next();
     HandleSetRedis* handle_set;
-    AtomDBUtils _decoder;
+    AtomDBUtils default_decoder;
+    HandleDecoder* custom_decoder;
+    bool use_custom_decoder;
     unsigned int outer_idx;
     unsigned int inner_idx;
 };

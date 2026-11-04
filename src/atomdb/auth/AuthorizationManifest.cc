@@ -1,8 +1,5 @@
-#include "AuthorizationManifest.h"
-
 #include <algorithm>
-
-#define LOG_LEVEL INFO_LEVEL
+#include "AuthorizationManifest.h"
 #include "Logger.h"
 #include "Utils.h"
 
@@ -23,17 +20,19 @@ AuthorizationManifest::AuthorizationManifest(shared_ptr<AtomDB> atomdb) : atomdb
 
 bool AuthorizationManifest::is_granted(const string& public_key,
                                        shared_ptr<Atom> atom,
-                                       AuthorizationOperation operation) {
+                                       AuthorizationOperation operation,
+                                       shared_ptr<Keychain> keychain) {
     if (atom == nullptr) {
         RAISE_ERROR("AuthorizationManifest::is_granted() requires a non-null atom or a valid handle");
     }
-    return this->is_granted(public_key, operation, atom, "");
+    return this->is_granted(public_key, operation, atom, "", keychain);
 }
 
 bool AuthorizationManifest::is_granted(const string& public_key,
                                        const string& handle,
-                                       AuthorizationOperation operation) {
-    return this->is_granted(public_key, operation, nullptr, handle);
+                                       AuthorizationOperation operation,
+                                       shared_ptr<Keychain> keychain) {
+    return this->is_granted(public_key, operation, nullptr, handle, keychain);
 }
 
 bool AuthorizationManifest::ensure_profile_loaded(const string& public_key) {
@@ -105,14 +104,22 @@ bool AuthorizationManifest::is_unrestricted(const string& public_key) {
 bool AuthorizationManifest::is_granted(const string& public_key,
                                        AuthorizationOperation operation,
                                        shared_ptr<Atom> atom,
-                                       const string& handle) {
-    lock_guard<mutex> lock(this->profiles_mutex);
+                                       const string& handle,
+                                       shared_ptr<Keychain> keychain) {
+    this->profiles_mutex.lock();
     auto it = this->profiles.find(public_key);
-    if (it == this->profiles.end() || it->second == nullptr) return false;
+    if (it == this->profiles.end() || it->second == nullptr) {
+        this->profiles_mutex.unlock();
+        return false;
+    }
 
     if (atom == nullptr) {
         atom = this->atomdb->get_atom(handle);
-        if (atom == nullptr) return false;
+        if (atom == nullptr) {
+            this->profiles_mutex.unlock();
+            return false;
+        }
     }
-    return it->second->is_granted(atom, operation);
+    this->profiles_mutex.unlock();
+    return it->second->is_granted(atom, operation, keychain);
 }

@@ -7,6 +7,7 @@
 #include "RedisMongoDB.h"
 #include "RemoteAtomDB.h"
 #include "Utils.h"
+#include "AtomDBSingleton.h"
 
 using namespace atomdb;
 using namespace commons;
@@ -103,6 +104,7 @@ shared_ptr<AtomDB> AtomDBFactory::create_composite_atomdb(const JsonConfig& conf
             RAISE_ERROR("AtomDBFactory: adapterdb backend requires a nonempty uid");
         }
         auto basic_atomdb = create_basic_atomdb(atomdb_backend_config);
+        AtomDBSingleton::provide(basic_atomdb);
         atomdb = make_shared<AdapterDB>(config, basic_atomdb);
     } else {
         RAISE_ERROR("AtomDBFactory: '" + atomdb_type + "' is not a composite AtomDB type");
