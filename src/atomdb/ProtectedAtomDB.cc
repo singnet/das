@@ -2,6 +2,7 @@
 #include "ProtectedAtomDB.h"
 
 #include "Atom.h"
+#include "Hasher.h"
 #include "InMemoryDBAPITypes.h"
 #include "Link.h"
 #include "Logger.h"
@@ -49,10 +50,12 @@ shared_ptr<Atom> ProtectedAtomDB::get_atom(const string& handle, shared_ptr<Keyc
 }
 
 shared_ptr<Node> ProtectedAtomDB::get_node(const string& handle, shared_ptr<Keychain> keychain) {
+    if (!Hasher::is_node_handle(handle)) return nullptr;
     return dynamic_pointer_cast<Node>(this->get_atom(handle, keychain));
 }
 
 shared_ptr<Link> ProtectedAtomDB::get_link(const string& handle, shared_ptr<Keychain> keychain) {
+    if (!Hasher::is_link_handle(handle)) return nullptr;
     return dynamic_pointer_cast<Link>(this->get_atom(handle, keychain));
 }
 

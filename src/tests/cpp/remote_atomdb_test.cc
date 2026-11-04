@@ -143,10 +143,10 @@ TEST_F(RemoteAtomDBPeerTest, GetAtomsNodesAndLinks) {
 
     auto dirty = new Node("Symbol", "\"dirty-node\"");
     string dirty_handle = peer_->add_node(dirty);
-    string missing_handle = "missing" + Utils::random_string(25);
+    auto missing = new Node("Symbol", "\"missing\"");
 
     vector<string> handles = {
-        dirty_handle, local_link_handle, remote_handle, missing_handle, local_human_handle};
+        dirty_handle, local_link_handle, remote_handle, missing->handle(), local_human_handle};
 
     set<string> atoms;
     for (const auto& atom : peer_->get_atoms(handles)) atoms.insert(atom->handle());
@@ -714,9 +714,9 @@ TEST_F(RemoteAtomDBTest, GetAtomsNodesAndLinks) {
     string similarity_handle = db_->add_node(similarity);
     auto link = new Link("Expression", {similarity_handle, human_handle, monkey_handle});
     string link_handle = db_->add_link(link);
-    string missing_handle = "missing" + Utils::random_string(25);
+    auto missing = new Node("Symbol", "\"missing\"");
 
-    vector<string> handles = {human_handle, link_handle, missing_handle, monkey_handle};
+    vector<string> handles = {human_handle, link_handle, missing->handle(), monkey_handle};
 
     set<string> atoms;
     for (const auto& atom : db_->get_atoms(handles)) atoms.insert(atom->handle());

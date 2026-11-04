@@ -10,6 +10,7 @@
 #include <vector>
 
 #include "AtomDBSingleton.h"
+#include "Hasher.h"
 #include "LinkSchema.h"
 #include "Merger.h"
 #include "MockAnimalsData.h"
@@ -43,13 +44,12 @@ class MorkDBTest : public ::testing::Test {
     }
 
     string exp_hash(vector<string> targets) {
-        char* symbol = (char*) "Symbol";
-        char** targets_handles = new char*[targets.size()];
-        for (size_t i = 0; i < targets.size(); i++) {
-            targets_handles[i] = terminal_hash(symbol, (char*) targets[i].c_str());
+        vector<string> target_handles;
+        target_handles.reserve(targets.size());
+        for (const auto& target : targets) {
+            target_handles.push_back(commons::Hasher::node_handle("Symbol", target));
         }
-        char* expression = named_type_hash((char*) "Expression");
-        return string(expression_hash(expression, targets_handles, targets.size()));
+        return commons::Hasher::link_handle("Expression", target_handles);
     }
 
     shared_ptr<MorkDB> db;

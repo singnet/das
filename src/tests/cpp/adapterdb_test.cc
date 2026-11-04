@@ -356,9 +356,9 @@ TEST_P(AdapterDBTest, GetAtomsNodesAndLinks) {
     auto h3 = db->add_node(n3);
     auto link = new Link("Expression", {h1, h2, h3});
     auto link_handle = db->add_link(link);
-    string missing_handle = "missing" + Utils::random_string(25);
+    auto missing = new Node("Symbol", "\"missing\"");
 
-    vector<string> handles = {h1, link_handle, missing_handle, h2};
+    vector<string> handles = {h1, link_handle, missing->handle(), h2};
 
     set<string> atoms;
     for (const auto& atom : db->get_atoms(handles)) atoms.insert(atom->handle());

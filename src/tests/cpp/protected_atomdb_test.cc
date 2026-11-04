@@ -372,13 +372,13 @@ TEST(ProtectedAtomDBTest, GetAtomsNodesAndLinksReturnOnlyAuthorizedAtoms) {
     auto admin_keys = protected_atomdb->keys(PKAdmin);
     auto similarity_human_keys = protected_atomdb->keys(PKSimilarityHuman);
     Animals animals;
-    string missing_handle = "missing" + Utils::random_string(25);
+    auto missing = new Node("Symbol", "\"missing\"");
     vector<string> handles = {animals.similarity_human_monkey,
                               animals.similarity_human_chimp,
                               animals.similarity_snake_vine,
                               animals.inheritance_human_mammal,
                               animals.human,
-                              missing_handle};
+                              missing->handle()};
 
     EXPECT_TRUE(protected_atomdb->db->get_atoms(handles, nullptr).empty());
     EXPECT_TRUE(protected_atomdb->db->get_nodes(handles, nullptr).empty());

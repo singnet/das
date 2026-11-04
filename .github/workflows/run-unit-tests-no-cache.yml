@@ -2,7 +2,19 @@ name: Unit Tests (No Cache)
 
 on:
   workflow_dispatch:
+    inputs:
+      use_das_cli:
+        description: Use the published das-cli loader and attention broker
+        type: boolean
+        required: false
+        default: false
   workflow_call:
+    inputs:
+      use_das_cli:
+        description: Use the published das-cli loader and attention broker
+        type: boolean
+        required: false
+        default: false
 
 jobs:
   unit-tests:
@@ -42,11 +54,25 @@ jobs:
       - name: Starting Redis and MongoDB
         run: das-cli db restart
 
+      - name: Setup bazel
+        run: .github/scripts/setup_bazel.sh
+
       - name: Loading Load Knowledge Base
+        if: ${{ inputs.use_das_cli == true || inputs.use_das_cli == 'true' }}
         run: das-cli metta load /tmp/animals.metta
 
       - name: Starting Attention Broker
+        if: ${{ inputs.use_das_cli == true || inputs.use_das_cli == 'true' }}
         run: das-cli attention-broker restart
+
+      - name: Build db_loader and attention broker
+        if: ${{ inputs.use_das_cli != true && inputs.use_das_cli != 'true' }}
+        working-directory: ./src
+        run: ./scripts/bazel_exec.sh build --noshow_progress //:db_loader //:attention_broker_service
+
+      - name: Load knowledge base and start attention broker
+        if: ${{ inputs.use_das_cli != true && inputs.use_das_cli != 'true' }}
+        run: .github/scripts/run_bazel_services.sh /tmp/animals.metta
 
       - name: Starting MORK Servers
         run: |-
@@ -96,9 +122,6 @@ jobs:
           done
 
           docker exec -i pg_test psql -U postgres -d postgres_wrapper_test < src/scripts/postgres_setup.sql
-
-      - name: Setup bazel
-        run: .github/scripts/setup_bazel.sh
 
       - name: Execute Unit Test Suite
         working-directory: ./src

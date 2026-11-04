@@ -96,9 +96,9 @@ TEST_F(InMemoryDBTest, GetAtomsNodesAndLinks) {
     string similarity_handle = db->add_node(similarity);
     auto link = new Link("Expression", {similarity_handle, human_handle, monkey_handle});
     string link_handle = db->add_link(link);
-    string missing_handle = "missing" + Utils::random_string(25);
+    auto missing = new Node("Symbol", "\"missing\"");
 
-    vector<string> handles = {human_handle, link_handle, missing_handle, monkey_handle};
+    vector<string> handles = {human_handle, link_handle, missing->handle(), monkey_handle};
 
     set<string> atoms;
     for (const auto& atom : db->get_atoms(handles)) atoms.insert(atom->handle());

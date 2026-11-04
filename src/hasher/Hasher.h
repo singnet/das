@@ -21,9 +21,24 @@ class Hasher {
 
     static inline string type_handle(const string& type) { return plain_string_hash(type); }
 
+    static inline bool is_node_handle(const string& handle) {
+        return handle.size() == ATOM_HANDLE_LENGTH && handle[0] == NODE_HANDLE_PREFIX;
+    }
+
+    static inline bool is_link_handle(const string& handle) {
+        return handle.size() == ATOM_HANDLE_LENGTH && handle[0] == LINK_HANDLE_PREFIX;
+    }
+
+    static inline bool is_atom_handle(const string& handle) {
+        return is_node_handle(handle) || is_link_handle(handle);
+    }
+
     static inline string node_handle(const string& type, const string& name) {
         char* h = terminal_hash((char*) type.c_str(), (char*) name.c_str());
-        string handle(h);
+        string handle;
+        handle.reserve(ATOM_HANDLE_LENGTH);
+        handle.push_back(NODE_HANDLE_PREFIX);
+        handle.append(h);
         free(h);
         return handle;
     }
@@ -36,7 +51,10 @@ class Hasher {
             t[i] = (char*) targets[i].c_str();
         }
         char* s = expression_hash(type_hash, t, arity);
-        string handle(s);
+        string handle;
+        handle.reserve(ATOM_HANDLE_LENGTH);
+        handle.push_back(LINK_HANDLE_PREFIX);
+        handle.append(s);
         delete[] t;
         free(type_hash);
         free(s);

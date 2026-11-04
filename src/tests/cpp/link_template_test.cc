@@ -45,9 +45,9 @@ TEST(LinkTemplate, basics) {
     schema.build();
     EXPECT_EQ(schema.handle(), link_template1.get_handle());
 
-    string monkey_handle = string(terminal_hash((char*) symbol.c_str(), (char*) "\"monkey\""));
-    string chimp_handle = string(terminal_hash((char*) symbol.c_str(), (char*) "\"chimp\""));
-    string ent_handle = string(terminal_hash((char*) symbol.c_str(), (char*) "\"ent\""));
+    string monkey_handle = Hasher::node_handle(symbol, "\"monkey\"");
+    string chimp_handle = Hasher::node_handle(symbol, "\"chimp\"");
+    string ent_handle = Hasher::node_handle(symbol, "\"ent\"");
     bool monkey_flag = false;
     bool chimp_flag = false;
     bool ent_flag = false;

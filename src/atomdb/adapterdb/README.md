@@ -58,7 +58,7 @@ feature as f WHERE f.feature_id<=500;
             ]
         },
         "mongodb": {
-            "image": "mongodb/mongodb-community-server:8.2-ubuntu2204",
+            "image": "mongodb/mongodb-community-server:9.0-ubuntu2204",
             "endpoint": "localhost:40021",
             "username": "admin",
             "password": "admin",

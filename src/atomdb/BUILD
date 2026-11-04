@@ -70,6 +70,7 @@ cc_library(
         ":atomdb_singleton",
         ":key_sensitive_atomdb",
         "//atomdb/auth:keychain",
+        "//hasher:hasher_lib",
     ],
 )
 
@@ -121,5 +122,6 @@ cc_library(
         "//atomdb/inmemorydb:inmemorydb_api_types",
         "//commons:commons_lib",
         "//commons/atoms:atoms_lib",
+        "//hasher:hasher_lib",
     ],
 )
