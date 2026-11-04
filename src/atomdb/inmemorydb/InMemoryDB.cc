@@ -183,6 +183,7 @@ vector<shared_ptr<Atom>> InMemoryDB::get_atoms(const vector<string>& handles) {
     vector<shared_ptr<Atom>> atoms;
     atoms.reserve(handles.size());
     for (const auto& handle : handles) {
+        if (!Hasher::is_atom_handle(handle)) continue;
         auto atom = lookup_atom(*trie, handle);
         if (atom == nullptr) continue;
         auto cloned = clone_atom(atom.get());
