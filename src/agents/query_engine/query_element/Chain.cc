@@ -339,7 +339,26 @@ bool Chain::thread_one_step() {
         lock_guard<mutex> semaphore(this->thread_debug_mutex);
 #endif
         lock_guard<mutex> semaphore(this->feeding_mutex);
-        if ((answer = dynamic_cast<QueryAnswer*>(this->input_buffer[0]->pop_query_answer())) != NULL) {
+        bool confirmed_closed = false;
+        do {
+            answer = dynamic_cast<QueryAnswer*>(this->input_buffer[0]->pop_query_answer());
+            if (answer != nullptr) {
+                break;
+            }
+            if (confirmed_closed) {
+                LOG_DEBUG("[CHAIN OPERATOR] "
+                          << "All input has been acknowledged");
+                this->all_input_acknowledged_flag = true;
+                return false;
+            }
+            if (!this->input_buffer[0]->answers_finished_and_empty()) {
+                return false;
+            }
+            // The failed pop can race a link that landed as the input closed. Read once more
+            // before the path finders treat the search as done.
+            confirmed_closed = true;
+        } while (true);
+        if (answer != NULL) {
             LOG_DEBUG("[CHAIN OPERATOR] "
                       << "New query answer: " << answer->to_string());
             string handle = answer->get(this->link_selector);
@@ -401,15 +420,8 @@ bool Chain::thread_one_step() {
             LOG_DEBUG("[CHAIN OPERATOR] "
                       << "Done refeeding");
             return true;
-        } else {
-            if (this->input_buffer[0]->is_query_answers_finished() &&
-                this->input_buffer[0]->is_query_answers_empty()) {
-                LOG_DEBUG("[CHAIN OPERATOR] "
-                          << "All input has been acknowledged");
-                this->all_input_acknowledged_flag = true;
-            }
-            return false;
         }
+        return false;
     }
 }
 

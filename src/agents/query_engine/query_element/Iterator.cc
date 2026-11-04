@@ -10,10 +10,6 @@ Iterator::Iterator(shared_ptr<QueryElement> precedent)
 
 Iterator::~Iterator() {}
 
-bool Iterator::finished() {
-    // The order of the AND clauses below matters
-    return (this->input_buffer->is_query_answers_finished() &&
-            this->input_buffer->is_query_answers_empty());
-}
+bool Iterator::finished() { return this->input_buffer->answers_finished_and_empty(); }
 
 QueryAnswer* Iterator::pop() { return (QueryAnswer*) this->input_buffer->pop_query_answer(); }

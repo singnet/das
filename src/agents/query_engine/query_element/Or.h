@@ -113,10 +113,20 @@ class Or : public Operator<N> {
                 no_new_answer = false;
                 this->query_answer[i].push_back(answer);
             }
-            if (this->input_buffer[i]->is_query_answers_empty() &&
-                this->input_buffer[i]->is_query_answers_finished()) {
-                this->all_answers_arrived[i] = true;
-                all_arrived_count++;
+            if (this->input_buffer[i]->answers_finished_and_empty()) {
+                if ((answer = dynamic_cast<QueryAnswer*>(this->input_buffer[i]->pop_query_answer())) !=
+                    NULL) {
+                    no_new_answer = false;
+                    this->query_answer[i].push_back(answer);
+                    while ((answer =
+                                dynamic_cast<QueryAnswer*>(this->input_buffer[i]->pop_query_answer())) !=
+                           NULL) {
+                        this->query_answer[i].push_back(answer);
+                    }
+                } else {
+                    this->all_answers_arrived[i] = true;
+                    all_arrived_count++;
+                }
             }
         }
         if (all_arrived_count == N) {

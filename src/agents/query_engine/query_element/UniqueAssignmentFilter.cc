@@ -49,13 +49,18 @@ void UniqueAssignmentFilter::thread_filter() {
     unordered_set<Assignment> already_used;
 
     while (true) {
-        if ((this->input_buffer[0]->is_query_answers_finished() &&
-             this->input_buffer[0]->is_query_answers_empty()) ||
-            Operator<1>::is_flow_finished()) {
+        if (Operator<1>::is_flow_finished()) {
             this->output_buffer->query_answers_finished();
             break;
         }
         QueryAnswer* answer = dynamic_cast<QueryAnswer*>(this->input_buffer[0]->pop_query_answer());
+        if (answer == nullptr && this->input_buffer[0]->answers_finished_and_empty()) {
+            answer = dynamic_cast<QueryAnswer*>(this->input_buffer[0]->pop_query_answer());
+            if (answer == nullptr) {
+                this->output_buffer->query_answers_finished();
+                break;
+            }
+        }
         if (answer != NULL) {
             if (already_used.find(answer->assignment) == already_used.end()) {
                 // New assignment. Let the QueryAnswer pass.

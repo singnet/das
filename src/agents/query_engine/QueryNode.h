@@ -24,6 +24,11 @@ class QueryNode : public DistributedAlgorithmNode {
     bool is_shutting_down();
     void query_answers_finished();
     bool is_query_answers_finished();
+    /**
+     * True when the finished flag is set and the queue is empty, observed under one lock.
+     * An add that has passed the finished check cannot land after this returns true.
+     */
+    bool answers_finished_and_empty();
     void add_query_answer(QueryAnswer* query_answer);
     QueryAnswer* pop_query_answer();
     bool is_query_answers_empty();

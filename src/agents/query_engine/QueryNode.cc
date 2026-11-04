@@ -93,12 +93,17 @@ shared_ptr<Message> QueryNode::message_factory(string& command, vector<string>& 
     return std::shared_ptr<Message>{};
 }
 
+bool QueryNode::answers_finished_and_empty() {
+    lock_guard<mutex> finished_lock(this->query_answers_finished_flag_mutex);
+    return this->query_answers_finished_flag && this->query_answer_queue.empty();
+}
+
 void QueryNode::add_query_answer(QueryAnswer* query_answer) {
-    if (is_query_answers_finished()) {
+    lock_guard<mutex> finished_lock(this->query_answers_finished_flag_mutex);
+    if (this->query_answers_finished_flag) {
         RAISE_ERROR("Invalid addition of new query answer.");
-    } else {
-        this->query_answer_queue.enqueue((void*) query_answer);
     }
+    this->query_answer_queue.enqueue((void*) query_answer);
 }
 
 QueryAnswer* QueryNode::pop_query_answer() { return (QueryAnswer*) this->query_answer_queue.dequeue(); }
@@ -142,9 +147,7 @@ void QueryNodeClient::query_answer_processor_method() {
             }
         }
         if (args.empty()) {
-            // The order of the AND clauses below matters
-            if (!answers_finished_flag && this->is_query_answers_finished() &&
-                this->query_answer_queue.empty()) {
+            if (!answers_finished_flag && this->answers_finished_and_empty()) {
                 this->send_stream(QueryNode::QUERY_ANSWERS_FINISHED_COMMAND, args, this->server_id);
                 answers_finished_flag = true;
                 this->work_done_flag = true;

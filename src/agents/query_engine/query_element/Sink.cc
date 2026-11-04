@@ -71,6 +71,5 @@ void Sink::graceful_shutdown() {
 }
 
 bool Sink::finished() {
-    return (this->input_buffer->is_query_answers_empty() &&
-            this->input_buffer->is_query_answers_finished());
+    return this->input_buffer->answers_finished_and_empty();
 }
