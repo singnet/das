@@ -35,6 +35,7 @@ void RedisMongoDB::initialize_namespace(const string& prefix) {
     REDIS_PATTERNS_PREFIX = prefix + "patterns";
     REDIS_OUTGOING_PREFIX = prefix + "outgoing_set";
     REDIS_INCOMING_PREFIX = prefix + "incoming_set";
+    REDIS_NODE_NAME_PREFIX = prefix + "names";
     REDIS_CHUNK_SIZE = 10000;
     MONGODB_DB_NAME = prefix + "das";
     MONGODB_NODES_COLLECTION_NAME = prefix + "nodes";
@@ -188,6 +189,70 @@ shared_ptr<Atom> RedisMongoDB::get_atom(const string& handle) {
 shared_ptr<Node> RedisMongoDB::get_node(const string& handle) {
     if (!Hasher::is_node_handle(handle)) return nullptr;
     return dynamic_pointer_cast<Node>(get_atom(handle));
+}
+
+string RedisMongoDB::get_node_name(const string& handle) {
+    if (!Hasher::is_node_handle(handle)) return "";
+    if (skip_redis_) {
+        auto node = get_node(handle);
+        if (node == nullptr) return "";
+        return node->name;
+    }
+
+    auto ctx = this->redis_pool->acquire();
+    redisReply* reply = ctx->execute({"GET", REDIS_NODE_NAME_PREFIX + ":" + handle});
+    if (reply == NULL) RAISE_ERROR("Redis error at get_node_name");
+
+    if (reply->type == REDIS_REPLY_NIL) {
+        freeReplyObject(reply);
+        return "";
+    }
+    if (reply->type != REDIS_REPLY_STRING) {
+        auto reply_type = std::to_string(reply->type);
+        freeReplyObject(reply);
+        RAISE_ERROR("Invalid Redis response at get_node_name: " + reply_type);
+    }
+
+    string name(reply->str, static_cast<size_t>(reply->len));
+    freeReplyObject(reply);
+    return name;
+}
+
+void RedisMongoDB::add_node_name(const string& handle, const string& name) {
+    if (skip_redis_) return;
+
+    auto ctx = this->redis_pool->acquire();
+    redisReply* reply = ctx->execute({"SET", REDIS_NODE_NAME_PREFIX + ":" + handle, name});
+    if (reply == NULL) RAISE_ERROR("Redis error at add_node_name");
+    int reply_type = reply->type;
+    freeReplyObject(reply);
+    if (reply_type != REDIS_REPLY_STATUS) {
+        RAISE_ERROR("Invalid Redis response at add_node_name: " + std::to_string(reply_type));
+    }
+}
+
+void RedisMongoDB::add_node_names(const vector<pair<string, string>>& handle_names) {
+    if (skip_redis_ || handle_names.empty()) return;
+
+    auto ctx = this->redis_pool->acquire();
+    for (const auto& entry : handle_names) {
+        ctx->append_command({"SET", REDIS_NODE_NAME_PREFIX + ":" + entry.first, entry.second});
+        if (static_cast<uint>(ctx->get_pending_commands_count()) >= REDIS_CHUNK_SIZE) {
+            ctx->flush_commands();
+        }
+    }
+    if (ctx->get_pending_commands_count() > 0) {
+        ctx->flush_commands();
+    }
+}
+
+void RedisMongoDB::delete_node_name(const string& handle) {
+    if (skip_redis_) return;
+
+    auto ctx = this->redis_pool->acquire();
+    redisReply* reply = ctx->execute({"DEL", REDIS_NODE_NAME_PREFIX + ":" + handle});
+    if (reply == NULL) RAISE_ERROR("Redis error at delete_node_name");
+    freeReplyObject(reply);
 }
 
 shared_ptr<Link> RedisMongoDB::get_link(const string& handle) {
@@ -891,6 +956,7 @@ string RedisMongoDB::add_node(const atoms::Node* node, const atoms::Merger* merg
         RAISE_ERROR("Failed to insert node into MongoDB");
         return "";
     }
+    this->add_node_name(to_store->handle(), to_store->name);
     return node->handle();
 }
 
@@ -932,6 +998,7 @@ vector<string> RedisMongoDB::add_nodes(const vector<atoms::Node*>& nodes,
 
     vector<bsoncxx::document::value> documents;
     vector<string> handles;
+    vector<pair<string, string>> node_names;
     handles.reserve(nodes.size());
     map<string, shared_ptr<Node>> batch_merged;
     vector<string> unique_handles;
@@ -975,6 +1042,7 @@ vector<string> RedisMongoDB::add_nodes(const vector<atoms::Node*>& nodes,
             auto mongodb_doc = atomdb_api_types::MongodbDocument(node);
             documents.push_back(mongodb_doc.value());
             handles.push_back(node->handle());
+            node_names.emplace_back(node->handle(), node->name);
             if (this->composite_type_enabled() && is_transactional) {
                 lock_guard<mutex> composite_type_hashes_map_lock(this->composite_type_hashes_map_mutex);
                 this->composite_type_hashes_map[node->handle()] = node->named_type_hash();
@@ -987,6 +1055,7 @@ vector<string> RedisMongoDB::add_nodes(const vector<atoms::Node*>& nodes,
             const atoms::Node* to_store = batch_merged[handle].get();
             auto mongodb_doc = atomdb_api_types::MongodbDocument(to_store);
             documents.push_back(mongodb_doc.value());
+            node_names.emplace_back(to_store->handle(), to_store->name);
             if (this->composite_type_enabled() && is_transactional) {
                 lock_guard<mutex> composite_type_hashes_map_lock(this->composite_type_hashes_map_mutex);
                 this->composite_type_hashes_map[handle] = to_store->named_type_hash();
@@ -996,6 +1065,7 @@ vector<string> RedisMongoDB::add_nodes(const vector<atoms::Node*>& nodes,
 
     if (!documents.empty()) {
         upsert_documents(documents, MONGODB_NODES_COLLECTION_NAME);
+        add_node_names(node_names);
     }
 
     return handles;
@@ -1174,6 +1244,10 @@ bool RedisMongoDB::delete_document(const string& handle,
         delete_incoming_set(handle);
 
         delete_outgoing_set(handle);
+
+        if (Hasher::is_node_handle(handle)) {
+            delete_node_name(handle);
+        }
     }
 
     // NOTE: the initial handle might be already deleted due the recursive delete_atom() calls.
@@ -1188,7 +1262,10 @@ bool RedisMongoDB::delete_atom(const string& handle, bool delete_targets) {
 
 bool RedisMongoDB::delete_node(const string& handle, bool delete_targets) {
     auto node_document = get_node_document(handle);
-    if (node_document == nullptr) return false;
+    if (node_document == nullptr) {
+        delete_node_name(handle);
+        return false;
+    }
     return delete_document(handle, MONGODB_NODES_COLLECTION_NAME, delete_targets);
 }
 
@@ -1533,7 +1610,8 @@ void RedisMongoDB::drop_all() {
     // Drop Redis database (by prefixes)
     if (!skip_redis_) {
         auto ctx = this->redis_pool->acquire();
-        vector<string> keys = {REDIS_PATTERNS_PREFIX, REDIS_OUTGOING_PREFIX, REDIS_INCOMING_PREFIX};
+        vector<string> keys = {
+            REDIS_PATTERNS_PREFIX, REDIS_OUTGOING_PREFIX, REDIS_INCOMING_PREFIX, REDIS_NODE_NAME_PREFIX};
         for (const auto& key : keys) {
             flush_redis_by_prefix(key);
         }

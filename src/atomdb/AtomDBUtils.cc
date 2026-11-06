@@ -109,12 +109,13 @@ shared_ptr<Node> AtomDBUtils::get_node(const string& handle, shared_ptr<Keychain
 
 string AtomDBUtils::get_node_name(const string& handle, shared_ptr<Keychain> keychain) {
     STACK_TRACE();
-    auto node = AtomDBUtils::get_node(handle, keychain);
-    if (node == nullptr) {
-        return "";
-    } else {
-        return node->name;
+    shared_ptr<AtomDB> atomdb = AtomDBSingleton::get_instance();
+    shared_ptr<KeySensitiveAtomDB> key_sensitive_atomdb =
+        dynamic_pointer_cast<KeySensitiveAtomDB>(atomdb);
+    if (key_sensitive_atomdb) {
+        return key_sensitive_atomdb->get_node_name(handle, keychain);
     }
+    return atomdb->get_node_name(handle);
 }
 
 double AtomDBUtils::get_strength(const string& handle,

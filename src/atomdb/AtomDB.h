@@ -65,6 +65,18 @@ class AtomDB : public HandleDecoder {
     virtual shared_ptr<Node> get_node(const string& handle) = 0;
     virtual shared_ptr<Link> get_link(const string& handle) = 0;
 
+    /**
+     * Name of the stored node for handle, or "" when no such node exists.
+     * The default loads the node. Backends may serve this from a name index.
+     */
+    virtual string get_node_name(const string& handle) {
+        auto node = this->get_node(handle);
+        if (node == nullptr) {
+            return "";
+        }
+        return node->name;
+    }
+
     virtual vector<shared_ptr<Atom>> get_matching_atoms(bool is_toplevel, Atom& key) = 0;
 
     virtual shared_ptr<atomdb_api_types::HandleSet> query_for_pattern(const LinkSchema& link_schema) = 0;

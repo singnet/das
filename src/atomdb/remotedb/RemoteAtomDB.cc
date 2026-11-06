@@ -75,6 +75,8 @@ shared_ptr<Node> RemoteAtomDB::get_node(const string& handle) {
     return dynamic_pointer_cast<Node>(get_atom(handle));
 }
 
+string RemoteAtomDB::get_node_name(const string& handle) { return this->get_node_name(handle, nullptr); }
+
 shared_ptr<Link> RemoteAtomDB::get_link(const string& handle) {
     if (!Hasher::is_link_handle(handle)) return nullptr;
     return dynamic_pointer_cast<Link>(get_atom(handle));
@@ -322,6 +324,34 @@ shared_ptr<Atom> RemoteAtomDB::get_atom(const string& handle, shared_ptr<Keychai
 shared_ptr<Node> RemoteAtomDB::get_node(const string& handle, shared_ptr<Keychain> keychain) {
     if (!Hasher::is_node_handle(handle)) return nullptr;
     return dynamic_pointer_cast<Node>(this->get_atom(handle, keychain));
+}
+
+string RemoteAtomDB::get_node_name(const string& handle, shared_ptr<Keychain> keychain) {
+    if (!Hasher::is_node_handle(handle)) return "";
+
+    for (auto& [uid, peer] : writable_peers_) {
+        string name = peer->get_node_name(handle, keychain);
+        if (!name.empty()) {
+            LOG_DEBUG("get_node_name(" << handle << ") fetched from peer [" << uid << "]");
+            return name;
+        }
+    }
+
+    for (auto& [uid, peer] : readonly_peers_) {
+        auto node = peer->get_cached_node(handle, keychain);
+        if (node) return node->name;
+    }
+
+    for (auto& [uid, peer] : readonly_peers_) {
+        string name = peer->get_node_name(handle, keychain);
+        if (!name.empty()) {
+            LOG_DEBUG("get_node_name(" << handle << ") fetched from peer [" << uid << "]");
+            return name;
+        }
+    }
+
+    LOG_DEBUG("get_node_name(" << handle << ") not found in any peer");
+    return "";
 }
 
 shared_ptr<Link> RemoteAtomDB::get_link(const string& handle, shared_ptr<Keychain> keychain) {

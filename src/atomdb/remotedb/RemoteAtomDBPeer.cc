@@ -107,6 +107,10 @@ shared_ptr<Node> RemoteAtomDBPeer::get_node(const string& handle) {
     return dynamic_pointer_cast<Node>(get_atom(handle));
 }
 
+string RemoteAtomDBPeer::get_node_name(const string& handle) {
+    return this->get_node_name(handle, nullptr);
+}
+
 shared_ptr<Link> RemoteAtomDBPeer::get_link(const string& handle) {
     if (!Hasher::is_link_handle(handle)) return nullptr;
     return dynamic_pointer_cast<Link>(get_atom(handle));
@@ -733,6 +737,38 @@ shared_ptr<Atom> RemoteAtomDBPeer::get_atom(const string& handle, shared_ptr<Key
 shared_ptr<Node> RemoteAtomDBPeer::get_node(const string& handle, shared_ptr<Keychain> keychain) {
     if (!Hasher::is_node_handle(handle)) return nullptr;
     return dynamic_pointer_cast<Node>(this->get_atom(handle, keychain));
+}
+
+string RemoteAtomDBPeer::get_node_name(const string& handle, shared_ptr<Keychain> keychain) {
+    if (!Hasher::is_node_handle(handle)) return "";
+
+    auto pwb = protected_write_buffer();
+    if (pwb) {
+        string name = pwb->get_node_name(handle, keychain);
+        if (!name.empty()) return name;
+    } else {
+        string name = write_buffer()->get_node_name(handle);
+        if (!name.empty()) return name;
+    }
+
+    if (local_persistence_) {
+        string name = local_persistence_->get_node_name(handle);
+        if (!name.empty()) return name;
+    }
+
+    auto prc = protected_read_cache();
+    if (prc) {
+        string name = prc->get_node_name(handle, keychain);
+        if (!name.empty()) return name;
+    } else {
+        string name = read_cache()->get_node_name(handle);
+        if (!name.empty()) return name;
+    }
+
+    if (this->protected_atomdb_) {
+        return this->protected_atomdb_->get_node_name(handle, keychain);
+    }
+    return this->atomdb_->get_node_name(handle);
 }
 
 shared_ptr<Link> RemoteAtomDBPeer::get_link(const string& handle, shared_ptr<Keychain> keychain) {

@@ -30,6 +30,7 @@ class KeySensitiveAtomDB {
     virtual shared_ptr<Atom> get_atom(const string& handle, shared_ptr<Keychain> keychain) = 0;
     virtual shared_ptr<Node> get_node(const string& handle, shared_ptr<Keychain> keychain) = 0;
     virtual shared_ptr<Link> get_link(const string& handle, shared_ptr<Keychain> keychain) = 0;
+    virtual string get_node_name(const string& handle, shared_ptr<Keychain> keychain) = 0;
 
     virtual vector<shared_ptr<Atom>> get_matching_atoms(bool is_toplevel,
                                                         Atom& key,

@@ -410,6 +410,45 @@ TEST_F(RedisMongoDBTest, AddGetAndDeleteNode) {
     EXPECT_TRUE(deleted);
 }
 
+TEST_F(RedisMongoDBTest, GetNodeNameFromRedis) {
+    string name = "hello \"world\" with spaces";
+    Node node("Symbol", name);
+    string handle = db->add_node(&node);
+    EXPECT_EQ(handle, node.handle());
+    EXPECT_EQ(db->get_node_name(handle), name);
+
+    // Drop the Mongo document so the returned name can only come from Redis.
+    {
+        auto conn = db->get_mongo_pool()->acquire();
+        auto collection = (*conn)[db->MONGODB_DB_NAME][db->MONGODB_NODES_COLLECTION_NAME];
+        collection.delete_one(
+            bsoncxx::builder::basic::make_document(bsoncxx::builder::basic::kvp("_id", handle)));
+    }
+    EXPECT_EQ(db->get_node(handle), nullptr);
+    EXPECT_EQ(db->get_node_name(handle), name);
+
+    EXPECT_FALSE(db->delete_node(handle));
+    EXPECT_EQ(db->get_node_name(handle), "");
+
+    Node kept("Symbol", "kept-node");
+    string kept_handle = db->add_node(&kept);
+    EXPECT_TRUE(db->delete_node(kept_handle));
+    EXPECT_EQ(db->get_node_name(kept_handle), "");
+
+    Node batch_one("Symbol", "batch one");
+    Node batch_two("Symbol", "batch two");
+    auto handles = db->add_nodes({&batch_one, &batch_two});
+    ASSERT_EQ(handles.size(), 2u);
+    EXPECT_EQ(db->get_node_name(handles[0]), "batch one");
+    EXPECT_EQ(db->get_node_name(handles[1]), "batch two");
+    EXPECT_EQ(db->delete_nodes(handles), 2u);
+    EXPECT_EQ(db->get_node_name(handles[0]), "");
+    EXPECT_EQ(db->get_node_name(handles[1]), "");
+
+    EXPECT_EQ(db->get_node_name(Hasher::link_handle("Expression", {node.handle()})), "");
+    EXPECT_EQ(db->get_node_name(Hasher::node_handle("Symbol", "missing-node-name")), "");
+}
+
 TEST_F(RedisMongoDBTest, AddAndDeleteNodes) {
     vector<Node*> nodes;
     for (int i = 0; i < 10; i++) {
@@ -1739,6 +1778,8 @@ TEST(RedisMongoDBPrefixIsolation, InstancesKeepIndependentNamespaces) {
     EXPECT_EQ(db_b->REDIS_PATTERNS_PREFIX, "peer_b_patterns");
     EXPECT_EQ(db_a->REDIS_OUTGOING_PREFIX, "peer_a_outgoing_set");
     EXPECT_EQ(db_b->REDIS_OUTGOING_PREFIX, "peer_b_outgoing_set");
+    EXPECT_EQ(db_a->REDIS_NODE_NAME_PREFIX, "peer_a_names");
+    EXPECT_EQ(db_b->REDIS_NODE_NAME_PREFIX, "peer_b_names");
 
     Node pred_a("Symbol", "SimilarityA");
     Node human_a("Symbol", "PeerAHuman");
@@ -1753,6 +1794,11 @@ TEST(RedisMongoDBPrefixIsolation, InstancesKeepIndependentNamespaces) {
     Link link_b("Expression", {pred_b.handle(), human_b.handle(), monkey_b.handle()});
     db_a->add_link(&link_a);
     db_b->add_link(&link_b);
+
+    EXPECT_EQ(db_a->get_node_name(human_a.handle()), "PeerAHuman");
+    EXPECT_EQ(db_a->get_node_name(human_b.handle()), "");
+    EXPECT_EQ(db_b->get_node_name(human_b.handle()), "PeerBHuman");
+    EXPECT_EQ(db_b->get_node_name(human_a.handle()), "");
 
     EXPECT_TRUE(db_a->node_exists(human_a.handle()));
     EXPECT_TRUE(db_a->link_exists(link_a.handle()));
@@ -1769,6 +1815,7 @@ TEST(RedisMongoDBPrefixIsolation, InstancesKeepIndependentNamespaces) {
 
     db_a->drop_all();
 
+    EXPECT_EQ(db_a->get_node_name(human_a.handle()), "");
     EXPECT_FALSE(db_a->node_exists(human_a.handle()));
     EXPECT_FALSE(db_a->link_exists(link_a.handle()));
     EXPECT_TRUE(db_b->node_exists(human_b.handle()));

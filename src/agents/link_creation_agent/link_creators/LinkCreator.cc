@@ -57,12 +57,7 @@ LinkCreator::AddLinkStatus LinkCreator::add_or_update_link(const vector<string>&
 
 string LinkCreator::get_node_name(const string& handle) {
     STACK_TRACE();
-    auto node = atomdb()->get_node(handle);
-    if (node == nullptr) {
-        return "";
-    } else {
-        return node->name;
-    }
+    return atomdb()->get_node_name(handle);
 }
 
 double LinkCreator::get_strength(const string& handle) {
