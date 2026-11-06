@@ -31,5 +31,6 @@ cc_library(
         "//atomdb",
         "//commons:commons_lib",
         "//commons/atoms:atoms_lib",
+        "//commons/atoms:handle_decoder",
     ],
 )

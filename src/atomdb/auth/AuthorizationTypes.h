@@ -9,6 +9,7 @@
 #include "AtomDBAPITypes.h"
 #include "Keychain.h"
 #include "LinkSchema.h"
+#include "atomdb/AtomDBUtils.h"
 
 using namespace commons;
 using namespace atoms;
@@ -25,7 +26,9 @@ class AuthorizationSchema {
     AuthorizationSchema(shared_ptr<AtomDB> atomdb, const vector<string>& tokens, bool read, bool write);
     ~AuthorizationSchema() = default;
 
-    bool is_granted(shared_ptr<Atom> atom, AuthorizationOperation operation);
+    bool is_granted(shared_ptr<Atom> atom,
+                    AuthorizationOperation operation,
+                    shared_ptr<Keychain> keychain);
     bool allows(AuthorizationOperation operation) const;
 
     /**
@@ -48,6 +51,7 @@ class AuthorizationSchema {
 
    private:
     shared_ptr<AtomDB> atomdb_;
+    AtomDBUtils decoder_;
     LinkSchema schema_;
     bool read_;
     bool write_;
@@ -70,7 +74,9 @@ class AuthorizationProfile {
      */
     inline bool is_unrestricted() const { return this->full_access_; }
 
-    bool is_granted(shared_ptr<Atom> atom, AuthorizationOperation operation);
+    bool is_granted(shared_ptr<Atom> atom,
+                    AuthorizationOperation operation,
+                    shared_ptr<Keychain> keychain);
 
     /**
      * @brief Adds the atoms granted by this profile's read schemas to the three counters.

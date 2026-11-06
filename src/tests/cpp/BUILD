@@ -372,7 +372,7 @@ cc_test(
 
 cc_test(
     name = "unique_assignment_filter_test",
-    size = "medium",
+    size = "small",
     srcs = [
         "test_utils.cc",
         "test_utils.h",
@@ -900,8 +900,11 @@ cc_test(
     ],
     linkstatic = 1,
     deps = [
+        "//atomdb:atomdb_initializer",
         "//atomdb/redis_mongodb:redis_mongodb_api_types",
         "//commons/atoms:atoms_lib",
+        "//tests/cpp/test_commons:test_atomdb_json_config",
+        "//tests/cpp/test_commons:test_system_params",
         "@com_github_google_googletest//:gtest",
         "@mbedtls",
     ],
@@ -915,17 +918,27 @@ cc_test(
         "-Iexternal/gtest/googletest/include",
         "-Iexternal/gtest/googletest",
     ],
+    linkopts = [
+        "-L/usr/local/lib",
+        "-lhiredis_cluster",
+        "-lhiredis",
+        "-lmongocxx",
+        "-lbsoncxx",
+    ],
     linkstatic = 1,
     deps = [
+        "//atomdb:atomdb_initializer",
         "//atomdb/inmemorydb:inmemorydb_lib",
         "//commons/atoms:atoms_lib",
+        "//tests/cpp/test_commons:test_atomdb_json_config",
+        "//tests/cpp/test_commons:test_system_params",
         "@com_github_google_googletest//:gtest",
     ],
 )
 
 cc_test(
     name = "protected_atomdb_test",
-    size = "medium",
+    size = "small",
     srcs = ["protected_atomdb_test.cc"],
     copts = [
         "-Iexternal/gtest/googletest/include",
@@ -942,7 +955,6 @@ cc_test(
     deps = [
         "//atomdb:protected_atomdb",
         "//atomdb/auth:auth_lib",
-        "//atomdb/auth:keychain",
         "//atomdb/inmemorydb:inmemorydb_lib",
         "//atomdb/redis_mongodb:redis_mongodb_lib",
         "//commons/atoms:atoms_lib",
@@ -975,7 +987,6 @@ cc_test(
         "//atomdb:atomdb_singleton",
         "//atomdb:protected_atomdb",
         "//atomdb/auth:auth_lib",
-        "//atomdb/auth:keychain",
         "//atomdb/redis_mongodb:redis_mongodb_lib",
         "//commons/atoms:atoms_lib",
         "//hasher:hasher_lib",
@@ -996,7 +1007,7 @@ cc_test(
     ],
     linkstatic = 1,
     deps = [
-        "//atomdb/auth:keychain",
+        "//commons:commons_lib",
         "@com_github_google_googletest//:gtest_main",
     ],
 )
@@ -1004,7 +1015,11 @@ cc_test(
 cc_test(
     name = "authorization_test",
     size = "small",
-    srcs = ["authorization_test.cc"],
+    srcs = [
+        "authorization_test.cc",
+        "test_utils.cc",
+        "test_utils.h",
+    ],
     copts = [
         "-Iexternal/gtest/googletest/include",
         "-Iexternal/gtest/googletest",
@@ -1018,11 +1033,13 @@ cc_test(
     ],
     linkstatic = 1,
     deps = [
+        "//atomdb:atomdb_initializer",
         "//atomdb/auth:auth_lib",
         "//atomdb/inmemorydb:inmemorydb_lib",
         "//commons/atoms:atoms_lib",
         "//tests/cpp/test_commons:in_memory_access_permission_types",
         "//tests/cpp/test_commons:test_atomdb_json_config",
+        "//tests/cpp/test_commons:test_system_params",
         "@com_github_google_googletest//:gtest_main",
         "@mbedtls",
     ],
@@ -1117,7 +1134,11 @@ cc_test(
 cc_test(
     name = "remote_atomdb_test",
     size = "medium",
-    srcs = ["remote_atomdb_test.cc"],
+    srcs = [
+        "remote_atomdb_test.cc",
+        "test_utils.cc",
+        "test_utils.h",
+    ],
     copts = [
         "-Iexternal/gtest/googletest/include",
         "-Iexternal/gtest/googletest",
@@ -1151,7 +1172,11 @@ cc_test(
 cc_test(
     name = "remote_atomdb_key_sensitive_test",
     size = "small",
-    srcs = ["remote_atomdb_key_sensitive_test.cc"],
+    srcs = [
+        "remote_atomdb_key_sensitive_test.cc",
+        "test_utils.cc",
+        "test_utils.h",
+    ],
     copts = [
         "-Iexternal/gtest/googletest/include",
         "-Iexternal/gtest/googletest",
@@ -1159,7 +1184,6 @@ cc_test(
     linkstatic = 1,
     deps = [
         "//atomdb:protected_atomdb",
-        "//atomdb/auth:keychain",
         "//atomdb/inmemorydb:inmemorydb_lib",
         "//atomdb/remotedb:remotedb_lib",
         "//commons/atoms:atoms_lib",

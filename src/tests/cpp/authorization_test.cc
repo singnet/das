@@ -12,6 +12,8 @@
 #include <utility>
 #include <vector>
 
+#include "AtomDBInitializer.h"
+#include "AtomDBSingleton.h"
 #include "AuthorizationManifest.h"
 #include "AuthorizationPersistence.h"
 #include "AuthorizationTypes.h"
@@ -23,13 +25,18 @@
 #include "Node.h"
 #include "RedisMongoDBAPITypes.h"
 #include "TestAtomDBJsonConfig.h"
+#include "TestSystemParams.h"
+#include "test_utils.h"
 
+using das_test::init_test_system_parameters_singleton;
 using namespace atomdb;
 using namespace atomdb_api_types;
 using namespace atoms;
 using namespace std;
 
 namespace {
+
+static shared_ptr<Keychain> keychain = make_shared<Keychain>();
 
 vector<string> inheritance_mammal_tokens() {
     return {"LINK_TEMPLATE",
@@ -96,7 +103,7 @@ shared_ptr<AccessPermissionAtomDB> db_with_inheritance_link(string* link_handle)
     string human_handle = db->add_node(human);
     string mammal_handle = db->add_node(mammal);
     string inheritance_handle = db->add_node(inheritance);
-    auto link = new Link("Expression", {inheritance_handle, human_handle, mammal_handle});
+    auto link = new Link("Expression", {inheritance_handle, human_handle, mammal_handle}, true);
     *link_handle = db->add_link(link);
     delete human;
     delete mammal;
@@ -130,6 +137,7 @@ unique_ptr<MongodbAuthorizationPersistence> make_mongo_persistence(const string&
 TEST(AuthorizationManifestTest, BuildsProfilesFromDocuments) {
     string link_handle;
     auto db = db_with_inheritance_link(&link_handle);
+    AtomDBSingleton::provide(db, true);
     db->permissions["pk1"] = make_document("pk1", false, {read_only_inheritance_schema()});
     db->permissions["pk2"] = make_document("pk2", true, {});
     AuthorizationManifest manifest(db);
@@ -139,11 +147,11 @@ TEST(AuthorizationManifestTest, BuildsProfilesFromDocuments) {
 
     ASSERT_TRUE(manifest.ensure_profile_loaded("pk1"));
     ASSERT_TRUE(manifest.ensure_profile_loaded("pk2"));
-    EXPECT_TRUE(manifest.is_granted("pk1", link, AuthorizationOperation::READ));
-    EXPECT_TRUE(manifest.is_granted("pk2", link, AuthorizationOperation::READ));
-    EXPECT_TRUE(manifest.is_granted("pk1", link, AuthorizationOperation::READ));
+    EXPECT_TRUE(manifest.is_granted("pk1", link, AuthorizationOperation::READ, keychain));
+    EXPECT_TRUE(manifest.is_granted("pk2", link, AuthorizationOperation::READ, keychain));
+    EXPECT_TRUE(manifest.is_granted("pk1", link, AuthorizationOperation::READ, keychain));
     EXPECT_FALSE(manifest.ensure_profile_loaded("unknown"));
-    EXPECT_FALSE(manifest.is_granted("unknown", link, AuthorizationOperation::READ));
+    EXPECT_FALSE(manifest.is_granted("unknown", link, AuthorizationOperation::READ, keychain));
 }
 
 TEST(AuthorizationManifestTest, EmptyDocuments) {
@@ -153,7 +161,7 @@ TEST(AuthorizationManifestTest, EmptyDocuments) {
     auto link = db->get_link(link_handle);
     ASSERT_NE(link, nullptr);
     EXPECT_FALSE(manifest.ensure_profile_loaded("pk"));
-    EXPECT_FALSE(manifest.is_granted("pk", link, AuthorizationOperation::READ));
+    EXPECT_FALSE(manifest.is_granted("pk", link, AuthorizationOperation::READ, keychain));
 }
 
 TEST(AuthorizationManifestTest, RejectsNullAtomDB) {
@@ -170,7 +178,7 @@ TEST(AuthorizationManifestTest, DoesNotReloadAfterFirstAuthorization) {
 
     ASSERT_TRUE(manifest.ensure_profile_loaded("pk"));
     db->permissions.erase("pk");
-    EXPECT_TRUE(manifest.is_granted("pk", link, AuthorizationOperation::READ));
+    EXPECT_TRUE(manifest.is_granted("pk", link, AuthorizationOperation::READ, keychain));
 }
 
 TEST(AuthorizationManifestTest, IsGranted) {
@@ -183,20 +191,20 @@ TEST(AuthorizationManifestTest, IsGranted) {
     auto link = db->get_link(link_handle);
     ASSERT_NE(link, nullptr);
 
-    EXPECT_FALSE(manifest.is_granted("unknown", link, AuthorizationOperation::READ));
-    EXPECT_FALSE(manifest.is_granted("unknown", link, AuthorizationOperation::WRITE));
-    EXPECT_FALSE(manifest.is_granted("unknown", link_handle, AuthorizationOperation::READ));
-    EXPECT_FALSE(manifest.is_granted("unknown", link_handle, AuthorizationOperation::WRITE));
+    EXPECT_FALSE(manifest.is_granted("unknown", link, AuthorizationOperation::READ, keychain));
+    EXPECT_FALSE(manifest.is_granted("unknown", link, AuthorizationOperation::WRITE, keychain));
+    EXPECT_FALSE(manifest.is_granted("unknown", link_handle, AuthorizationOperation::READ, keychain));
+    EXPECT_FALSE(manifest.is_granted("unknown", link_handle, AuthorizationOperation::WRITE, keychain));
 
     ASSERT_TRUE(manifest.ensure_profile_loaded("pk"));
-    EXPECT_TRUE(manifest.is_granted("pk", link, AuthorizationOperation::READ));
-    EXPECT_TRUE(manifest.is_granted("pk", link_handle, AuthorizationOperation::READ));
+    EXPECT_TRUE(manifest.is_granted("pk", link, AuthorizationOperation::READ, keychain));
+    EXPECT_TRUE(manifest.is_granted("pk", link_handle, AuthorizationOperation::READ, keychain));
 
-    EXPECT_FALSE(manifest.is_granted("pk", link, AuthorizationOperation::WRITE));
-    EXPECT_FALSE(manifest.is_granted("pk", link_handle, AuthorizationOperation::WRITE));
+    EXPECT_FALSE(manifest.is_granted("pk", link, AuthorizationOperation::WRITE, keychain));
+    EXPECT_FALSE(manifest.is_granted("pk", link_handle, AuthorizationOperation::WRITE, keychain));
 
-    EXPECT_FALSE(manifest.is_granted("pk", string(32, '0'), AuthorizationOperation::READ));
-    EXPECT_FALSE(manifest.is_granted("pk", string(32, '0'), AuthorizationOperation::WRITE));
+    EXPECT_FALSE(manifest.is_granted("pk", random_handle(), AuthorizationOperation::READ, keychain));
+    EXPECT_FALSE(manifest.is_granted("pk", random_handle(), AuthorizationOperation::WRITE, keychain));
 }
 
 TEST(AuthorizationManifestTest, IsUnrestricted) {
@@ -228,10 +236,10 @@ TEST(AuthorizationManifestTest, FullAccessGrantsAllOperations) {
     ASSERT_NE(link, nullptr);
 
     ASSERT_TRUE(manifest.ensure_profile_loaded("pk"));
-    EXPECT_TRUE(manifest.is_granted("pk", link, AuthorizationOperation::READ));
-    EXPECT_TRUE(manifest.is_granted("pk", link, AuthorizationOperation::WRITE));
-    EXPECT_TRUE(manifest.is_granted("pk", link_handle, AuthorizationOperation::WRITE));
-    EXPECT_FALSE(manifest.is_granted("pk", string(32, '0'), AuthorizationOperation::READ));
+    EXPECT_TRUE(manifest.is_granted("pk", link, AuthorizationOperation::READ, keychain));
+    EXPECT_TRUE(manifest.is_granted("pk", link, AuthorizationOperation::WRITE, keychain));
+    EXPECT_TRUE(manifest.is_granted("pk", link_handle, AuthorizationOperation::WRITE, keychain));
+    EXPECT_FALSE(manifest.is_granted("pk", string(32, '0'), AuthorizationOperation::READ, keychain));
 }
 
 TEST(AuthorizationSchemaTest, AllowsReadAndWriteFlags) {
@@ -277,8 +285,8 @@ TEST(AuthorizationPersistenceTest, ManifestReflectsPersistedPermissions) {
     ASSERT_NE(link, nullptr);
 
     ASSERT_TRUE(manifest.ensure_profile_loaded("pk"));
-    EXPECT_TRUE(manifest.is_granted("pk", link, AuthorizationOperation::READ));
-    EXPECT_FALSE(manifest.is_granted("pk", link, AuthorizationOperation::WRITE));
+    EXPECT_TRUE(manifest.is_granted("pk", link, AuthorizationOperation::READ, keychain));
+    EXPECT_FALSE(manifest.is_granted("pk", link, AuthorizationOperation::WRITE, keychain));
 }
 
 TEST(AuthorizationPersistenceTest, GrantThenReadAndWriteFlags) {
@@ -389,4 +397,10 @@ TEST(MongodbAuthorizationPersistenceTest, RemoveAllRaisesOnUnacknowledgedDelete)
         runtime_error);
 
     setup->revoke(public_key);
+}
+
+int main(int argc, char** argv) {
+    ::testing::InitGoogleTest(&argc, argv);
+    AtomDBInitializer::init(test_atomdb_json_config());
+    return RUN_ALL_TESTS();
 }

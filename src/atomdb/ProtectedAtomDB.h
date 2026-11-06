@@ -210,20 +210,29 @@ class ProtectedAtomDB : public AtomDB, public KeySensitiveAtomDB {
      * existence is still required (atom_exists), so a missing handle is not readable.
      * Restricted profiles load the atom here and send it to the Manifest.
      */
-    inline bool can_read(const string& handle, const string& public_key) {
+    inline bool can_read(const string& handle, const string& public_key, shared_ptr<Keychain> keychain) {
         if (public_key.empty()) return false;
         if (this->manifest->is_unrestricted(public_key)) {
             return this->backend->atom_exists(handle);
         }
-        return this->can_read(this->backend->get_atom(handle), public_key);
+        return this->can_read(this->backend->get_atom(handle), public_key, keychain);
     }
 
     /**
      * @brief Returns whether the caller may READ the specified atom.
      */
-    inline bool can_read(const shared_ptr<Atom>& atom, const string& public_key) {
-        if (public_key.empty() || atom == nullptr) return false;
-        return this->manifest->is_granted(public_key, atom, AuthorizationOperation::READ);
+    inline bool can_read(const shared_ptr<Atom>& atom,
+                         const string& public_key,
+                         shared_ptr<Keychain> keychain) {
+        if (public_key.empty() || atom == nullptr) {
+            return false;
+        }
+        auto link = dynamic_pointer_cast<Link>(atom);
+        if ((link == nullptr) || !link->is_toplevel) {
+            // Nodes and non-toplevel links are always allowed
+            return true;
+        }
+        return this->manifest->is_granted(public_key, atom, AuthorizationOperation::READ, keychain);
     }
 
     /**
@@ -242,14 +251,17 @@ class ProtectedAtomDB : public AtomDB, public KeySensitiveAtomDB {
      */
     shared_ptr<atomdb_api_types::HandleSet> filter_handle_set(
         const optional<string>& public_key,
-        const function<shared_ptr<atomdb_api_types::HandleSet>()>& query);
+        const function<shared_ptr<atomdb_api_types::HandleSet>()>& query,
+        shared_ptr<Keychain> keychain);
 
     /**
      * @brief Filters a set of handles to include only those readable by the caller.
      *
      * @return The subset of original_handles that the caller is authorized to read.
      */
-    set<string> filter_handles(const set<string>& original_handles, const string& public_key);
+    set<string> filter_handles(const set<string>& original_handles,
+                               const string& public_key,
+                               shared_ptr<Keychain> keychain);
 
     /**
      * @brief Filters a collection of atoms to include only those readable by the caller.
@@ -257,7 +269,8 @@ class ProtectedAtomDB : public AtomDB, public KeySensitiveAtomDB {
      * @return The subset of original_atoms that the caller is authorized to read.
      */
     vector<shared_ptr<Atom>> filter_atoms(const vector<shared_ptr<Atom>>& original_atoms,
-                                          const string& public_key);
+                                          const string& public_key,
+                                          shared_ptr<Keychain> keychain);
 };
 
 }  // namespace atomdb
