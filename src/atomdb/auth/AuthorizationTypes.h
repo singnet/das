@@ -27,8 +27,7 @@ class AuthorizationSchema {
     AuthorizationSchema(shared_ptr<AtomDB> atomdb, const vector<string>& tokens, bool read, bool write);
     ~AuthorizationSchema() = default;
 
-    bool is_granted(shared_ptr<Atom> atom,
-                    AuthorizationOperation operation);
+    bool is_granted(shared_ptr<Atom> atom, AuthorizationOperation operation);
     bool allows(AuthorizationOperation operation) const;
 
     /**
@@ -50,9 +49,8 @@ class AuthorizationSchema {
     inline const LinkSchema& schema() const { return this->schema_; }
 
    private:
-
     class AuthorizationSchemaDecoder : public HandleDecoder {
-        public:
+       public:
         shared_ptr<AtomDB> atomdb;
         AuthorizationSchemaDecoder(shared_ptr<AtomDB> atomdb) : atomdb(atomdb) {}
         shared_ptr<Atom> decode_atom(const string& handle,

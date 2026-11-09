@@ -2,8 +2,8 @@
 
 #include <cstring>
 
-#include "Utils.h"
 #include "AtomDBUtils.h"
+#include "Utils.h"
 #include "expression_hasher.h"
 
 using namespace atomdb;

@@ -32,7 +32,7 @@ const string similarity_public_key = "similarity_human_reader";
 const string full_access_public_key = "full_access_reader";
 
 class BackendDecoder : public HandleDecoder {
-    public:
+   public:
     shared_ptr<AtomDB> atomdb;
     BackendDecoder(shared_ptr<AtomDB> atomdb) : atomdb(atomdb) {}
     shared_ptr<Atom> decode_atom(const string& handle,
@@ -56,7 +56,8 @@ class BackendDecoder : public HandleDecoder {
     }
 };
 
-set<string> handles_from_handle_set(const shared_ptr<HandleSet>& handle_set, HandleDecoder* decoder = NULL) {
+set<string> handles_from_handle_set(const shared_ptr<HandleSet>& handle_set,
+                                    HandleDecoder* decoder = NULL) {
     set<string> handles;
     if (handle_set == nullptr) return handles;
     shared_ptr<HandleSetIterator> it;
@@ -209,7 +210,8 @@ class RemoteAtomDBKeySensitiveTest : public ::testing::Test {
             "Expression", {this->similarity_handle, this->human_handle, this->chimp_handle}, true);
 
         this->similarity_backend = make_shared<InMemoryDBWithAccessDocuments>(similarity_database_uid);
-        this->similarity_backend->grant_link_template(similarity_public_key, this->similarity_human_v_tokens);
+        this->similarity_backend->grant_link_template(similarity_public_key,
+                                                      this->similarity_human_v_tokens);
         this->similarity_backend->add_node(&similarity_node);
         this->similarity_backend->add_node(&human_node);
         this->similarity_backend->add_node(&monkey_node);

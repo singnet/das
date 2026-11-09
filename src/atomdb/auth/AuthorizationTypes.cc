@@ -40,8 +40,7 @@ AuthorizationSchema::AuthorizationSchema(shared_ptr<AtomDB> atomdb,
 // -------------------------------------------------------------------------------------------------
 // Public methods
 
-bool AuthorizationSchema::is_granted(shared_ptr<Atom> atom,
-                                     AuthorizationOperation operation) {
+bool AuthorizationSchema::is_granted(shared_ptr<Atom> atom, AuthorizationOperation operation) {
     if (!this->allows(operation) || atom == nullptr) return false;
 
     Assignment assignment;

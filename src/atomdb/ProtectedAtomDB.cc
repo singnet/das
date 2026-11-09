@@ -69,18 +69,17 @@ vector<shared_ptr<Atom>> ProtectedAtomDB::get_matching_atoms(bool is_toplevel,
         return {};
     }
     if (is_toplevel) {
-        return this->filter_atoms(
-            this->backend->get_matching_atoms(is_toplevel, key), *public_key);
+        return this->filter_atoms(this->backend->get_matching_atoms(is_toplevel, key), *public_key);
     } else {
-       return this->backend->get_matching_atoms(is_toplevel, key);
+        return this->backend->get_matching_atoms(is_toplevel, key);
     }
 }
 
 shared_ptr<atomdb_api_types::HandleSet> ProtectedAtomDB::query_for_pattern(
     const LinkSchema& link_schema, shared_ptr<Keychain> keychain) {
-    return this->filter_handle_set(
-        this->try_get_public_key(keychain),
-        [this, &link_schema] { return this->backend->query_for_pattern(link_schema); });
+    return this->filter_handle_set(this->try_get_public_key(keychain), [this, &link_schema] {
+        return this->backend->query_for_pattern(link_schema);
+    });
 }
 
 shared_ptr<atomdb_api_types::HandleList> ProtectedAtomDB::query_for_targets(

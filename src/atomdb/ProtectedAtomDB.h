@@ -175,7 +175,7 @@ class ProtectedAtomDB : public AtomDB, public KeySensitiveAtomDB {
 
    private:
     class BackendDecoder : public HandleDecoder {
-        public:
+       public:
         shared_ptr<AtomDB> atomdb;
         BackendDecoder(shared_ptr<AtomDB> atomdb) : atomdb(atomdb) {}
         shared_ptr<Atom> decode_atom(const string& handle,
@@ -250,8 +250,7 @@ class ProtectedAtomDB : public AtomDB, public KeySensitiveAtomDB {
     /**
      * @brief Returns whether the caller may READ the specified atom.
      */
-    inline bool can_read(const shared_ptr<Atom>& atom,
-                         const string& public_key) {
+    inline bool can_read(const shared_ptr<Atom>& atom, const string& public_key) {
         if (public_key.empty() || atom == nullptr) {
             return false;
         }
@@ -286,8 +285,7 @@ class ProtectedAtomDB : public AtomDB, public KeySensitiveAtomDB {
      *
      * @return The subset of original_handles that the caller is authorized to read.
      */
-    set<string> filter_handles(const set<string>& original_handles,
-                               const string& public_key);
+    set<string> filter_handles(const set<string>& original_handles, const string& public_key);
 
     /**
      * @brief Filters a collection of atoms to include only those readable by the caller.

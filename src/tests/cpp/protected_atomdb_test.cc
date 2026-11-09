@@ -47,7 +47,7 @@ shared_ptr<Keychain> make_keychain(const string& db_uid, const string& public_ke
 }
 
 class BackendDecoder : public HandleDecoder {
-    public:
+   public:
     shared_ptr<AtomDB> atomdb;
     BackendDecoder(shared_ptr<AtomDB> atomdb) : atomdb(atomdb) {}
     shared_ptr<Atom> decode_atom(const string& handle,
@@ -282,7 +282,8 @@ TEST(ProtectedAtomDBTest, KeychainWithoutDatabaseKeyDeniesAccess) {
     shared_ptr<Keychain> keys = nullptr;
     EXPECT_TRUE(protected_atomdb->db->get_matching_atoms(false, *granted_link, keys).empty());
     EXPECT_EQ(protected_atomdb->db->query_for_pattern(similarity_human_schema, keys)->size(), 0u);
-    EXPECT_TRUE(protected_atomdb->db->query_for_targets(animals.similarity_human_monkey, keys) == nullptr);
+    EXPECT_TRUE(protected_atomdb->db->query_for_targets(animals.similarity_human_monkey, keys) ==
+                nullptr);
     EXPECT_TRUE(protected_atomdb->db->query_for_incoming_set(animals.human, keys) == nullptr);
     EXPECT_FALSE(protected_atomdb->db->atom_exists(animals.similarity_human_monkey, keys));
     EXPECT_TRUE(protected_atomdb->db->atoms_exist({animals.similarity_human_monkey}, keys).empty());
@@ -455,8 +456,8 @@ TEST(ProtectedAtomDBTest, QueryForPatternReturnsOnlyAuthorizedHandles) {
     EXPECT_TRUE(answers2.empty());
 
     BackendDecoder decoder(protected_atomdb->backend);
-    auto answers3 =
-        handles_from_set(protected_atomdb->db->query_for_pattern(similarity_snake_schema, admin_keys), &decoder);
+    auto answers3 = handles_from_set(
+        protected_atomdb->db->query_for_pattern(similarity_snake_schema, admin_keys), &decoder);
     EXPECT_EQ(answers3.size(), 2);
     EXPECT_TRUE(answers3.count(animals.similarity_snake_earthworm));
     EXPECT_TRUE(answers3.count(animals.similarity_snake_vine));
@@ -654,7 +655,7 @@ TEST(ProtectedAtomDBTest, NestedRelatedGrantDoesNotImplyInnerSimilarity) {
 
     LinkSchema related_similarity_human_schema(related_of_similarity_human);
     // TODO XXX Fix this test case
-    //EXPECT_TRUE(handles_from_set(protected_atomdb->db->query_for_pattern(related_similarity_human_schema,
+    // EXPECT_TRUE(handles_from_set(protected_atomdb->db->query_for_pattern(related_similarity_human_schema,
     //                                                                     related_human_keys))
     //                .count(animals.related_similarity_and_inheritance) == 0);
     EXPECT_TRUE(handles_from_set(protected_atomdb->db->query_for_pattern(related_similarity_human_schema,

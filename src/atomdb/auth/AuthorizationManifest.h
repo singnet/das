@@ -29,16 +29,12 @@ class AuthorizationManifest {
     /**
      * @brief Checks whether public_key is authorized to perform an operation on an atom.
      */
-    bool is_granted(const string& public_key,
-                    shared_ptr<Atom> atom,
-                    AuthorizationOperation operation);
+    bool is_granted(const string& public_key, shared_ptr<Atom> atom, AuthorizationOperation operation);
 
     /**
      * @brief Checks whether public_key is authorized to perform an operation on a handle.
      */
-    bool is_granted(const string& public_key,
-                    const string& handle,
-                    AuthorizationOperation operation);
+    bool is_granted(const string& public_key, const string& handle, AuthorizationOperation operation);
 
     /**
      * @brief Loads public_key's profile into memory if it is not already cached.
