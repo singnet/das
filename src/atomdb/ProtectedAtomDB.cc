@@ -118,6 +118,11 @@ shared_ptr<atomdb_api_types::HandleSet> ProtectedAtomDB::query_for_pattern(
         return make_shared<atomdb_api_types::HandleSetInMemory>();
     }
 
+    if (this->manifest->is_unrestricted(*public_key)) {
+        LOG_DEBUG("[ProtectedAtomDB(" << this->uid_ << ")] : unrestricted, skipping authorization");
+        return candidate_handle_set;
+    }
+
     auto it = candidate_handle_set->get_iterator();
     vector<string> handles;
     while (true) {

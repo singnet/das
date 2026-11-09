@@ -731,6 +731,27 @@ TEST(ProtectedAtomDBTest, QueryForPatternDropsReadableCandidatesThatFailTheSchem
     EXPECT_EQ(result->get_assignments_by_handle(non_matching).variable_count(), 0u);
 }
 
+TEST(ProtectedAtomDBTest, UnrestrictedQueryForPatternMatchesBackend) {
+    shared_ptr<ProtectedRedisMongo> protected_atomdb = make_shared<ProtectedRedisMongo>(true);
+    protected_atomdb->grant_full_access(PKAdmin);
+    auto admin_keys = protected_atomdb->keys(PKAdmin);
+    LinkSchema similarity_human_schema(similarity_human_tokens());
+
+    auto backend_result = protected_atomdb->backend->query_for_pattern(similarity_human_schema);
+    auto unrestricted_result =
+        protected_atomdb->db->query_for_pattern(similarity_human_schema, admin_keys);
+
+    auto backend_handles = handles_from_set(backend_result);
+    auto unrestricted_handles = handles_from_set(unrestricted_result);
+    ASSERT_FALSE(backend_handles.empty());
+    EXPECT_EQ(unrestricted_handles, backend_handles);
+
+    for (const auto& handle : backend_handles) {
+        EXPECT_EQ(unrestricted_result->get_assignments_by_handle(handle),
+                  backend_result->get_assignments_by_handle(handle));
+    }
+}
+
 int main(int argc, char** argv) {
     ::testing::InitGoogleTest(&argc, argv);
     Utils::init_random(0);
