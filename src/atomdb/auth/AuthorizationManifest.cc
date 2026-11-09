@@ -22,19 +22,17 @@ AuthorizationManifest::AuthorizationManifest(shared_ptr<AtomDB> atomdb) : atomdb
 
 bool AuthorizationManifest::is_granted(const string& public_key,
                                        shared_ptr<Atom> atom,
-                                       AuthorizationOperation operation,
-                                       shared_ptr<Keychain> keychain) {
+                                       AuthorizationOperation operation) {
     if (atom == nullptr) {
         RAISE_ERROR("AuthorizationManifest::is_granted() requires a non-null atom or a valid handle");
     }
-    return this->is_granted(public_key, operation, atom, "", keychain);
+    return this->is_granted(public_key, operation, atom, "");
 }
 
 bool AuthorizationManifest::is_granted(const string& public_key,
                                        const string& handle,
-                                       AuthorizationOperation operation,
-                                       shared_ptr<Keychain> keychain) {
-    return this->is_granted(public_key, operation, nullptr, handle, keychain);
+                                       AuthorizationOperation operation) {
+    return this->is_granted(public_key, operation, nullptr, handle);
 }
 
 bool AuthorizationManifest::ensure_profile_loaded(const string& public_key) {
@@ -106,8 +104,7 @@ bool AuthorizationManifest::is_unrestricted(const string& public_key) {
 bool AuthorizationManifest::is_granted(const string& public_key,
                                        AuthorizationOperation operation,
                                        shared_ptr<Atom> atom,
-                                       const string& handle,
-                                       shared_ptr<Keychain> keychain) {
+                                       const string& handle) {
     shared_ptr<AuthorizationProfile> profile;
     {
         lock_guard<mutex> lock(this->profiles_mutex);
@@ -124,5 +121,5 @@ bool AuthorizationManifest::is_granted(const string& public_key,
             return false;
         }
     }
-    return profile->is_granted(atom, operation, keychain);
+    return profile->is_granted(atom, operation);
 }

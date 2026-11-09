@@ -31,16 +31,14 @@ class AuthorizationManifest {
      */
     bool is_granted(const string& public_key,
                     shared_ptr<Atom> atom,
-                    AuthorizationOperation operation,
-                    shared_ptr<Keychain> keychain);
+                    AuthorizationOperation operation);
 
     /**
      * @brief Checks whether public_key is authorized to perform an operation on a handle.
      */
     bool is_granted(const string& public_key,
                     const string& handle,
-                    AuthorizationOperation operation,
-                    shared_ptr<Keychain> keychain);
+                    AuthorizationOperation operation);
 
     /**
      * @brief Loads public_key's profile into memory if it is not already cached.
@@ -78,8 +76,7 @@ class AuthorizationManifest {
     bool is_granted(const string& public_key,
                     AuthorizationOperation operation,
                     shared_ptr<Atom> atom,
-                    const string& handle,
-                    shared_ptr<Keychain> keychain);
+                    const string& handle);
 };
 
 }  // namespace atomdb

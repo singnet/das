@@ -7,6 +7,7 @@
 
 #include "AtomDB.h"
 #include "AtomDBAPITypes.h"
+#include "HandleDecoder.h"
 #include "Keychain.h"
 #include "LinkSchema.h"
 #include "atomdb/AtomDBUtils.h"
@@ -27,8 +28,7 @@ class AuthorizationSchema {
     ~AuthorizationSchema() = default;
 
     bool is_granted(shared_ptr<Atom> atom,
-                    AuthorizationOperation operation,
-                    shared_ptr<Keychain> keychain);
+                    AuthorizationOperation operation);
     bool allows(AuthorizationOperation operation) const;
 
     /**
@@ -50,8 +50,34 @@ class AuthorizationSchema {
     inline const LinkSchema& schema() const { return this->schema_; }
 
    private:
+
+    class AuthorizationSchemaDecoder : public HandleDecoder {
+        public:
+        shared_ptr<AtomDB> atomdb;
+        AuthorizationSchemaDecoder(shared_ptr<AtomDB> atomdb) : atomdb(atomdb) {}
+        shared_ptr<Atom> decode_atom(const string& handle,
+                                     shared_ptr<Keychain> keychain = nullptr) override {
+            return this->atomdb->get_atom(handle);
+        }
+        string decode_node_name(const string& handle, shared_ptr<Keychain> keychain = nullptr) override {
+            auto node = this->atomdb->get_node(handle);
+            if (node == nullptr) {
+                return "";
+            }
+            return node->name;
+        }
+        vector<string> decode_link_targets(const string& handle,
+                                           shared_ptr<Keychain> keychain = nullptr) override {
+            auto link = this->atomdb->get_link(handle);
+            if (link == nullptr) {
+                return vector<string>();
+            }
+            return link->targets;
+        }
+    };
+
     shared_ptr<AtomDB> atomdb_;
-    AtomDBUtils decoder_;
+    shared_ptr<AuthorizationSchemaDecoder> decoder_;
     LinkSchema schema_;
     bool read_;
     bool write_;
@@ -74,9 +100,7 @@ class AuthorizationProfile {
      */
     inline bool is_unrestricted() const { return this->full_access_; }
 
-    bool is_granted(shared_ptr<Atom> atom,
-                    AuthorizationOperation operation,
-                    shared_ptr<Keychain> keychain);
+    bool is_granted(shared_ptr<Atom> atom, AuthorizationOperation operation);
 
     /**
      * @brief Adds the atoms granted by this profile's read schemas to the three counters.

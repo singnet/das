@@ -119,7 +119,7 @@ class AtomDBUtils : public HandleDecoder {
                                            shared_ptr<Keychain> keychain = nullptr);
 
     /**
-     * Return an atom's strength or raises if it doesn't exist.
+     * Return an atom's strength or 0.0 if it doesn't exist.
      *
      * @param handle Handle of the atom whose strength is to be returned.
      * @return an atom's strength or raises if it doesn't exist.

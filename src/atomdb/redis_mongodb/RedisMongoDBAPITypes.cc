@@ -3,6 +3,7 @@
 #include <cstring>
 
 #include "Utils.h"
+#include "AtomDBUtils.h"
 #include "expression_hasher.h"
 
 using namespace atomdb;
@@ -42,13 +43,11 @@ void HandleSetRedis::append(shared_ptr<HandleSet> other) {
 unsigned int HandleSetRedis::size() { return this->handles_size; }
 
 shared_ptr<HandleSetIterator> HandleSetRedis::get_iterator() {
-    shared_ptr<HandleSetRedisIterator> it(new HandleSetRedisIterator(this));
-    return it;
+    return make_shared<HandleSetRedisIterator>(this);
 }
 
 shared_ptr<HandleSetIterator> HandleSetRedis::get_iterator(HandleDecoder* custom_decoder) {
-    shared_ptr<HandleSetRedisIterator> it(new HandleSetRedisIterator(this, custom_decoder));
-    return it;
+    return make_shared<HandleSetRedisIterator>(this, custom_decoder);
 }
 
 map<string, string> HandleSetRedis::get_metta_expressions_by_handle(const string& handle) {
@@ -68,18 +67,17 @@ Assignment HandleSetRedis::get_assignments_by_handle(const string& handle) {
 }
 
 HandleSetRedisIterator::HandleSetRedisIterator(HandleSetRedis* handle_set) {
-    this->use_custom_decoder = false;
     this->handle_set = handle_set;
     this->outer_idx = 0;
     this->inner_idx = 0;
+    this->custom_decoder = NULL;
 };
 
 HandleSetRedisIterator::HandleSetRedisIterator(HandleSetRedis* handle_set, HandleDecoder* decoder) {
-    this->use_custom_decoder = true;
-    this->custom_decoder = decoder;
     this->handle_set = handle_set;
     this->outer_idx = 0;
     this->inner_idx = 0;
+    this->custom_decoder = decoder;
 };
 
 HandleSetRedisIterator::~HandleSetRedisIterator(){};
@@ -123,7 +121,7 @@ char* HandleSetRedisIterator::next() {
             this->handle_set->link_schema->match(
                 handle,
                 assignment,
-                (this->use_custom_decoder ? *(this->custom_decoder) : this->default_decoder))) {
+                ((this->custom_decoder != NULL) ? *(this->custom_decoder) : this->default_decoder))) {
             this->handle_set->assignments_by_handle[handle] = assignment;
             return candidate;
         }

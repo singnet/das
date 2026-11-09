@@ -28,6 +28,7 @@ class HandleSetMork : public HandleSet {
     unsigned int size();
     void append(shared_ptr<HandleSet> other);
     shared_ptr<HandleSetIterator> get_iterator();
+    shared_ptr<HandleSetIterator> get_iterator(HandleDecoder *decoder);
 
     map<string, string> get_metta_expressions_by_handle(const string& handle);
     Assignment get_assignments_by_handle(const string& handle);

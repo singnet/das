@@ -243,6 +243,7 @@ TEST_P(AdapterDBTest, CanBeConstructedTwiceWithSameContext) {
     });
 }
 
+// TODO XXX Fix this test case
 /*
 TEST_P(AdapterDBTest, ReloadDoesNotThrowAndKeepsBackendUsable) {
     auto db = create_current_adapter();

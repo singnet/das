@@ -59,11 +59,10 @@ class HandleSetRedisIterator : public HandleSetIterator {
    private:
     char* _next();
     HandleSetRedis* handle_set;
-    AtomDBUtils default_decoder;
-    HandleDecoder* custom_decoder;
-    bool use_custom_decoder;
     unsigned int outer_idx;
     unsigned int inner_idx;
+    HandleDecoder* custom_decoder;
+    AtomDBUtils default_decoder;
 };
 
 class RedisStringBundle : public HandleList {

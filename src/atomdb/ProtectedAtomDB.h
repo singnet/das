@@ -9,6 +9,7 @@
 
 #include "AtomDB.h"
 #include "AuthorizationManifest.h"
+#include "Hasher.h"
 #include "KeySensitiveAtomDB.h"
 #include "Keychain.h"
 
@@ -173,7 +174,33 @@ class ProtectedAtomDB : public AtomDB, public KeySensitiveAtomDB {
     size_t atom_count(shared_ptr<Keychain> keychain) const override;
 
    private:
+    class BackendDecoder : public HandleDecoder {
+        public:
+        shared_ptr<AtomDB> atomdb;
+        BackendDecoder(shared_ptr<AtomDB> atomdb) : atomdb(atomdb) {}
+        shared_ptr<Atom> decode_atom(const string& handle,
+                                     shared_ptr<Keychain> keychain = nullptr) override {
+            return this->atomdb->get_atom(handle);
+        }
+        string decode_node_name(const string& handle, shared_ptr<Keychain> keychain = nullptr) override {
+            auto node = this->atomdb->get_node(handle);
+            if (node == nullptr) {
+                return "";
+            }
+            return node->name;
+        }
+        vector<string> decode_link_targets(const string& handle,
+                                           shared_ptr<Keychain> keychain = nullptr) override {
+            auto link = this->atomdb->get_link(handle);
+            if (link == nullptr) {
+                return vector<string>();
+            }
+            return link->targets;
+        }
+    };
+
     shared_ptr<AtomDB> backend;
+    shared_ptr<BackendDecoder> backend_decoder;
     shared_ptr<AuthorizationManifest> manifest;
 
     [[noreturn]] static void raise_keychain_required(const string& method_name);
@@ -210,20 +237,21 @@ class ProtectedAtomDB : public AtomDB, public KeySensitiveAtomDB {
      * existence is still required (atom_exists), so a missing handle is not readable.
      * Restricted profiles load the atom here and send it to the Manifest.
      */
-    inline bool can_read(const string& handle, const string& public_key, shared_ptr<Keychain> keychain) {
-        if (public_key.empty()) return false;
-        if (this->manifest->is_unrestricted(public_key)) {
-            return this->backend->atom_exists(handle);
+    inline bool can_read(const string& handle, const string& public_key) {
+        if (public_key.empty()) {
+            return false;
         }
-        return this->can_read(this->backend->get_atom(handle), public_key, keychain);
+        if (Hasher::is_node_handle(handle) || this->manifest->is_unrestricted(public_key)) {
+            return true;
+        }
+        return this->can_read(this->backend->get_atom(handle), public_key);
     }
 
     /**
      * @brief Returns whether the caller may READ the specified atom.
      */
     inline bool can_read(const shared_ptr<Atom>& atom,
-                         const string& public_key,
-                         shared_ptr<Keychain> keychain) {
+                         const string& public_key) {
         if (public_key.empty() || atom == nullptr) {
             return false;
         }
@@ -232,7 +260,7 @@ class ProtectedAtomDB : public AtomDB, public KeySensitiveAtomDB {
             // Nodes and non-toplevel links are always allowed
             return true;
         }
-        return this->manifest->is_granted(public_key, atom, AuthorizationOperation::READ, keychain);
+        return this->manifest->is_granted(public_key, atom, AuthorizationOperation::READ);
     }
 
     /**
@@ -251,8 +279,7 @@ class ProtectedAtomDB : public AtomDB, public KeySensitiveAtomDB {
      */
     shared_ptr<atomdb_api_types::HandleSet> filter_handle_set(
         const optional<string>& public_key,
-        const function<shared_ptr<atomdb_api_types::HandleSet>()>& query,
-        shared_ptr<Keychain> keychain);
+        const function<shared_ptr<atomdb_api_types::HandleSet>()>& query);
 
     /**
      * @brief Filters a set of handles to include only those readable by the caller.
@@ -260,8 +287,7 @@ class ProtectedAtomDB : public AtomDB, public KeySensitiveAtomDB {
      * @return The subset of original_handles that the caller is authorized to read.
      */
     set<string> filter_handles(const set<string>& original_handles,
-                               const string& public_key,
-                               shared_ptr<Keychain> keychain);
+                               const string& public_key);
 
     /**
      * @brief Filters a collection of atoms to include only those readable by the caller.
@@ -269,8 +295,7 @@ class ProtectedAtomDB : public AtomDB, public KeySensitiveAtomDB {
      * @return The subset of original_atoms that the caller is authorized to read.
      */
     vector<shared_ptr<Atom>> filter_atoms(const vector<shared_ptr<Atom>>& original_atoms,
-                                          const string& public_key,
-                                          shared_ptr<Keychain> keychain);
+                                          const string& public_key);
 };
 
 }  // namespace atomdb
