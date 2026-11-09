@@ -184,12 +184,16 @@ string AtomDBUtils::handle_to_metta_recursive(const string& handle,
                 RAISE_ERROR("Invalid node handle: " + handle);
             }
         } else {
-            vector<string> targets;
-            for (string& _handle : get_link_targets(handle, keychain)) {
-                targets.push_back(handle_to_metta_recursive(_handle, mapping, populate_map, keychain));
-            }
-            if (targets.size() == 0) {
+            auto target_handles = get_link_targets(handle, keychain);
+            if (target_handles.empty()) {
                 RAISE_ERROR("Invalid link handle: " + handle);
+            }
+            if (Hasher::link_handle(MettaMapping::EXPRESSION_LINK_TYPE, target_handles) != handle) {
+                RAISE_ERROR("Link cannot be mapped to MeTTa: " + handle);
+            }
+            vector<string> targets;
+            for (string& _handle : target_handles) {
+                targets.push_back(handle_to_metta_recursive(_handle, mapping, populate_map, keychain));
             }
             answer = MettaMapping::metta_expr(targets);
         }
