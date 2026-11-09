@@ -1156,6 +1156,13 @@ cc_test(
         "-Iexternal/gtest/googletest/include",
         "-Iexternal/gtest/googletest",
     ],
+    linkopts = [
+        "-L/usr/local/lib",
+        "-lhiredis_cluster",
+        "-lhiredis",
+        "-lmongocxx",
+        "-lbsoncxx",
+    ],
     linkstatic = 1,
     deps = [
         "//atomdb:protected_atomdb",
