@@ -31,41 +31,10 @@ const string full_access_database_uid = "full_access_database";
 const string similarity_public_key = "similarity_human_reader";
 const string full_access_public_key = "full_access_reader";
 
-class BackendDecoder : public HandleDecoder {
-   public:
-    shared_ptr<AtomDB> atomdb;
-    BackendDecoder(shared_ptr<AtomDB> atomdb) : atomdb(atomdb) {}
-    shared_ptr<Atom> decode_atom(const string& handle,
-                                 shared_ptr<Keychain> keychain = nullptr) override {
-        return this->atomdb->get_atom(handle);
-    }
-    string decode_node_name(const string& handle, shared_ptr<Keychain> keychain = nullptr) override {
-        auto node = this->atomdb->get_node(handle);
-        if (node == nullptr) {
-            return "";
-        }
-        return node->name;
-    }
-    vector<string> decode_link_targets(const string& handle,
-                                       shared_ptr<Keychain> keychain = nullptr) override {
-        auto link = this->atomdb->get_link(handle);
-        if (link == nullptr) {
-            return vector<string>();
-        }
-        return link->targets;
-    }
-};
-
-set<string> handles_from_handle_set(const shared_ptr<HandleSet>& handle_set,
-                                    HandleDecoder* decoder = NULL) {
+set<string> handles_from_handle_set(const shared_ptr<HandleSet>& handle_set) {
     set<string> handles;
     if (handle_set == nullptr) return handles;
-    shared_ptr<HandleSetIterator> it;
-    if (decoder == NULL) {
-        it = handle_set->get_iterator();
-    } else {
-        it = handle_set->get_iterator(decoder);
-    }
+    shared_ptr<HandleSetIterator> it = handle_set->get_iterator();
     while (char* handle = it->next()) handles.insert(handle);
     return handles;
 }
@@ -268,7 +237,6 @@ class RemoteAtomDBKeySensitiveTest : public ::testing::Test {
 
 }  // namespace
 
-/*
 TEST_F(RemoteAtomDBKeySensitiveTest, NullptrKeychainReadsOnlyTheUnprotectedPeer) {
     EXPECT_EQ(this->db->get_atom(this->similarity_human_monkey_handle, nullptr), nullptr);
     EXPECT_EQ(this->db->get_link(this->inheritance_human_mammal_handle, nullptr), nullptr);
@@ -671,7 +639,6 @@ TEST_F(RemoteAtomDBKeySensitiveTest, CountMethodsUseTheWriteBuffer) {
     similarity_backend->revoke(similarity_public_key);
     expect_atom_count(db, all_keys, 0);
 }
-*/
 
 int main(int argc, char** argv) {
     ::testing::InitGoogleTest(&argc, argv);

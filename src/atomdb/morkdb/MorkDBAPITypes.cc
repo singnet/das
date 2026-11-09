@@ -44,7 +44,7 @@ shared_ptr<HandleSetIterator> HandleSetMork::get_iterator() {
 }
 
 shared_ptr<HandleSetIterator> HandleSetMork::get_iterator(HandleDecoder* decoder) {
-    RAISE_ERROR("Method not implemented");
+    return make_shared<HandleSetMorkIterator>(this);
 }
 
 // <--
