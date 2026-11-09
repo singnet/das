@@ -7,6 +7,7 @@
 #include "Link.h"
 #include "Logger.h"
 #include "Node.h"
+#include "RedisMongoDBAPITypes.h"
 #include "Utils.h"
 
 using namespace std;
@@ -42,6 +43,7 @@ shared_ptr<ProtectedAtomDB> ProtectedAtomDB::wrap(shared_ptr<AtomDB> atomdb) {
 // Public methods
 
 shared_ptr<Atom> ProtectedAtomDB::get_atom(const string& handle, shared_ptr<Keychain> keychain) {
+    if (!Hasher::is_atom_handle(handle)) return nullptr;
     auto atom = this->backend->get_atom(handle);
     if (this->authorize_read(atom, keychain)) {
         return atom;
@@ -104,9 +106,46 @@ vector<shared_ptr<Atom>> ProtectedAtomDB::get_matching_atoms(bool is_toplevel,
 
 shared_ptr<atomdb_api_types::HandleSet> ProtectedAtomDB::query_for_pattern(
     const LinkSchema& link_schema, shared_ptr<Keychain> keychain) {
-    return this->filter_handle_set(this->try_get_public_key(keychain), [this, &link_schema] {
-        return this->backend->query_for_pattern(link_schema);
-    });
+    auto public_key = this->try_get_public_key(keychain);
+    if (!public_key) {
+        LOG_DEBUG("[ProtectedAtomDB(" << this->uid_ << ")] : skipped, no public key");
+        return make_shared<atomdb_api_types::HandleSetInMemory>();
+    }
+
+    auto candidate_handle_set = this->backend->query_for_pattern(link_schema);
+    if (candidate_handle_set == nullptr) {
+        LOG_DEBUG("[ProtectedAtomDB(" << this->uid_ << ")] : backend returned nullptr");
+        return make_shared<atomdb_api_types::HandleSetInMemory>();
+    }
+
+    auto it = candidate_handle_set->get_iterator();
+    vector<string> handles;
+    while (true) {
+        auto redis_it = dynamic_pointer_cast<atomdb_api_types::HandleSetRedisIterator>(it);
+        char* handle_cstr = redis_it ? redis_it->next_candidate() : it->next();
+        if (!handle_cstr) break;
+        string handle(handle_cstr);
+        handles.push_back(handle);
+    }
+
+    auto atoms = this->get_atoms(handles, keychain);
+    auto authorized_handle_set = make_shared<atomdb_api_types::HandleSetInMemory>();
+    for (auto atom : atoms) {
+        auto link = dynamic_pointer_cast<Link>(atom);
+        if (link == nullptr) continue;
+        Assignment assignment;
+        if (const_cast<LinkSchema&>(link_schema).match(*link, assignment, *this->backend)) {
+            authorized_handle_set->add_handle(
+                atom->handle(),
+                candidate_handle_set->get_metta_expressions_by_handle(atom->handle()),
+                assignment);
+        }
+    }
+
+    LOG_INFO("[ProtectedAtomDB(" << this->uid_ << ")] : " << candidate_handle_set->size()
+                                 << " candidates -> " << authorized_handle_set->size() << " authorized");
+
+    return authorized_handle_set;
 }
 
 shared_ptr<atomdb_api_types::HandleList> ProtectedAtomDB::query_for_targets(
@@ -429,22 +468,22 @@ shared_ptr<atomdb_api_types::HandleSet> ProtectedAtomDB::filter_handle_set(
     }
 
     LOG_DEBUG("[ProtectedAtomDB(" << this->uid_ << ")] filter_handle_set: querying backend");
-    auto original_handle_set = query();
+    auto candidate_handle_set = query();
     LOG_DEBUG("[ProtectedAtomDB(" << this->uid_ << ")] filter_handle_set: backend returned "
-                                  << (original_handle_set ? original_handle_set->size() : 0)
+                                  << (candidate_handle_set ? candidate_handle_set->size() : 0)
                                   << " handles");
 
-    if (original_handle_set == nullptr) {
+    if (candidate_handle_set == nullptr) {
         return make_shared<atomdb_api_types::HandleSetInMemory>();
     }
 
     if (this->manifest->is_unrestricted(*public_key)) {
         LOG_DEBUG("[ProtectedAtomDB(" << this->uid_
                                       << ")] filter_handle_set: unrestricted, skipping authorization");
-        return original_handle_set;
+        return candidate_handle_set;
     }
 
-    auto it = original_handle_set->get_iterator();
+    auto it = candidate_handle_set->get_iterator();
     auto authorized_handle_set = make_shared<atomdb_api_types::HandleSetInMemory>();
 
     while (true) {
@@ -455,25 +494,25 @@ shared_ptr<atomdb_api_types::HandleSet> ProtectedAtomDB::filter_handle_set(
         if (this->can_read(handle, *public_key)) {
             authorized_handle_set->add_handle(
                 handle,
-                original_handle_set->get_metta_expressions_by_handle(handle),
-                original_handle_set->get_assignments_by_handle(handle));
+                candidate_handle_set->get_metta_expressions_by_handle(handle),
+                candidate_handle_set->get_assignments_by_handle(handle));
         }
     }
 
     LOG_DEBUG("[ProtectedAtomDB(" << this->uid_
-                                  << ")] filter_handle_set: " << original_handle_set->size() << " -> "
+                                  << ")] filter_handle_set: " << candidate_handle_set->size() << " -> "
                                   << authorized_handle_set->size() << " authorized");
 
     return authorized_handle_set;
 }
 
-set<string> ProtectedAtomDB::filter_handles(const set<string>& original_handles,
+set<string> ProtectedAtomDB::filter_handles(const set<string>& candidate_handles,
                                             const string& public_key) {
     if (this->manifest->is_unrestricted(public_key)) {
-        return original_handles;
+        return candidate_handles;
     }
     set<string> authorized_handles;
-    for (const auto& handle : original_handles) {
+    for (const auto& handle : candidate_handles) {
         if (this->can_read(handle, public_key)) {
             authorized_handles.insert(handle);
         }
@@ -481,10 +520,10 @@ set<string> ProtectedAtomDB::filter_handles(const set<string>& original_handles,
     return authorized_handles;
 }
 
-vector<shared_ptr<Atom>> ProtectedAtomDB::filter_atoms(const vector<shared_ptr<Atom>>& original_atoms,
+vector<shared_ptr<Atom>> ProtectedAtomDB::filter_atoms(const vector<shared_ptr<Atom>>& candidate_atoms,
                                                        const string& public_key) {
     vector<shared_ptr<Atom>> authorized_atoms;
-    for (const auto& atom : original_atoms) {
+    for (const auto& atom : candidate_atoms) {
         if (this->can_read(atom, public_key)) {
             authorized_atoms.push_back(atom);
         }

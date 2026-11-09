@@ -686,6 +686,51 @@ TEST(ProtectedAtomDBTest, NestedRelatedGrantDoesNotImplyInnerSimilarity) {
                     .empty());
 }
 
+TEST(ProtectedAtomDBTest, QueryForPatternStoresSchemaAssignments) {
+    shared_ptr<ProtectedRedisMongo> protected_atomdb = make_shared<ProtectedRedisMongo>(true);
+    protected_atomdb->grant_link_template(PKSimilarityHuman, similarity_human_tokens());
+    auto similarity_human_keys = protected_atomdb->keys(PKSimilarityHuman);
+    Animals animals;
+
+    LinkSchema similarity_human_schema(similarity_human_tokens());
+    auto result =
+        protected_atomdb->db->query_for_pattern(similarity_human_schema, similarity_human_keys);
+
+    auto monkey = result->get_assignments_by_handle(animals.similarity_human_monkey);
+    auto chimp = result->get_assignments_by_handle(animals.similarity_human_chimp);
+    auto ent = result->get_assignments_by_handle(animals.similarity_human_ent);
+    EXPECT_EQ(monkey.variable_count(), 1u);
+    EXPECT_EQ(monkey.get("V"), animals.monkey);
+    EXPECT_EQ(chimp.variable_count(), 1u);
+    EXPECT_EQ(chimp.get("V"), animals.chimp);
+    EXPECT_EQ(ent.variable_count(), 1u);
+    EXPECT_EQ(ent.get("V"), animals.ent);
+    EXPECT_EQ(result->get_assignments_by_handle(animals.similarity_snake_vine).variable_count(), 0u);
+}
+
+TEST(ProtectedAtomDBTest, QueryForPatternDropsReadableCandidatesThatFailTheSchema) {
+    auto backend = make_shared<AccessDocumentBackend>("pk");
+    string similarity = backend->add_node(new Node("Symbol", "Similarity"));
+    string human = backend->add_node(new Node("Symbol", "\"human\""));
+    string monkey = backend->add_node(new Node("Symbol", "\"monkey\""));
+    string chimp = backend->add_node(new Node("Symbol", "\"chimp\""));
+    string matching = backend->add_link(new Link("Expression", {similarity, human, monkey}));
+    string non_matching = backend->add_link(new Link("Expression", {similarity, chimp, monkey}));
+
+    LinkSchema schema(similarity_human_tokens());
+    backend->add_pattern(schema.handle(), matching);
+    backend->add_pattern(schema.handle(), non_matching);
+
+    ProtectedAtomDB db(backend);
+    auto result = db.query_for_pattern(schema, make_keychain(db.get_uid(), "pk"));
+
+    EXPECT_EQ(handles_from_set(result), set<string>({matching}));
+    auto assignment = result->get_assignments_by_handle(matching);
+    EXPECT_EQ(assignment.variable_count(), 1u);
+    EXPECT_EQ(assignment.get("V"), monkey);
+    EXPECT_EQ(result->get_assignments_by_handle(non_matching).variable_count(), 0u);
+}
+
 int main(int argc, char** argv) {
     ::testing::InitGoogleTest(&argc, argv);
     Utils::init_random(0);
