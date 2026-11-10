@@ -2,6 +2,7 @@
 
 #include <cstring>
 
+#include "AtomDBUtils.h"
 #include "Utils.h"
 #include "expression_hasher.h"
 
@@ -14,7 +15,6 @@ HandleSetRedis::HandleSetRedis(bool delete_replies_on_destruction) : HandleSet()
     this->handles_size = 0;
     this->delete_replies_on_destruction = delete_replies_on_destruction;
     this->link_schema = nullptr;
-    this->decoder = NULL;
 }
 
 HandleSetRedis::HandleSetRedis(redisReply* reply, bool delete_replies_on_destruction) : HandleSet() {
@@ -22,7 +22,6 @@ HandleSetRedis::HandleSetRedis(redisReply* reply, bool delete_replies_on_destruc
     this->handles_size = reply->elements;
     this->delete_replies_on_destruction = delete_replies_on_destruction;
     this->link_schema = nullptr;
-    this->decoder = NULL;
 }
 
 HandleSetRedis::~HandleSetRedis() {
@@ -44,8 +43,11 @@ void HandleSetRedis::append(shared_ptr<HandleSet> other) {
 unsigned int HandleSetRedis::size() { return this->handles_size; }
 
 shared_ptr<HandleSetIterator> HandleSetRedis::get_iterator() {
-    shared_ptr<HandleSetRedisIterator> it(new HandleSetRedisIterator(this));
-    return it;
+    return make_shared<HandleSetRedisIterator>(this);
+}
+
+shared_ptr<HandleSetIterator> HandleSetRedis::get_iterator(HandleDecoder* custom_decoder) {
+    return make_shared<HandleSetRedisIterator>(this, custom_decoder);
 }
 
 map<string, string> HandleSetRedis::get_metta_expressions_by_handle(const string& handle) {
@@ -68,6 +70,14 @@ HandleSetRedisIterator::HandleSetRedisIterator(HandleSetRedis* handle_set) {
     this->handle_set = handle_set;
     this->outer_idx = 0;
     this->inner_idx = 0;
+    this->custom_decoder = NULL;
+};
+
+HandleSetRedisIterator::HandleSetRedisIterator(HandleSetRedis* handle_set, HandleDecoder* decoder) {
+    this->handle_set = handle_set;
+    this->outer_idx = 0;
+    this->inner_idx = 0;
+    this->custom_decoder = decoder;
 };
 
 HandleSetRedisIterator::~HandleSetRedisIterator(){};
@@ -105,15 +115,13 @@ char* HandleSetRedisIterator::next() {
     Assignment assignment;
     char* candidate;
     string handle;
-    HandleDecoder* decoder = this->handle_set->decoder;
-    if ((this->handle_set->link_schema != nullptr) && (decoder == NULL)) {
-        RAISE_ERROR("Non-null link_schema requires a decoder to be matched against handles");
-        return NULL;
-    }
     while ((candidate = _next()) != NULL) {
         handle = string(candidate);
         if ((this->handle_set->link_schema == nullptr) ||
-            this->handle_set->link_schema->match(handle, assignment, *decoder)) {
+            this->handle_set->link_schema->match(
+                handle,
+                assignment,
+                ((this->custom_decoder != NULL) ? *(this->custom_decoder) : this->default_decoder))) {
             this->handle_set->assignments_by_handle[handle] = assignment;
             return candidate;
         }

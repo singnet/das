@@ -1,10 +1,8 @@
 #include "RedisContextPool.h"
 
+#include "Logger.h"
 #include "RedisContext.h"
 #include "Utils.h"
-
-#define LOG_LEVEL INFO_LEVEL
-#include "Logger.h"
 
 using namespace commons;
 

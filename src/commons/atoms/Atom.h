@@ -4,6 +4,7 @@
 
 #include "Assignment.h"
 #include "HandleTrie.h"
+#include "Keychain.h"
 #include "Properties.h"
 #include "Utils.h"
 #include "expression_hasher.h"
@@ -181,8 +182,12 @@ class Atom : public HandleTrie::TrieValue {
      * do the match.
      * @param decoder A Decoder which may be required in order to convert handles -> actual atoms
      * during the match algorithm.
+     * @param keychain Optional Keychain
      */
-    virtual bool match(const string& handle, Assignment& assignment, HandleDecoder& decoder) = 0;
+    virtual bool match(const string& handle,
+                       Assignment& assignment,
+                       HandleDecoder& decoder,
+                       shared_ptr<Keychain> keychain = nullptr) = 0;
 
     // ---------------------------------------------------------------------------------------------
     // HandleTrie::TrieValue virtual API

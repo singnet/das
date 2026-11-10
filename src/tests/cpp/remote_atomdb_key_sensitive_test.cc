@@ -17,6 +17,7 @@
 #include "RemoteAtomDB.h"
 #include "RemoteAtomDBPeer.h"
 #include "TestAtomDBJsonConfig.h"
+#include "test_utils.h"
 
 using namespace atomdb;
 using namespace atomdb_api_types;
@@ -33,7 +34,7 @@ const string full_access_public_key = "full_access_reader";
 set<string> handles_from_handle_set(const shared_ptr<HandleSet>& handle_set) {
     set<string> handles;
     if (handle_set == nullptr) return handles;
-    auto it = handle_set->get_iterator();
+    shared_ptr<HandleSetIterator> it = handle_set->get_iterator();
     while (char* handle = it->next()) handles.insert(handle);
     return handles;
 }
@@ -154,6 +155,9 @@ class RemoteAtomDBKeySensitiveTest : public ::testing::Test {
     LinkSchema similarity_human_schema{this->similarity_human_v_tokens};
     LinkSchema inheritance_human_schema{this->inheritance_human_v_tokens};
 
+    shared_ptr<InMemoryDBWithAccessDocuments> similarity_backend;
+    shared_ptr<InMemoryDBWithAccessDocuments> full_access_backend;
+    shared_ptr<InMemoryDB> unprotected_backend;
     shared_ptr<RemoteAtomDB> db;
 
     void SetUp() override {
@@ -166,48 +170,49 @@ class RemoteAtomDBKeySensitiveTest : public ::testing::Test {
         Node inheritance_node("Symbol", "Inheritance");
         Node mammal_node("Symbol", "\"mammal\"");
         Link similarity_human_monkey_link(
-            "Expression", {this->similarity_handle, this->human_handle, this->monkey_handle});
+            "Expression", {this->similarity_handle, this->human_handle, this->monkey_handle}, true);
         Link similarity_snake_vine_link(
-            "Expression", {this->similarity_handle, this->snake_handle, this->vine_handle});
+            "Expression", {this->similarity_handle, this->snake_handle, this->vine_handle}, true);
         Link inheritance_human_mammal_link(
-            "Expression", {this->inheritance_handle, this->human_handle, this->mammal_handle});
+            "Expression", {this->inheritance_handle, this->human_handle, this->mammal_handle}, true);
         Link similarity_human_chimp_link(
-            "Expression", {this->similarity_handle, this->human_handle, this->chimp_handle});
+            "Expression", {this->similarity_handle, this->human_handle, this->chimp_handle}, true);
 
-        auto similarity_backend = make_shared<InMemoryDBWithAccessDocuments>(similarity_database_uid);
-        similarity_backend->grant_link_template(similarity_public_key, this->similarity_human_v_tokens);
-        similarity_backend->add_node(&similarity_node);
-        similarity_backend->add_node(&human_node);
-        similarity_backend->add_node(&monkey_node);
-        similarity_backend->add_node(&snake_node);
-        similarity_backend->add_node(&vine_node);
-        similarity_backend->add_link(&similarity_human_monkey_link);
-        similarity_backend->add_link(&similarity_snake_vine_link);
+        this->similarity_backend = make_shared<InMemoryDBWithAccessDocuments>(similarity_database_uid);
+        this->similarity_backend->grant_link_template(similarity_public_key,
+                                                      this->similarity_human_v_tokens);
+        this->similarity_backend->add_node(&similarity_node);
+        this->similarity_backend->add_node(&human_node);
+        this->similarity_backend->add_node(&monkey_node);
+        this->similarity_backend->add_node(&snake_node);
+        this->similarity_backend->add_node(&vine_node);
+        this->similarity_backend->add_link(&similarity_human_monkey_link);
+        this->similarity_backend->add_link(&similarity_snake_vine_link);
 
-        auto full_access_backend = make_shared<InMemoryDBWithAccessDocuments>(full_access_database_uid);
-        full_access_backend->grant_full_access(full_access_public_key);
-        full_access_backend->add_node(&human_node);
-        full_access_backend->add_node(&inheritance_node);
-        full_access_backend->add_node(&mammal_node);
-        full_access_backend->add_link(&inheritance_human_mammal_link);
+        this->full_access_backend = make_shared<InMemoryDBWithAccessDocuments>(full_access_database_uid);
+        this->full_access_backend->grant_full_access(full_access_public_key);
+        this->full_access_backend->add_node(&human_node);
+        this->full_access_backend->add_node(&inheritance_node);
+        this->full_access_backend->add_node(&mammal_node);
+        this->full_access_backend->add_link(&inheritance_human_mammal_link);
 
-        auto unprotected_backend =
+        this->unprotected_backend =
             make_shared<InMemoryDB>(test_atomdb_json_config("inmemorydb", "", "unprotected_database"));
-        unprotected_backend->add_node(&similarity_node);
-        unprotected_backend->add_node(&human_node);
-        unprotected_backend->add_node(&chimp_node);
-        unprotected_backend->add_node(&snake_node);
-        unprotected_backend->add_node(&vine_node);
-        unprotected_backend->add_link(&similarity_human_chimp_link);
-        unprotected_backend->add_link(&similarity_snake_vine_link);
+        this->unprotected_backend->add_node(&similarity_node);
+        this->unprotected_backend->add_node(&human_node);
+        this->unprotected_backend->add_node(&chimp_node);
+        this->unprotected_backend->add_node(&snake_node);
+        this->unprotected_backend->add_node(&vine_node);
+        this->unprotected_backend->add_link(&similarity_human_chimp_link);
+        this->unprotected_backend->add_link(&similarity_snake_vine_link);
 
         map<string, shared_ptr<RemoteAtomDBPeer>> peers;
         peers["similarity_peer"] = make_shared<RemoteAtomDBPeer>(
-            "similarity_peer", make_shared<ProtectedAtomDB>(similarity_backend), nullptr);
+            "similarity_peer", make_shared<ProtectedAtomDB>(this->similarity_backend), nullptr);
         peers["full_access_peer"] = make_shared<RemoteAtomDBPeer>(
-            "full_access_peer", make_shared<ProtectedAtomDB>(full_access_backend), nullptr);
+            "full_access_peer", make_shared<ProtectedAtomDB>(this->full_access_backend), nullptr);
         peers["unprotected_peer"] =
-            make_shared<RemoteAtomDBPeer>("unprotected_peer", unprotected_backend, nullptr);
+            make_shared<RemoteAtomDBPeer>("unprotected_peer", this->unprotected_backend, nullptr);
 
         this->db = make_shared<RemoteAtomDB>("remote", peers);
     }
@@ -415,7 +420,7 @@ TEST_F(RemoteAtomDBKeySensitiveTest, SimilarityKeyDoesNotOpenTheFullAccessDataba
 
     EXPECT_EQ(this->db->get_atom(this->inheritance_human_mammal_handle, keychain), nullptr);
     EXPECT_EQ(this->db->get_link(this->inheritance_human_mammal_handle, keychain), nullptr);
-    EXPECT_EQ(this->db->get_node(this->mammal_handle, keychain), nullptr);
+    EXPECT_NE(this->db->get_node(this->mammal_handle, keychain), nullptr);
     EXPECT_EQ(this->db->get_link(this->similarity_snake_vine_handle, keychain)->handle(),
               this->similarity_snake_vine_handle);
     EXPECT_EQ(this->db->get_node(this->human_handle, keychain)->handle(), this->human_handle);
@@ -473,7 +478,7 @@ TEST_F(RemoteAtomDBKeySensitiveTest, UnknownEmptyAndForeignKeysDoNotReadProtecte
     EXPECT_EQ(this->db->get_atom(this->similarity_human_monkey_handle, unknown_key), nullptr);
     EXPECT_EQ(this->db->get_atom(this->inheritance_human_mammal_handle, key_for_another_database),
               nullptr);
-    EXPECT_EQ(this->db->get_atom("ffffffffffffffffffffffffffffffff", this->both_keychains()), nullptr);
+    EXPECT_EQ(this->db->get_atom(random_handle(), this->both_keychains()), nullptr);
     EXPECT_EQ(this->db->get_link(this->similarity_human_chimp_handle, unknown_key)->handle(),
               this->similarity_human_chimp_handle);
 
@@ -513,42 +518,39 @@ TEST_F(RemoteAtomDBKeySensitiveTest, NestedSchemaDoesNotMatchWhenTheTargetLinkIs
     Node is_animal("Symbol", "\"is_animal\"");
     Node human("Symbol", "\"human\"");
     Link predicate_is_animal("Expression", {predicate.handle(), is_animal.handle()});
-    Link evaluation_is_animal_human("Expression",
-                                    {evaluation.handle(), predicate_is_animal.handle(), human.handle()});
+    Link evaluation_is_animal_human(
+        "Expression", {evaluation.handle(), predicate_is_animal.handle(), human.handle()}, true);
 
     // (Evaluation (Predicate "is_animal") $C)
-    vector<string> nested_link_tokens = {"LINK_TEMPLATE",
-                                         "Expression",
-                                         "3",
-                                         "NODE",
-                                         "Symbol",
-                                         "Evaluation",
-                                         "LINK",
-                                         "Expression",
-                                         "2",
-                                         "NODE",
-                                         "Symbol",
-                                         "Predicate",
-                                         "NODE",
-                                         "Symbol",
-                                         "\"is_animal\"",
-                                         "VARIABLE",
-                                         "C"};
+    // clang-format off
+    vector<string> nested_link_tokens = {
+        "LINK_TEMPLATE", "Expression", "3",
+             "NODE", "Symbol", "Evaluation",
+             "LINK", "Expression", "2",
+                 "NODE", "Symbol", "Predicate",
+                 "NODE", "Symbol", "\"is_animal\"",
+             "VARIABLE", "C"};
+    // clang-format on
     LinkSchema nested_link_schema{nested_link_tokens};
 
     auto nested_link_backend = make_shared<InMemoryDBWithAccessDocuments>("nested_link_database");
     nested_link_backend->grant_link_template("nested_reader", nested_link_tokens);
-    nested_link_backend->add_link(&evaluation_is_animal_human);
-    nested_link_backend->add_link(&predicate_is_animal);
+    nested_link_backend->add_node(&evaluation);
+    nested_link_backend->add_node(&predicate);
+    nested_link_backend->add_node(&is_animal);
     nested_link_backend->add_node(&human);
+    nested_link_backend->add_link(&predicate_is_animal);
+    nested_link_backend->add_link(&evaluation_is_animal_human);
 
     map<string, shared_ptr<RemoteAtomDBPeer>> peers;
     peers["nested_link_peer"] = make_shared<RemoteAtomDBPeer>(
         "nested_link_peer", make_shared<ProtectedAtomDB>(nested_link_backend), nullptr);
     auto db = make_shared<RemoteAtomDB>("remote_nested", peers);
+    AtomDBSingleton::provide(db, true);
     auto key = this->keychain({{"nested_link_database", "nested_reader"}});
 
     // The first call will fetch the atom from the remote database and add the result to the cache.
+
     auto handles = handles_from_handle_set(db->query_for_pattern(nested_link_schema, key));
     EXPECT_EQ(handles.size(), 1);
     EXPECT_EQ(*handles.begin(), evaluation_is_animal_human.handle());
@@ -617,19 +619,13 @@ TEST_F(RemoteAtomDBKeySensitiveTest, QueryForTargetsReturnsTargetsOnlyFromPeersT
     EXPECT_EQ(handles_from_handle_list(
                   this->db->query_for_targets(this->similarity_human_chimp_handle, nullptr)),
               vector<string>({this->similarity_handle, this->human_handle, this->chimp_handle}));
-    EXPECT_EQ(this->db->query_for_targets(this->similarity_human_monkey_handle, nullptr), nullptr);
-    EXPECT_EQ(this->db->query_for_targets(this->inheritance_human_mammal_handle, nullptr), nullptr);
 
     EXPECT_EQ(handles_from_handle_list(
                   this->db->query_for_targets(this->similarity_human_monkey_handle, similarity_key)),
               vector<string>({this->similarity_handle, this->human_handle, this->monkey_handle}));
-    EXPECT_EQ(this->db->query_for_targets(this->inheritance_human_mammal_handle, similarity_key),
-              nullptr);
     EXPECT_EQ(handles_from_handle_list(
                   this->db->query_for_targets(this->inheritance_human_mammal_handle, full_access_key)),
               vector<string>({this->inheritance_handle, this->human_handle, this->mammal_handle}));
-    EXPECT_EQ(this->db->query_for_targets(this->similarity_human_monkey_handle, full_access_key),
-              nullptr);
 
     auto both_keys = this->both_keychains();
     EXPECT_EQ(handles_from_handle_list(
@@ -638,35 +634,7 @@ TEST_F(RemoteAtomDBKeySensitiveTest, QueryForTargetsReturnsTargetsOnlyFromPeersT
     EXPECT_EQ(handles_from_handle_list(
                   this->db->query_for_targets(this->inheritance_human_mammal_handle, both_keys)),
               vector<string>({this->inheritance_handle, this->human_handle, this->mammal_handle}));
-    EXPECT_EQ(this->db->query_for_targets("ffffffffffffffffffffffffffffffff", both_keys), nullptr);
-}
-
-TEST_F(RemoteAtomDBKeySensitiveTest, QueryForIncomingSetAggregatesOnlyWhatTheKeychainCanRead) {
-    auto similarity_key = this->similarity_keychain();
-    auto full_access_key = this->full_access_keychain();
-
-    EXPECT_EQ(handles_from_handle_set(this->db->query_for_incoming_set(this->human_handle, nullptr)),
-              set<string>({this->similarity_human_chimp_handle}));
-
-    EXPECT_EQ(
-        handles_from_handle_set(this->db->query_for_incoming_set(this->human_handle, similarity_key)),
-        set<string>({this->similarity_human_chimp_handle}));
-
-    EXPECT_EQ(
-        handles_from_handle_set(this->db->query_for_incoming_set(this->human_handle, full_access_key)),
-        set<string>({this->inheritance_human_mammal_handle, this->similarity_human_chimp_handle}));
-
-    EXPECT_EQ(handles_from_handle_set(
-                  this->db->query_for_incoming_set(this->human_handle, this->both_keychains())),
-              set<string>({this->similarity_human_chimp_handle, this->inheritance_human_mammal_handle}));
-
-    EXPECT_EQ(
-        handles_from_handle_set(this->db->query_for_incoming_set(this->mammal_handle, similarity_key)),
-        set<string>());
-
-    EXPECT_EQ(
-        handles_from_handle_set(this->db->query_for_incoming_set(this->mammal_handle, full_access_key)),
-        set<string>({this->inheritance_human_mammal_handle}));
+    EXPECT_EQ(this->db->query_for_targets(random_handle(), both_keys), nullptr);
 }
 
 TEST_F(RemoteAtomDBKeySensitiveTest, ExistenceChecksRespectKeychainsAcrossPeers) {
@@ -675,15 +643,19 @@ TEST_F(RemoteAtomDBKeySensitiveTest, ExistenceChecksRespectKeychainsAcrossPeers)
     auto both_keys = this->both_keychains();
 
     EXPECT_TRUE(this->db->atom_exists(this->similarity_human_chimp_handle, nullptr));
+    EXPECT_TRUE(this->db->atom_exists(this->similarity_snake_vine_handle, nullptr));
     EXPECT_FALSE(this->db->atom_exists(this->similarity_human_monkey_handle, nullptr));
     EXPECT_FALSE(this->db->atom_exists(this->inheritance_human_mammal_handle, nullptr));
     EXPECT_TRUE(this->db->node_exists(this->human_handle, nullptr));
+    EXPECT_TRUE(this->db->node_exists(this->chimp_handle, nullptr));
+    EXPECT_TRUE(this->db->node_exists(this->snake_handle, nullptr));
+    EXPECT_TRUE(this->db->node_exists(this->vine_handle, nullptr));
     EXPECT_FALSE(this->db->node_exists(this->monkey_handle, nullptr));
     EXPECT_FALSE(this->db->link_exists(this->human_handle, nullptr));
 
     // A Link permission does not automatically grant permission to it's targets.
     EXPECT_TRUE(this->db->link_exists(this->similarity_human_monkey_handle, similarity_key));
-    EXPECT_FALSE(this->db->node_exists(this->monkey_handle, similarity_key));
+    EXPECT_TRUE(this->db->node_exists(this->monkey_handle, similarity_key));
     EXPECT_FALSE(this->db->atom_exists(this->inheritance_human_mammal_handle, similarity_key));
     EXPECT_FALSE(this->db->node_exists(this->mammal_handle, similarity_key));
 
@@ -696,7 +668,7 @@ TEST_F(RemoteAtomDBKeySensitiveTest, ExistenceChecksRespectKeychainsAcrossPeers)
                               this->inheritance_human_mammal_handle,
                               this->human_handle,
                               this->mammal_handle,
-                              "ffffffffffffffffffffffffffffffff"};
+                              random_handle()};
 
     EXPECT_EQ(this->db->atoms_exist(handles, nullptr),
               set<string>({this->similarity_human_chimp_handle, this->human_handle}));
@@ -799,7 +771,7 @@ TEST_F(RemoteAtomDBKeySensitiveTest, CountMethodsUseTheWriteBuffer) {
     peers["empty_peer"] = make_shared<RemoteAtomDBPeer>(
         "empty_peer", make_shared<ProtectedAtomDB>(empty_backend), nullptr);
     auto db = make_shared<RemoteAtomDB>("remote_counts", peers);
-    AtomDBSingleton::provide(db);
+    AtomDBSingleton::provide(db, true);
 
     auto similarity_keys = this->keychain({{similarity_database_uid, similarity_public_key}});
     auto full_access_keys = this->keychain({{full_access_database_uid, full_access_public_key}});

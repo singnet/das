@@ -10,6 +10,7 @@
 #include <vector>
 
 #include "AtomDB.h"
+#include "HandleDecoder.h"
 #include "HandleTrie.h"
 #include "InMemoryDBAPITypes.h"
 #include "JsonConfig.h"
@@ -43,7 +44,7 @@ namespace atomdb {
  * Relaxed guarantee: a concurrent reader may briefly observe an atom before its pattern /
  * incoming-set index entries exist (writes stay atomic w.r.t. each other).
  */
-class InMemoryDB : public AtomDB {
+class InMemoryDB : public AtomDB, public HandleDecoder {
    public:
     InMemoryDB();
     explicit InMemoryDB(const JsonConfig& config);
@@ -115,6 +116,26 @@ class InMemoryDB : public AtomDB {
 
     void add_pattern(const string& pattern_handle, const string& atom_handle);
     vector<string> match_pattern_index_schema(const Link* link);
+
+    shared_ptr<Atom> decode_atom(const string& handle,
+                                 shared_ptr<Keychain> keychain = nullptr) override {
+        return get_atom(handle);
+    }
+    string decode_node_name(const string& handle, shared_ptr<Keychain> keychain = nullptr) override {
+        auto node = dynamic_pointer_cast<Node>(get_atom(handle));
+        if (node == nullptr) {
+            return "";
+        }
+        return node->name;
+    }
+    vector<string> decode_link_targets(const string& handle,
+                                       shared_ptr<Keychain> keychain = nullptr) override {
+        auto link = dynamic_pointer_cast<Link>(get_atom(handle));
+        if (link == nullptr) {
+            return vector<string>();
+        }
+        return link->targets;
+    }
 
    private:
     // One atomic publish of all three tries. Readers snapshot via load_tries();

@@ -9,6 +9,7 @@
 
 #include "AtomDB.h"
 #include "AuthorizationManifest.h"
+#include "Hasher.h"
 #include "KeySensitiveAtomDB.h"
 #include "Keychain.h"
 
@@ -184,7 +185,33 @@ class ProtectedAtomDB : public AtomDB, public KeySensitiveAtomDB {
     size_t atom_count(shared_ptr<Keychain> keychain) const override;
 
    private:
+    class BackendDecoder : public HandleDecoder {
+       public:
+        shared_ptr<AtomDB> atomdb;
+        BackendDecoder(shared_ptr<AtomDB> atomdb) : atomdb(atomdb) {}
+        shared_ptr<Atom> decode_atom(const string& handle,
+                                     shared_ptr<Keychain> keychain = nullptr) override {
+            return this->atomdb->get_atom(handle);
+        }
+        string decode_node_name(const string& handle, shared_ptr<Keychain> keychain = nullptr) override {
+            auto node = this->atomdb->get_node(handle);
+            if (node == nullptr) {
+                return "";
+            }
+            return node->name;
+        }
+        vector<string> decode_link_targets(const string& handle,
+                                           shared_ptr<Keychain> keychain = nullptr) override {
+            auto link = this->atomdb->get_link(handle);
+            if (link == nullptr) {
+                return vector<string>();
+            }
+            return link->targets;
+        }
+    };
+
     shared_ptr<AtomDB> backend;
+    shared_ptr<BackendDecoder> backend_decoder;
     shared_ptr<AuthorizationManifest> manifest;
 
     [[noreturn]] static void raise_keychain_required(const string& method_name);
@@ -222,9 +249,11 @@ class ProtectedAtomDB : public AtomDB, public KeySensitiveAtomDB {
      * Restricted profiles load the atom here and send it to the Manifest.
      */
     inline bool can_read(const string& handle, const string& public_key) {
-        if (public_key.empty()) return false;
-        if (this->manifest->is_unrestricted(public_key)) {
-            return this->backend->atom_exists(handle);
+        if (public_key.empty()) {
+            return false;
+        }
+        if (Hasher::is_node_handle(handle) || this->manifest->is_unrestricted(public_key)) {
+            return true;
         }
         return this->can_read(this->backend->get_atom(handle), public_key);
     }
@@ -233,7 +262,14 @@ class ProtectedAtomDB : public AtomDB, public KeySensitiveAtomDB {
      * @brief Returns whether the caller may READ the specified atom.
      */
     inline bool can_read(const shared_ptr<Atom>& atom, const string& public_key) {
-        if (public_key.empty() || atom == nullptr) return false;
+        if (public_key.empty() || atom == nullptr) {
+            return false;
+        }
+        auto link = dynamic_pointer_cast<Link>(atom);
+        if ((link == nullptr) || !link->is_toplevel) {
+            // Nodes and non-toplevel links are always allowed
+            return true;
+        }
         return this->manifest->is_granted(public_key, atom, AuthorizationOperation::READ);
     }
 

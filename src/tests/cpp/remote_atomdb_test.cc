@@ -28,7 +28,7 @@
 #include "RemoteAtomDB.h"
 #include "RemoteAtomDBPeer.h"
 #include "TestAtomDBJsonConfig.h"
-#include "Utils.h"
+#include "test_utils.h"
 
 using namespace atomdb;
 using namespace atomdb::atomdb_api_types;
@@ -1141,7 +1141,7 @@ TEST(RemoteAtomDBFederationTest, CacheFirstProbingAcrossPeers) {
     EXPECT_EQ(second->handle(), handle);
 
     // A handle present in no peer resolves to nullptr.
-    EXPECT_EQ(db->get_atom("ffffffffffffffffffffffffffffffff"), nullptr);
+    EXPECT_EQ(db->get_atom(random_handle()), nullptr);
 }
 
 TEST(RemoteAtomDBFederationTest, PersistLinkWithoutCrossPeerTargetCopy) {

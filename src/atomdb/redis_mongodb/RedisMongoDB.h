@@ -14,6 +14,7 @@
 #include <vector>
 
 #include "AtomDB.h"
+#include "AtomDBUtils.h"
 #include "JsonConfig.h"
 #include "RedisContext.h"
 #include "RedisContextPool.h"
@@ -55,7 +56,6 @@ class RedisMongoDB : public AtomDB {
     static string MONGODB_FIELD_NAME[MONGODB_FIELD::size];
     static uint MONGODB_CHUNK_SIZE;
 
-    // HandleDecoder interface
     shared_ptr<Atom> get_atom(const string& handle);
     shared_ptr<Node> get_node(const string& handle);
     shared_ptr<Link> get_link(const string& handle);
@@ -146,6 +146,7 @@ class RedisMongoDB : public AtomDB {
    protected:
     friend class AtomDBFactory;
     RedisMongoDB(const JsonConfig& config);
+    AtomDBUtils decoder;
 
    private:
     bool skip_redis_;
