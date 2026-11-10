@@ -66,7 +66,7 @@ jobs:
           if [ -e "${{ inputs.changelog }}" ]; then
             releaseNote="$(cat "${{ inputs.changelog }}")"
           else
-            releaseNote="No relevant changes were made on this new release."
+            releaseNote=""
           fi
 
           {
