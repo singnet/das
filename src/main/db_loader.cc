@@ -13,6 +13,7 @@
 #include "MettaParser.h"
 #include "MettaParserActions.h"
 #include "RedisMongoDB.h"
+#include "RemoteAtomDB.h"
 #include "Utils.h"
 
 #define LOG_LEVEL INFO_LEVEL
@@ -309,5 +310,16 @@ int main(int argc, char* argv[]) {
         STOP_WATCH_FINISH(db_loader, "DBLoader");
     }
 
+    // If the database is a RemoteAtomDB we must realease its cache:
+    auto remote_atomdb = dynamic_pointer_cast<RemoteAtomDB>(atomdb);
+    if (remote_atomdb != nullptr) {
+        auto link_schema = LinkSchema({
+            "LINK_TEMPLATE", "Expression", "3",
+            "VARIABLE", "V1",
+            "VARIABLE", "V2",
+            "VARIABLE", "V3"
+        });
+        remote_atomdb->release_caches(link_schema, true, true);
+    }
     return 0;
 }

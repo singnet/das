@@ -64,6 +64,7 @@ cc_library(
         "//atomdb:atomdb_factory",
         "//atomdb:atomdb_initializer",
         "//atomdb:atomdb_singleton",
+        "//atomdb/remotedb:remotedb_lib",
         "//commons:commons_lib",
         "//metta:metta_lib",
     ],

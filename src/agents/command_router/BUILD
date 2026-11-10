@@ -67,6 +67,7 @@ cc_library(
         "//agents/query_engine:pattern_matching_query_proxy",
         "//agents/query_engine:query_answer",
         "//atomdb:atomdb_singleton",
+        "//atomdb/remotedb:remotedb_lib",
         "//commons/atoms:atoms_lib",
         "//service_bus:bus_command_processor",
         "//service_bus:service_bus_lib",

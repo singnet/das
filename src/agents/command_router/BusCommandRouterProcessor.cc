@@ -14,6 +14,7 @@
 #include "PatternMatchingQueryProxy.h"
 #include "PortPool.h"
 #include "QueryEvolutionProxy.h"
+#include "RemoteAtomDB.h"
 #include "ServiceBusSingleton.h"
 #include "SystemParametersSingleton.h"
 #include "Utils.h"
@@ -22,6 +23,7 @@
 #define LOG_LEVEL INFO_LEVEL
 #include "Logger.h"
 
+using namespace atomdb;
 using namespace command_router;
 using namespace query_engine;
 using namespace evolution;
@@ -434,6 +436,22 @@ void BusCommandRouterProcessor::handle_add_atom(shared_ptr<BusCommandRouterProxy
     proxy->to_remote_peer(BaseProxy::FINISHED, {});
 }
 
+// TODO: Remove this once we implement the commit endpoint.
+static void commit(shared_ptr<AtomDB> db) {
+    if (auto remote_db = dynamic_pointer_cast<RemoteAtomDB>(db)) {
+        LOG_INFO("[DEMO] Committing atomdb");
+
+        auto link_schema_2 = LinkSchema({LINK_TEMPLATE, EXPRESSION, "2", VARIABLE, "V1", VARIABLE, "V2"});
+        remote_db->release_caches(link_schema_2, true, true);
+
+        auto link_schema_3 = LinkSchema({LINK_TEMPLATE, EXPRESSION, "3", VARIABLE, "V1", VARIABLE, "V2", VARIABLE, "V3"});
+        remote_db->release_caches(link_schema_3, true, true);
+
+        auto link_schema_4 = LinkSchema({LINK_TEMPLATE, EXPRESSION, "4", VARIABLE, "V1", VARIABLE, "V2", VARIABLE, "V3", VARIABLE, "V4"});
+        remote_db->release_caches(link_schema_4, true, true);
+    }
+}
+
 string BusCommandRouterProcessor::add_atom(const string& arg) {
     json spec = parse_atom_arg(arg);
     if (spec.contains("metta")) {
@@ -443,7 +461,11 @@ string BusCommandRouterProcessor::add_atom(const string& arg) {
         if (spec.contains("kind")) {
             RAISE_ERROR("add_atom.metta cannot be combined with kind");
         }
-        return add_metta_expression(*this->atomdb, spec["metta"].get<string>());
+
+        string handle = add_metta_expression(*this->atomdb, spec["metta"].get<string>());
+        // TODO: Remove this once we implement the commit endpoint.
+        commit(this->atomdb);
+        return handle;
     }
     if (!spec.contains("kind") || !spec["kind"].is_string()) {
         RAISE_ERROR("add_atom.kind must be \"node\" or \"link\"");
@@ -483,6 +505,10 @@ string BusCommandRouterProcessor::add_atom(const string& arg) {
     if (handle.empty()) {
         RAISE_ERROR("AtomDB add returned an empty handle");
     }
+
+    // TODO: Remove this once we implement the commit endpoint.
+    commit(this->atomdb);
+
     return handle;
 }
 
@@ -512,5 +538,9 @@ string BusCommandRouterProcessor::delete_atom(const string& arg) {
         handle = spec["handle"].get<string>();
     }
     const bool deleted = this->atomdb->delete_atom(handle, delete_link_targets);
+
+    // TODO: Remove this once we implement the commit endpoint.
+    commit(this->atomdb);
+
     return deleted ? "deleted" : "not_found";
 }
