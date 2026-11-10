@@ -36,8 +36,6 @@ class AndTwoPredicates : public LinkCreator {
    private:
     static string LOGICAL_AND_HANDLE;
     static string EVALUATION_HANDLE;
-
-    void extract_mentioned_predicates(set<string>& mentioned, const string& handle);
 };
 
 }  // namespace link_creators
