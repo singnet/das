@@ -9,3 +9,6 @@ on:
 jobs:
   code-quality-and-tests-no-cache:
     uses: ./.github/workflows/run-code-quality-and-tests-no-cache.yml
+    with:
+      # Master runs the published das-cli loader and attention broker.
+      use_das_cli: true

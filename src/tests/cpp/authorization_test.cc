@@ -12,6 +12,8 @@
 #include <utility>
 #include <vector>
 
+#include "AtomDBInitializer.h"
+#include "AtomDBSingleton.h"
 #include "AuthorizationManifest.h"
 #include "AuthorizationPersistence.h"
 #include "AuthorizationTypes.h"
@@ -23,7 +25,10 @@
 #include "Node.h"
 #include "RedisMongoDBAPITypes.h"
 #include "TestAtomDBJsonConfig.h"
+#include "TestSystemParams.h"
+#include "test_utils.h"
 
+using das_test::init_test_system_parameters_singleton;
 using namespace atomdb;
 using namespace atomdb_api_types;
 using namespace atoms;
@@ -96,7 +101,7 @@ shared_ptr<AccessPermissionAtomDB> db_with_inheritance_link(string* link_handle)
     string human_handle = db->add_node(human);
     string mammal_handle = db->add_node(mammal);
     string inheritance_handle = db->add_node(inheritance);
-    auto link = new Link("Expression", {inheritance_handle, human_handle, mammal_handle});
+    auto link = new Link("Expression", {inheritance_handle, human_handle, mammal_handle}, true);
     *link_handle = db->add_link(link);
     delete human;
     delete mammal;
@@ -130,6 +135,7 @@ unique_ptr<MongodbAuthorizationPersistence> make_mongo_persistence(const string&
 TEST(AuthorizationManifestTest, BuildsProfilesFromDocuments) {
     string link_handle;
     auto db = db_with_inheritance_link(&link_handle);
+    AtomDBSingleton::provide(db, true);
     db->permissions["pk1"] = make_document("pk1", false, {read_only_inheritance_schema()});
     db->permissions["pk2"] = make_document("pk2", true, {});
     AuthorizationManifest manifest(db);
@@ -195,8 +201,8 @@ TEST(AuthorizationManifestTest, IsGranted) {
     EXPECT_FALSE(manifest.is_granted("pk", link, AuthorizationOperation::WRITE));
     EXPECT_FALSE(manifest.is_granted("pk", link_handle, AuthorizationOperation::WRITE));
 
-    EXPECT_FALSE(manifest.is_granted("pk", string(32, '0'), AuthorizationOperation::READ));
-    EXPECT_FALSE(manifest.is_granted("pk", string(32, '0'), AuthorizationOperation::WRITE));
+    EXPECT_FALSE(manifest.is_granted("pk", random_handle(), AuthorizationOperation::READ));
+    EXPECT_FALSE(manifest.is_granted("pk", random_handle(), AuthorizationOperation::WRITE));
 }
 
 TEST(AuthorizationManifestTest, IsUnrestricted) {
@@ -389,4 +395,10 @@ TEST(MongodbAuthorizationPersistenceTest, RemoveAllRaisesOnUnacknowledgedDelete)
         runtime_error);
 
     setup->revoke(public_key);
+}
+
+int main(int argc, char** argv) {
+    ::testing::InitGoogleTest(&argc, argv);
+    AtomDBInitializer::init(test_atomdb_json_config());
+    return RUN_ALL_TESTS();
 }

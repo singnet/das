@@ -62,6 +62,10 @@ string Link::to_string() const {
     }
     result += "], is_toplevel: " + string(this->is_toplevel ? "true" : "false") +
               ", custom_attributes: " + this->custom_attributes.to_string() + ")";
+    string metta_representation = this->custom_attributes.get_or<string>("metta_expression", "");
+    if (metta_representation != "") {
+        result += " " + metta_representation;
+    }
     return result;
 }
 
@@ -89,7 +93,7 @@ vector<string> Link::composite_type(HandleDecoder& decoder) const {
     vector<string> composite_type;
     composite_type.push_back(named_type_hash());
     for (string handle : this->targets) {
-        shared_ptr<Atom> atom = decoder.get_atom(handle);
+        shared_ptr<Atom> atom = decoder.decode_atom(handle);
         if (atom == nullptr) {
             RAISE_ERROR("Unkown atom with handle: " + handle);
             return {};
@@ -108,7 +112,7 @@ string Link::metta_representation(HandleDecoder& decoder) const {
     string metta_string = "(";
     unsigned int size = this->targets.size();
     for (unsigned int i = 0; i < size; i++) {
-        shared_ptr<Atom> atom = decoder.get_atom(this->targets[i]);
+        shared_ptr<Atom> atom = decoder.decode_atom(this->targets[i]);
         if (atom == nullptr) {
             RAISE_ERROR("Couldn't decode handle: " + this->targets[i]);
             return "";
@@ -124,7 +128,10 @@ string Link::metta_representation(HandleDecoder& decoder) const {
 
 unsigned int Link::arity() const { return this->targets.size(); }
 
-bool Link::match(const string& handle, Assignment& assignment, HandleDecoder& decoder) {
+bool Link::match(const string& handle,
+                 Assignment& assignment,
+                 HandleDecoder& decoder,
+                 shared_ptr<Keychain> keychain) {
     return this->handle() == handle;
 }
 

@@ -13,12 +13,11 @@ DAS_MONGODB_PASSWORD=admin
 
 DAS_MORK_HOSTNAME=0.0.0.0
 DAS_MORK_PORT=40022
+DAS_MORK_PORT_2=40032
 
 REDIS_IMAGE=redis:7.2.3-alpine
-MONGODB_IMAGE=mongodb/mongodb-community-server:8.2-ubuntu2204
-METTA_LOADER_IMAGE=trueagi/das:1.0.0-metta-parser
-MORK_IMAGE=trueagi/das:mork-server-1.1.0
-MORK_LOADER_IMAGE=trueagi/das:mork-loader-1.1.0
+MONGODB_IMAGE=mongodb/mongodb-community-server:9.0-ubuntu2204
+METTA_LOADER_IMAGE=trueagi/das:1.2.3-rc
 MORK_SERVER_IMAGE=trueagi/das:mork-server-1.1.0
 POSTGRES_IMAGE=postgres:15
 
@@ -30,9 +29,11 @@ ARCH=$(uname -m)
 case "$ARCH" in
   x86_64)
     ARCH="amd64"
+    LIB_SUBDIR="x86_64-linux-gnu"
     ;;
   aarch64|arm64)
     ARCH="arm64"
+    LIB_SUBDIR="aarch64-linux-gnu"
     ;;
   *)
     echo "Unsupported architecture: $ARCH"
@@ -86,21 +87,6 @@ start_redis_mongo() {
     #WAIT DBs READY
     echo "[SETUP-INFO] Waiting DBs..."
     sleep 10
-
-    #LOAD KNOWLEDGE BASE
-    echo "[SETUP-INFO] Loading knowledge base with Metta Parser..."
-
-    docker run --rm \
-    --network host \
-    -v ${ANIMALS_FILE}:${ANIMALS_FILE}:ro \
-    -e DAS_REDIS_HOSTNAME=${DAS_REDIS_HOSTNAME} \
-    -e DAS_REDIS_PORT=${DAS_REDIS_PORT} \
-    -e DAS_MONGODB_HOSTNAME=${DAS_MONGODB_HOSTNAME} \
-    -e DAS_MONGODB_PORT=${DAS_MONGODB_PORT} \
-    -e DAS_MONGODB_USERNAME=${DAS_MONGODB_USERNAME} \
-    -e DAS_MONGODB_PASSWORD=${DAS_MONGODB_PASSWORD} \
-    ${METTA_LOADER_IMAGE} \
-    db_loader ${ANIMALS_FILE}
 }
 
 start_attention_broker(){
@@ -113,7 +99,7 @@ start_attention_broker(){
         --volume /tmp:/tmp \
         --workdir /opt/das \
         "das-builder:${ARCH}" \
-        "bin/$ARCH/attention_broker_service" "0.0.0.0:40001"
+        "bin/$ARCH/attention_broker_service" "0.0.0.0:${ATTENTION_BROKER_SERVICE_PORT}"
 }
 
 start_mork_server() {
@@ -179,15 +165,7 @@ start_postgres_server(){
 
 # SETUP STEPS
 
-# 1. DOWNLOAD KNOWLEDGE BASE
-
-echo "[SETUP-INFO] Downloading knowledge base..."
-
-curl -L \
-https://raw.githubusercontent.com/singnet/das-toolbox/refs/heads/master/das-cli/src/examples/data/animals.metta \
--o ${ANIMALS_FILE}
-
-# 2. START REDIS/MONGO AND LOAD DATABASE.
+# 1. START REDIS/MONGO AND LOAD DATABASE.
 
 if container_running db-redis-test-container db-mongo-test-container; then
     echo "[SETUP-INFO] Redis and MongoDB containers are already running. Skipping startup and data loading."
@@ -195,23 +173,23 @@ else
     start_redis_mongo
 fi
 
-# 3.1 START MORK SERVER
+# 2. START MORK SERVER
 
 if container_running mork-test-server; then
     echo "[SETUP-INFO] Mork server container is already running. Skipping startup."
 else
-    start_mork_server "mork-test-server" 40022
+    start_mork_server "mork-test-server" ${DAS_MORK_PORT}
 fi
 
-# 3.2 START ADAPTERDB MORK SERVER
+# 3. START ADAPTERDB MORK SERVER
 
 if container_running adapterdb-mork-test-server; then
     echo "[SETUP-INFO] AdapterDB MORK server container is already running. Skipping startup."
 else
-    start_mork_server "adapterdb-mork-test-server" 40032
+    start_mork_server "adapterdb-mork-test-server" ${DAS_MORK_PORT_2}
 fi
 
-# 4.START POSTGRES SERVER
+# 4. START POSTGRES SERVER
 
 if container_running pg-test; then
     echo "[SETUP-INFO] Postgres container is already running. Skipping startup."

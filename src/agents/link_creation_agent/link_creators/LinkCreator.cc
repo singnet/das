@@ -48,7 +48,7 @@ LinkCreator::AddLinkStatus LinkCreator::add_or_update_link(const vector<string>&
         this->newly_created_links.push_back(handle);
         if (log_new_links()) {
             LOG_INFO("ADD LINK: [" + std::to_string(strength) + "] " +
-                     new_link->metta_representation(*decoder()));
+                     new_link->metta_representation(decoder));
         }
         vector<string> determiners = {handle};
         determiners.insert(determiners.end(), targets.begin(), targets.end());
@@ -86,7 +86,7 @@ void LinkCreator::save_link_metta(shared_ptr<Link> link) {
     file.open(get_log_file(), ios::app);
     if (file.is_open()) {
         file << link->custom_attributes.get_or<double>("strength", 1.0) << ","
-             << link->metta_representation(*decoder()) << endl;
+             << link->metta_representation(decoder) << endl;
         file.close();
     } else {
         RAISE_ERROR("Couldn't open file for writing: " + get_log_file());

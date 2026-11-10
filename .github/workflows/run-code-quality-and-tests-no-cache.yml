@@ -2,12 +2,24 @@ name: Code Quality & Tests Without Cache
 
 on:
   workflow_call:
+    inputs:
+      use_das_cli:
+        description: Use the published das-cli loader and attention broker
+        type: boolean
+        required: false
+        default: false
     outputs:
       failed_job:
         description: Name of the job that failed, if any
         value: ${{ jobs.report.outputs.failed_job }}
 
   workflow_dispatch:
+    inputs:
+      use_das_cli:
+        description: Use the published das-cli loader and attention broker
+        type: boolean
+        required: false
+        default: false
 
 jobs:
   format-check:
@@ -16,6 +28,8 @@ jobs:
   unit-tests:
     needs: format-check
     uses: ./.github/workflows/run-unit-tests-no-cache.yml
+    with:
+      use_das_cli: ${{ inputs.use_das_cli == true || inputs.use_das_cli == 'true' }}
 
   report:
     needs: [format-check, unit-tests]

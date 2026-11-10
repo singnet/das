@@ -165,7 +165,7 @@ shared_ptr<Atom> RedisMongoDB::get_atom(const string& handle) {
         if (atom_document->contains("is_toplevel")) {
             is_toplevel = atom_document->get_bool("is_toplevel");
         }
-        if (atom_document->contains(MONGODB_FIELD_NAME[MONGODB_FIELD::TARGETS])) {
+        if (Hasher::is_link_handle(handle)) {
             unsigned int arity = atom_document->get_size(MONGODB_FIELD_NAME[MONGODB_FIELD::TARGETS]);
             vector<string> targets;
             for (unsigned int i = 0; i < arity; i++) {
@@ -186,10 +186,12 @@ shared_ptr<Atom> RedisMongoDB::get_atom(const string& handle) {
 }
 
 shared_ptr<Node> RedisMongoDB::get_node(const string& handle) {
+    if (!Hasher::is_node_handle(handle)) return nullptr;
     return dynamic_pointer_cast<Node>(get_atom(handle));
 }
 
 shared_ptr<Link> RedisMongoDB::get_link(const string& handle) {
+    if (!Hasher::is_link_handle(handle)) return nullptr;
     return dynamic_pointer_cast<Link>(get_atom(handle));
 }
 
@@ -207,7 +209,6 @@ shared_ptr<atomdb_api_types::HandleSet> RedisMongoDB::query_for_pattern(const Li
 
     auto handle_set = make_shared<atomdb_api_types::HandleSetRedis>();
     handle_set->link_schema = make_shared<LinkSchema>(link_schema);
-    handle_set->decoder = this;
 
     while (redis_has_more) {
         command = ("ZRANGE " + REDIS_PATTERNS_PREFIX + ":" + pattern_handle + " " +
@@ -508,14 +509,8 @@ shared_ptr<atomdb_api_types::AtomDocument> RedisMongoDB::get_document(
 }
 
 shared_ptr<atomdb_api_types::AtomDocument> RedisMongoDB::get_atom_document(const string& handle) {
-    auto node_document = get_node_document(handle);
-    if (node_document != nullptr) {
-        return node_document;
-    }
-    auto link_document = get_link_document(handle);
-    if (link_document != nullptr) {
-        return link_document;
-    }
+    if (Hasher::is_node_handle(handle)) return get_node_document(handle);
+    if (Hasher::is_link_handle(handle)) return get_link_document(handle);
     return nullptr;
 }
 
@@ -625,17 +620,23 @@ vector<shared_ptr<atomdb_api_types::AtomDocument>> RedisMongoDB::get_documents(
 
 vector<shared_ptr<atomdb_api_types::AtomDocument>> RedisMongoDB::get_atom_documents(
     const vector<string>& handles, const vector<string>& fields) {
-    auto documents = get_node_documents(handles, fields);
-    if (documents.size() == handles.size()) return documents;
-
-    vector<string> missing_handles = handles;
-    for (const auto& document : documents) {
-        auto handle = document->get(MONGODB_FIELD_NAME[MONGODB_FIELD::ID]);
-        missing_handles.erase(find(missing_handles.begin(), missing_handles.end(), handle));
+    vector<string> node_handles;
+    vector<string> link_handles;
+    node_handles.reserve(handles.size());
+    link_handles.reserve(handles.size());
+    for (const auto& handle : handles) {
+        if (Hasher::is_node_handle(handle)) {
+            node_handles.push_back(handle);
+        } else if (Hasher::is_link_handle(handle)) {
+            link_handles.push_back(handle);
+        }
     }
 
-    auto link_documents = get_link_documents(missing_handles, fields);
-    documents.insert(documents.end(), link_documents.begin(), link_documents.end());
+    auto documents = get_node_documents(node_handles, fields);
+    if (!link_handles.empty()) {
+        auto link_documents = get_link_documents(link_handles, fields);
+        documents.insert(documents.end(), link_documents.begin(), link_documents.end());
+    }
     return documents;
 }
 
@@ -677,7 +678,8 @@ vector<shared_ptr<Atom>> RedisMongoDB::get_matching_atoms(bool is_toplevel, Atom
         auto documents = get_filtered_documents(collection_name, filter_builder, {});
         for (const auto& document : documents) {
             Assignment assignment;
-            if (key.match(document->get(MONGODB_FIELD_NAME[MONGODB_FIELD::ID]), assignment, *this)) {
+            if (key.match(
+                    document->get(MONGODB_FIELD_NAME[MONGODB_FIELD::ID]), assignment, this->decoder)) {
                 auto atom = this->get_atom(document->get(MONGODB_FIELD_NAME[MONGODB_FIELD::ID]));
                 if (atom != nullptr) {
                     matching_atoms.push_back(atom);
@@ -698,14 +700,18 @@ bool RedisMongoDB::document_exists(const string& handle, const string& collectio
 }
 
 bool RedisMongoDB::atom_exists(const string& atom_handle) {
-    return node_exists(atom_handle) || link_exists(atom_handle);
+    if (Hasher::is_node_handle(atom_handle)) return node_exists(atom_handle);
+    if (Hasher::is_link_handle(atom_handle)) return link_exists(atom_handle);
+    return false;
 }
 
 bool RedisMongoDB::node_exists(const string& node_handle) {
+    if (!Hasher::is_node_handle(node_handle)) return false;
     return document_exists(node_handle, MONGODB_NODES_COLLECTION_NAME);
 }
 
 bool RedisMongoDB::link_exists(const string& link_handle) {
+    if (!Hasher::is_link_handle(link_handle)) return false;
     return document_exists(link_handle, MONGODB_LINKS_COLLECTION_NAME);
 }
 
@@ -746,19 +752,37 @@ set<string> RedisMongoDB::documents_exist(const vector<string>& handles, const s
 }
 
 set<string> RedisMongoDB::atoms_exist(const vector<string>& handles) {
-    auto nodes = nodes_exist(handles);
-    if (nodes.size() == handles.size()) return nodes;
-    auto links = links_exist(handles);
-    nodes.insert(links.begin(), links.end());
-    return nodes;
+    vector<string> node_handles;
+    vector<string> link_handles;
+    for (const auto& handle : handles) {
+        if (Hasher::is_node_handle(handle)) {
+            node_handles.push_back(handle);
+        } else if (Hasher::is_link_handle(handle)) {
+            link_handles.push_back(handle);
+        }
+    }
+    auto existing = nodes_exist(node_handles);
+    auto links = links_exist(link_handles);
+    existing.insert(links.begin(), links.end());
+    return existing;
 }
 
 set<string> RedisMongoDB::nodes_exist(const vector<string>& node_handles) {
-    return documents_exist(node_handles, MONGODB_NODES_COLLECTION_NAME);
+    vector<string> filtered;
+    filtered.reserve(node_handles.size());
+    for (const auto& handle : node_handles) {
+        if (Hasher::is_node_handle(handle)) filtered.push_back(handle);
+    }
+    return documents_exist(filtered, MONGODB_NODES_COLLECTION_NAME);
 }
 
 set<string> RedisMongoDB::links_exist(const vector<string>& link_handles) {
-    return documents_exist(link_handles, MONGODB_LINKS_COLLECTION_NAME);
+    vector<string> filtered;
+    filtered.reserve(link_handles.size());
+    for (const auto& handle : link_handles) {
+        if (Hasher::is_link_handle(handle)) filtered.push_back(handle);
+    }
+    return documents_exist(filtered, MONGODB_LINKS_COLLECTION_NAME);
 }
 
 string RedisMongoDB::add_atom(const atoms::Atom* atom, const atoms::Merger* merger) {
@@ -1094,7 +1118,7 @@ vector<string> RedisMongoDB::add_links(const vector<atoms::Link*>& links,
                 Hasher::composite_handle(composite_type_entries_map[link_handle]);
             mongodb_doc.emplace(to_store, composite_type_hash, composite_type_entries_map[link_handle]);
         } else {
-            mongodb_doc.emplace(to_store, *this);
+            mongodb_doc.emplace(to_store, this->decoder);
         }
 
         if (static_cast<uint>(ctx->get_pending_commands_count()) >= REDIS_CHUNK_SIZE) {
@@ -1157,8 +1181,9 @@ bool RedisMongoDB::delete_document(const string& handle,
 }
 
 bool RedisMongoDB::delete_atom(const string& handle, bool delete_targets) {
-    if (delete_node(handle, delete_targets)) return true;
-    return delete_link(handle, delete_targets);
+    if (Hasher::is_node_handle(handle)) return delete_node(handle, delete_targets);
+    if (Hasher::is_link_handle(handle)) return delete_link(handle, delete_targets);
+    return false;
 }
 
 bool RedisMongoDB::delete_node(const string& handle, bool delete_targets) {
@@ -1368,7 +1393,7 @@ vector<string> RedisMongoDB::match_pattern_index_schema(const Link* link) {
         auto link_schema = LinkSchema(get<0>(value));
         auto index_entries = get<1>(value);
         Assignment assignment;
-        bool match = link_schema.match(*(Link*) link, assignment, *this);
+        bool match = link_schema.match(*(Link*) link, assignment, this->decoder);
         if (match) {
             for (const auto& index_entry : index_entries) {
                 size_t index = 0;
@@ -1419,15 +1444,26 @@ vector<vector<string>> RedisMongoDB::index_entries_combinations(unsigned int ari
 
 void RedisMongoDB::re_index_patterns(bool flush_patterns) {
     vector<Link*> links;
-    auto conn = this->mongodb_pool->acquire();
-    auto mongodb_collection = (*conn)[MONGODB_DB_NAME][MONGODB_LINKS_COLLECTION_NAME];
-    auto cursor = mongodb_collection.find({});
-    for (const auto& view : cursor) {
-        vector<string> targets;
-        for (const auto& target : view["targets"].get_array().value) {
-            targets.push_back(target.get_string().value.data());
+
+    {
+        // The block allows conn to be released before the call to
+        // match_pattern_index_schema() below which could use the
+        // passed decoder (which will end up calling methods of
+        // this AtomDB) which may make nested requests that requires
+        // acquiring more conns. Releasing it after this blocks may
+        // prevent a deadlock in a situation where a lot of concurrent
+        // callers (e.g. more than the size of mongodb pool)
+        // makes nested calls that acuires more than one conn.
+        auto conn = this->mongodb_pool->acquire();
+        auto mongodb_collection = (*conn)[MONGODB_DB_NAME][MONGODB_LINKS_COLLECTION_NAME];
+        auto cursor = mongodb_collection.find({});
+        for (const auto& view : cursor) {
+            vector<string> targets;
+            for (const auto& target : view["targets"].get_array().value) {
+                targets.push_back(target.get_string().value.data());
+            }
+            links.push_back(new Link(view["named_type"].get_string().value.data(), targets));
         }
-        links.push_back(new Link(view["named_type"].get_string().value.data(), targets));
     }
 
     // Load pattern index schema

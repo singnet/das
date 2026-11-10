@@ -17,7 +17,29 @@ using namespace atoms;
 class TestDecoder : public HandleDecoder {
    public:
     map<string, shared_ptr<Atom>> atoms;
-    shared_ptr<Atom> get_atom(const string& handle) { return this->atoms[handle]; }
+    shared_ptr<Atom> decode_atom(const string& handle, shared_ptr<Keychain> keychain = nullptr) {
+        return this->atoms[handle];
+    }
+    string decode_node_name(const string& handle, shared_ptr<Keychain> keychain = nullptr) {
+        auto atom = decode_atom(handle, keychain);
+        if (atom != nullptr) {
+            auto node = dynamic_pointer_cast<Node>(atom);
+            if (node != nullptr) {
+                return node->name;
+            }
+        }
+        return "NO_NAME";
+    }
+    vector<string> decode_link_targets(const string& handle, shared_ptr<Keychain> keychain = nullptr) {
+        auto atom = decode_atom(handle, keychain);
+        if (atom != nullptr) {
+            auto link = dynamic_pointer_cast<Link>(atom);
+            if (link != nullptr) {
+                return link->targets;
+            }
+        }
+        return vector<string>({});
+    }
     shared_ptr<Atom> add_atom(shared_ptr<Atom> atom) {
         this->atoms[atom->handle()] = atom;
         return atom;
@@ -374,7 +396,7 @@ TEST(LinkTest, Match) {
     check_match("test case 2.5", schema2, {link1, node1, node2}, db, true);
     check_match("test case 2.6", schema2, {link1, node4, node2}, db, true);
     check_match("test case 2.7", schema2, {link1, node1, node1}, db, false);
-    check_match("test case 2.5", schema2, {link2, node1, node2}, db, false);
+    check_match("test case 2.8", schema2, {link2, node1, node2}, db, false);
 
     LinkSchema schema3({
     "LINK_TEMPLATE", "Expression", "3",

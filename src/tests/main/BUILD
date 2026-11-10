@@ -56,6 +56,7 @@ cc_library(
         "//atomdb:atomdb_api_types",
         "//atomdb:atomdb_initializer",
         "//atomdb:atomdb_singleton",
+        "//atomdb:atomdbutils",
         "//commons:commons_lib",
         "//hasher:hasher_lib",
         "//service_bus:service_bus_lib",

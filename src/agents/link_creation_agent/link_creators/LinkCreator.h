@@ -4,6 +4,7 @@
 #include <string>
 
 #include "AtomDBSingleton.h"
+#include "AtomDBUtils.h"
 #include "QueryAnswer.h"
 #include "tags.h"
 
@@ -192,11 +193,12 @@ class LinkCreator {
     vector<string> newly_created_links;
 
    protected:
+    AtomDBUtils decoder;
+
     inline void visit(const string& key) { this->_visited.insert(key); }
     inline bool visited(const string& key) { return (this->_visited.find(key) != this->_visited.end()); }
     inline double strength_threshold() { return this->_strength_threshold; }
     inline shared_ptr<AtomDB> atomdb() { return AtomDBSingleton::get_instance(); }
-    inline HandleDecoder* decoder() { return static_pointer_cast<HandleDecoder>(atomdb()).get(); }
     inline void add_determiners(vector<string>& entry) { this->_buffer_determiners.push_back(entry); }
 
     AddLinkStatus add_or_update_link(const vector<string>& targets, double strength);
