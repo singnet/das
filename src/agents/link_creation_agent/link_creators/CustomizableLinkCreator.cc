@@ -52,8 +52,8 @@ bool CustomizableLinkCreator::check_targets(vector<string>& targets) {
             RAISE_ERROR("Nested target references check is only available for links of arity 2");
         }
         set<string> mentioned0, mentioned1;
-        AtomDBUtils::reachable_terminal_set(mentioned0, targets[0], true, true);
-        AtomDBUtils::reachable_terminal_set(mentioned1, targets[1], true, true);
+        AtomDBUtils::reachable_terminal_set(mentioned0, targets[0], true);
+        AtomDBUtils::reachable_terminal_set(mentioned1, targets[1], true);
         return !Utils::intersects(mentioned0, mentioned1);
     }
     return true;
@@ -75,22 +75,24 @@ LinkCreationStats CustomizableLinkCreator::create(shared_ptr<QueryAnswer> query_
             handles.push_back(handle);
         }
         string key = spec.link_type + " " + Utils::join(targets, ' ');
-        if (check_targets(targets) && !visited(key)) {
+        if (!visited(key)) {
             visit(key);
             stats.visited = true;
-            vector<double> strengths = compute_strength(query_answer, spec);
-            AddLinkStatus add_status = add_or_update_link(handles, strengths[0]);
-            if (add_status == CREATED) {
-                stats.created++;
-            } else if (add_status == UPDATED) {
-                stats.updated++;
-            }
-            if (spec.create_reverse() && (strengths.size() == 2)) {
-                add_status = add_or_update_link({handles[0], handles[2], handles[1]}, strengths[1]);
+            if (check_targets(targets)) {
+                vector<double> strengths = compute_strength(query_answer, spec);
+                AddLinkStatus add_status = add_or_update_link(handles, strengths[0]);
                 if (add_status == CREATED) {
                     stats.created++;
                 } else if (add_status == UPDATED) {
                     stats.updated++;
+                }
+                if (spec.create_reverse() && (strengths.size() == 2)) {
+                    add_status = add_or_update_link({handles[0], handles[2], handles[1]}, strengths[1]);
+                    if (add_status == CREATED) {
+                        stats.created++;
+                    } else if (add_status == UPDATED) {
+                        stats.updated++;
+                    }
                 }
             }
         }

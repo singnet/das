@@ -44,8 +44,8 @@ LinkCreationStats AndTwoPredicates::create(shared_ptr<QueryAnswer> query_answer)
             stats.visited = true;
             AddLinkStatus add_status;
             set<string> mentioned_predicates0, mentioned_predicates1;
-            AtomDBUtils::reachable_terminal_set(mentioned_predicates0, predicates[0], true, true);
-            AtomDBUtils::reachable_terminal_set(mentioned_predicates1, predicates[1], true, true);
+            AtomDBUtils::reachable_terminal_set(mentioned_predicates0, predicates[0], true);
+            AtomDBUtils::reachable_terminal_set(mentioned_predicates1, predicates[1], true);
             if (!Utils::intersects(mentioned_predicates0, mentioned_predicates1)) {
                 vector<string> targets = {LOGICAL_AND_HANDLE, predicates[0], predicates[1]};
                 add_status = add_or_update_link(targets, 1.0);

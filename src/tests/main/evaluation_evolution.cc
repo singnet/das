@@ -64,7 +64,7 @@ using namespace link_creation_agent;
 enum ContextTaskType { UNDEFINED = 0, DETERMINER, CORRELATION, ACTIVATION };
 
 static shared_ptr<AtomDB> db;
-static HandleDecoder* DECODER;
+static AtomDBUtils DECODER;
 static shared_ptr<ServiceBus> bus;
 static vector<pair<shared_ptr<QueryAnswer>, unsigned int>> recorded_answers;
 
@@ -84,9 +84,9 @@ static string answer_to_string_2(shared_ptr<QueryAnswer> answer) {
             auto target2 = db->get_link(link->targets[2]);
             if (first) {
                 first = false;
-                path = target1->metta_representation(*DECODER) + path_link[i];
+                path = target1->metta_representation(DECODER) + path_link[i];
             }
-            path += target2->metta_representation(*DECODER);
+            path += target2->metta_representation(DECODER);
             path += path_link[i];
         }
         if (answer->get_path_vector(i).size() > 0) {
@@ -114,9 +114,9 @@ static string answer_to_string_1(shared_ptr<QueryAnswer> answer) {
         auto target2 = db->get_link(link->targets[2]);
         if (first) {
             first = false;
-            path = target1->metta_representation(*DECODER) + path_link;
+            path = target1->metta_representation(DECODER) + path_link;
         }
-        path += target2->metta_representation(*DECODER);
+        path += target2->metta_representation(DECODER);
         path += path_link;
     }
     if (answer->get_path_vector(0).size() > 0) {
@@ -950,7 +950,6 @@ int main(int argc, char* argv[]) {
 
     Utils::init_random(RANDOM_SEED);
     db = AtomDBSingleton::get_instance();
-    DECODER = static_pointer_cast<HandleDecoder>(db).get();
     ServiceBusSingleton::init(client_endpoint, server_endpoint, ports_range.first, ports_range.second);
     FitnessFunctionRegistry::initialize_statics();
     LinkCreatorRegistry::initialize_statics();
