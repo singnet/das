@@ -424,9 +424,15 @@ TEST(ProtectedAtomDBTest, GetAtomsNodesAndLinksReturnOnlyAuthorizedAtoms) {
     for (const auto& atom : protected_atomdb->db->get_atoms(handles, similarity_human_keys)) {
         similarity_atoms.insert(atom->handle());
     }
-    EXPECT_EQ(similarity_atoms,
-              set<string>({animals.similarity_human_monkey, animals.similarity_human_chimp}));
-    EXPECT_TRUE(protected_atomdb->db->get_nodes(handles, similarity_human_keys).empty());
+    EXPECT_EQ(
+        similarity_atoms,
+        set<string>({animals.similarity_human_monkey, animals.similarity_human_chimp, animals.human}));
+
+    set<string> similarity_nodes;
+    for (const auto& node : protected_atomdb->db->get_nodes(handles, similarity_human_keys)) {
+        similarity_nodes.insert(node->handle());
+    }
+    EXPECT_EQ(similarity_nodes, set<string>({animals.human}));
 
     set<string> similarity_links;
     for (const auto& link : protected_atomdb->db->get_links(handles, similarity_human_keys)) {

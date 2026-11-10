@@ -372,8 +372,9 @@ TEST_F(RemoteAtomDBKeySensitiveTest, PeerGetAtomsNodesAndLinksRespectKeychain) {
     for (const auto& atom : similarity_peer->get_atoms(handles, similarity_key)) {
         granted.insert(atom->handle());
     }
-    EXPECT_EQ(granted, set<string>({this->similarity_human_monkey_handle}));
-    EXPECT_TRUE(similarity_peer->get_nodes(handles, similarity_key).empty());
+    EXPECT_EQ(granted, set<string>({this->similarity_human_monkey_handle, this->human_handle}));
+    ASSERT_EQ(similarity_peer->get_nodes(handles, similarity_key).size(), 1u);
+    EXPECT_EQ(similarity_peer->get_nodes(handles, similarity_key)[0]->handle(), this->human_handle);
     ASSERT_EQ(similarity_peer->get_links(handles, similarity_key).size(), 1u);
     EXPECT_EQ(similarity_peer->get_links(handles, similarity_key)[0]->handle(),
               this->similarity_human_monkey_handle);
