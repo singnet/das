@@ -1,4 +1,3 @@
-#define LOG_LEVEL INFO_LEVEL
 #include "RemoteAtomDBPeer.h"
 
 #include <algorithm>

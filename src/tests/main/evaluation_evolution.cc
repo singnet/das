@@ -9,6 +9,7 @@
 #include "AtomDBAPITypes.h"
 #include "AtomDBInitializer.h"
 #include "AtomDBSingleton.h"
+#include "AtomDBUtils.h"
 #include "AttentionBrokerClient.h"
 #include "ContextBrokerProxy.h"
 #include "CountLetterFunction.h"
@@ -116,7 +117,7 @@ using json = nlohmann::json;
 enum ContextTaskType { UNDEFINED = 0, DETERMINER, CORRELATION, ACTIVATION };
 
 static shared_ptr<AtomDB> db;
-static HandleDecoder* DECODER;
+static AtomDBUtils DECODER;
 static shared_ptr<ServiceBus> bus;
 static vector<vector<string>> buffer_determiners;
 static map<string, vector<string>> weight_calculation_cache;
@@ -165,7 +166,7 @@ static void save_link_metta(shared_ptr<Link> link) {
     file.open(PRESET_LINKS_FILE, ios::app);
     if (file.is_open()) {
         file << link->custom_attributes.get_or<double>("strength", 1.0) << ","
-             << link->metta_representation(*DECODER) << endl;
+             << link->metta_representation(DECODER) << endl;
         file.close();
     } else {
         RAISE_ERROR("Couldn't open file for writing: " + PRESET_LINKS_FILE);
@@ -188,9 +189,9 @@ static string answer_to_string_2(shared_ptr<QueryAnswer> answer) {
             auto target2 = db->get_link(link->targets[2]);
             if (first) {
                 first = false;
-                path = target1->metta_representation(*DECODER) + path_link[i];
+                path = target1->metta_representation(DECODER) + path_link[i];
             }
-            path += target2->metta_representation(*DECODER);
+            path += target2->metta_representation(DECODER);
             path += path_link[i];
         }
         if (answer->get_path_vector(i).size() > 0) {
@@ -218,9 +219,9 @@ static string answer_to_string_1(shared_ptr<QueryAnswer> answer) {
         auto target2 = db->get_link(link->targets[2]);
         if (first) {
             first = false;
-            path = target1->metta_representation(*DECODER) + path_link;
+            path = target1->metta_representation(DECODER) + path_link;
         }
-        path += target2->metta_representation(*DECODER);
+        path += target2->metta_representation(DECODER);
         path += path_link;
     }
     if (answer->get_path_vector(0).size() > 0) {
@@ -429,7 +430,7 @@ static shared_ptr<Link> add_or_update_link(const string& type_handle,
             LOG_DEBUG("Creating Link in AtomDB");
             if (PRINT_CREATED_LINKS_METTA) {
                 LOG_INFO("ADD LINK: [" + std::to_string(strength) + "] " +
-                         new_link->metta_representation(*DECODER));
+                         new_link->metta_representation(DECODER));
             }
             db->add_link(new_link.get());
             buffer_determiners.push_back({handle, target1, target2});
@@ -473,8 +474,8 @@ static shared_ptr<Link> add_and_predicate(const string& handle1,
     extract_mentioned_predicates(mentioned_predicates1, handle1);
     extract_mentioned_predicates(mentioned_predicates2, handle2);
     if (Utils::intersects(mentioned_predicates1, mentioned_predicates2)) {
-        LOG_DEBUG("Disregarded AND predicate: " + db->get_atom(handle1)->metta_representation(*DECODER) +
-                  " AND " + db->get_atom(handle2)->metta_representation(*DECODER));
+        LOG_DEBUG("Disregarded AND predicate: " + db->get_atom(handle1)->metta_representation(DECODER) +
+                  " AND " + db->get_atom(handle2)->metta_representation(DECODER));
         return nullptr;
     }
 
@@ -556,8 +557,8 @@ static bool build_implication_link(shared_ptr<QueryAnswer> query_answer,
     extract_mentioned_predicates(mentioned_predicates2, predicates[1]);
     if (Utils::intersects(mentioned_predicates1, mentioned_predicates2)) {
         LOG_DEBUG("Disregarded IMPLICATION predicates: " +
-                  db->get_atom(predicates[0])->metta_representation(*DECODER) + " <=> " +
-                  db->get_atom(predicates[1])->metta_representation(*DECODER));
+                  db->get_atom(predicates[0])->metta_representation(DECODER) + " <=> " +
+                  db->get_atom(predicates[1])->metta_representation(DECODER));
         return false;
     }
 
@@ -1684,7 +1685,6 @@ int main(int argc, char* argv[]) {
 
     Utils::init_random(RANDOM_SEED);
     db = AtomDBSingleton::get_instance();
-    DECODER = static_pointer_cast<HandleDecoder>(db).get();
     ServiceBusSingleton::init(client_endpoint, server_endpoint, ports_range.first, ports_range.second);
     FitnessFunctionRegistry::initialize_statics();
     bus = ServiceBusSingleton::get_instance();

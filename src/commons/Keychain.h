@@ -6,7 +6,7 @@
 
 using namespace std;
 
-namespace atomdb {
+namespace commons {
 
 /**
  * @brief Caller credentials: one public key per AtomDB UID.
@@ -39,4 +39,4 @@ class Keychain {
     map<string, string> keys_;
 };
 
-}  // namespace atomdb
+}  // namespace commons

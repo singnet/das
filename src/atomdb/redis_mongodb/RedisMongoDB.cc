@@ -209,7 +209,6 @@ shared_ptr<atomdb_api_types::HandleSet> RedisMongoDB::query_for_pattern(const Li
 
     auto handle_set = make_shared<atomdb_api_types::HandleSetRedis>();
     handle_set->link_schema = make_shared<LinkSchema>(link_schema);
-    handle_set->decoder = this;
 
     while (redis_has_more) {
         command = ("ZRANGE " + REDIS_PATTERNS_PREFIX + ":" + pattern_handle + " " +
@@ -679,7 +678,8 @@ vector<shared_ptr<Atom>> RedisMongoDB::get_matching_atoms(bool is_toplevel, Atom
         auto documents = get_filtered_documents(collection_name, filter_builder, {});
         for (const auto& document : documents) {
             Assignment assignment;
-            if (key.match(document->get(MONGODB_FIELD_NAME[MONGODB_FIELD::ID]), assignment, *this)) {
+            if (key.match(
+                    document->get(MONGODB_FIELD_NAME[MONGODB_FIELD::ID]), assignment, this->decoder)) {
                 auto atom = this->get_atom(document->get(MONGODB_FIELD_NAME[MONGODB_FIELD::ID]));
                 if (atom != nullptr) {
                     matching_atoms.push_back(atom);
@@ -1118,7 +1118,7 @@ vector<string> RedisMongoDB::add_links(const vector<atoms::Link*>& links,
                 Hasher::composite_handle(composite_type_entries_map[link_handle]);
             mongodb_doc.emplace(to_store, composite_type_hash, composite_type_entries_map[link_handle]);
         } else {
-            mongodb_doc.emplace(to_store, *this);
+            mongodb_doc.emplace(to_store, this->decoder);
         }
 
         if (static_cast<uint>(ctx->get_pending_commands_count()) >= REDIS_CHUNK_SIZE) {
@@ -1393,7 +1393,7 @@ vector<string> RedisMongoDB::match_pattern_index_schema(const Link* link) {
         auto link_schema = LinkSchema(get<0>(value));
         auto index_entries = get<1>(value);
         Assignment assignment;
-        bool match = link_schema.match(*(Link*) link, assignment, *this);
+        bool match = link_schema.match(*(Link*) link, assignment, this->decoder);
         if (match) {
             for (const auto& index_entry : index_entries) {
                 size_t index = 0;
@@ -1444,15 +1444,26 @@ vector<vector<string>> RedisMongoDB::index_entries_combinations(unsigned int ari
 
 void RedisMongoDB::re_index_patterns(bool flush_patterns) {
     vector<Link*> links;
-    auto conn = this->mongodb_pool->acquire();
-    auto mongodb_collection = (*conn)[MONGODB_DB_NAME][MONGODB_LINKS_COLLECTION_NAME];
-    auto cursor = mongodb_collection.find({});
-    for (const auto& view : cursor) {
-        vector<string> targets;
-        for (const auto& target : view["targets"].get_array().value) {
-            targets.push_back(target.get_string().value.data());
+
+    {
+        // The block allows conn to be released before the call to
+        // match_pattern_index_schema() below which could use the
+        // passed decoder (which will end up calling methods of
+        // this AtomDB) which may make nested requests that requires
+        // acquiring more conns. Releasing it after this blocks may
+        // prevent a deadlock in a situation where a lot of concurrent
+        // callers (e.g. more than the size of mongodb pool)
+        // makes nested calls that acuires more than one conn.
+        auto conn = this->mongodb_pool->acquire();
+        auto mongodb_collection = (*conn)[MONGODB_DB_NAME][MONGODB_LINKS_COLLECTION_NAME];
+        auto cursor = mongodb_collection.find({});
+        for (const auto& view : cursor) {
+            vector<string> targets;
+            for (const auto& target : view["targets"].get_array().value) {
+                targets.push_back(target.get_string().value.data());
+            }
+            links.push_back(new Link(view["named_type"].get_string().value.data(), targets));
         }
-        links.push_back(new Link(view["named_type"].get_string().value.data(), targets));
     }
 
     // Load pattern index schema
