@@ -127,6 +127,53 @@ TEST_F(RemoteAtomDBPeerTest, AddAndGetLinks) {
     EXPECT_EQ(retrieved->handle(), link_handle);
 }
 
+TEST_F(RemoteAtomDBPeerTest, GetAtomsNodesAndLinks) {
+    auto remote_node = new Node("Symbol", "\"remote-node\"");
+    string remote_handle = remote_->add_node(remote_node);
+
+    auto local_human = new Node("Symbol", "\"local-human\"");
+    auto local_monkey = new Node("Symbol", "\"local-monkey\"");
+    auto similarity = new Node("Symbol", "Similarity");
+    string local_human_handle = local_->add_node(local_human);
+    string local_monkey_handle = local_->add_node(local_monkey);
+    string similarity_handle = local_->add_node(similarity);
+    auto local_link =
+        new Link("Expression", {similarity_handle, local_human_handle, local_monkey_handle});
+    string local_link_handle = local_->add_link(local_link);
+
+    auto dirty = new Node("Symbol", "\"dirty-node\"");
+    string dirty_handle = peer_->add_node(dirty);
+    auto missing = new Node("Symbol", "\"missing\"");
+
+    vector<string> handles = {
+        dirty_handle, local_link_handle, remote_handle, missing->handle(), local_human_handle};
+
+    set<string> atoms;
+    for (const auto& atom : peer_->get_atoms(handles)) atoms.insert(atom->handle());
+    set<string> atoms_with_null_keychain;
+    for (const auto& atom : peer_->get_atoms(handles, nullptr))
+        atoms_with_null_keychain.insert(atom->handle());
+    EXPECT_EQ(atoms, set<string>({dirty_handle, local_link_handle, remote_handle, local_human_handle}));
+    EXPECT_EQ(atoms_with_null_keychain, atoms);
+
+    set<string> nodes;
+    for (const auto& node : peer_->get_nodes(handles)) nodes.insert(node->handle());
+    set<string> nodes_with_null_keychain;
+    for (const auto& node : peer_->get_nodes(handles, nullptr))
+        nodes_with_null_keychain.insert(node->handle());
+    EXPECT_EQ(nodes, set<string>({dirty_handle, remote_handle, local_human_handle}));
+    EXPECT_EQ(nodes_with_null_keychain, nodes);
+
+    set<string> links;
+    for (const auto& fetched_link : peer_->get_links(handles)) links.insert(fetched_link->handle());
+    set<string> links_with_null_keychain;
+    for (const auto& fetched_link : peer_->get_links(handles, nullptr)) {
+        links_with_null_keychain.insert(fetched_link->handle());
+    }
+    EXPECT_EQ(links, set<string>({local_link_handle}));
+    EXPECT_EQ(links_with_null_keychain, links);
+}
+
 TEST_F(RemoteAtomDBPeerTest, GetFromCacheThenRemote) {
     // Add to remote only (bypass peer)
     auto human = new Node("Symbol", "\"human\"");
@@ -655,6 +702,46 @@ TEST_F(RemoteAtomDBTest, AddLinksAndRetrieve) {
     auto retrieved2 = db_->get_link(link2_handle);
     ASSERT_NE(retrieved2, nullptr);
     EXPECT_EQ(retrieved2->handle(), link2_handle);
+}
+
+TEST_F(RemoteAtomDBTest, GetAtomsNodesAndLinks) {
+    auto human = new Node("Symbol", "\"batch-human\"");
+    auto monkey = new Node("Symbol", "\"batch-monkey\"");
+    auto similarity = new Node("Symbol", "BatchSimilarity");
+
+    string human_handle = db_->add_node(human);
+    string monkey_handle = db_->add_node(monkey);
+    string similarity_handle = db_->add_node(similarity);
+    auto link = new Link("Expression", {similarity_handle, human_handle, monkey_handle});
+    string link_handle = db_->add_link(link);
+    auto missing = new Node("Symbol", "\"missing\"");
+
+    vector<string> handles = {human_handle, link_handle, missing->handle(), monkey_handle};
+
+    set<string> atoms;
+    for (const auto& atom : db_->get_atoms(handles)) atoms.insert(atom->handle());
+    set<string> atoms_with_null_keychain;
+    for (const auto& atom : db_->get_atoms(handles, nullptr))
+        atoms_with_null_keychain.insert(atom->handle());
+    EXPECT_EQ(atoms, set<string>({human_handle, monkey_handle, link_handle}));
+    EXPECT_EQ(atoms_with_null_keychain, atoms);
+
+    set<string> nodes;
+    for (const auto& node : db_->get_nodes(handles)) nodes.insert(node->handle());
+    set<string> nodes_with_null_keychain;
+    for (const auto& node : db_->get_nodes(handles, nullptr))
+        nodes_with_null_keychain.insert(node->handle());
+    EXPECT_EQ(nodes, set<string>({human_handle, monkey_handle}));
+    EXPECT_EQ(nodes_with_null_keychain, nodes);
+
+    set<string> links;
+    for (const auto& fetched_link : db_->get_links(handles)) links.insert(fetched_link->handle());
+    set<string> links_with_null_keychain;
+    for (const auto& fetched_link : db_->get_links(handles, nullptr)) {
+        links_with_null_keychain.insert(fetched_link->handle());
+    }
+    EXPECT_EQ(links, set<string>({link_handle}));
+    EXPECT_EQ(links_with_null_keychain, links);
 }
 
 TEST_F(RemoteAtomDBTest, DeleteOperations) {
@@ -1448,5 +1535,6 @@ TEST(RemoteAtomDBFederationTest, UnprotectedRemoteHandleToMetta) {
 
 int main(int argc, char** argv) {
     ::testing::InitGoogleTest(&argc, argv);
+    Utils::init_random(0);
     return RUN_ALL_TESTS();
 }

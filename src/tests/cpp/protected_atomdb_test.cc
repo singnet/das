@@ -21,6 +21,7 @@
 #include "ProtectedAtomDB.h"
 #include "RedisMongoDB.h"
 #include "TestAtomDBJsonConfig.h"
+#include "Utils.h"
 
 using namespace atomdb;
 using namespace atomdb_api_types;
@@ -253,6 +254,9 @@ TEST(ProtectedAtomDBTest, ProtectedMethodsRequireKeychain) {
     LinkSchema schema("Expression", 2);
 
     EXPECT_THROW(protected_atomdb->db->get_atom("handle"), runtime_error);
+    EXPECT_THROW(protected_atomdb->db->get_atoms({"handle"}), runtime_error);
+    EXPECT_THROW(protected_atomdb->db->get_nodes({"handle"}), runtime_error);
+    EXPECT_THROW(protected_atomdb->db->get_links({"handle"}), runtime_error);
     EXPECT_THROW(protected_atomdb->db->query_for_pattern(schema), runtime_error);
     EXPECT_THROW(protected_atomdb->db->atom_exists("handle"), runtime_error);
     EXPECT_THROW(protected_atomdb->db->atoms_exist({"handle"}), runtime_error);
@@ -395,6 +399,74 @@ TEST(ProtectedAtomDBTest, ReadOperationsReturnOnlyAuthorizedAtoms) {
               set<string>({animals.human, animals.monkey}));
     EXPECT_EQ(protected_atomdb->db->nodes_exist({animals.human}, admin_keys),
               set<string>({animals.human}));
+}
+
+TEST(ProtectedAtomDBTest, GetAtomsNodesAndLinksReturnOnlyAuthorizedAtoms) {
+    shared_ptr<ProtectedRedisMongo> protected_atomdb = make_shared<ProtectedRedisMongo>(true);
+    protected_atomdb->grant_full_access(PKAdmin);
+    protected_atomdb->grant_link_template(PKSimilarityHuman, similarity_human_tokens());
+    auto admin_keys = protected_atomdb->keys(PKAdmin);
+    auto similarity_human_keys = protected_atomdb->keys(PKSimilarityHuman);
+    Animals animals;
+    auto missing = new Node("Symbol", "\"missing\"");
+    vector<string> handles = {animals.similarity_human_monkey,
+                              animals.similarity_human_chimp,
+                              animals.similarity_snake_vine,
+                              animals.inheritance_human_mammal,
+                              animals.human,
+                              missing->handle()};
+
+    EXPECT_TRUE(protected_atomdb->db->get_atoms(handles, nullptr).empty());
+    EXPECT_TRUE(protected_atomdb->db->get_nodes(handles, nullptr).empty());
+    EXPECT_TRUE(protected_atomdb->db->get_links(handles, nullptr).empty());
+
+    set<string> similarity_atoms;
+    for (const auto& atom : protected_atomdb->db->get_atoms(handles, similarity_human_keys)) {
+        similarity_atoms.insert(atom->handle());
+    }
+    EXPECT_EQ(
+        similarity_atoms,
+        set<string>({animals.similarity_human_monkey, animals.similarity_human_chimp, animals.human}));
+
+    set<string> similarity_nodes;
+    for (const auto& node : protected_atomdb->db->get_nodes(handles, similarity_human_keys)) {
+        similarity_nodes.insert(node->handle());
+    }
+    EXPECT_EQ(similarity_nodes, set<string>({animals.human}));
+
+    set<string> similarity_links;
+    for (const auto& link : protected_atomdb->db->get_links(handles, similarity_human_keys)) {
+        similarity_links.insert(link->handle());
+    }
+    EXPECT_EQ(similarity_links,
+              set<string>({animals.similarity_human_monkey, animals.similarity_human_chimp}));
+
+    set<string> admin_atoms;
+    for (const auto& atom : protected_atomdb->db->get_atoms(handles, admin_keys)) {
+        admin_atoms.insert(atom->handle());
+    }
+    EXPECT_EQ(admin_atoms,
+              set<string>({animals.similarity_human_monkey,
+                           animals.similarity_human_chimp,
+                           animals.similarity_snake_vine,
+                           animals.inheritance_human_mammal,
+                           animals.human}));
+
+    set<string> admin_nodes;
+    for (const auto& node : protected_atomdb->db->get_nodes(handles, admin_keys)) {
+        admin_nodes.insert(node->handle());
+    }
+    EXPECT_EQ(admin_nodes, set<string>({animals.human}));
+
+    set<string> admin_links;
+    for (const auto& link : protected_atomdb->db->get_links(handles, admin_keys)) {
+        admin_links.insert(link->handle());
+    }
+    EXPECT_EQ(admin_links,
+              set<string>({animals.similarity_human_monkey,
+                           animals.similarity_human_chimp,
+                           animals.similarity_snake_vine,
+                           animals.inheritance_human_mammal}));
 }
 
 TEST(ProtectedAtomDBTest, ExistenceChecksPreserveNodeAndLinkTypes) {
@@ -661,4 +733,10 @@ TEST(ProtectedAtomDBTest, NestedRelatedGrantDoesNotImplyInnerSimilarity) {
     EXPECT_TRUE(handles_from_set(protected_atomdb->db->query_for_pattern(related_similarity_human_schema,
                                                                          similarity_human_keys))
                     .empty());
+}
+
+int main(int argc, char** argv) {
+    ::testing::InitGoogleTest(&argc, argv);
+    Utils::init_random(0);
+    return RUN_ALL_TESTS();
 }

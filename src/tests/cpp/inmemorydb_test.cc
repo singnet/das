@@ -19,6 +19,7 @@
 #include "Merger.h"
 #include "Node.h"
 #include "Properties.h"
+#include "Utils.h"
 
 using namespace atomdb;
 using namespace atomdb::atomdb_api_types;
@@ -83,6 +84,33 @@ TEST_F(InMemoryDBTest, AddNodesAndLinks) {
 
     auto retrieved_link1 = db->get_atom(link1_handle);
     EXPECT_EQ(retrieved_link1->handle(), link1_handle);
+}
+
+TEST_F(InMemoryDBTest, GetAtomsNodesAndLinks) {
+    auto human = new Node("Symbol", "\"human\"");
+    auto monkey = new Node("Symbol", "\"monkey\"");
+    auto similarity = new Node("Symbol", "Similarity");
+
+    string human_handle = db->add_node(human);
+    string monkey_handle = db->add_node(monkey);
+    string similarity_handle = db->add_node(similarity);
+    auto link = new Link("Expression", {similarity_handle, human_handle, monkey_handle});
+    string link_handle = db->add_link(link);
+    auto missing = new Node("Symbol", "\"missing\"");
+
+    vector<string> handles = {human_handle, link_handle, missing->handle(), monkey_handle};
+
+    set<string> atoms;
+    for (const auto& atom : db->get_atoms(handles)) atoms.insert(atom->handle());
+    EXPECT_EQ(atoms, set<string>({human_handle, monkey_handle, link_handle}));
+
+    set<string> nodes;
+    for (const auto& node : db->get_nodes(handles)) nodes.insert(node->handle());
+    EXPECT_EQ(nodes, set<string>({human_handle, monkey_handle}));
+
+    set<string> links;
+    for (const auto& fetched_link : db->get_links(handles)) links.insert(fetched_link->handle());
+    EXPECT_EQ(links, set<string>({link_handle}));
 }
 
 TEST_F(InMemoryDBTest, QueryForPattern) {
@@ -1447,5 +1475,6 @@ TEST_F(InMemoryDBTest, IsUnprotected) {
 
 int main(int argc, char** argv) {
     ::testing::InitGoogleTest(&argc, argv);
+    Utils::init_random(0);
     return RUN_ALL_TESTS();
 }
