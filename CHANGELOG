@@ -1,31 +1,13 @@
 Highlights
 
-* Command Router HTTP API (#1146)
-* Initial HTTP server infrastructure for the command router (#1156)
-* Async HTTP API with CommandExecution (#1165)
-* In-process routing of HTTP commands through BusCommandRouterProcessor (#1168)
-* Synchronous get/set execution on POST /command-router/executions (#1175)
-* Stream query answers as JSON over the Command Router HTTP API (#1197)
-* Attention Focus Strictness — new ATTENTION_FOCUS_STRICTNESS parameter for pattern-matching queries (#1158, #1160)
-* QueryAnswer path hops — new QueryAnswerElement to retrieve hops in query-answer paths (#1154)
-* Link creation criteria revised (#1009) (#1147)
-* db_loader main entry point added (#1142)
-* RemoteDB fixes and improvements (part 1/2) (#1155)
-* AtomDB::composite_type_enabled() added (#1181)
-* SQL column value sanitization (#1152)
-* Release query-engine memory back to the OS via malloc_trim (#1171)
+* Move Keychain to commons and add it as parameter in LinkSchema::match (#1339)
+* Integration of LCA in t evaluation_evolution (#1330)
 
 Bug Fixes
-* Fix db-loader and QueryAnswer::read_metta_expression() (#1150)
-* Correct Utils::trim usage in command router (#1151)
-* Set fetched_links_cache() only when use_cache is true (#1159)
-* Fix MorkDB test (#1161)
-* Fix flaky adapterDB tests with MORK retry logic; bump MORK image to 1.1.0 (#1169)
-* Fix CI pipeline being triggered by individual commits (#1170)
+
+* DAS-CLI setup fix on unitary tests pipeline. (#1348)
 
 Minor Changes
-* Improve error message in read_metta_expression() (#1145)
-* Add CodeRabbit config focused on quality, memory, and test coverage (#1153)
-* Improve CI (#1174)
-* Add more context to query parsing error messages (#1179)
-* Refactor HandleTrie to clone TrieValue contents on lookup before returning (#1203)
+
+* Add code comment for ATOM_HANDLE_LENGTH. (#1347)
+* Fix changelog message format. (#1346)
