@@ -334,18 +334,17 @@ void run(const string& client_id,
             string handle = query_answer->assignment.get(sentence1.c_str());
             float fitness = query_answer->strength;
             shared_ptr<Link> sentence_link;
-            shared_ptr<Node> sentence_name_node;
+            string sentence_name;
             if (protected_db) {
                 sentence_link = protected_db->get_link(handle, keychain);
                 handle = sentence_link->targets[1];
-                sentence_name_node = protected_db->get_node(handle, keychain);
+                sentence_name = protected_db->get_node_name(handle, keychain);
             } else {
                 sentence_link = db->get_link(handle);
                 handle = sentence_link->targets[1];
-                sentence_name_node = db->get_node(handle);
+                sentence_name = db->get_node_name(handle);
             }
             set<string> to_highlight = {word_tag1, word_tag2};
-            string sentence_name = sentence_name_node->name;
             string highlighted_sentence_name = highlight(sentence_name, to_highlight);
             cout << std::fixed << std::setw(6) << std::setprecision(4) << std::setfill('0') << fitness
                  << ": " << highlighted_sentence_name << endl;

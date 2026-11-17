@@ -164,11 +164,11 @@ static vector<double> compute_expected_strength(
     auto concept_link2 = db->get_link(handle2);
     vector<double> answer;
     if ((concept_link1 != nullptr) && (concept_link2 != nullptr)) {
-        auto terminal1 = db->get_node(concept_link1->targets[1]);
-        auto terminal2 = db->get_node(concept_link2->targets[1]);
-        if ((terminal1 != nullptr) && (terminal2 != nullptr)) {
-            string s1 = terminal1->name.substr(1, terminal1->name.size() - 2);
-            string s2 = terminal2->name.substr(1, terminal2->name.size() - 2);
+        string name1 = db->get_node_name(concept_link1->targets[1]);
+        string name2 = db->get_node_name(concept_link2->targets[1]);
+        if (!name1.empty() && !name2.empty()) {
+            string s1 = name1.substr(1, name1.size() - 2);
+            string s2 = name2.substr(1, name2.size() - 2);
             LOG_DEBUG("Computing expected strength for: \"" + s1 + "\" and \"" + s2 + "\"");
             vector<string> v;
             v = Utils::split(s1);

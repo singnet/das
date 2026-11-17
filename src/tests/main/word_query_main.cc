@@ -140,7 +140,6 @@ void run(const string& client_id,
     unsigned int count = 0;
 
     shared_ptr<Link> sentence_link;
-    shared_ptr<Node> sentence_name_node;
     vector<string> sentences;
     while (!proxy->finished()) {
         if ((query_answer = proxy->pop()) == NULL) {
@@ -149,10 +148,9 @@ void run(const string& client_id,
             string handle = query_answer->assignment.get(sentence1.c_str());
             sentence_link = db->get_link(handle);
             handle = sentence_link->targets[1];
-            sentence_name_node = db->get_node(handle);
+            string sentence_name = db->get_node_name(handle);
             set<string> to_highlight;
             to_highlight.insert(word_tag);
-            string sentence_name = sentence_name_node->name;
             string highlighted_sentence_name = highlight(sentence_name, to_highlight);
             string w = "\"" + word_tag + "\"";
             string line = "(Contains (Sentence " + highlighted_sentence_name + ") (Word \"" +

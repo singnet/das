@@ -13,18 +13,20 @@ float CountLetterFunction::eval(shared_ptr<QueryAnswer> query_answer, shared_ptr
         return 0;
     } else {
         shared_ptr<Link> sentence_link;
-        shared_ptr<Node> sentence_name_node;
         string handle = query_answer->assignment.get(VARIABLE_NAME);
+        string sentence_name;
         if (this->key_sensitive_atomdb == nullptr) {
             sentence_link = this->atomdb->get_link(handle);
             handle = sentence_link->targets[1];
-            sentence_name_node = this->atomdb->get_node(handle);
+            sentence_name = this->atomdb->get_node_name(handle);
         } else {
             sentence_link = this->key_sensitive_atomdb->get_link(handle, keychain);
             handle = sentence_link->targets[1];
-            sentence_name_node = this->key_sensitive_atomdb->get_node(handle, keychain);
+            sentence_name = this->key_sensitive_atomdb->get_node_name(handle, keychain);
         }
-        string sentence_name = sentence_name_node->name;
+        if (sentence_name.empty()) {
+            RAISE_ERROR("CountLetterFunction: node does not exist: " + handle);
+        }
         unsigned int count = 0;
         unsigned int sentence_length = 0;
         for (unsigned int i = 0; i < sentence_name.length(); i++) {
