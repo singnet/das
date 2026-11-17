@@ -37,6 +37,11 @@ shared_ptr<HandleSetIterator> HandleSetInMemory::get_iterator() {
     return it;
 }
 
+shared_ptr<HandleSetIterator> HandleSetInMemory::get_iterator(HandleDecoder* decoder) {
+    shared_ptr<HandleSetInMemoryIterator> it(new HandleSetInMemoryIterator(this));
+    return it;
+}
+
 map<string, string> HandleSetInMemory::get_metta_expressions_by_handle(const string& handle) {
     auto it = metta_expressions_by_handle.find(handle);
     if (it != metta_expressions_by_handle.end()) {

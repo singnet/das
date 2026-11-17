@@ -4,6 +4,7 @@
 #include <map>
 #include <vector>
 
+#include "HandleDecoder.h"
 #include "Link.h"
 #include "LinkSchema.h"
 #include "Node.h"
@@ -42,7 +43,11 @@ class HandleList {
 
 class HandleSetIterator {
    public:
+    HandleSetIterator() : decoder(NULL) {}
     virtual char* next() = 0;
+
+   protected:
+    HandleDecoder* decoder;
 };
 
 class HandleSet {
@@ -53,6 +58,7 @@ class HandleSet {
     virtual unsigned int size() = 0;
     virtual void append(shared_ptr<HandleSet> other) = 0;
     virtual shared_ptr<HandleSetIterator> get_iterator() = 0;
+    virtual shared_ptr<HandleSetIterator> get_iterator(HandleDecoder* decoder) = 0;
 
     virtual map<string, string> get_metta_expressions_by_handle(const string& handle) = 0;
     virtual Assignment get_assignments_by_handle(const string& handle) = 0;

@@ -42,6 +42,11 @@ void HandleSetMork::append(shared_ptr<HandleSet> other) {
 shared_ptr<HandleSetIterator> HandleSetMork::get_iterator() {
     return make_shared<HandleSetMorkIterator>(this);
 }
+
+shared_ptr<HandleSetIterator> HandleSetMork::get_iterator(HandleDecoder* decoder) {
+    return make_shared<HandleSetMorkIterator>(this);
+}
+
 // <--
 
 // --> HandleSetMorkIterator

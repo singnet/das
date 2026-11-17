@@ -7,7 +7,6 @@
 
 #include "Utils.h"
 
-using namespace atomdb;
 using namespace std;
 using namespace commons;
 

@@ -158,8 +158,26 @@ class MorkDBDecoder : public HandleDecoder {
 
     ~MorkDBDecoder() {}
 
-    shared_ptr<Atom> get_atom(const string& handle) override {
+    shared_ptr<Atom> decode_atom(const string& handle,
+                                 shared_ptr<Keychain> keychain = nullptr) override {
         return this->parser_actions->handle_to_atom[handle];
+    }
+
+    string decode_node_name(const string& handle, shared_ptr<Keychain> keychain = nullptr) override {
+        auto node = dynamic_pointer_cast<Node>(this->decode_atom(handle, keychain));
+        if (node == nullptr) {
+            return "";
+        }
+        return node->name;
+    }
+
+    vector<string> decode_link_targets(const string& handle,
+                                       shared_ptr<Keychain> keychain = nullptr) override {
+        auto link = dynamic_pointer_cast<Link>(this->decode_atom(handle, keychain));
+        if (link == nullptr) {
+            return vector<string>();
+        }
+        return link->targets;
     }
 
     string get_metta_expression_handle() { return this->parser_actions->metta_expression_handle; }
@@ -172,7 +190,7 @@ class MorkDBDecoder : public HandleDecoder {
 };
 
 shared_ptr<atomdb_api_types::HandleSet> MorkDB::query_for_pattern(const LinkSchema& link_schema) {
-    string pattern_metta = link_schema.metta_representation(*this);
+    string pattern_metta = link_schema.metta_representation(this->decoder);
     // template should equals to pattern_metta
     LOG_DEBUG("Fetching data...");
     vector<string> raw_expressions = this->mork_client->get(pattern_metta, pattern_metta);
@@ -297,7 +315,7 @@ vector<string> MorkDB::add_links(const vector<atoms::Link*>& links,
 
         string metta_expression = to_store->custom_attributes.get_or<string>("metta_expression", "");
         if (metta_expression.empty()) {
-            metta_expression = to_store->metta_representation(*this);
+            metta_expression = to_store->metta_representation(this->decoder);
             // Persist metta on the atom we will store (may be incoming or merged existing).
             // Callers whose Link* is reused here should expect metta_expression to be filled in.
             to_store->custom_attributes["metta_expression"] = metta_expression;
@@ -320,7 +338,7 @@ vector<string> MorkDB::add_links(const vector<atoms::Link*>& links,
                 Hasher::composite_handle(composite_type_entries_map[link_handle]);
             mongodb_doc.emplace(to_store, composite_type_hash, composite_type_entries_map[link_handle]);
         } else {
-            mongodb_doc.emplace(to_store, *this);
+            mongodb_doc.emplace(to_store, this->decoder);
         }
 
         documents.push_back(mongodb_doc->value());

@@ -41,6 +41,7 @@ cc_library(
     includes = ["."],
     deps = [
         "//atomdb:atomdb_api_types",
+        "//atomdb:atomdbutils",
         "//commons/atoms:atoms_lib",
     ],
 )

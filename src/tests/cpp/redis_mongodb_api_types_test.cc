@@ -8,30 +8,54 @@
 #include <vector>
 
 #include "Assignment.h"
+#include "AtomDBInitializer.h"
 #include "Link.h"
 #include "LinkSchema.h"
 #include "Node.h"
 #include "RedisMongoDBAPITypes.h"
+#include "TestAtomDBJsonConfig.h"
+#include "TestSystemParams.h"
 
+using das_test::init_test_system_parameters_singleton;
 using namespace atomdb::atomdb_api_types;
+using namespace atomdb;
 using namespace atoms;
 using namespace commons;
 using namespace std;
 
-namespace {
-
-class MapDecoder : public HandleDecoder {
+class TestDecoder : public HandleDecoder {
    public:
-    shared_ptr<Atom> get_atom(const string& handle) override {
-        auto it = atoms.find(handle);
-        return it == atoms.end() ? nullptr : it->second;
-    }
-
-    void add(const shared_ptr<Atom>& atom) { atoms[atom->handle()] = atom; }
-
-   private:
     map<string, shared_ptr<Atom>> atoms;
+    shared_ptr<Atom> decode_atom(const string& handle, shared_ptr<Keychain> keychain = nullptr) {
+        return this->atoms[handle];
+    }
+    string decode_node_name(const string& handle, shared_ptr<Keychain> keychain = nullptr) {
+        auto atom = decode_atom(handle, keychain);
+        if (atom != nullptr) {
+            auto node = dynamic_pointer_cast<Node>(atom);
+            if (node != nullptr) {
+                return node->name;
+            }
+        }
+        return "NO_NAME";
+    }
+    vector<string> decode_link_targets(const string& handle, shared_ptr<Keychain> keychain = nullptr) {
+        auto atom = decode_atom(handle, keychain);
+        if (atom != nullptr) {
+            auto link = dynamic_pointer_cast<Link>(atom);
+            if (link != nullptr) {
+                return link->targets;
+            }
+        }
+        return vector<string>({});
+    }
+    shared_ptr<Atom> add_atom(shared_ptr<Atom> atom) {
+        this->atoms[atom->handle()] = atom;
+        return atom;
+    }
 };
+
+namespace {
 
 redisReply* make_array_reply(const vector<string>& values) {
     auto* reply = static_cast<redisReply*>(calloc(1, sizeof(redisReply)));
@@ -50,15 +74,15 @@ redisReply* make_array_reply(const vector<string>& values) {
 }  // namespace
 
 TEST(HandleSetRedisIteratorTest, FiltersCandidatesAndStoresAssignmentForEachMatch) {
-    MapDecoder decoder;
+    TestDecoder decoder;
     auto inheritance = make_shared<Node>("Symbol", "Inheritance");
     auto human = make_shared<Node>("Symbol", "\"human\"");
     auto monkey = make_shared<Node>("Symbol", "\"monkey\"");
     auto mammal = make_shared<Node>("Symbol", "\"mammal\"");
-    decoder.add(inheritance);
-    decoder.add(human);
-    decoder.add(monkey);
-    decoder.add(mammal);
+    decoder.add_atom(inheritance);
+    decoder.add_atom(human);
+    decoder.add_atom(monkey);
+    decoder.add_atom(mammal);
 
     auto non_matching = make_shared<Link>(
         "Expression", vector<string>{inheritance->handle(), human->handle(), monkey->handle()});
@@ -66,9 +90,9 @@ TEST(HandleSetRedisIteratorTest, FiltersCandidatesAndStoresAssignmentForEachMatc
         "Expression", vector<string>{inheritance->handle(), human->handle(), mammal->handle()});
     auto second_matching = make_shared<Link>(
         "Expression", vector<string>{inheritance->handle(), monkey->handle(), mammal->handle()});
-    decoder.add(non_matching);
-    decoder.add(matching);
-    decoder.add(second_matching);
+    decoder.add_atom(non_matching);
+    decoder.add_atom(matching);
+    decoder.add_atom(second_matching);
 
     auto handle_set = make_shared<HandleSetRedis>(
         make_array_reply({non_matching->handle(), matching->handle(), second_matching->handle()}));
@@ -83,16 +107,14 @@ TEST(HandleSetRedisIteratorTest, FiltersCandidatesAndStoresAssignmentForEachMatc
                                                                      "NODE",
                                                                      "Symbol",
                                                                      "\"mammal\""});
-    handle_set->decoder = &decoder;
-
-    auto it = handle_set->get_iterator();
+    auto it = handle_set->get_iterator(&decoder);
     char* handle = it->next();
-    ASSERT_NE(handle, nullptr);
+    ASSERT_FALSE(handle == NULL);
     EXPECT_EQ(string(handle), matching->handle());
     handle = it->next();
-    ASSERT_NE(handle, nullptr);
+    ASSERT_FALSE(handle == NULL);
     EXPECT_EQ(string(handle), second_matching->handle());
-    EXPECT_EQ(it->next(), nullptr);
+    EXPECT_TRUE(it->next() == NULL);
 
     auto first_assignment = handle_set->get_assignments_by_handle(matching->handle());
     EXPECT_EQ(first_assignment.variable_count(), 1u);

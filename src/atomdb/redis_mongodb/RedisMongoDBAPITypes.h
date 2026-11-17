@@ -11,7 +11,7 @@
 
 #include "Atom.h"
 #include "AtomDBAPITypes.h"
-#include "HandleDecoder.h"
+#include "AtomDBUtils.h"
 #include "Node.h"
 #include "Properties.h"
 #include "Utils.h"
@@ -34,11 +34,11 @@ class HandleSetRedis : public HandleSet {
     unsigned int size();
     void append(shared_ptr<HandleSet> other);
     shared_ptr<HandleSetIterator> get_iterator();
+    shared_ptr<HandleSetIterator> get_iterator(HandleDecoder* custom_decoder);
 
     map<string, string> get_metta_expressions_by_handle(const string& handle);
     Assignment get_assignments_by_handle(const string& handle);
     shared_ptr<LinkSchema> link_schema;
-    HandleDecoder* decoder;
 
    private:
     unsigned int handles_size;
@@ -51,6 +51,7 @@ class HandleSetRedis : public HandleSet {
 class HandleSetRedisIterator : public HandleSetIterator {
    public:
     HandleSetRedisIterator(HandleSetRedis* handle_set);
+    HandleSetRedisIterator(HandleSetRedis* handle_set, HandleDecoder* decoder);
     ~HandleSetRedisIterator();
 
     char* next();
@@ -60,6 +61,8 @@ class HandleSetRedisIterator : public HandleSetIterator {
     HandleSetRedis* handle_set;
     unsigned int outer_idx;
     unsigned int inner_idx;
+    HandleDecoder* custom_decoder;
+    AtomDBUtils default_decoder;
 };
 
 class RedisStringBundle : public HandleList {

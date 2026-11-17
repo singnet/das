@@ -6,10 +6,9 @@
 #include <utility>
 
 #include "Hasher.h"
+#include "Logger.h"
 #include "MongoInitializer.h"
 #include "Utils.h"
-#define LOG_LEVEL INFO_LEVEL
-#include "Logger.h"
 
 using namespace atomdb;
 using namespace commons;

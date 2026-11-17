@@ -54,7 +54,6 @@ cc_library(
     includes = ["."],
     deps = [
         ":atomdb_api_types",
-        "//atomdb/auth:keychain",
         "//commons:commons_lib",
         "//commons/atoms:atoms_lib",
     ],
@@ -69,7 +68,6 @@ cc_library(
         ":atomdb",
         ":atomdb_singleton",
         ":key_sensitive_atomdb",
-        "//atomdb/auth:keychain",
         "//hasher:hasher_lib",
     ],
 )
