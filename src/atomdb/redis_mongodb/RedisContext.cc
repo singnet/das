@@ -105,31 +105,30 @@ void RedisContext::append_command(const vector<string>& args) {
     }
 }
 void RedisContext::flush_commands() {
-    redisReply* reply;
-    if (cluster_flag) {
-        while (pending_commands_count > 0) {
-            pending_commands_count--;
-
-            if (redisClusterGetReply(cluster_ctx, (void**) &reply) == REDIS_ERR) {
-                return;
-            }
-
-            if (reply != nullptr) {
-                freeReplyObject(reply);
-            }
+    string error;
+    while (pending_commands_count > 0) {
+        pending_commands_count--;
+        redisReply* reply = nullptr;
+        int status = cluster_flag ? redisClusterGetReply(cluster_ctx, (void**) &reply)
+                                  : redisGetReply(single_ctx, (void**) &reply);
+        if (status == REDIS_ERR) {
+            // The connection can no longer yield the remaining replies.
+            pending_commands_count = 0;
+            const char* err = get_error();
+            error = (err != nullptr && err[0] != '\0') ? err : "Redis pipeline failed";
+            break;
         }
-    } else {
-        while (pending_commands_count > 0) {
-            pending_commands_count--;
-
-            if (redisGetReply(single_ctx, (void**) &reply) == REDIS_ERR) {
-                return;
-            }
-
-            if (reply != nullptr) {
-                freeReplyObject(reply);
-            }
+        if (reply == nullptr) {
+            continue;
         }
+        if (reply->type == REDIS_REPLY_ERROR && error.empty()) {
+            error = (reply->str != nullptr) ? string(reply->str, static_cast<size_t>(reply->len))
+                                            : "Redis command failed";
+        }
+        freeReplyObject(reply);
+    }
+    if (!error.empty()) {
+        RAISE_ERROR("Redis pipeline error: " + error);
     }
 }
 

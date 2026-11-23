@@ -49,6 +49,29 @@ bool mongodb_collection_exists(Database& database, const string& name) {
     return false;
 }
 
+// Talks to the same Redis the test AtomDB uses. Used to drop a single name key and to
+// exercise pipeline errors without widening RedisMongoDB's public API.
+class TestRedis {
+   public:
+    TestRedis() : ctx(false) {
+        string endpoint = test_atomdb_json_config("redismongodb", "redis_mongodb_test_")
+                              .get_json()["redis"]["endpoint"]
+                              .get<string>();
+        auto colon = endpoint.rfind(':');
+        string host = endpoint.substr(0, colon);
+        int port = stoi(endpoint.substr(colon + 1));
+        redisContext* raw = redisConnect(host.c_str(), port);
+        if (raw == nullptr || raw->err) {
+            string err = raw != nullptr ? raw->errstr : "redisConnect returned null";
+            if (raw != nullptr) redisFree(raw);
+            throw runtime_error(err);
+        }
+        ctx.set_context(raw);
+    }
+
+    RedisContext ctx;
+};
+
 }  // namespace
 
 class MockDecoder : public HandleDecoder {
@@ -455,6 +478,79 @@ TEST_F(RedisMongoDBTest, GetNodeNameFromRedis) {
 
     EXPECT_EQ(db->get_node_name(Hasher::link_handle("Expression", {node.handle()})), "");
     EXPECT_EQ(db->get_node_name(Hasher::node_handle("Symbol", "missing-node-name")), "");
+}
+
+TEST_F(RedisMongoDBTest, GetNodeNameFallsBackToMongoWhenIndexMissing) {
+    Node node("Symbol", "legacy-name");
+    string handle = db->add_node(&node);
+    {
+        TestRedis redis;
+        redisReply* reply = redis.ctx.execute({"DEL", db->REDIS_NODE_NAME_PREFIX + ":" + handle});
+        ASSERT_NE(reply, nullptr);
+        freeReplyObject(reply);
+    }
+
+    EXPECT_EQ(db->get_node_name(handle), "legacy-name");
+
+    // The fallback rewrites the Redis key, so the name survives without the MongoDB document.
+    {
+        auto conn = db->get_mongo_pool()->acquire();
+        auto collection = (*conn)[db->MONGODB_DB_NAME][db->MONGODB_NODES_COLLECTION_NAME];
+        collection.delete_one(
+            bsoncxx::builder::basic::make_document(bsoncxx::builder::basic::kvp("_id", handle)));
+    }
+    EXPECT_EQ(db->get_node(handle), nullptr);
+    EXPECT_EQ(db->get_node_name(handle), "legacy-name");
+    EXPECT_FALSE(db->delete_node(handle));
+}
+
+TEST_F(RedisMongoDBTest, RejectedAddRestoresMissingNodeName) {
+    auto drop_mongo = [&](const string& id) {
+        auto conn = db->get_mongo_pool()->acquire();
+        auto collection = (*conn)[db->MONGODB_DB_NAME][db->MONGODB_NODES_COLLECTION_NAME];
+        collection.delete_one(
+            bsoncxx::builder::basic::make_document(bsoncxx::builder::basic::kvp("_id", id)));
+    };
+
+    Node node("Symbol", "restore-me");
+    string handle = db->add_node(&node);
+    Node batch("Symbol", "restore-batch");
+    string batch_handle = db->add_node(&batch);
+    {
+        TestRedis redis;
+        redisReply* reply = redis.ctx.execute({"DEL", db->REDIS_NODE_NAME_PREFIX + ":" + handle});
+        ASSERT_NE(reply, nullptr);
+        freeReplyObject(reply);
+        reply = redis.ctx.execute({"DEL", db->REDIS_NODE_NAME_PREFIX + ":" + batch_handle});
+        ASSERT_NE(reply, nullptr);
+        freeReplyObject(reply);
+    }
+    Node again("Symbol", "restore-me");
+    EXPECT_EQ(db->add_node(&again, &SkipIfExistsMerger::instance()), "");
+    vector<Node*> nodes = {&batch};
+    auto handles = db->add_nodes(nodes, false, &SkipIfExistsMerger::instance());
+    ASSERT_EQ(handles.size(), 1u);
+    EXPECT_EQ(handles[0], "");
+
+    drop_mongo(handle);
+    drop_mongo(batch_handle);
+    EXPECT_EQ(db->get_node(handle), nullptr);
+    EXPECT_EQ(db->get_node(batch_handle), nullptr);
+    EXPECT_EQ(db->get_node_name(handle), "restore-me");
+    EXPECT_EQ(db->get_node_name(batch_handle), "restore-batch");
+    EXPECT_FALSE(db->delete_node(handle));
+    EXPECT_FALSE(db->delete_node(batch_handle));
+}
+
+TEST_F(RedisMongoDBTest, NodeNamePipelinePropagatesRedisErrors) {
+    TestRedis redis;
+    redis.ctx.append_command({"SET", db->REDIS_NODE_NAME_PREFIX + ":pipeline-error"});
+    EXPECT_THROW(redis.ctx.flush_commands(), runtime_error);
+
+    redisReply* reply = redis.ctx.execute({"PING"});
+    ASSERT_NE(reply, nullptr);
+    EXPECT_EQ(reply->type, REDIS_REPLY_STATUS);
+    freeReplyObject(reply);
 }
 
 TEST_F(RedisMongoDBTest, AddAndDeleteNodes) {

@@ -99,6 +99,9 @@ shared_ptr<Link> AtomDBUtils::get_link(const string& handle, shared_ptr<Keychain
 string AtomDBUtils::get_node_name(const string& handle, shared_ptr<Keychain> keychain) {
     STACK_TRACE();
     shared_ptr<AtomDB> atomdb = AtomDBSingleton::get_instance();
+    if (atomdb == nullptr) {
+        RAISE_ERROR("AtomDB is not available");
+    }
     shared_ptr<KeySensitiveAtomDB> key_sensitive_atomdb =
         dynamic_pointer_cast<KeySensitiveAtomDB>(atomdb);
     if (key_sensitive_atomdb) {

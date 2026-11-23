@@ -205,7 +205,12 @@ string RedisMongoDB::get_node_name(const string& handle) {
 
     if (reply->type == REDIS_REPLY_NIL) {
         freeReplyObject(reply);
-        return "";
+        // Nodes written before the name index have no Redis key. MongoDB is the source of truth;
+        // write the key so the next lookup does not load the document again.
+        auto node = get_node(handle);
+        if (node == nullptr) return "";
+        add_node_name(handle, node->name);
+        return node->name;
     }
     if (reply->type != REDIS_REPLY_STRING) {
         auto reply_type = std::to_string(reply->type);
@@ -944,6 +949,9 @@ string RedisMongoDB::add_node(const atoms::Node* node, const atoms::Merger* merg
         auto existing_node = get_node(node->handle());
         if (existing_node != nullptr) {
             if (!merger->merge(existing_node.get(), node)) {
+                // The stored node is left unchanged. Refresh its name key so a failed name write
+                // on an earlier add can be repaired by a later rejected add.
+                this->add_node_name(existing_node->handle(), existing_node->name);
                 return "";
             }
             working_node = existing_node;
@@ -1020,6 +1028,9 @@ vector<string> RedisMongoDB::add_nodes(const vector<atoms::Node*>& nodes,
                 auto existing_node = get_node(handle);
                 if (existing_node != nullptr) {
                     if (!merger->merge(existing_node.get(), node)) {
+                        // The stored node is left unchanged. Refresh its name key so a failed name
+                        // write on an earlier add can be repaired by a later rejected add.
+                        this->add_node_name(existing_node->handle(), existing_node->name);
                         // Do not persist, but keep existing in the transactional
                         // composite-type map so later links can resolve this target.
                         if (this->composite_type_enabled() && is_transactional) {

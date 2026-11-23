@@ -58,7 +58,6 @@ shared_ptr<Node> ProtectedAtomDB::get_node(const string& handle, shared_ptr<Keyc
 
 string ProtectedAtomDB::get_node_name(const string& handle, shared_ptr<Keychain> keychain) {
     if (!Hasher::is_node_handle(handle)) return "";
-    if (!this->authorize_read(handle, keychain)) return "";
     return this->backend->get_node_name(handle);
 }
 
