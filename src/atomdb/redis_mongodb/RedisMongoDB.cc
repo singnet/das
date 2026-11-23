@@ -201,17 +201,9 @@ string RedisMongoDB::get_node_name(const string& handle) {
 
     auto ctx = this->redis_pool->acquire();
     redisReply* reply = ctx->execute({"GET", REDIS_NODE_NAME_PREFIX + ":" + handle});
+
     if (reply == NULL) RAISE_ERROR("Redis error at get_node_name");
 
-    if (reply->type == REDIS_REPLY_NIL) {
-        freeReplyObject(reply);
-        // Nodes written before the name index have no Redis key. MongoDB is the source of truth;
-        // write the key so the next lookup does not load the document again.
-        auto node = get_node(handle);
-        if (node == nullptr) return "";
-        add_node_name(handle, node->name);
-        return node->name;
-    }
     if (reply->type != REDIS_REPLY_STRING) {
         auto reply_type = std::to_string(reply->type);
         freeReplyObject(reply);
@@ -257,7 +249,12 @@ void RedisMongoDB::delete_node_name(const string& handle) {
     auto ctx = this->redis_pool->acquire();
     redisReply* reply = ctx->execute({"DEL", REDIS_NODE_NAME_PREFIX + ":" + handle});
     if (reply == NULL) RAISE_ERROR("Redis error at delete_node_name");
+    // DEL returns the number of keys removed. Zero is valid: the name key was already gone.
+    int reply_type = reply->type;
     freeReplyObject(reply);
+    if (reply_type != REDIS_REPLY_INTEGER) {
+        RAISE_ERROR("Invalid Redis response at delete_node_name: " + std::to_string(reply_type));
+    }
 }
 
 shared_ptr<Link> RedisMongoDB::get_link(const string& handle) {
