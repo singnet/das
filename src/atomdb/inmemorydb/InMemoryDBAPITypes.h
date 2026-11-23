@@ -24,6 +24,7 @@ class HandleSetInMemory : public HandleSet {
     unsigned int size() override;
     void append(shared_ptr<HandleSet> other) override;
     shared_ptr<HandleSetIterator> get_iterator() override;
+    shared_ptr<HandleSetIterator> get_iterator(HandleDecoder* decoder) override;
 
     map<string, string> get_metta_expressions_by_handle(const string& handle) override;
     Assignment get_assignments_by_handle(const string& handle) override;

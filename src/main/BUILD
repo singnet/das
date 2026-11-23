@@ -19,6 +19,7 @@ cc_library(
     deps = [
         "//atomdb:atomdb_initializer",
         "//atomdb:atomdb_singleton",
+        "//atomdb:atomdbutils",
         "//attention_broker:attention_broker_lib",
         "//commons:commons_lib",
         "//main/helpers:main_helper_runner_helper_lib",

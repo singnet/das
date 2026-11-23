@@ -7,8 +7,10 @@
 
 #include "AtomDB.h"
 #include "AtomDBAPITypes.h"
+#include "HandleDecoder.h"
 #include "Keychain.h"
 #include "LinkSchema.h"
+#include "atomdb/AtomDBUtils.h"
 
 using namespace commons;
 using namespace atoms;
@@ -47,7 +49,33 @@ class AuthorizationSchema {
     inline const LinkSchema& schema() const { return this->schema_; }
 
    private:
+    class AuthorizationSchemaDecoder : public HandleDecoder {
+       public:
+        shared_ptr<AtomDB> atomdb;
+        AuthorizationSchemaDecoder(shared_ptr<AtomDB> atomdb) : atomdb(atomdb) {}
+        shared_ptr<Atom> decode_atom(const string& handle,
+                                     shared_ptr<Keychain> keychain = nullptr) override {
+            return this->atomdb->get_atom(handle);
+        }
+        string decode_node_name(const string& handle, shared_ptr<Keychain> keychain = nullptr) override {
+            auto node = this->atomdb->get_node(handle);
+            if (node == nullptr) {
+                return "";
+            }
+            return node->name;
+        }
+        vector<string> decode_link_targets(const string& handle,
+                                           shared_ptr<Keychain> keychain = nullptr) override {
+            auto link = this->atomdb->get_link(handle);
+            if (link == nullptr) {
+                return vector<string>();
+            }
+            return link->targets;
+        }
+    };
+
     shared_ptr<AtomDB> atomdb_;
+    shared_ptr<AuthorizationSchemaDecoder> decoder_;
     LinkSchema schema_;
     bool read_;
     bool write_;

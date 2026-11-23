@@ -47,7 +47,7 @@ jobs:
 
       - name: Setting das-cli configuration
         run: |-
-          das-cli config set services.database.atomdb_backend=redis_mongodb
+          das-cli config set --file "${GITHUB_WORKSPACE}/config/das.json"
 
       - name: Starting Redis and MongoDB
         run: das-cli db restart

@@ -16,6 +16,7 @@
 #include "Atom.h"
 #include "AtomDBFactory.h"
 #include "AtomDBSingleton.h"
+#include "AtomDBUtils.h"
 #include "Hasher.h"
 #include "Link.h"
 #include "Merger.h"
@@ -56,7 +57,13 @@ bool mongodb_collection_exists(Database& database, const string& name) {
 class MockDecoder : public HandleDecoder {
    public:
     map<string, shared_ptr<Atom>> atoms;
-    shared_ptr<Atom> get_atom(const string& handle) { return this->atoms[handle]; }
+    shared_ptr<Atom> decode_atom(const string& handle, shared_ptr<Keychain> keychain = nullptr) {
+        return this->atoms[handle];
+    }
+    string decode_node_name(const string& handle, shared_ptr<Keychain> keychain = nullptr) { return ""; }
+    vector<string> decode_link_targets(const string& handle, shared_ptr<Keychain> keychain = nullptr) {
+        return {};
+    }
     shared_ptr<Atom> add_atom(shared_ptr<Atom> atom) {
         this->atoms[atom->handle()] = atom;
         return atom;
@@ -100,6 +107,7 @@ class RedisMongoDBTest : public ::testing::Test {
     }
 
     shared_ptr<RedisMongoDB> db;
+    AtomDBUtils decoder;
 };
 
 class LinkSchemaHandle : public LinkSchema {
@@ -1308,7 +1316,8 @@ TEST_F(RedisMongoDBTest, CompositeTypeEnabledFlag) {
     ASSERT_NE(enabled_doc, nullptr);
     EXPECT_TRUE(enabled_doc->contains("composite_type_hash"));
     EXPECT_TRUE(enabled_doc->contains("composite_type"));
-    EXPECT_EQ(string(enabled_doc->get("composite_type_hash")), enabled_link->composite_type_hash(*db));
+    EXPECT_EQ(string(enabled_doc->get("composite_type_hash")),
+              enabled_link->composite_type_hash(decoder));
     EXPECT_EQ(enabled_doc->get_size("composite_type"), 4);
 
     auto config_disabled = test_atomdb_json_config("redismongodb", "redis_mongodb_test_");
@@ -1364,7 +1373,7 @@ TEST_F(RedisMongoDBTest, TransactionalMergeUsesFinalLinkCompositeType) {
         new Link("Expression", {nodes[0]->handle(), nodes[1]->handle(), nodes[2]->handle()}, attrs1);
     ASSERT_EQ(db->add_links({link1}, true).size(), 1u);
 
-    string expected_hash = link1->composite_type_hash(*db);
+    string expected_hash = link1->composite_type_hash(decoder);
     auto doc1 = db->get_atom_document(link1->handle());
     ASSERT_NE(doc1, nullptr);
     EXPECT_EQ(string(doc1->get("composite_type_hash")), expected_hash);
@@ -1403,7 +1412,7 @@ TEST_F(RedisMongoDBTest, TransactionalRejectedMergeStillBooksCompositeType) {
 
     auto existing = new Link("Expression", {nodes[0]->handle(), nodes[1]->handle(), nodes[2]->handle()});
     ASSERT_EQ(db->add_links({existing}, true).size(), 1u);
-    string existing_hash = existing->composite_type_hash(*db);
+    string existing_hash = existing->composite_type_hash(decoder);
 
     // duplicate is rejected by SkipIfExistsMerger; nested targets the rejected handle and must
     // still resolve its composite-type bookkeeping in the same transactional batch.
@@ -1763,49 +1772,55 @@ TEST(RedisMongoDBConfigValidation, MissingMongodbPassword) {
 TEST(RedisMongoDBPrefixIsolation, InstancesKeepIndependentNamespaces) {
     auto db_a = dynamic_pointer_cast<RedisMongoDB>(
         AtomDBFactory::create(test_atomdb_json_config("redismongodb", "peer_a_")));
-    auto db_b = dynamic_pointer_cast<RedisMongoDB>(
-        AtomDBFactory::create(test_atomdb_json_config("redismongodb", "peer_b_")));
+    AtomDBSingleton::provide(db_a, true);
     ASSERT_NE(db_a, nullptr);
-    ASSERT_NE(db_b, nullptr);
-
     EXPECT_EQ(db_a->MONGODB_DB_NAME, "peer_a_das");
-    EXPECT_EQ(db_b->MONGODB_DB_NAME, "peer_b_das");
     EXPECT_EQ(db_a->REDIS_PATTERNS_PREFIX, "peer_a_patterns");
-    EXPECT_EQ(db_b->REDIS_PATTERNS_PREFIX, "peer_b_patterns");
     EXPECT_EQ(db_a->REDIS_OUTGOING_PREFIX, "peer_a_outgoing_set");
-    EXPECT_EQ(db_b->REDIS_OUTGOING_PREFIX, "peer_b_outgoing_set");
-
     Node pred_a("Symbol", "SimilarityA");
     Node human_a("Symbol", "PeerAHuman");
     Node monkey_a("Symbol", "PeerAMonkey");
+    db_a->add_nodes({&pred_a, &human_a, &monkey_a});
+    Link link_a("Expression", {pred_a.handle(), human_a.handle(), monkey_a.handle()});
+    db_a->add_link(&link_a);
+
+    auto db_b = dynamic_pointer_cast<RedisMongoDB>(
+        AtomDBFactory::create(test_atomdb_json_config("redismongodb", "peer_b_")));
+    AtomDBSingleton::provide(db_b, true);
+    ASSERT_NE(db_b, nullptr);
+    EXPECT_EQ(db_b->MONGODB_DB_NAME, "peer_b_das");
+    EXPECT_EQ(db_b->REDIS_PATTERNS_PREFIX, "peer_b_patterns");
+    EXPECT_EQ(db_b->REDIS_OUTGOING_PREFIX, "peer_b_outgoing_set");
     Node pred_b("Symbol", "SimilarityB");
     Node human_b("Symbol", "PeerBHuman");
     Node monkey_b("Symbol", "PeerBMonkey");
-    db_a->add_nodes({&pred_a, &human_a, &monkey_a});
     db_b->add_nodes({&pred_b, &human_b, &monkey_b});
-
-    Link link_a("Expression", {pred_a.handle(), human_a.handle(), monkey_a.handle()});
     Link link_b("Expression", {pred_b.handle(), human_b.handle(), monkey_b.handle()});
-    db_a->add_link(&link_a);
     db_b->add_link(&link_b);
 
+    AtomDBSingleton::provide(db_a, true);
     EXPECT_TRUE(db_a->node_exists(human_a.handle()));
     EXPECT_TRUE(db_a->link_exists(link_a.handle()));
     EXPECT_FALSE(db_a->node_exists(human_b.handle()));
     EXPECT_FALSE(db_a->link_exists(link_b.handle()));
 
+    AtomDBSingleton::provide(db_b, true);
     EXPECT_TRUE(db_b->node_exists(human_b.handle()));
     EXPECT_TRUE(db_b->link_exists(link_b.handle()));
     EXPECT_FALSE(db_b->node_exists(human_a.handle()));
     EXPECT_FALSE(db_b->link_exists(link_a.handle()));
 
+    AtomDBSingleton::provide(db_a, true);
     ASSERT_NE(db_a->query_for_targets(link_a.handle()), nullptr);
+    AtomDBSingleton::provide(db_b, true);
     EXPECT_EQ(db_b->query_for_targets(link_a.handle()), nullptr);
 
+    auto record_db = AtomDBSingleton::get_instance();
+    AtomDBSingleton::provide(db_a, true);
     db_a->drop_all();
-
     EXPECT_FALSE(db_a->node_exists(human_a.handle()));
     EXPECT_FALSE(db_a->link_exists(link_a.handle()));
+    AtomDBSingleton::provide(db_b, true);
     EXPECT_TRUE(db_b->node_exists(human_b.handle()));
     EXPECT_TRUE(db_b->link_exists(link_b.handle()));
     ASSERT_NE(db_b->query_for_targets(link_b.handle()), nullptr);
@@ -1813,6 +1828,7 @@ TEST(RedisMongoDBPrefixIsolation, InstancesKeepIndependentNamespaces) {
     db_b->drop_all();
     EXPECT_FALSE(db_b->node_exists(human_b.handle()));
     EXPECT_FALSE(db_b->link_exists(link_b.handle()));
+    AtomDBSingleton::provide(record_db, true);
 }
 
 int main(int argc, char** argv) {

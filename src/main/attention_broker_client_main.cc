@@ -5,6 +5,7 @@
 
 #include "AtomDBInitializer.h"
 #include "AtomDBSingleton.h"
+#include "AtomDBUtils.h"
 #include "JsonConfig.h"
 #include "JsonConfigParser.h"
 #include "attention_broker.grpc.pb.h"
@@ -26,6 +27,7 @@ int main(int argc, char* argv[]) {
     JsonConfig json_config = JsonConfigParser::load(config);
     auto atomdb_config = json_config.at_path("atomdb").get_or<JsonConfig>(JsonConfig());
     AtomDBInitializer::init(atomdb_config);
+    AtomDBUtils decoder;
 
     string command = string(argv[3]);
     vector<string> args;
@@ -45,7 +47,7 @@ int main(int argc, char* argv[]) {
         stub->get_importance(new grpc::ClientContext(), handle_list, &importance_list);
         for (unsigned int i = 0; i < args.size(); i++) {
             auto atom = db->get_atom(handle_list.list(i));
-            cout << handle_list.list(i) << " " << atom->metta_representation(*(db.get())) << ": "
+            cout << handle_list.list(i) << " " << atom->metta_representation(decoder) << ": "
                  << std::to_string(importance_list.list(i)) << endl;
         }
     } else {

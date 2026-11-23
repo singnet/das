@@ -115,34 +115,31 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Create mattermost message
+        env:
+          TITLE: ${{ inputs.title }}
+          DELIVERABLE: ${{ inputs.deliverable }}
+          VERSION: ${{ needs.tag.outputs.version }}
+          REPOSITORY: ${{ needs.tag.outputs.repository }}
+          # version-control.sh JSON-encodes the changelog so ::set-output can carry it on one line.
+          RELEASE_NOTE: ${{ needs.tag.outputs.release-note }}
         run: |
-          title="${{ inputs.title }}"
-          deliverable="${{ inputs.deliverable }}"
-          version=${{ needs.tag.outputs.version }}
-          repository=${{ needs.tag.outputs.repository }}
-          
-          read -r rawReleaseNote << 'EOF_RN'
-          ${{ needs.tag.outputs.release-note }}
-          EOF_RN
-          
-          releaseNote=$(printf %b "$rawReleaseNote")
-
-          message="${title} 
-          Deliverable: ${deliverable} 
-          New version available: ${version} 
-          Repository: https://github.com/${repository}/releases/tag/${version}"
-
-          if [ -n "$releaseNote" ]; then
-            message="
-            $message 
-
-            Changes: 
-            $releaseNote"
+          if [ -n "$RELEASE_NOTE" ] && release_note=$(printf '%s' "$RELEASE_NOTE" | jq -er . 2>/dev/null); then
+            :
+          else
+            release_note="$RELEASE_NOTE"
           fi
 
-          escaped_message=$(printf '%s' "$message" | jq -Rs .)
+          message=$(printf '%s\n' \
+            "$TITLE" \
+            "Deliverable: ${DELIVERABLE}" \
+            "New version available: ${VERSION}" \
+            "Repository: https://github.com/${REPOSITORY}/releases/tag/${VERSION}")
 
-          echo "{\"text\": $escaped_message}" > mattermost.json
+          if [ -n "$release_note" ]; then
+            message=$(printf '%s\n\nChanges:\n%s\n' "$message" "$release_note")
+          fi
+
+          jq -n --arg text "$message" '{text: $text}' > mattermost.json
 
       - name: Notify Mattermost
         uses: singnet/integration-github-mattermost@v0.2.0

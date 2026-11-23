@@ -8,7 +8,6 @@
 
 #include "Atom.h"
 #include "AtomDBAPITypes.h"
-#include "HandleDecoder.h"
 #include "Keychain.h"
 #include "Link.h"
 #include "LinkSchema.h"

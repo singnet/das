@@ -8,7 +8,6 @@ cc_library(
     deps = [
         ":authorization_manifest",
         ":authorization_types",
-        ":keychain",
         ":mongodb_authorization_persistence",
     ],
 )
@@ -43,7 +42,6 @@ cc_library(
     hdrs = ["AuthorizationTypes.h"],
     includes = ["."],
     deps = [
-        ":keychain",
         "//atomdb",
         "//atomdb:atomdb_api_types",
         "//atomdb:atomdbutils",
@@ -60,20 +58,9 @@ cc_library(
     includes = ["."],
     deps = [
         ":authorization_types",
-        ":keychain",
         "//atomdb:atomdb_api_types",
         "//atomdb:key_sensitive_atomdb",
         "//commons:commons_lib",
         "//commons/atoms:atoms_lib",
-    ],
-)
-
-cc_library(
-    name = "keychain",
-    srcs = ["Keychain.cc"],
-    hdrs = ["Keychain.h"],
-    includes = ["."],
-    deps = [
-        "//commons:commons_lib",
     ],
 )

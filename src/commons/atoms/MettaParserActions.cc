@@ -1,20 +1,14 @@
+#include "MettaParserActions.h"
+
 #include <algorithm>
 #include <array>
 #include <vector>
 
-// clang-format off
-
-#define LOG_LEVEL INFO_LEVEL
-#include "Logger.h"
-
-#include "MettaParserActions.h"
-
 #include "Link.h"
-#include "Node.h"
+#include "Logger.h"
 #include "MettaMapping.h"
+#include "Node.h"
 #include "UntypedVariable.h"
-
-// clang-format on
 
 using namespace atoms;
 
