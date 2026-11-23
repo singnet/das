@@ -4,6 +4,7 @@
 #include <vector>
 
 #include "Logger.h"
+#include "Utils.h"
 
 using namespace commons;
 
@@ -15,10 +16,12 @@ static unsigned int CONCEPT_PART_SIZE = 0;
 static string CHARSET = "";
 static unsigned int BCD_SORT_COUNT = 0;
 static unsigned int SORT_COUNT = 0;
+static bool CREATE_AND_PREDICATES = false;
 
 static string EVALUATION = "Evaluation";
 static string PREDICATE = "Predicate";
 static string CONCEPT = "Concept";
+static string LOGICAL_AND = "LogicalAnd";
 
 // --------------------------------------------------------------------------------
 // Utils
@@ -58,6 +61,7 @@ void print_setup() {
     LOG_INFO("CONCEPT_SIZE: " + std::to_string(CONCEPT_SIZE));
     LOG_INFO("CONCEPT_PART_SIZE: " + std::to_string(CONCEPT_PART_SIZE));
     LOG_INFO("CHARSET: " + CHARSET);
+    LOG_INFO("CREATE_AND_PREDICATES: " + (CREATE_AND_PREDICATES ? string("yes") : string("no")));
 }
 
 void create_concepts(vector<vector<string>>& concepts) {
@@ -174,18 +178,60 @@ void export_sort(ofstream& metta_file, vector<string>& _concept) {
     }
 }
 
+void export_and_predicates(ofstream& metta_file, vector<string>& _concept) {
+    for (string& part1 : _concept) {
+        for (string& part2 : _concept) {
+            if (part1 < part2) {
+                string predicate1_exp = "(" + PREDICATE + " " + predicate_name("contains", part1) + ")";
+                string predicate2_exp = "(" + PREDICATE + " " + predicate_name("contains", part2) + ")";
+                string predicate_exp =
+                    "(" + LOGICAL_AND + " " + predicate1_exp + " " + predicate2_exp + ")";
+                string concept_exp = "(" + CONCEPT + " " + concept_name(_concept) + ")";
+                string evaluation_exp = "(" + EVALUATION + " " + predicate_exp + " " + concept_exp + ")";
+                metta_file << evaluation_exp << endl;
+            }
+        }
+    }
+    for (string& part1 : _concept) {
+        for (string& part2 : _concept) {
+            for (string& part3 : _concept) {
+                if ((part1 < part2) && (part2 < part3)) {
+                    string predicate1_exp =
+                        "(" + PREDICATE + " " + predicate_name("contains", part1) + ")";
+                    string predicate2_exp =
+                        "(" + PREDICATE + " " + predicate_name("contains", part2) + ")";
+                    string predicate3_exp =
+                        "(" + PREDICATE + " " + predicate_name("contains", part3) + ")";
+                    string predicate_nested_exp =
+                        "(" + LOGICAL_AND + " " + predicate2_exp + " " + predicate3_exp + ")";
+                    string predicate_exp =
+                        "(" + LOGICAL_AND + " " + predicate1_exp + " " + predicate_nested_exp + ")";
+                    string concept_exp = "(" + CONCEPT + " " + concept_name(_concept) + ")";
+                    string evaluation_exp =
+                        "(" + EVALUATION + " " + predicate_exp + " " + concept_exp + ")";
+                    metta_file << evaluation_exp << endl;
+                }
+            }
+        }
+    }
+}
+
 void export_concept(ofstream& metta_file, vector<string>& _concept) {
     export_contains(metta_file, _concept);
     export_start_end(metta_file, _concept, true);
     export_start_end(metta_file, _concept, false);
     export_sort(metta_file, _concept);
+    if (CREATE_AND_PREDICATES) {
+        export_and_predicates(metta_file, _concept);
+    }
 }
 
 void export_metta(vector<vector<string>>& concepts) {
     string file_name = METTA_FILE_PREFIX + "_" + std::to_string(KB_SIZE) + "_" +
                        std::to_string(CONCEPT_SIZE) + "_" + std::to_string(CONCEPT_PART_SIZE) + "_" +
                        CHARSET + "_" + std::to_string(BCD_SORT_COUNT) + "_" +
-                       std::to_string(SORT_COUNT) + ".metta";
+                       std::to_string(SORT_COUNT) +
+                       (CREATE_AND_PREDICATES ? string("_AND_PREDICATES") : string("")) + ".metta";
     ofstream metta_file(file_name);
     if (!metta_file.is_open()) {
         RAISE_ERROR("Unable to open file: " + file_name);
@@ -194,18 +240,21 @@ void export_metta(vector<vector<string>>& concepts) {
         export_concept(metta_file, _concept);
     }
     metta_file.close();
+    LOG_INFO("Done. Output written to: " + file_name);
 }
 
 // --------------------------------------------------------------------------------
 // Main
 
 int main(int argc, char* argv[]) {
-    if (argc != 7) {
+    if (argc != 8) {
         RAISE_ERROR(
             "Usage: inference_toy_kb_generator <KB size> <concept size> "
-            "<concept part size> <charset> <BCD-SORT count> <SORT count>");
+            "<concept part size> <charset> <BCD-SORT count> <SORT count> <0|1>");
+        exit(1);
     }
 
+    Utils::init_random(1503);
     unsigned int count = 1;
     KB_SIZE = Utils::string_to_uint(string(argv[count++]));
     CONCEPT_SIZE = Utils::string_to_uint(string(argv[count++]));
@@ -213,6 +262,7 @@ int main(int argc, char* argv[]) {
     CHARSET = string(argv[count++]);
     BCD_SORT_COUNT = Utils::string_to_uint(string(argv[count++]));
     SORT_COUNT = Utils::string_to_uint(string(argv[count++]));
+    CREATE_AND_PREDICATES = (Utils::string_to_uint(string(argv[count++])) == 1);
     print_setup();
 
     if ((SORT_COUNT > BCD_SORT_COUNT) || (BCD_SORT_COUNT > KB_SIZE) || (CONCEPT_SIZE < 3)) {
@@ -229,5 +279,4 @@ int main(int argc, char* argv[]) {
     // Exports predicates (contains, start/end, etc). BCD predicates are not explicitly exported but
     // sort predicates are.
     export_metta(concepts);
-    LOG_INFO("Finished");
 }
