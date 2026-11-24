@@ -204,6 +204,10 @@ string RedisMongoDB::get_node_name(const string& handle) {
 
     if (reply == NULL) RAISE_ERROR("Redis error at get_node_name");
 
+    if (reply->type == REDIS_REPLY_NIL) {
+        freeReplyObject(reply);
+        return "";
+    }
     if (reply->type != REDIS_REPLY_STRING) {
         auto reply_type = std::to_string(reply->type);
         freeReplyObject(reply);

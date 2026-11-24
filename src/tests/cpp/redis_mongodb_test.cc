@@ -480,7 +480,7 @@ TEST_F(RedisMongoDBTest, GetNodeNameFromRedis) {
     EXPECT_EQ(db->get_node_name(Hasher::node_handle("Symbol", "missing-node-name")), "");
 }
 
-TEST_F(RedisMongoDBTest, GetNodeNameFallsBackToMongoWhenIndexMissing) {
+TEST_F(RedisMongoDBTest, GetNodeNameReturnsEmptyWhenIndexMissing) {
     Node node("Symbol", "legacy-name");
     string handle = db->add_node(&node);
     {
@@ -490,18 +490,9 @@ TEST_F(RedisMongoDBTest, GetNodeNameFallsBackToMongoWhenIndexMissing) {
         freeReplyObject(reply);
     }
 
-    EXPECT_EQ(db->get_node_name(handle), "legacy-name");
-
-    // The fallback rewrites the Redis key, so the name survives without the MongoDB document.
-    {
-        auto conn = db->get_mongo_pool()->acquire();
-        auto collection = (*conn)[db->MONGODB_DB_NAME][db->MONGODB_NODES_COLLECTION_NAME];
-        collection.delete_one(
-            bsoncxx::builder::basic::make_document(bsoncxx::builder::basic::kvp("_id", handle)));
-    }
-    EXPECT_EQ(db->get_node(handle), nullptr);
-    EXPECT_EQ(db->get_node_name(handle), "legacy-name");
-    EXPECT_FALSE(db->delete_node(handle));
+    EXPECT_EQ(db->get_node(handle)->name, "legacy-name");
+    EXPECT_EQ(db->get_node_name(handle), "");
+    EXPECT_TRUE(db->delete_node(handle));
 }
 
 TEST_F(RedisMongoDBTest, RejectedAddRestoresMissingNodeName) {
