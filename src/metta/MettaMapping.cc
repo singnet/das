@@ -8,3 +8,4 @@ string MettaMapping::AND_QUERY_OPERATOR = "and";
 string MettaMapping::ANDNOT_QUERY_OPERATOR = "andnot";
 string MettaMapping::OR_QUERY_OPERATOR = "or";
 string MettaMapping::CHAIN_QUERY_OPERATOR = "chain";
+string MettaMapping::TRUTH_VALUE = "stv";

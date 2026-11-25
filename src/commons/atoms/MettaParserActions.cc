@@ -18,6 +18,8 @@ using namespace atoms;
 MettaParserActions::MettaParserActions() {
     this->current_expression_size = 0;
     this->current_expression_type = LINK;
+    this->custom_attributes = {};
+    this->first_value = false;
 }
 
 MettaParserActions::~MettaParserActions() {}
@@ -30,6 +32,8 @@ void MettaParserActions::symbol(const string& name) {
         } else {
             this->current_expression_type = OR;
         }
+    } else if (name == MettaMapping::TRUTH_VALUE) {
+        this->current_expression_type = STV;
     } else {
         if ((this->current_expression_type == AND) || (this->current_expression_type == OR)) {
             RAISE_ERROR("Invalid metta expression: AND/OR can't operate symbols.");
@@ -84,6 +88,19 @@ void MettaParserActions::literal(float value) {
         RAISE_ERROR("Invalid metta expression: AND/OR can't operate literals.");
         return;
     }
+    if (this->current_expression_type == STV) {
+        if (this->first_value) {
+            this->first_value = false;
+            PropertyValue& attr = this->custom_attributes.at("stv");
+            if (pair<double, double>* stv = std::get_if<pair<double, double>>(&attr)) {
+                stv->second = static_cast<double>(value);
+            }
+        } else {
+            this->first_value = true;
+            this->custom_attributes["stv"] = make_pair(static_cast<double>(value), 0.0);
+        }
+        return;
+    }
     this->current_expression_size++;
     auto node = make_shared<Node>(MettaMapping::SYMBOL_NODE_TYPE, std::to_string(value));
     this->handle_to_atom[node->handle()] = node;
@@ -123,7 +140,8 @@ void MettaParserActions::expression_end(bool toplevel, const string& metta_strin
         }
 
         LOG_DEBUG("Pushing LINK");
-        auto link = make_shared<Link>(MettaMapping::EXPRESSION_LINK_TYPE, targets, toplevel);
+        auto link = make_shared<Link>(
+            MettaMapping::EXPRESSION_LINK_TYPE, targets, toplevel, this->custom_attributes);
         this->handle_to_atom[link->handle()] = link;
         this->handle_to_metta_expression[link->handle()] = metta_string;
         this->element_stack.push(link);
@@ -131,6 +149,8 @@ void MettaParserActions::expression_end(bool toplevel, const string& metta_strin
     } else if ((this->current_expression_type == AND) || (this->current_expression_type == OR)) {
         RAISE_ERROR("Invalid metta expression: AND/OR are not supported.");
         return;
+    } else if (this->current_expression_type == STV) {
+        LOG_DEBUG("...");
     } else {
         RAISE_ERROR("Invalid metta expression: unknown expression type");
         return;

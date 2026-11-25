@@ -152,7 +152,7 @@ class Properties : public unordered_map<string, PropertyValue> {
             } else if (auto nested = std::get_if<shared_ptr<Properties>>(&value)) {
                 result += (*nested)->to_string();
             } else if (auto pair_value = std::get_if<pair<double, double>>(&value)) {
-                result += "(" + std::to_string(pair_value->first) + "," +
+                result += "(" + std::to_string(pair_value->first) + " " +
                           std::to_string(pair_value->second) + ")";
             } else {
                 result += "unknown_type";
@@ -210,7 +210,7 @@ class Properties : public unordered_map<string, PropertyValue> {
                     result.push_back("");  // nested not serialized in tokenize; use to_string for debug
                 } else if (auto pair_value = std::get_if<pair<double, double>>(&value)) {
                     result.push_back("pair");
-                    result.push_back("(" + std::to_string(pair_value->first) + "," +
+                    result.push_back("(" + std::to_string(pair_value->first) + " " +
                                      std::to_string(pair_value->second) + ")");
                 }
             }
@@ -248,7 +248,7 @@ class Properties : public unordered_map<string, PropertyValue> {
                         RAISE_ERROR("Invalid 'bool' string value: " + value);
                     }
                 } else if (type == "pair") {
-                    auto parts = Utils::split(value, ',');
+                    auto parts = Utils::split(value, ' ');
                     if (parts.size() != 2) {
                         RAISE_ERROR("Invalid 'pair' string value: " + value);
                     }

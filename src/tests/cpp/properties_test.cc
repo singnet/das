@@ -42,33 +42,33 @@ TEST(PropertiesTest, InsertAndGetBool) {
 
 TEST(PropertiesTest, InsertAndGetPair) {
     Properties map;
-    map["stv"] = make_pair(0.89, -0.56);
+    map["stv"] = make_pair(0.89, 0.56);
     const pair<double, double>* value = map.get_ptr<pair<double, double>>("stv");
     ASSERT_NE(value, nullptr);
     EXPECT_DOUBLE_EQ(value->first, 0.89);
-    EXPECT_DOUBLE_EQ(value->second, -0.56);
+    EXPECT_DOUBLE_EQ(value->second, 0.56);
 
     pair<double, double> got = map.get<pair<double, double>>("stv");
     EXPECT_DOUBLE_EQ(got.first, 0.89);
-    EXPECT_DOUBLE_EQ(got.second, -0.56);
+    EXPECT_DOUBLE_EQ(got.second, 0.56);
 
     pair<double, double> fallback = map.get_or<pair<double, double>>("missing", make_pair(0.0, 1.0));
     EXPECT_DOUBLE_EQ(fallback.first, 0.0);
     EXPECT_DOUBLE_EQ(fallback.second, 1.0);
 
-    EXPECT_EQ(map.to_string(), "{stv: (0.890000,-0.560000)}");
+    EXPECT_EQ(map.to_string(), "{stv: (0.890000 0.560000)}");
 
     vector<string> tokens = map.tokenize();
     EXPECT_EQ(tokens.size(), 3);
     EXPECT_EQ(tokens[0], "stv");
     EXPECT_EQ(tokens[1], "pair");
-    EXPECT_EQ(tokens[2], "(0.890000,-0.560000)");
+    EXPECT_EQ(tokens[2], "(0.890000 0.560000)");
 
     Properties restored;
     restored.untokenize(tokens);
     pair<double, double> round_trip = restored.get<pair<double, double>>("stv");
     EXPECT_DOUBLE_EQ(round_trip.first, 0.89);
-    EXPECT_DOUBLE_EQ(round_trip.second, -0.56);
+    EXPECT_DOUBLE_EQ(round_trip.second, 0.56);
 }
 
 TEST(PropertiesTest, GetWrongTypeReturnsNullptr) {

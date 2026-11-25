@@ -22,6 +22,7 @@ class MettaMapping {
     static string ANDNOT_QUERY_OPERATOR;
     static string OR_QUERY_OPERATOR;
     static string CHAIN_QUERY_OPERATOR;
+    static string TRUTH_VALUE;
 
     inline static string metta_expr(vector<string>& targets) {
         string answer = "(";

@@ -11,7 +11,7 @@ using namespace atoms;
 
 namespace atoms {
 
-enum ExpressionType { LINK, AND, OR };
+enum ExpressionType { LINK, AND, OR, STV };
 
 /**
  *
@@ -77,6 +77,8 @@ class MettaParserActions : public ParserActions {
     ExpressionType current_expression_type;
     stack<unsigned int> expression_size_stack;
     stack<ExpressionType> expression_type_stack;
+    Properties custom_attributes;
+    bool first_value;
 };
 
 }  // namespace atoms
