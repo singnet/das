@@ -35,6 +35,19 @@ class InMemoryDBTest : public ::testing::Test {
     shared_ptr<InMemoryDB> db;
 };
 
+TEST_F(InMemoryDBTest, GetNodeName) {
+    Node node("Symbol", "hello world");
+    string handle = db->add_node(&node);
+    EXPECT_EQ(db->get_node_name(handle), "hello world");
+
+    Node missing("Symbol", "missing");
+    EXPECT_EQ(db->get_node_name(missing.handle()), "");
+    EXPECT_EQ(db->get_node_name(Link("Expression", {handle}).handle()), "");
+
+    EXPECT_TRUE(db->delete_node(handle));
+    EXPECT_EQ(db->get_node_name(handle), "");
+}
+
 TEST_F(InMemoryDBTest, AddNodesAndLinks) {
     auto human = new Node("Symbol", "\"human\"");
     auto monkey = new Node("Symbol", "\"monkey\"");
