@@ -117,11 +117,11 @@ vector<shared_ptr<Atom>> RemoteAtomDBPeer::get_atoms(const vector<string>& handl
 }
 
 vector<shared_ptr<Node>> RemoteAtomDBPeer::get_nodes(const vector<string>& handles) {
-    return this->get_nodes(handles, nullptr);
+    return AtomDB::get_nodes(handles);
 }
 
 vector<shared_ptr<Link>> RemoteAtomDBPeer::get_links(const vector<string>& handles) {
-    return this->get_links(handles, nullptr);
+    return AtomDB::get_links(handles);
 }
 
 shared_ptr<Atom> RemoteAtomDBPeer::get_cached_atom(const string& handle, shared_ptr<Keychain> keychain) {
@@ -828,26 +828,12 @@ vector<shared_ptr<Atom>> RemoteAtomDBPeer::get_atoms(const vector<string>& handl
 
 vector<shared_ptr<Node>> RemoteAtomDBPeer::get_nodes(const vector<string>& handles,
                                                      shared_ptr<Keychain> keychain) {
-    auto atoms = this->get_atoms(handles, keychain);
-    vector<shared_ptr<Node>> nodes;
-    for (const auto& atom : atoms) {
-        if (auto node = dynamic_pointer_cast<Node>(atom)) {
-            nodes.push_back(node);
-        }
-    }
-    return nodes;
+    return KeySensitiveAtomDB::get_nodes(handles, keychain);
 }
 
 vector<shared_ptr<Link>> RemoteAtomDBPeer::get_links(const vector<string>& handles,
                                                      shared_ptr<Keychain> keychain) {
-    auto atoms = this->get_atoms(handles, keychain);
-    vector<shared_ptr<Link>> links;
-    for (const auto& atom : atoms) {
-        if (auto link = dynamic_pointer_cast<Link>(atom)) {
-            links.push_back(link);
-        }
-    }
-    return links;
+    return KeySensitiveAtomDB::get_links(handles, keychain);
 }
 
 vector<shared_ptr<Atom>> RemoteAtomDBPeer::get_matching_atoms(bool is_toplevel,

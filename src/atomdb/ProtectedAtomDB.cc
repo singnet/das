@@ -70,30 +70,6 @@ vector<shared_ptr<Atom>> ProtectedAtomDB::get_atoms(const vector<string>& handle
     return this->filter_atoms(this->backend->get_atoms(handles), *public_key);
 }
 
-vector<shared_ptr<Node>> ProtectedAtomDB::get_nodes(const vector<string>& handles,
-                                                    shared_ptr<Keychain> keychain) {
-    auto atoms = this->get_atoms(handles, keychain);
-    vector<shared_ptr<Node>> nodes;
-    for (const auto& atom : atoms) {
-        if (auto node = dynamic_pointer_cast<Node>(atom)) {
-            nodes.push_back(node);
-        }
-    }
-    return nodes;
-}
-
-vector<shared_ptr<Link>> ProtectedAtomDB::get_links(const vector<string>& handles,
-                                                    shared_ptr<Keychain> keychain) {
-    auto atoms = this->get_atoms(handles, keychain);
-    vector<shared_ptr<Link>> links;
-    for (const auto& atom : atoms) {
-        if (auto link = dynamic_pointer_cast<Link>(atom)) {
-            links.push_back(link);
-        }
-    }
-    return links;
-}
-
 vector<shared_ptr<Atom>> ProtectedAtomDB::get_matching_atoms(bool is_toplevel,
                                                              Atom& key,
                                                              shared_ptr<Keychain> keychain) {
@@ -288,6 +264,16 @@ vector<shared_ptr<Node>> ProtectedAtomDB::get_nodes(const vector<string>& handle
 
 vector<shared_ptr<Link>> ProtectedAtomDB::get_links(const vector<string>& handles) {
     raise_keychain_required("get_links");
+}
+
+vector<shared_ptr<Node>> ProtectedAtomDB::get_nodes(const vector<string>& handles,
+                                                    shared_ptr<Keychain> keychain) {
+    return KeySensitiveAtomDB::get_nodes(handles, keychain);
+}
+
+vector<shared_ptr<Link>> ProtectedAtomDB::get_links(const vector<string>& handles,
+                                                    shared_ptr<Keychain> keychain) {
+    return KeySensitiveAtomDB::get_links(handles, keychain);
 }
 
 vector<shared_ptr<Atom>> ProtectedAtomDB::get_matching_atoms(bool is_toplevel, Atom& key) {

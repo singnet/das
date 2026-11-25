@@ -181,30 +181,6 @@ vector<shared_ptr<Atom>> RedisMongoDB::get_atoms(const vector<string>& handles) 
     return atoms;
 }
 
-vector<shared_ptr<Node>> RedisMongoDB::get_nodes(const vector<string>& handles) {
-    auto atoms = this->get_atoms(handles);
-
-    vector<shared_ptr<Node>> nodes;
-    for (const auto& atom : atoms) {
-        if (auto node = dynamic_pointer_cast<Node>(atom)) {
-            nodes.push_back(node);
-        }
-    }
-    return nodes;
-}
-
-vector<shared_ptr<Link>> RedisMongoDB::get_links(const vector<string>& handles) {
-    auto atoms = this->get_atoms(handles);
-
-    vector<shared_ptr<Link>> links;
-    for (const auto& atom : atoms) {
-        if (auto link = dynamic_pointer_cast<Link>(atom)) {
-            links.push_back(link);
-        }
-    }
-    return links;
-}
-
 shared_ptr<Atom> RedisMongoDB::atom_from_mongodb_document(
     const shared_ptr<atomdb_api_types::MongodbDocument>& atom_document) {
     if (atom_document == NULL) {
