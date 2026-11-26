@@ -19,7 +19,7 @@ MettaParserActions::MettaParserActions() {
     this->current_expression_size = 0;
     this->current_expression_type = LINK;
     this->custom_attributes = {};
-    this->first_value = false;
+    this->stv_count = 0;
 }
 
 MettaParserActions::~MettaParserActions() {}
@@ -34,6 +34,7 @@ void MettaParserActions::symbol(const string& name) {
         }
     } else if (name == MettaMapping::TRUTH_VALUE) {
         this->current_expression_type = STV;
+        this->stv_count = 0;
     } else {
         if ((this->current_expression_type == AND) || (this->current_expression_type == OR)) {
             RAISE_ERROR("Invalid metta expression: AND/OR can't operate symbols.");
@@ -61,24 +62,12 @@ void MettaParserActions::literal(const string& value) {
     if ((this->current_expression_type == AND) || (this->current_expression_type == OR)) {
         RAISE_ERROR("Invalid metta expression: AND/OR can't operate literals.");
         return;
-    } else if (this->current_expression_type == STV) {
-        if (this->first_value) {
-            this->first_value = false;
-            PropertyValue& attr = this->custom_attributes.at("stv");
-            if (pair<double, double>* stv = std::get_if<pair<double, double>>(&attr)) {
-                stv->second = std::stod(value);
-            }
-        } else {
-            this->first_value = true;
-            this->custom_attributes["stv"] = make_pair(std::stod(value), 0.0);
-        }
-    } else {
-        this->current_expression_size++;
-        auto node = make_shared<Node>(MettaMapping::SYMBOL_NODE_TYPE, value);
-        this->handle_to_atom[node->handle()] = node;
-        this->handle_to_metta_expression[node->handle()] = value;
-        this->element_stack.push(node);
     }
+    this->current_expression_size++;
+    auto node = make_shared<Node>(MettaMapping::SYMBOL_NODE_TYPE, value);
+    this->handle_to_atom[node->handle()] = node;
+    this->handle_to_metta_expression[node->handle()] = value;
+    this->element_stack.push(node);
 }
 
 void MettaParserActions::literal(int value) {
@@ -87,16 +76,7 @@ void MettaParserActions::literal(int value) {
         RAISE_ERROR("Invalid metta expression: AND/OR can't operate literals.");
         return;
     } else if (this->current_expression_type == STV) {
-        if (this->first_value) {
-            this->first_value = false;
-            PropertyValue& attr = this->custom_attributes.at("stv");
-            if (pair<double, double>* stv = std::get_if<pair<double, double>>(&attr)) {
-                stv->second = static_cast<double>(value);
-            }
-        } else {
-            this->first_value = true;
-            this->custom_attributes["stv"] = make_pair(static_cast<double>(value), 0.0);
-        }
+        this->add_stv_number(static_cast<double>(value));
     } else {
         this->current_expression_size++;
         auto node = make_shared<Node>(MettaMapping::SYMBOL_NODE_TYPE, std::to_string(value));
@@ -110,17 +90,9 @@ void MettaParserActions::literal(float value) {
     ParserActions::literal(value);
     if ((this->current_expression_type == AND) || (this->current_expression_type == OR)) {
         RAISE_ERROR("Invalid metta expression: AND/OR can't operate literals.");
+        return;
     } else if (this->current_expression_type == STV) {
-        if (this->first_value) {
-            this->first_value = false;
-            PropertyValue& attr = this->custom_attributes.at("stv");
-            if (pair<double, double>* stv = std::get_if<pair<double, double>>(&attr)) {
-                stv->second = static_cast<double>(value);
-            }
-        } else {
-            this->first_value = true;
-            this->custom_attributes["stv"] = make_pair(static_cast<double>(value), 0.0);
-        }
+        this->add_stv_number(static_cast<double>(value));
     } else {
         this->current_expression_size++;
         auto node = make_shared<Node>(MettaMapping::SYMBOL_NODE_TYPE, std::to_string(value));
@@ -132,6 +104,11 @@ void MettaParserActions::literal(float value) {
 
 void MettaParserActions::expression_begin() {
     ParserActions::expression_begin();
+    // A link has at most one (stv strength confidence), and no expression may follow it.
+    // Otherwise the truth value would be assigned to the following expression.
+    if (this->custom_attributes.find(MettaMapping::TRUTH_VALUE) != this->custom_attributes.end()) {
+        RAISE_ERROR("Invalid stv: truth-value must be the last expression of the link");
+    }
     this->expression_size_stack.push(this->current_expression_size);
     this->expression_type_stack.push(this->current_expression_type);
     this->current_expression_size = 0;
@@ -164,6 +141,7 @@ void MettaParserActions::expression_end(bool toplevel, const string& metta_strin
         LOG_DEBUG("Pushing LINK");
         auto link = make_shared<Link>(
             MettaMapping::EXPRESSION_LINK_TYPE, targets, toplevel, this->custom_attributes);
+        this->custom_attributes.clear();
         this->handle_to_atom[link->handle()] = link;
         this->handle_to_metta_expression[link->handle()] = metta_string;
         this->element_stack.push(link);
@@ -172,7 +150,10 @@ void MettaParserActions::expression_end(bool toplevel, const string& metta_strin
         RAISE_ERROR("Invalid metta expression: AND/OR are not supported.");
         return;
     } else if (this->current_expression_type == STV) {
-        LOG_DEBUG("STV expression");
+        // Anything other than a number increments arity.
+        if ((this->stv_count != 2) || (arity != 0)) {
+            RAISE_ERROR("Invalid stv: expected exactly 2 numbers");
+        }
         this->current_expression_size = this->expression_size_stack.top();
         this->expression_size_stack.pop();
 
@@ -189,4 +170,17 @@ void MettaParserActions::expression_end(bool toplevel, const string& metta_strin
 
     this->current_expression_type = this->expression_type_stack.top();
     this->expression_type_stack.pop();
+}
+
+// -------------------------------------------------------------------------------------------------
+// Private methods
+
+void MettaParserActions::add_stv_number(double value) {
+    if (this->stv_count == 0) {
+        this->custom_attributes[MettaMapping::TRUTH_VALUE] = make_pair(value, 0.0);
+    } else {
+        auto& stv = std::get<pair<double, double>>(this->custom_attributes[MettaMapping::TRUTH_VALUE]);
+        stv.second = value;
+    }
+    this->stv_count++;
 }

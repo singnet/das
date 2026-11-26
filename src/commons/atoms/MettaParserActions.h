@@ -78,7 +78,9 @@ class MettaParserActions : public ParserActions {
     stack<unsigned int> expression_size_stack;
     stack<ExpressionType> expression_type_stack;
     Properties custom_attributes;
-    bool first_value;
+    unsigned int stv_count;
+
+    void add_stv_number(double value);
 };
 
 }  // namespace atoms
