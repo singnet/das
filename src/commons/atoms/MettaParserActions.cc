@@ -61,12 +61,24 @@ void MettaParserActions::literal(const string& value) {
     if ((this->current_expression_type == AND) || (this->current_expression_type == OR)) {
         RAISE_ERROR("Invalid metta expression: AND/OR can't operate literals.");
         return;
+    } else if (this->current_expression_type == STV) {
+        if (this->first_value) {
+            this->first_value = false;
+            PropertyValue& attr = this->custom_attributes.at("stv");
+            if (pair<double, double>* stv = std::get_if<pair<double, double>>(&attr)) {
+                stv->second = std::stod(value);
+            }
+        } else {
+            this->first_value = true;
+            this->custom_attributes["stv"] = make_pair(std::stod(value), 0.0);
+        }
+    } else {
+        this->current_expression_size++;
+        auto node = make_shared<Node>(MettaMapping::SYMBOL_NODE_TYPE, value);
+        this->handle_to_atom[node->handle()] = node;
+        this->handle_to_metta_expression[node->handle()] = value;
+        this->element_stack.push(node);
     }
-    this->current_expression_size++;
-    auto node = make_shared<Node>(MettaMapping::SYMBOL_NODE_TYPE, value);
-    this->handle_to_atom[node->handle()] = node;
-    this->handle_to_metta_expression[node->handle()] = value;
-    this->element_stack.push(node);
 }
 
 void MettaParserActions::literal(int value) {
@@ -74,21 +86,7 @@ void MettaParserActions::literal(int value) {
     if ((this->current_expression_type == AND) || (this->current_expression_type == OR)) {
         RAISE_ERROR("Invalid metta expression: AND/OR can't operate literals.");
         return;
-    }
-    this->current_expression_size++;
-    auto node = make_shared<Node>(MettaMapping::SYMBOL_NODE_TYPE, std::to_string(value));
-    this->handle_to_atom[node->handle()] = node;
-    this->handle_to_metta_expression[node->handle()] = std::to_string(value);
-    this->element_stack.push(node);
-}
-
-void MettaParserActions::literal(float value) {
-    ParserActions::literal(value);
-    if ((this->current_expression_type == AND) || (this->current_expression_type == OR)) {
-        RAISE_ERROR("Invalid metta expression: AND/OR can't operate literals.");
-        return;
-    }
-    if (this->current_expression_type == STV) {
+    } else if (this->current_expression_type == STV) {
         if (this->first_value) {
             this->first_value = false;
             PropertyValue& attr = this->custom_attributes.at("stv");
@@ -99,13 +97,37 @@ void MettaParserActions::literal(float value) {
             this->first_value = true;
             this->custom_attributes["stv"] = make_pair(static_cast<double>(value), 0.0);
         }
-        return;
+    } else {
+        this->current_expression_size++;
+        auto node = make_shared<Node>(MettaMapping::SYMBOL_NODE_TYPE, std::to_string(value));
+        this->handle_to_atom[node->handle()] = node;
+        this->handle_to_metta_expression[node->handle()] = std::to_string(value);
+        this->element_stack.push(node);
     }
-    this->current_expression_size++;
-    auto node = make_shared<Node>(MettaMapping::SYMBOL_NODE_TYPE, std::to_string(value));
-    this->handle_to_atom[node->handle()] = node;
-    this->handle_to_metta_expression[node->handle()] = std::to_string(value);
-    this->element_stack.push(node);
+}
+
+void MettaParserActions::literal(float value) {
+    ParserActions::literal(value);
+    if ((this->current_expression_type == AND) || (this->current_expression_type == OR)) {
+        RAISE_ERROR("Invalid metta expression: AND/OR can't operate literals.");
+    } else if (this->current_expression_type == STV) {
+        if (this->first_value) {
+            this->first_value = false;
+            PropertyValue& attr = this->custom_attributes.at("stv");
+            if (pair<double, double>* stv = std::get_if<pair<double, double>>(&attr)) {
+                stv->second = static_cast<double>(value);
+            }
+        } else {
+            this->first_value = true;
+            this->custom_attributes["stv"] = make_pair(static_cast<double>(value), 0.0);
+        }
+    } else {
+        this->current_expression_size++;
+        auto node = make_shared<Node>(MettaMapping::SYMBOL_NODE_TYPE, std::to_string(value));
+        this->handle_to_atom[node->handle()] = node;
+        this->handle_to_metta_expression[node->handle()] = std::to_string(value);
+        this->element_stack.push(node);
+    }
 }
 
 void MettaParserActions::expression_begin() {
@@ -150,7 +172,13 @@ void MettaParserActions::expression_end(bool toplevel, const string& metta_strin
         RAISE_ERROR("Invalid metta expression: AND/OR are not supported.");
         return;
     } else if (this->current_expression_type == STV) {
-        LOG_DEBUG("...");
+        LOG_DEBUG("STV expression");
+        this->current_expression_size = this->expression_size_stack.top();
+        this->expression_size_stack.pop();
+
+        this->current_expression_type = this->expression_type_stack.top();
+        this->expression_type_stack.pop();
+        return;
     } else {
         RAISE_ERROR("Invalid metta expression: unknown expression type");
         return;
