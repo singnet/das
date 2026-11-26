@@ -1234,6 +1234,28 @@ cc_test(
 )
 
 cc_test(
+    name = "redis_mongodb_custom_attributes_test",
+    size = "small",
+    srcs = ["redis_mongodb_custom_attributes_test.cc"],
+    copts = [
+        "-Iexternal/gtest/googletest/include",
+        "-Iexternal/gtest/googletest",
+    ],
+    linkopts = [
+        "-L/usr/local/lib",
+        "-lhiredis_cluster",
+        "-lhiredis",
+        "-lmongocxx",
+        "-lbsoncxx",
+    ],
+    linkstatic = 1,
+    deps = [
+        "//atomdb/redis_mongodb:redis_mongodb_api_types",
+        "@com_github_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
     name = "postgreswrapper_test",
     size = "medium",
     srcs = [

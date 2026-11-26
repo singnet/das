@@ -522,3 +522,48 @@ TEST(MettaParser, Atoms_MettaParserActions) {
     EXPECT_EQ(pa->handle_to_metta_expression[predicate_link->handle()], "(PREDICATE \"is_animal\")");
     EXPECT_EQ(pa->handle_to_metta_expression[concept_link->handle()], "(CONCEPT \"human\")");
 }
+
+TEST(MettaParser, Stv) {
+    auto node = [](const string& name) { return Node(MettaMapping::SYMBOL_NODE_TYPE, name).handle(); };
+    auto link = [](const vector<string>& targets) {
+        return Link(MettaMapping::EXPRESSION_LINK_TYPE, targets).handle();
+    };
+    string similarity = link({node("Similarity"), node("\"earthworm\""), node("\"snake\"")});
+    string inheritance = link({node("Inheritance"), node("\"snake\""), node("\"reptile\"")});
+    string odd_link = link({node("OddLink"), similarity, inheritance});
+    string odd_similarity = link({node("OddLink"), similarity});
+
+    // The truth value is an attribute: the link keeps the handle it would have without it,
+    // and neither the outer link nor the sibling link inherits it.
+    auto pa = make_shared<MettaParserActions>();
+    auto stv = [&pa](const string& handle) {
+        return pa->handle_to_atom.at(handle)->custom_attributes.get<pair<double, double>>("stv");
+    };
+    MettaParser parser(
+        "(OddLink (Similarity \"earthworm\" \"snake\" (stv 0.25 0.5)) (Inheritance \"snake\" \"reptile\"))",
+        pa);
+    EXPECT_FALSE(parser.parse(true));
+    EXPECT_EQ(stv(similarity), make_pair(0.25, 0.5));
+    EXPECT_TRUE(pa->handle_to_atom.at(inheritance)->custom_attributes.empty());
+    EXPECT_TRUE(pa->handle_to_atom.at(odd_link)->custom_attributes.empty());
+
+    // Nested links keep their own truth value; integers are accepted.
+    pa = make_shared<MettaParserActions>();
+    parser = MettaParser("(OddLink (Similarity \"earthworm\" \"snake\" (stv 0.25 0.5)) (stv 1 0))", pa);
+    EXPECT_FALSE(parser.parse(true));
+    EXPECT_EQ(stv(similarity), make_pair(0.25, 0.5));
+    EXPECT_EQ(stv(odd_similarity), make_pair(1.0, 0.0));
+
+    for (const char* invalid : {"(A b (stv 1))",
+                                  "(A b (stv 1 2 3))",
+                                  "(A b (stv \"1\" 2))",
+                                  "(A b (stv c 1))",
+                                  "(A b (stv $v 1))",
+                                  "(A b (stv 1 (C d)))",
+                                  "(A b (stv 1 2) (stv 3 4))",
+                                  "(A b (stv 1 2) (C d))"}) {
+        pa = make_shared<MettaParserActions>();
+        parser = MettaParser(invalid, pa);
+        EXPECT_THROW(parser.parse(true), runtime_error) << invalid;
+    }
+}
