@@ -487,7 +487,7 @@ shared_ptr<atomdb_api_types::HandleSet> ProtectedAtomDB::filter_handle_set(
         return candidate_handle_set;
     }
 
-    shared_ptr<HandleSetIterator>  it = candidate_handle_set->get_iterator(this->backend_decoder.get());
+    shared_ptr<HandleSetIterator> it = candidate_handle_set->get_iterator(this->backend_decoder.get());
     auto authorized_handle_set = make_shared<atomdb_api_types::HandleSetInMemory>();
 
     char* handle_cstr;
