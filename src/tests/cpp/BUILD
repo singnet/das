@@ -962,7 +962,7 @@ cc_test(
         "//tests/cpp/test_commons:in_memory_access_permission_types",
         "//tests/cpp/test_commons:mock_animals_data_lib",
         "//tests/cpp/test_commons:test_atomdb_json_config",
-        "@com_github_google_googletest//:gtest_main",
+        "@com_github_google_googletest//:gtest",
         "@mbedtls",
     ],
 )

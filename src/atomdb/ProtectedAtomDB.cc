@@ -66,6 +66,15 @@ shared_ptr<Link> ProtectedAtomDB::get_link(const string& handle, shared_ptr<Keyc
     return dynamic_pointer_cast<Link>(this->get_atom(handle, keychain));
 }
 
+vector<shared_ptr<Atom>> ProtectedAtomDB::get_atoms(const vector<string>& handles,
+                                                    shared_ptr<Keychain> keychain) {
+    auto public_key = this->try_get_public_key(keychain);
+    if (!public_key) {
+        return {};
+    }
+    return this->filter_atoms(this->backend->get_atoms(handles), *public_key);
+}
+
 vector<shared_ptr<Atom>> ProtectedAtomDB::get_matching_atoms(bool is_toplevel,
                                                              Atom& key,
                                                              shared_ptr<Keychain> keychain) {
@@ -251,6 +260,28 @@ shared_ptr<Node> ProtectedAtomDB::get_node(const string& handle) { raise_keychai
 string ProtectedAtomDB::get_node_name(const string& handle) { raise_keychain_required("get_node_name"); }
 
 shared_ptr<Link> ProtectedAtomDB::get_link(const string& handle) { raise_keychain_required("get_link"); }
+
+vector<shared_ptr<Atom>> ProtectedAtomDB::get_atoms(const vector<string>& handles) {
+    raise_keychain_required("get_atoms");
+}
+
+vector<shared_ptr<Node>> ProtectedAtomDB::get_nodes(const vector<string>& handles) {
+    raise_keychain_required("get_nodes");
+}
+
+vector<shared_ptr<Link>> ProtectedAtomDB::get_links(const vector<string>& handles) {
+    raise_keychain_required("get_links");
+}
+
+vector<shared_ptr<Node>> ProtectedAtomDB::get_nodes(const vector<string>& handles,
+                                                    shared_ptr<Keychain> keychain) {
+    return KeySensitiveAtomDB::get_nodes(handles, keychain);
+}
+
+vector<shared_ptr<Link>> ProtectedAtomDB::get_links(const vector<string>& handles,
+                                                    shared_ptr<Keychain> keychain) {
+    return KeySensitiveAtomDB::get_links(handles, keychain);
+}
 
 vector<shared_ptr<Atom>> ProtectedAtomDB::get_matching_atoms(bool is_toplevel, Atom& key) {
     raise_keychain_required("get_matching_atoms");

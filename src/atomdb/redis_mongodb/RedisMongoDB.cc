@@ -154,36 +154,8 @@ void RedisMongoDB::mongodb_setup(const JsonConfig& config) {
 }
 
 shared_ptr<Atom> RedisMongoDB::get_atom(const string& handle) {
-    auto atom_document =
-        dynamic_pointer_cast<atomdb_api_types::MongodbDocument>(get_atom_document(handle));
-    if (atom_document != NULL) {
-        Properties custom_attributes;
-        if (atom_document->contains("custom_attributes")) {
-            custom_attributes =
-                atom_document->extract_custom_attributes(atom_document->get_object("custom_attributes"));
-        }
-        bool is_toplevel = false;
-        if (atom_document->contains("is_toplevel")) {
-            is_toplevel = atom_document->get_bool("is_toplevel");
-        }
-        if (Hasher::is_link_handle(handle)) {
-            unsigned int arity = atom_document->get_size(MONGODB_FIELD_NAME[MONGODB_FIELD::TARGETS]);
-            vector<string> targets;
-            for (unsigned int i = 0; i < arity; i++) {
-                targets.push_back(
-                    string(atom_document->get(MONGODB_FIELD_NAME[MONGODB_FIELD::TARGETS], i)));
-            }
-            return make_shared<Link>(
-                atom_document->get("named_type"), targets, is_toplevel, custom_attributes);
-        } else {
-            return make_shared<Node>(atom_document->get("named_type"),
-                                     atom_document->get("name"),
-                                     is_toplevel,
-                                     custom_attributes);
-        }
-    } else {
-        return shared_ptr<Atom>(NULL);
-    }
+    return atom_from_mongodb_document(
+        dynamic_pointer_cast<atomdb_api_types::MongodbDocument>(get_atom_document(handle)));
 }
 
 shared_ptr<Node> RedisMongoDB::get_node(const string& handle) {
@@ -264,6 +236,47 @@ void RedisMongoDB::delete_node_name(const string& handle) {
 shared_ptr<Link> RedisMongoDB::get_link(const string& handle) {
     if (!Hasher::is_link_handle(handle)) return nullptr;
     return dynamic_pointer_cast<Link>(get_atom(handle));
+}
+
+vector<shared_ptr<Atom>> RedisMongoDB::get_atoms(const vector<string>& handles) {
+    auto atom_documents = this->get_atom_documents(handles, {});
+
+    vector<shared_ptr<Atom>> atoms;
+    for (const auto& atom_document : atom_documents) {
+        auto atom = atom_from_mongodb_document(
+            dynamic_pointer_cast<atomdb_api_types::MongodbDocument>(atom_document));
+        if (atom != NULL) {
+            atoms.push_back(atom);
+        }
+    }
+    return atoms;
+}
+
+shared_ptr<Atom> RedisMongoDB::atom_from_mongodb_document(
+    const shared_ptr<atomdb_api_types::MongodbDocument>& atom_document) {
+    if (atom_document == NULL) {
+        return shared_ptr<Atom>(NULL);
+    }
+    Properties custom_attributes;
+    if (atom_document->contains("custom_attributes")) {
+        custom_attributes =
+            atom_document->extract_custom_attributes(atom_document->get_object("custom_attributes"));
+    }
+    bool is_toplevel = false;
+    if (atom_document->contains("is_toplevel")) {
+        is_toplevel = atom_document->get_bool("is_toplevel");
+    }
+    if (atom_document->contains(MONGODB_FIELD_NAME[MONGODB_FIELD::TARGETS])) {
+        unsigned int arity = atom_document->get_size(MONGODB_FIELD_NAME[MONGODB_FIELD::TARGETS]);
+        vector<string> targets;
+        for (unsigned int i = 0; i < arity; i++) {
+            targets.push_back(string(atom_document->get(MONGODB_FIELD_NAME[MONGODB_FIELD::TARGETS], i)));
+        }
+        return make_shared<Link>(
+            atom_document->get("named_type"), targets, is_toplevel, custom_attributes);
+    }
+    return make_shared<Node>(
+        atom_document->get("named_type"), atom_document->get("name"), is_toplevel, custom_attributes);
 }
 
 shared_ptr<atomdb_api_types::HandleSet> RedisMongoDB::query_for_pattern(const LinkSchema& link_schema) {

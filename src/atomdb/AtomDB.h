@@ -76,6 +76,28 @@ class AtomDB {
         return node->name;
     }
 
+    virtual vector<shared_ptr<Atom>> get_atoms(const vector<string>& handles) = 0;
+    virtual vector<shared_ptr<Node>> get_nodes(const vector<string>& handles) {
+        auto atoms = this->get_atoms(handles);
+        vector<shared_ptr<Node>> nodes;
+        for (const auto& atom : atoms) {
+            if (auto node = dynamic_pointer_cast<Node>(atom)) {
+                nodes.push_back(node);
+            }
+        }
+        return nodes;
+    }
+    virtual vector<shared_ptr<Link>> get_links(const vector<string>& handles) {
+        auto atoms = this->get_atoms(handles);
+        vector<shared_ptr<Link>> links;
+        for (const auto& atom : atoms) {
+            if (auto link = dynamic_pointer_cast<Link>(atom)) {
+                links.push_back(link);
+            }
+        }
+        return links;
+    }
+
     virtual vector<shared_ptr<Atom>> get_matching_atoms(bool is_toplevel, Atom& key) = 0;
 
     virtual shared_ptr<atomdb_api_types::HandleSet> query_for_pattern(const LinkSchema& link_schema) = 0;

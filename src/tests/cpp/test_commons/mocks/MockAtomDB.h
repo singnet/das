@@ -34,6 +34,9 @@ class AtomDBMock : public AtomDB {
     MOCK_METHOD(shared_ptr<Atom>, get_atom, (const string& handle), (override));
     MOCK_METHOD(shared_ptr<Node>, get_node, (const string& handle), (override));
     MOCK_METHOD(shared_ptr<Link>, get_link, (const string& handle), (override));
+    MOCK_METHOD(vector<shared_ptr<Atom>>, get_atoms, (const vector<string>& handles), (override));
+    MOCK_METHOD(vector<shared_ptr<Node>>, get_nodes, (const vector<string>& handles), (override));
+    MOCK_METHOD(vector<shared_ptr<Link>>, get_links, (const vector<string>& handles), (override));
     MOCK_METHOD(shared_ptr<atomdb_api_types::HandleSet>,
                 query_for_pattern,
                 (const LinkSchema& link_template),

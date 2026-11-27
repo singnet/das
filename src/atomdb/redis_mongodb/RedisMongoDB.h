@@ -62,6 +62,8 @@ class RedisMongoDB : public AtomDB {
     shared_ptr<Link> get_link(const string& handle);
     string get_node_name(const string& handle) override;
 
+    vector<shared_ptr<Atom>> get_atoms(const vector<string>& handles);
+
     vector<shared_ptr<Atom>> get_matching_atoms(bool is_toplevel, Atom& key);
 
     shared_ptr<atomdb_api_types::HandleSet> query_for_pattern(const LinkSchema& link_schema);
@@ -206,6 +208,9 @@ class RedisMongoDB : public AtomDB {
 
     void redis_setup(const JsonConfig& config);
     void mongodb_setup(const JsonConfig& config);
+
+    shared_ptr<Atom> atom_from_mongodb_document(
+        const shared_ptr<atomdb_api_types::MongodbDocument>& atom_document);
 };
 
 }  // namespace atomdb

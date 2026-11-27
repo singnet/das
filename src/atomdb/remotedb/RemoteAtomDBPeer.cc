@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <deque>
 #include <fstream>
+#include <map>
 #include <nlohmann/json.hpp>
 #include <sstream>
 #include <thread>
@@ -113,6 +114,18 @@ string RemoteAtomDBPeer::get_node_name(const string& handle) {
 shared_ptr<Link> RemoteAtomDBPeer::get_link(const string& handle) {
     if (!Hasher::is_link_handle(handle)) return nullptr;
     return dynamic_pointer_cast<Link>(get_atom(handle));
+}
+
+vector<shared_ptr<Atom>> RemoteAtomDBPeer::get_atoms(const vector<string>& handles) {
+    return this->get_atoms(handles, nullptr);
+}
+
+vector<shared_ptr<Node>> RemoteAtomDBPeer::get_nodes(const vector<string>& handles) {
+    return AtomDB::get_nodes(handles);
+}
+
+vector<shared_ptr<Link>> RemoteAtomDBPeer::get_links(const vector<string>& handles) {
+    return AtomDB::get_links(handles);
 }
 
 shared_ptr<Atom> RemoteAtomDBPeer::get_cached_atom(const string& handle, shared_ptr<Keychain> keychain) {
@@ -773,6 +786,90 @@ string RemoteAtomDBPeer::get_node_name(const string& handle, shared_ptr<Keychain
 shared_ptr<Link> RemoteAtomDBPeer::get_link(const string& handle, shared_ptr<Keychain> keychain) {
     if (!Hasher::is_link_handle(handle)) return nullptr;
     return dynamic_pointer_cast<Link>(this->get_atom(handle, keychain));
+}
+
+vector<shared_ptr<Atom>> RemoteAtomDBPeer::get_atoms(const vector<string>& handles,
+                                                     shared_ptr<Keychain> keychain) {
+    if (handles.empty()) {
+        return {};
+    }
+
+    vector<shared_ptr<Atom>> atoms;
+    unordered_set<string> found;
+    vector<string> pending = handles;
+
+    auto update_pending = [&]() {
+        pending.clear();
+        for (const auto& h : handles) {
+            if (found.find(h) == found.end()) {
+                pending.push_back(h);
+            }
+        }
+    };
+
+    auto pwb = protected_write_buffer();
+    auto from_write_buffer =
+        pwb ? pwb->get_atoms(pending, keychain) : write_buffer()->get_atoms(pending);
+    for (const auto& atom : from_write_buffer) {
+        if (found.insert(atom->handle()).second) {
+            atoms.push_back(atom);
+        }
+    }
+    update_pending();
+    if (pending.empty()) {
+        return atoms;
+    }
+
+    auto rc = read_cache();
+    if (local_persistence_) {
+        for (const auto& atom : local_persistence_->get_atoms(pending)) {
+            LOG_DEBUG("[RemoteDB(" << uid_ << ")] get_atoms(" << atom->handle()
+                                   << ") <- local_persistence (warmed into read_cache)");
+            rc->add_atom(atom.get());
+            if (found.insert(atom->handle()).second) {
+                atoms.push_back(atom);
+            }
+        }
+        update_pending();
+        if (pending.empty()) {
+            return atoms;
+        }
+    }
+
+    auto prc = protected_read_cache();
+    auto from_read_cache = prc ? prc->get_atoms(pending, keychain) : rc->get_atoms(pending);
+    for (const auto& atom : from_read_cache) {
+        if (found.insert(atom->handle()).second) {
+            atoms.push_back(atom);
+        }
+    }
+    update_pending();
+    if (pending.empty()) {
+        return atoms;
+    }
+
+    auto from_remote = this->protected_atomdb_ ? this->protected_atomdb_->get_atoms(pending, keychain)
+                                               : this->atomdb_->get_atoms(pending);
+    for (const auto& atom : from_remote) {
+        LOG_DEBUG("[RemoteDB(" << uid_ << ")] get_atoms(" << atom->handle()
+                               << ") <- remote atomdb (warmed)");
+        rc->add_atom(atom.get());
+        if (found.insert(atom->handle()).second) {
+            atoms.push_back(atom);
+        }
+    }
+
+    return atoms;
+}
+
+vector<shared_ptr<Node>> RemoteAtomDBPeer::get_nodes(const vector<string>& handles,
+                                                     shared_ptr<Keychain> keychain) {
+    return KeySensitiveAtomDB::get_nodes(handles, keychain);
+}
+
+vector<shared_ptr<Link>> RemoteAtomDBPeer::get_links(const vector<string>& handles,
+                                                     shared_ptr<Keychain> keychain) {
+    return KeySensitiveAtomDB::get_links(handles, keychain);
 }
 
 vector<shared_ptr<Atom>> RemoteAtomDBPeer::get_matching_atoms(bool is_toplevel,

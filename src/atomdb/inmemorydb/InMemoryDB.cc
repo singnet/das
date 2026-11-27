@@ -176,6 +176,23 @@ shared_ptr<Link> InMemoryDB::get_link(const string& handle) {
     return dynamic_pointer_cast<Link>(get_atom(handle));
 }
 
+vector<shared_ptr<Atom>> InMemoryDB::get_atoms(const vector<string>& handles) {
+    auto trie = load_tries()->atoms;
+    vector<shared_ptr<Atom>> atoms;
+    atoms.reserve(handles.size());
+    for (const auto& handle : handles) {
+        if (!Hasher::is_atom_handle(handle)) continue;
+        auto atom = lookup_atom(*trie, handle);
+        if (atom != nullptr) {
+            auto cloned = clone_atom(atom.get());
+            if (cloned != nullptr) {
+                atoms.push_back(cloned);
+            }
+        }
+    }
+    return atoms;
+}
+
 shared_ptr<HandleSet> InMemoryDB::query_for_pattern(const LinkSchema& link_schema) {
     auto handle_set = make_shared<HandleSetInMemory>();
     auto handles = lookup_handle_set(*load_tries()->patterns, link_schema.handle());

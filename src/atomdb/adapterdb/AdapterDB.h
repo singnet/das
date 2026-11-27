@@ -67,6 +67,8 @@ class AdapterDB : public AtomDB {
     shared_ptr<Link> get_link(const string& handle) override;
     string get_node_name(const string& handle) override;
 
+    vector<shared_ptr<Atom>> get_atoms(const vector<string>& handles) override;
+
     vector<shared_ptr<Atom>> get_matching_atoms(bool is_toplevel, Atom& key) override;
 
     shared_ptr<atomdb_api_types::HandleSet> query_for_pattern(const LinkSchema& link_schema) override;
