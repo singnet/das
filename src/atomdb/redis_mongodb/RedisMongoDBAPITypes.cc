@@ -82,7 +82,7 @@ HandleSetRedisIterator::HandleSetRedisIterator(HandleSetRedis* handle_set, Handl
 
 HandleSetRedisIterator::~HandleSetRedisIterator(){};
 
-char* HandleSetRedisIterator::_next() {
+char* HandleSetRedisIterator::next_candidate() {
     if (this->outer_idx >= this->handle_set->replies.size()) {
         // No more elements, return NULL.
         return NULL;
@@ -115,7 +115,7 @@ char* HandleSetRedisIterator::next() {
     Assignment assignment;
     char* candidate;
     string handle;
-    while ((candidate = _next()) != NULL) {
+    while ((candidate = next_candidate()) != NULL) {
         handle = string(candidate);
         if ((this->handle_set->link_schema == nullptr) ||
             this->handle_set->link_schema->match(

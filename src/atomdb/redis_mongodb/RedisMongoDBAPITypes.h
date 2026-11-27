@@ -54,10 +54,15 @@ class HandleSetRedisIterator : public HandleSetIterator {
     HandleSetRedisIterator(HandleSetRedis* handle_set, HandleDecoder* decoder);
     ~HandleSetRedisIterator();
 
+    /**
+     * @brief Get the next handle in the set, whithout checking if it matches the link schema.
+     *
+     * @return The next handle in the set, or NULL if there are no more handles.
+     */
+    char* next_candidate();
     char* next();
 
    private:
-    char* _next();
     HandleSetRedis* handle_set;
     unsigned int outer_idx;
     unsigned int inner_idx;
