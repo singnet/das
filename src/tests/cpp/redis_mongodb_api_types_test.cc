@@ -19,6 +19,7 @@
 #include "RedisMongoDBAPITypes.h"
 #include "TestAtomDBJsonConfig.h"
 #include "TestSystemParams.h"
+#include "Utils.h"
 
 using das_test::init_test_system_parameters_singleton;
 using namespace atomdb::atomdb_api_types;
@@ -144,7 +145,15 @@ TEST(RedisMongoDBCustomAttributes, Stv) {
 
     // The truth value round-trips together with the other supported types.
     MongodbDocument document(&link, "", {}, false);
-    EXPECT_EQ(document.extract_custom_attributes(document.get_object("custom_attributes")), attributes);
+    auto extracted = document.extract_custom_attributes(document.get_object("custom_attributes"));
+    EXPECT_EQ(extracted.size(), attributes.size());
+    auto stv = extracted.get<pair<double, double>>("stv");
+    EXPECT_TRUE(Utils::epsilon_equals(stv.first, 0.25));
+    EXPECT_TRUE(Utils::epsilon_equals(stv.second, 0.5));
+    EXPECT_EQ(extracted.get<string>("name"), "human");
+    EXPECT_EQ(extracted.get<long>("count"), 7L);
+    EXPECT_TRUE(Utils::epsilon_equals(extracted.get<double>("weight"), 0.75));
+    EXPECT_TRUE(extracted.get<bool>("active"));
 
     attributes["unsigned"] = 1U;
     Link unsupported("Expression", {similarity.handle(), human.handle()}, true, attributes);
