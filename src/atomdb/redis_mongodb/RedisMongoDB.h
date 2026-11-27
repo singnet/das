@@ -45,6 +45,7 @@ class RedisMongoDB : public AtomDB {
     string REDIS_PATTERNS_PREFIX;
     string REDIS_OUTGOING_PREFIX;
     string REDIS_INCOMING_PREFIX;
+    string REDIS_NODE_NAME_PREFIX;
     string MONGODB_DB_NAME;
     string MONGODB_NODES_COLLECTION_NAME;
     string MONGODB_LINKS_COLLECTION_NAME;
@@ -59,6 +60,7 @@ class RedisMongoDB : public AtomDB {
     shared_ptr<Atom> get_atom(const string& handle);
     shared_ptr<Node> get_node(const string& handle);
     shared_ptr<Link> get_link(const string& handle);
+    string get_node_name(const string& handle) override;
 
     vector<shared_ptr<Atom>> get_atoms(const vector<string>& handles);
 
@@ -185,6 +187,10 @@ class RedisMongoDB : public AtomDB {
     void add_patterns(const vector<pair<string, string>>& pattern_handles);
     void delete_pattern(const string& handle);
     void update_pattern(const string& key, const string& value);
+
+    void add_node_name(const string& handle, const string& name);
+    void add_node_names(const vector<pair<string, string>>& handle_names);
+    void delete_node_name(const string& handle);
 
     void add_outgoing_set(const string& handle, const vector<string>& outgoing_handles);
     void delete_outgoing_set(const string& handle);

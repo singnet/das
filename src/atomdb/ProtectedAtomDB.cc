@@ -56,6 +56,11 @@ shared_ptr<Node> ProtectedAtomDB::get_node(const string& handle, shared_ptr<Keyc
     return dynamic_pointer_cast<Node>(this->get_atom(handle, keychain));
 }
 
+string ProtectedAtomDB::get_node_name(const string& handle, shared_ptr<Keychain> keychain) {
+    if (!Hasher::is_node_handle(handle)) return "";
+    return this->backend->get_node_name(handle);
+}
+
 shared_ptr<Link> ProtectedAtomDB::get_link(const string& handle, shared_ptr<Keychain> keychain) {
     if (!Hasher::is_link_handle(handle)) return nullptr;
     return dynamic_pointer_cast<Link>(this->get_atom(handle, keychain));
@@ -251,6 +256,8 @@ atomdb_api_types::ProtectionMode ProtectedAtomDB::get_protection_mode() const {
 shared_ptr<Atom> ProtectedAtomDB::get_atom(const string& handle) { raise_keychain_required("get_atom"); }
 
 shared_ptr<Node> ProtectedAtomDB::get_node(const string& handle) { raise_keychain_required("get_node"); }
+
+string ProtectedAtomDB::get_node_name(const string& handle) { raise_keychain_required("get_node_name"); }
 
 shared_ptr<Link> ProtectedAtomDB::get_link(const string& handle) { raise_keychain_required("get_link"); }
 

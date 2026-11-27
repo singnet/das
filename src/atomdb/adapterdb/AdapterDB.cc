@@ -81,6 +81,11 @@ shared_ptr<Node> AdapterDB::get_node(const string& handle) {
     return this->atomdb_backend->get_node(handle);
 }
 
+string AdapterDB::get_node_name(const string& handle) {
+    this->ensure_backend_ready();
+    return this->atomdb_backend->get_node_name(handle);
+}
+
 shared_ptr<Link> AdapterDB::get_link(const string& handle) {
     this->ensure_backend_ready();
     return this->atomdb_backend->get_link(handle);

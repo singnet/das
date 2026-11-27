@@ -120,11 +120,7 @@ class InMemoryDB : public AtomDB, public HandleDecoder {
         return get_atom(handle);
     }
     string decode_node_name(const string& handle, shared_ptr<Keychain> keychain = nullptr) override {
-        auto node = dynamic_pointer_cast<Node>(get_atom(handle));
-        if (node == nullptr) {
-            return "";
-        }
-        return node->name;
+        return get_node_name(handle);
     }
     vector<string> decode_link_targets(const string& handle,
                                        shared_ptr<Keychain> keychain = nullptr) override {

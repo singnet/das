@@ -98,17 +98,16 @@ shared_ptr<Link> AtomDBUtils::get_link(const string& handle, shared_ptr<Keychain
 
 string AtomDBUtils::get_node_name(const string& handle, shared_ptr<Keychain> keychain) {
     STACK_TRACE();
-    string answer = "";
-    if (Hasher::is_node_handle(handle)) {
-        auto atom = AtomDBUtils::get_atom(handle, keychain);
-        if (atom != nullptr) {
-            auto node = dynamic_pointer_cast<Node>(atom);
-            if (node != nullptr) {
-                answer = node->name;
-            }
-        }
+    shared_ptr<AtomDB> atomdb = AtomDBSingleton::get_instance();
+    if (atomdb == nullptr) {
+        RAISE_ERROR("AtomDB is not available");
     }
-    return answer;
+    shared_ptr<KeySensitiveAtomDB> key_sensitive_atomdb =
+        dynamic_pointer_cast<KeySensitiveAtomDB>(atomdb);
+    if (key_sensitive_atomdb) {
+        return key_sensitive_atomdb->get_node_name(handle, keychain);
+    }
+    return atomdb->get_node_name(handle);
 }
 
 vector<string> AtomDBUtils::get_link_targets(const string& handle, shared_ptr<Keychain> keychain) {

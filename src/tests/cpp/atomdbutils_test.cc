@@ -2,6 +2,8 @@
 
 #include <gtest/gtest.h>
 
+#include <stdexcept>
+
 #include "AtomDBInitializer.h"
 #include "AtomDBSingleton.h"
 #include "InMemoryDB.h"
@@ -164,6 +166,13 @@ TEST(AtomDBTest, atom_getters) {
     EXPECT_EQ(AtomDBUtils::get_node(C->handle()), nullptr);
     EXPECT_TRUE(Utils::epsilon_equals(AtomDBUtils::get_strength(L1->handle()), 0.3));
     db->delete_links({L1->handle()}, true);
+}
+
+TEST(AtomDBTest, GetNodeNameRequiresDatabase) {
+    auto db = AtomDBSingleton::get_instance();
+    AtomDBSingleton::provide(nullptr, true);
+    EXPECT_THROW(AtomDBUtils::get_node_name("anything"), runtime_error);
+    AtomDBSingleton::provide(db, true);
 }
 
 int main(int argc, char** argv) {

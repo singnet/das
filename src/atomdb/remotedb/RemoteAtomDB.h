@@ -35,6 +35,8 @@ class RemoteAtomDB : public AtomDB, public KeySensitiveAtomDB {
 
     shared_ptr<Node> get_node(const string& handle) override;
     shared_ptr<Node> get_node(const string& handle, shared_ptr<Keychain> keychain) override;
+    string get_node_name(const string& handle) override;
+    string get_node_name(const string& handle, shared_ptr<Keychain> keychain) override;
 
     shared_ptr<Link> get_link(const string& handle) override;
     shared_ptr<Link> get_link(const string& handle, shared_ptr<Keychain> keychain) override;

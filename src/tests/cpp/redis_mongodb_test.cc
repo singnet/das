@@ -52,6 +52,29 @@ bool mongodb_collection_exists(Database& database, const string& name) {
     return false;
 }
 
+// Talks to the same Redis the test AtomDB uses. Used to drop a single name key and to
+// exercise pipeline errors without widening RedisMongoDB's public API.
+class TestRedis {
+   public:
+    TestRedis() : ctx(false) {
+        string endpoint = test_atomdb_json_config("redismongodb", "redis_mongodb_test_")
+                              .get_json()["redis"]["endpoint"]
+                              .get<string>();
+        auto colon = endpoint.rfind(':');
+        string host = endpoint.substr(0, colon);
+        int port = stoi(endpoint.substr(colon + 1));
+        redisContext* raw = redisConnect(host.c_str(), port);
+        if (raw == nullptr || raw->err) {
+            string err = raw != nullptr ? raw->errstr : "redisConnect returned null";
+            if (raw != nullptr) redisFree(raw);
+            throw runtime_error(err);
+        }
+        ctx.set_context(raw);
+    }
+
+    RedisContext ctx;
+};
+
 }  // namespace
 
 class MockDecoder : public HandleDecoder {
@@ -419,6 +442,109 @@ TEST_F(RedisMongoDBTest, AddGetAndDeleteNode) {
 
     auto deleted = db->delete_atom(handle);
     EXPECT_TRUE(deleted);
+}
+
+TEST_F(RedisMongoDBTest, GetNodeNameFromRedis) {
+    string name = "hello \"world\" with spaces";
+    Node node("Symbol", name);
+    string handle = db->add_node(&node);
+    EXPECT_EQ(handle, node.handle());
+    EXPECT_EQ(db->get_node_name(handle), name);
+
+    // Drop the Mongo document so the returned name can only come from Redis.
+    {
+        auto conn = db->get_mongo_pool()->acquire();
+        auto collection = (*conn)[db->MONGODB_DB_NAME][db->MONGODB_NODES_COLLECTION_NAME];
+        collection.delete_one(
+            bsoncxx::builder::basic::make_document(bsoncxx::builder::basic::kvp("_id", handle)));
+    }
+    EXPECT_EQ(db->get_node(handle), nullptr);
+    EXPECT_EQ(db->get_node_name(handle), name);
+
+    EXPECT_FALSE(db->delete_node(handle));
+    EXPECT_EQ(db->get_node_name(handle), "");
+
+    Node kept("Symbol", "kept-node");
+    string kept_handle = db->add_node(&kept);
+    EXPECT_TRUE(db->delete_node(kept_handle));
+    EXPECT_EQ(db->get_node_name(kept_handle), "");
+
+    Node batch_one("Symbol", "batch one");
+    Node batch_two("Symbol", "batch two");
+    auto handles = db->add_nodes({&batch_one, &batch_two});
+    ASSERT_EQ(handles.size(), 2u);
+    EXPECT_EQ(db->get_node_name(handles[0]), "batch one");
+    EXPECT_EQ(db->get_node_name(handles[1]), "batch two");
+    EXPECT_EQ(db->delete_nodes(handles), 2u);
+    EXPECT_EQ(db->get_node_name(handles[0]), "");
+    EXPECT_EQ(db->get_node_name(handles[1]), "");
+
+    EXPECT_EQ(db->get_node_name(Hasher::link_handle("Expression", {node.handle()})), "");
+    EXPECT_EQ(db->get_node_name(Hasher::node_handle("Symbol", "missing-node-name")), "");
+}
+
+TEST_F(RedisMongoDBTest, GetNodeNameReturnsEmptyWhenIndexMissing) {
+    Node node("Symbol", "legacy-name");
+    string handle = db->add_node(&node);
+    {
+        TestRedis redis;
+        redisReply* reply = redis.ctx.execute({"DEL", db->REDIS_NODE_NAME_PREFIX + ":" + handle});
+        ASSERT_NE(reply, nullptr);
+        freeReplyObject(reply);
+    }
+
+    EXPECT_EQ(db->get_node(handle)->name, "legacy-name");
+    EXPECT_EQ(db->get_node_name(handle), "");
+    EXPECT_TRUE(db->delete_node(handle));
+}
+
+TEST_F(RedisMongoDBTest, RejectedAddRestoresMissingNodeName) {
+    auto drop_mongo = [&](const string& id) {
+        auto conn = db->get_mongo_pool()->acquire();
+        auto collection = (*conn)[db->MONGODB_DB_NAME][db->MONGODB_NODES_COLLECTION_NAME];
+        collection.delete_one(
+            bsoncxx::builder::basic::make_document(bsoncxx::builder::basic::kvp("_id", id)));
+    };
+
+    Node node("Symbol", "restore-me");
+    string handle = db->add_node(&node);
+    Node batch("Symbol", "restore-batch");
+    string batch_handle = db->add_node(&batch);
+    {
+        TestRedis redis;
+        redisReply* reply = redis.ctx.execute({"DEL", db->REDIS_NODE_NAME_PREFIX + ":" + handle});
+        ASSERT_NE(reply, nullptr);
+        freeReplyObject(reply);
+        reply = redis.ctx.execute({"DEL", db->REDIS_NODE_NAME_PREFIX + ":" + batch_handle});
+        ASSERT_NE(reply, nullptr);
+        freeReplyObject(reply);
+    }
+    Node again("Symbol", "restore-me");
+    EXPECT_EQ(db->add_node(&again, &SkipIfExistsMerger::instance()), "");
+    vector<Node*> nodes = {&batch};
+    auto handles = db->add_nodes(nodes, false, &SkipIfExistsMerger::instance());
+    ASSERT_EQ(handles.size(), 1u);
+    EXPECT_EQ(handles[0], "");
+
+    drop_mongo(handle);
+    drop_mongo(batch_handle);
+    EXPECT_EQ(db->get_node(handle), nullptr);
+    EXPECT_EQ(db->get_node(batch_handle), nullptr);
+    EXPECT_EQ(db->get_node_name(handle), "restore-me");
+    EXPECT_EQ(db->get_node_name(batch_handle), "restore-batch");
+    EXPECT_FALSE(db->delete_node(handle));
+    EXPECT_FALSE(db->delete_node(batch_handle));
+}
+
+TEST_F(RedisMongoDBTest, NodeNamePipelinePropagatesRedisErrors) {
+    TestRedis redis;
+    redis.ctx.append_command({"SET", db->REDIS_NODE_NAME_PREFIX + ":pipeline-error"});
+    EXPECT_THROW(redis.ctx.flush_commands(), runtime_error);
+
+    redisReply* reply = redis.ctx.execute({"PING"});
+    ASSERT_NE(reply, nullptr);
+    EXPECT_EQ(reply->type, REDIS_REPLY_STATUS);
+    freeReplyObject(reply);
 }
 
 TEST_F(RedisMongoDBTest, AddAndDeleteNodes) {
@@ -1777,6 +1903,7 @@ TEST(RedisMongoDBPrefixIsolation, InstancesKeepIndependentNamespaces) {
     EXPECT_EQ(db_a->MONGODB_DB_NAME, "peer_a_das");
     EXPECT_EQ(db_a->REDIS_PATTERNS_PREFIX, "peer_a_patterns");
     EXPECT_EQ(db_a->REDIS_OUTGOING_PREFIX, "peer_a_outgoing_set");
+    EXPECT_EQ(db_a->REDIS_NODE_NAME_PREFIX, "peer_a_names");
     Node pred_a("Symbol", "SimilarityA");
     Node human_a("Symbol", "PeerAHuman");
     Node monkey_a("Symbol", "PeerAMonkey");
@@ -1791,6 +1918,7 @@ TEST(RedisMongoDBPrefixIsolation, InstancesKeepIndependentNamespaces) {
     EXPECT_EQ(db_b->MONGODB_DB_NAME, "peer_b_das");
     EXPECT_EQ(db_b->REDIS_PATTERNS_PREFIX, "peer_b_patterns");
     EXPECT_EQ(db_b->REDIS_OUTGOING_PREFIX, "peer_b_outgoing_set");
+    EXPECT_EQ(db_b->REDIS_NODE_NAME_PREFIX, "peer_b_names");
     Node pred_b("Symbol", "SimilarityB");
     Node human_b("Symbol", "PeerBHuman");
     Node monkey_b("Symbol", "PeerBMonkey");
@@ -1799,12 +1927,16 @@ TEST(RedisMongoDBPrefixIsolation, InstancesKeepIndependentNamespaces) {
     db_b->add_link(&link_b);
 
     AtomDBSingleton::provide(db_a, true);
+    EXPECT_EQ(db_a->get_node_name(human_a.handle()), "PeerAHuman");
+    EXPECT_EQ(db_a->get_node_name(human_b.handle()), "");
     EXPECT_TRUE(db_a->node_exists(human_a.handle()));
     EXPECT_TRUE(db_a->link_exists(link_a.handle()));
     EXPECT_FALSE(db_a->node_exists(human_b.handle()));
     EXPECT_FALSE(db_a->link_exists(link_b.handle()));
 
     AtomDBSingleton::provide(db_b, true);
+    EXPECT_EQ(db_b->get_node_name(human_b.handle()), "PeerBHuman");
+    EXPECT_EQ(db_b->get_node_name(human_a.handle()), "");
     EXPECT_TRUE(db_b->node_exists(human_b.handle()));
     EXPECT_TRUE(db_b->link_exists(link_b.handle()));
     EXPECT_FALSE(db_b->node_exists(human_a.handle()));
@@ -1818,6 +1950,7 @@ TEST(RedisMongoDBPrefixIsolation, InstancesKeepIndependentNamespaces) {
     auto record_db = AtomDBSingleton::get_instance();
     AtomDBSingleton::provide(db_a, true);
     db_a->drop_all();
+    EXPECT_EQ(db_a->get_node_name(human_a.handle()), "");
     EXPECT_FALSE(db_a->node_exists(human_a.handle()));
     EXPECT_FALSE(db_a->link_exists(link_a.handle()));
     AtomDBSingleton::provide(db_b, true);
