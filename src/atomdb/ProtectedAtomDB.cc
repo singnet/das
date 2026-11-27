@@ -126,7 +126,7 @@ shared_ptr<atomdb_api_types::HandleSet> ProtectedAtomDB::query_for_pattern(
         auto link = dynamic_pointer_cast<Link>(atom);
         if (link == nullptr) continue;
         Assignment assignment;
-        if (const_cast<LinkSchema&>(link_schema).match(*link, assignment, *this->backend)) {
+        if (const_cast<LinkSchema&>(link_schema).match(*link, assignment, *this->backend_decoder)) {
             authorized_handle_set->add_handle(
                 atom->handle(),
                 candidate_handle_set->get_metta_expressions_by_handle(atom->handle()),

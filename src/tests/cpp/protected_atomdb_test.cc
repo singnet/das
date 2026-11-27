@@ -722,10 +722,9 @@ TEST(ProtectedAtomDBTest, NestedRelatedGrantDoesNotImplyInnerSimilarity) {
                     .empty());
 
     LinkSchema related_similarity_human_schema(related_of_similarity_human);
-    // TODO XXX Fix this test case
-    // EXPECT_TRUE(handles_from_set(protected_atomdb->db->query_for_pattern(related_similarity_human_schema,
-    //                                                                     related_human_keys))
-    //                .count(animals.related_similarity_and_inheritance) == 0);
+    EXPECT_TRUE(handles_from_set(protected_atomdb->db->query_for_pattern(related_similarity_human_schema,
+                                                                         related_human_keys))
+                    .count(animals.related_similarity_and_inheritance));
     EXPECT_TRUE(handles_from_set(protected_atomdb->db->query_for_pattern(related_similarity_human_schema,
                                                                          similarity_human_keys))
                     .empty());
@@ -786,8 +785,11 @@ TEST(ProtectedAtomDBTest, UnrestrictedQueryForPatternMatchesBackend) {
     auto unrestricted_result =
         protected_atomdb->db->query_for_pattern(similarity_human_schema, admin_keys);
 
-    auto backend_handles = handles_from_set(backend_result);
-    auto unrestricted_handles = handles_from_set(unrestricted_result);
+    // The unrestricted result is the Redis handle set. Its iterator only returns a handle
+    // after matching it, and that match needs a decoder that reads the raw backend.
+    BackendDecoder decoder(protected_atomdb->backend);
+    auto backend_handles = handles_from_set(backend_result, &decoder);
+    auto unrestricted_handles = handles_from_set(unrestricted_result, &decoder);
     ASSERT_FALSE(backend_handles.empty());
     EXPECT_EQ(unrestricted_handles, backend_handles);
 
