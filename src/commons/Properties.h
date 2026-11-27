@@ -4,6 +4,7 @@
 #include <memory>
 #include <string>
 #include <unordered_map>
+#include <utility>
 #include <variant>
 #include <vector>
 
@@ -15,7 +16,8 @@ namespace commons {
 
 class Properties;
 
-using PropertyValue = variant<string, long, unsigned int, double, bool, shared_ptr<Properties>>;
+using PropertyValue =
+    variant<string, long, unsigned int, double, bool, shared_ptr<Properties>, pair<double, double>>;
 
 /**
  * @brief A specialization of std::unordered_map using string as key and
@@ -149,6 +151,11 @@ class Properties : public unordered_map<string, PropertyValue> {
                 result += *boolean ? "true" : "false";
             } else if (auto nested = std::get_if<shared_ptr<Properties>>(&value)) {
                 result += (*nested)->to_string();
+            } else if (auto pair_value = std::get_if<pair<double, double>>(&value)) {
+                result += "(" + std::to_string(pair_value->first) + " " +
+                          std::to_string(pair_value->second) + ")";
+            } else {
+                result += "unknown_type";
             }
             result += ", ";
             empty_flag = false;
@@ -201,6 +208,10 @@ class Properties : public unordered_map<string, PropertyValue> {
                 } else if (std::get_if<shared_ptr<Properties>>(&value)) {
                     result.push_back("object");
                     result.push_back("");  // nested not serialized in tokenize; use to_string for debug
+                } else if (auto pair_value = std::get_if<pair<double, double>>(&value)) {
+                    result.push_back("pair");
+                    result.push_back("(" + std::to_string(pair_value->first) + " " +
+                                     std::to_string(pair_value->second) + ")");
                 }
             }
         }
@@ -236,6 +247,15 @@ class Properties : public unordered_map<string, PropertyValue> {
                     } else {
                         RAISE_ERROR("Invalid 'bool' string value: " + value);
                     }
+                } else if (type == "pair") {
+                    if (value.size() < 2 || value.front() != '(' || value.back() != ')') {
+                        RAISE_ERROR("Invalid 'pair' string value: " + value);
+                    }
+                    auto parts = Utils::split(value.substr(1, value.size() - 2), ' ');
+                    if (parts.size() != 2) {
+                        RAISE_ERROR("Invalid 'pair' string value: " + value);
+                    }
+                    (*this)[key] = make_pair(stod(parts[0]), stod(parts[1]));
                 } else {
                     RAISE_ERROR("Invalid token type: " + type);
                 }

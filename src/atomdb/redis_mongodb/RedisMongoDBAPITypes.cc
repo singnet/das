@@ -209,6 +209,12 @@ void add_custom_attributes(bsoncxx::builder::basic::document& doc, const Propert
                         custom_attributes_doc.append(bsoncxx::builder::basic::kvp(key, arg));
                     } else if constexpr (is_same_v<T, bool>) {
                         custom_attributes_doc.append(bsoncxx::builder::basic::kvp(key, arg));
+                    } else if constexpr (is_same_v<T, pair<double, double>>) {
+                        bsoncxx::builder::basic::array pair_array;
+                        pair_array.append(arg.first);
+                        pair_array.append(arg.second);
+                        custom_attributes_doc.append(
+                            bsoncxx::builder::basic::kvp(key, pair_array.extract()));
                     } else {
                         // MongoDB does not support unsigned int.
                         RAISE_ERROR("MongoDB does not support custom attribute '" + key +
@@ -239,6 +245,17 @@ Properties MongodbDocument::extract_custom_attributes(const bsoncxx::v_noabi::do
             case bsoncxx::v_noabi::type::k_bool:
                 custom_attributes[key] = value.get_bool().value;
                 break;
+            case bsoncxx::v_noabi::type::k_array: {
+                auto array = value.get_array().value;
+                auto first = array.begin();
+                auto second = std::next(first);
+                if (first == array.end() || second == array.end() || std::next(second) != array.end()) {
+                    RAISE_ERROR("Custom attribute '" + key + "' must be an array of two doubles");
+                }
+                custom_attributes[key] =
+                    make_pair(first->get_double().value, second->get_double().value);
+                break;
+            }
             default:
                 RAISE_ERROR("Unknown custom attribute type: " + key +
                             " type: " + to_string(value.type()));

@@ -2,6 +2,7 @@
 
 #include <gtest/gtest.h>
 
+#include "Utils.h"
 #include "atomdb/AtomDBAPITypes.h"
 
 using namespace std;
@@ -107,4 +108,26 @@ TEST(PropertiesTest, Tokenization) {
     EXPECT_EQ(map2.get<double>("pi"), 3.14);
     EXPECT_EQ(map2.get<bool>("flag"), false);
     EXPECT_EQ(map2.get<unsigned int>("uint"), (unsigned int) 1);
+}
+
+TEST(PropertiesTest, InsertAndGetPair) {
+    Properties map;
+    map["stv"] = make_pair(0.89, 0.56);
+    auto stv = map.get<pair<double, double>>("stv");
+    EXPECT_TRUE(Utils::epsilon_equals(stv.first, 0.89));
+    EXPECT_TRUE(Utils::epsilon_equals(stv.second, 0.56));
+    EXPECT_EQ(map.to_string(), "{stv: (0.890000 0.560000)}");
+
+    vector<string> tokens = map.tokenize();
+    EXPECT_EQ(tokens, vector<string>({"stv", "pair", "(0.890000 0.560000)"}));
+    Properties restored;
+    restored.untokenize(tokens);
+    stv = restored.get<pair<double, double>>("stv");
+    EXPECT_TRUE(Utils::epsilon_equals(stv.first, 0.89));
+    EXPECT_TRUE(Utils::epsilon_equals(stv.second, 0.56));
+
+    Properties invalid;
+    EXPECT_THROW(invalid.untokenize({"stv", "pair", "(0.89)"}), runtime_error);
+    EXPECT_THROW(invalid.untokenize({"stv", "pair", "(0.89 0.56 0.1)"}), runtime_error);
+    EXPECT_THROW(invalid.untokenize({"stv", "pair", "0.89 0.56"}), runtime_error);
 }
