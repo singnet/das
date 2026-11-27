@@ -53,6 +53,8 @@ class ProtectedAtomDB : public AtomDB, public KeySensitiveAtomDB {
 
     shared_ptr<Node> get_node(const string& handle) override;
     shared_ptr<Node> get_node(const string& handle, shared_ptr<Keychain> keychain) override;
+    string get_node_name(const string& handle) override;
+    string get_node_name(const string& handle, shared_ptr<Keychain> keychain) override;
 
     shared_ptr<Link> get_link(const string& handle) override;
     shared_ptr<Link> get_link(const string& handle, shared_ptr<Keychain> keychain) override;
@@ -194,11 +196,7 @@ class ProtectedAtomDB : public AtomDB, public KeySensitiveAtomDB {
             return this->atomdb->get_atom(handle);
         }
         string decode_node_name(const string& handle, shared_ptr<Keychain> keychain = nullptr) override {
-            auto node = this->atomdb->get_node(handle);
-            if (node == nullptr) {
-                return "";
-            }
-            return node->name;
+            return this->atomdb->get_node_name(handle);
         }
         vector<string> decode_link_targets(const string& handle,
                                            shared_ptr<Keychain> keychain = nullptr) override {

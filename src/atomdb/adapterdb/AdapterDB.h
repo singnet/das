@@ -65,10 +65,9 @@ class AdapterDB : public AtomDB {
     shared_ptr<Atom> get_atom(const string& handle) override;
     shared_ptr<Node> get_node(const string& handle) override;
     shared_ptr<Link> get_link(const string& handle) override;
+    string get_node_name(const string& handle) override;
 
     vector<shared_ptr<Atom>> get_atoms(const vector<string>& handles) override;
-    vector<shared_ptr<Node>> get_nodes(const vector<string>& handles) override;
-    vector<shared_ptr<Link>> get_links(const vector<string>& handles) override;
 
     vector<shared_ptr<Atom>> get_matching_atoms(bool is_toplevel, Atom& key) override;
 

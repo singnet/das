@@ -60,8 +60,6 @@ class InMemoryDB : public AtomDB, public HandleDecoder {
     shared_ptr<Link> get_link(const string& handle) override;
 
     vector<shared_ptr<Atom>> get_atoms(const vector<string>& handles) override;
-    vector<shared_ptr<Node>> get_nodes(const vector<string>& handles) override;
-    vector<shared_ptr<Link>> get_links(const vector<string>& handles) override;
 
     vector<shared_ptr<Atom>> get_matching_atoms(bool is_toplevel, Atom& key) override;
 
@@ -122,11 +120,7 @@ class InMemoryDB : public AtomDB, public HandleDecoder {
         return get_atom(handle);
     }
     string decode_node_name(const string& handle, shared_ptr<Keychain> keychain = nullptr) override {
-        auto node = dynamic_pointer_cast<Node>(get_atom(handle));
-        if (node == nullptr) {
-            return "";
-        }
-        return node->name;
+        return get_node_name(handle);
     }
     vector<string> decode_link_targets(const string& handle,
                                        shared_ptr<Keychain> keychain = nullptr) override {

@@ -4,6 +4,7 @@
 #include <hiredis_cluster/hircluster.h>
 
 #include <string>
+#include <vector>
 
 using namespace std;
 
@@ -17,8 +18,11 @@ class RedisContext {
     void set_context(redisClusterContext* ctx);
 
     redisReply* execute(const char* command);
+    // Binary-safe command. Each entry is one Redis argument (handles spaces and quotes).
+    redisReply* execute(const vector<string>& args);
     bool ping();
     void append_command(const char* command);
+    void append_command(const vector<string>& args);
     void flush_commands();
     int get_pending_commands_count() const { return pending_commands_count; }
     bool has_error() const;

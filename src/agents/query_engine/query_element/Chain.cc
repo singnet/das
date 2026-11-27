@@ -15,10 +15,9 @@ Chain::Path::ImportanceCompositionStrategy Chain::Path::importance_composer = Ch
 static string convert_handle(const string& handle) {
 #if LOG_LEVEL >= DEBUG_LEVEL
     if (Hasher::is_node_handle(handle)) {
-        shared_ptr<Node> node =
-            dynamic_pointer_cast<Node>(AtomDBSingleton::get_instance()->get_atom(handle));
-        if (node != nullptr) {
-            return node->name;
+        string name = AtomDBUtils::get_node_name(handle);
+        if (!name.empty()) {
+            return name;
         }
     }
 #endif

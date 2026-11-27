@@ -98,12 +98,12 @@ static string sentence_name_from_answer(shared_ptr<QueryAnswer> answer) {
                     to_string(sentence_link->targets.size()) + ")");
     }
     const string& name_handle = sentence_link->targets[1];
-    auto sentence_name_node = db->get_node(name_handle);
-    if (sentence_name_node == nullptr) {
-        RAISE_ERROR("sentence_name_from_answer: get_node returned null for handle '" + name_handle +
-                    "' (sentence link '" + handle + "')");
+    string sentence_name = db->get_node_name(name_handle);
+    if (sentence_name.empty()) {
+        RAISE_ERROR("sentence_name_from_answer: get_node_name returned empty for handle '" +
+                    name_handle + "' (sentence link '" + handle + "')");
     }
-    return sentence_name_node->name;
+    return sentence_name;
 }
 
 static void print_answer(shared_ptr<QueryAnswer> answer, const string& word_tag) {

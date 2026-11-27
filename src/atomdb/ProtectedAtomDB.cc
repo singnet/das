@@ -58,6 +58,11 @@ shared_ptr<Node> ProtectedAtomDB::get_node(const string& handle, shared_ptr<Keyc
     return dynamic_pointer_cast<Node>(this->get_atom(handle, keychain));
 }
 
+string ProtectedAtomDB::get_node_name(const string& handle, shared_ptr<Keychain> keychain) {
+    if (!Hasher::is_node_handle(handle)) return "";
+    return this->backend->get_node_name(handle);
+}
+
 shared_ptr<Link> ProtectedAtomDB::get_link(const string& handle, shared_ptr<Keychain> keychain) {
     if (!Hasher::is_link_handle(handle)) return nullptr;
     return dynamic_pointer_cast<Link>(this->get_atom(handle, keychain));
@@ -70,30 +75,6 @@ vector<shared_ptr<Atom>> ProtectedAtomDB::get_atoms(const vector<string>& handle
         return {};
     }
     return this->filter_atoms(this->backend->get_atoms(handles), *public_key);
-}
-
-vector<shared_ptr<Node>> ProtectedAtomDB::get_nodes(const vector<string>& handles,
-                                                    shared_ptr<Keychain> keychain) {
-    auto atoms = this->get_atoms(handles, keychain);
-    vector<shared_ptr<Node>> nodes;
-    for (const auto& atom : atoms) {
-        if (auto node = dynamic_pointer_cast<Node>(atom)) {
-            nodes.push_back(node);
-        }
-    }
-    return nodes;
-}
-
-vector<shared_ptr<Link>> ProtectedAtomDB::get_links(const vector<string>& handles,
-                                                    shared_ptr<Keychain> keychain) {
-    auto atoms = this->get_atoms(handles, keychain);
-    vector<shared_ptr<Link>> links;
-    for (const auto& atom : atoms) {
-        if (auto link = dynamic_pointer_cast<Link>(atom)) {
-            links.push_back(link);
-        }
-    }
-    return links;
 }
 
 vector<shared_ptr<Atom>> ProtectedAtomDB::get_matching_atoms(bool is_toplevel,
@@ -320,6 +301,8 @@ shared_ptr<Atom> ProtectedAtomDB::get_atom(const string& handle) { raise_keychai
 
 shared_ptr<Node> ProtectedAtomDB::get_node(const string& handle) { raise_keychain_required("get_node"); }
 
+string ProtectedAtomDB::get_node_name(const string& handle) { raise_keychain_required("get_node_name"); }
+
 shared_ptr<Link> ProtectedAtomDB::get_link(const string& handle) { raise_keychain_required("get_link"); }
 
 vector<shared_ptr<Atom>> ProtectedAtomDB::get_atoms(const vector<string>& handles) {
@@ -332,6 +315,16 @@ vector<shared_ptr<Node>> ProtectedAtomDB::get_nodes(const vector<string>& handle
 
 vector<shared_ptr<Link>> ProtectedAtomDB::get_links(const vector<string>& handles) {
     raise_keychain_required("get_links");
+}
+
+vector<shared_ptr<Node>> ProtectedAtomDB::get_nodes(const vector<string>& handles,
+                                                    shared_ptr<Keychain> keychain) {
+    return KeySensitiveAtomDB::get_nodes(handles, keychain);
+}
+
+vector<shared_ptr<Link>> ProtectedAtomDB::get_links(const vector<string>& handles,
+                                                    shared_ptr<Keychain> keychain) {
+    return KeySensitiveAtomDB::get_links(handles, keychain);
 }
 
 vector<shared_ptr<Atom>> ProtectedAtomDB::get_matching_atoms(bool is_toplevel, Atom& key) {

@@ -81,6 +81,11 @@ shared_ptr<Node> AdapterDB::get_node(const string& handle) {
     return this->atomdb_backend->get_node(handle);
 }
 
+string AdapterDB::get_node_name(const string& handle) {
+    this->ensure_backend_ready();
+    return this->atomdb_backend->get_node_name(handle);
+}
+
 shared_ptr<Link> AdapterDB::get_link(const string& handle) {
     this->ensure_backend_ready();
     return this->atomdb_backend->get_link(handle);
@@ -89,16 +94,6 @@ shared_ptr<Link> AdapterDB::get_link(const string& handle) {
 vector<shared_ptr<Atom>> AdapterDB::get_atoms(const vector<string>& handles) {
     this->ensure_backend_ready();
     return this->atomdb_backend->get_atoms(handles);
-}
-
-vector<shared_ptr<Node>> AdapterDB::get_nodes(const vector<string>& handles) {
-    this->ensure_backend_ready();
-    return this->atomdb_backend->get_nodes(handles);
-}
-
-vector<shared_ptr<Link>> AdapterDB::get_links(const vector<string>& handles) {
-    this->ensure_backend_ready();
-    return this->atomdb_backend->get_links(handles);
 }
 
 vector<shared_ptr<Atom>> AdapterDB::get_matching_atoms(bool is_toplevel, Atom& key) {

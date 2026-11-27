@@ -75,6 +75,8 @@ shared_ptr<Node> RemoteAtomDB::get_node(const string& handle) {
     return dynamic_pointer_cast<Node>(get_atom(handle));
 }
 
+string RemoteAtomDB::get_node_name(const string& handle) { return this->get_node_name(handle, nullptr); }
+
 shared_ptr<Link> RemoteAtomDB::get_link(const string& handle) {
     if (!Hasher::is_link_handle(handle)) return nullptr;
     return dynamic_pointer_cast<Link>(get_atom(handle));
@@ -85,11 +87,11 @@ vector<shared_ptr<Atom>> RemoteAtomDB::get_atoms(const vector<string>& handles) 
 }
 
 vector<shared_ptr<Node>> RemoteAtomDB::get_nodes(const vector<string>& handles) {
-    return this->get_nodes(handles, nullptr);
+    return AtomDB::get_nodes(handles);
 }
 
 vector<shared_ptr<Link>> RemoteAtomDB::get_links(const vector<string>& handles) {
-    return this->get_links(handles, nullptr);
+    return AtomDB::get_links(handles);
 }
 
 vector<shared_ptr<Atom>> RemoteAtomDB::get_matching_atoms(bool is_toplevel, Atom& key) {
@@ -336,6 +338,34 @@ shared_ptr<Node> RemoteAtomDB::get_node(const string& handle, shared_ptr<Keychai
     return dynamic_pointer_cast<Node>(this->get_atom(handle, keychain));
 }
 
+string RemoteAtomDB::get_node_name(const string& handle, shared_ptr<Keychain> keychain) {
+    if (!Hasher::is_node_handle(handle)) return "";
+
+    for (auto& [uid, peer] : writable_peers_) {
+        string name = peer->get_node_name(handle, keychain);
+        if (!name.empty()) {
+            LOG_DEBUG("get_node_name(" << handle << ") fetched from peer [" << uid << "]");
+            return name;
+        }
+    }
+
+    for (auto& [uid, peer] : readonly_peers_) {
+        auto node = peer->get_cached_node(handle, keychain);
+        if (node) return node->name;
+    }
+
+    for (auto& [uid, peer] : readonly_peers_) {
+        string name = peer->get_node_name(handle, keychain);
+        if (!name.empty()) {
+            LOG_DEBUG("get_node_name(" << handle << ") fetched from peer [" << uid << "]");
+            return name;
+        }
+    }
+
+    LOG_DEBUG("get_node_name(" << handle << ") not found in any peer");
+    return "";
+}
+
 shared_ptr<Link> RemoteAtomDB::get_link(const string& handle, shared_ptr<Keychain> keychain) {
     if (!Hasher::is_link_handle(handle)) return nullptr;
     return dynamic_pointer_cast<Link>(this->get_atom(handle, keychain));
@@ -400,26 +430,12 @@ vector<shared_ptr<Atom>> RemoteAtomDB::get_atoms(const vector<string>& handles,
 
 vector<shared_ptr<Node>> RemoteAtomDB::get_nodes(const vector<string>& handles,
                                                  shared_ptr<Keychain> keychain) {
-    auto atoms = this->get_atoms(handles, keychain);
-    vector<shared_ptr<Node>> nodes;
-    for (const auto& atom : atoms) {
-        if (auto node = dynamic_pointer_cast<Node>(atom)) {
-            nodes.push_back(node);
-        }
-    }
-    return nodes;
+    return KeySensitiveAtomDB::get_nodes(handles, keychain);
 }
 
 vector<shared_ptr<Link>> RemoteAtomDB::get_links(const vector<string>& handles,
                                                  shared_ptr<Keychain> keychain) {
-    auto atoms = this->get_atoms(handles, keychain);
-    vector<shared_ptr<Link>> links;
-    for (const auto& atom : atoms) {
-        if (auto link = dynamic_pointer_cast<Link>(atom)) {
-            links.push_back(link);
-        }
-    }
-    return links;
+    return KeySensitiveAtomDB::get_links(handles, keychain);
 }
 
 vector<shared_ptr<Atom>> RemoteAtomDB::get_matching_atoms(bool is_toplevel,

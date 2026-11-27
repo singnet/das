@@ -29,13 +29,32 @@ class KeySensitiveAtomDB {
     virtual shared_ptr<Atom> get_atom(const string& handle, shared_ptr<Keychain> keychain) = 0;
     virtual shared_ptr<Node> get_node(const string& handle, shared_ptr<Keychain> keychain) = 0;
     virtual shared_ptr<Link> get_link(const string& handle, shared_ptr<Keychain> keychain) = 0;
+    virtual string get_node_name(const string& handle, shared_ptr<Keychain> keychain) = 0;
 
     virtual vector<shared_ptr<Atom>> get_atoms(const vector<string>& handles,
                                                shared_ptr<Keychain> keychain) = 0;
     virtual vector<shared_ptr<Node>> get_nodes(const vector<string>& handles,
-                                               shared_ptr<Keychain> keychain) = 0;
+                                               shared_ptr<Keychain> keychain) {
+        auto atoms = this->get_atoms(handles, keychain);
+        vector<shared_ptr<Node>> nodes;
+        for (const auto& atom : atoms) {
+            if (auto node = dynamic_pointer_cast<Node>(atom)) {
+                nodes.push_back(node);
+            }
+        }
+        return nodes;
+    }
     virtual vector<shared_ptr<Link>> get_links(const vector<string>& handles,
-                                               shared_ptr<Keychain> keychain) = 0;
+                                               shared_ptr<Keychain> keychain) {
+        auto atoms = this->get_atoms(handles, keychain);
+        vector<shared_ptr<Link>> links;
+        for (const auto& atom : atoms) {
+            if (auto link = dynamic_pointer_cast<Link>(atom)) {
+                links.push_back(link);
+            }
+        }
+        return links;
+    }
 
     virtual vector<shared_ptr<Atom>> get_matching_atoms(bool is_toplevel,
                                                         Atom& key,

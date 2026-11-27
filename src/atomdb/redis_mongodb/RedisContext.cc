@@ -39,6 +39,30 @@ redisReply* RedisContext::execute(const char* command) {
     }
 }
 
+static void redis_argv(const vector<string>& args, vector<const char*>& argv, vector<size_t>& argvlen) {
+    argv.clear();
+    argvlen.clear();
+    argv.reserve(args.size());
+    argvlen.reserve(args.size());
+    for (const auto& arg : args) {
+        argv.push_back(arg.c_str());
+        argvlen.push_back(arg.size());
+    }
+}
+
+redisReply* RedisContext::execute(const vector<string>& args) {
+    vector<const char*> argv;
+    vector<size_t> argvlen;
+    redis_argv(args, argv, argvlen);
+    if (cluster_flag) {
+        return (redisReply*) redisClusterCommandArgv(
+            cluster_ctx, static_cast<int>(argv.size()), argv.data(), argvlen.data());
+    } else {
+        return (redisReply*) redisCommandArgv(
+            single_ctx, static_cast<int>(argv.size()), argv.data(), argvlen.data());
+    }
+}
+
 bool RedisContext::ping() {
     redisReply* reply = this->execute("PING");
     if (reply == NULL) return false;
@@ -61,32 +85,50 @@ void RedisContext::append_command(const char* command) {
         }
     }
 }
-void RedisContext::flush_commands() {
-    redisReply* reply;
+
+void RedisContext::append_command(const vector<string>& args) {
+    vector<const char*> argv;
+    vector<size_t> argvlen;
+    redis_argv(args, argv, argvlen);
+    int status;
     if (cluster_flag) {
-        while (pending_commands_count > 0) {
-            pending_commands_count--;
-
-            if (redisClusterGetReply(cluster_ctx, (void**) &reply) == REDIS_ERR) {
-                return;
-            }
-
-            if (reply != nullptr) {
-                freeReplyObject(reply);
-            }
-        }
+        status = redisClusterAppendCommandArgv(
+            cluster_ctx, static_cast<int>(argv.size()), argv.data(), argvlen.data());
     } else {
-        while (pending_commands_count > 0) {
-            pending_commands_count--;
-
-            if (redisGetReply(single_ctx, (void**) &reply) == REDIS_ERR) {
-                return;
-            }
-
-            if (reply != nullptr) {
-                freeReplyObject(reply);
-            }
+        status = redisAppendCommandArgv(
+            single_ctx, static_cast<int>(argv.size()), argv.data(), argvlen.data());
+    }
+    if (status == REDIS_OK) {
+        pending_commands_count++;
+    } else {
+        RAISE_ERROR("Failed to append command to Redis context.");
+    }
+}
+void RedisContext::flush_commands() {
+    string error;
+    while (pending_commands_count > 0) {
+        pending_commands_count--;
+        redisReply* reply = nullptr;
+        int status = cluster_flag ? redisClusterGetReply(cluster_ctx, (void**) &reply)
+                                  : redisGetReply(single_ctx, (void**) &reply);
+        if (status == REDIS_ERR) {
+            // The connection can no longer yield the remaining replies.
+            pending_commands_count = 0;
+            const char* err = get_error();
+            error = (err != nullptr && err[0] != '\0') ? err : "Redis pipeline failed";
+            break;
         }
+        if (reply == nullptr) {
+            continue;
+        }
+        if (reply->type == REDIS_REPLY_ERROR && error.empty()) {
+            error = (reply->str != nullptr) ? string(reply->str, static_cast<size_t>(reply->len))
+                                            : "Redis command failed";
+        }
+        freeReplyObject(reply);
+    }
+    if (!error.empty()) {
+        RAISE_ERROR("Redis pipeline error: " + error);
     }
 }
 

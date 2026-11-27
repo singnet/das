@@ -64,9 +64,39 @@ class AtomDB {
     virtual shared_ptr<Node> get_node(const string& handle) = 0;
     virtual shared_ptr<Link> get_link(const string& handle) = 0;
 
+    /**
+     * Name of the stored node for handle, or "" when no such node exists.
+     * The default loads the node. Backends may serve this from a name index.
+     */
+    virtual string get_node_name(const string& handle) {
+        auto node = this->get_node(handle);
+        if (node == nullptr) {
+            return "";
+        }
+        return node->name;
+    }
+
     virtual vector<shared_ptr<Atom>> get_atoms(const vector<string>& handles) = 0;
-    virtual vector<shared_ptr<Node>> get_nodes(const vector<string>& handles) = 0;
-    virtual vector<shared_ptr<Link>> get_links(const vector<string>& handles) = 0;
+    virtual vector<shared_ptr<Node>> get_nodes(const vector<string>& handles) {
+        auto atoms = this->get_atoms(handles);
+        vector<shared_ptr<Node>> nodes;
+        for (const auto& atom : atoms) {
+            if (auto node = dynamic_pointer_cast<Node>(atom)) {
+                nodes.push_back(node);
+            }
+        }
+        return nodes;
+    }
+    virtual vector<shared_ptr<Link>> get_links(const vector<string>& handles) {
+        auto atoms = this->get_atoms(handles);
+        vector<shared_ptr<Link>> links;
+        for (const auto& atom : atoms) {
+            if (auto link = dynamic_pointer_cast<Link>(atom)) {
+                links.push_back(link);
+            }
+        }
+        return links;
+    }
 
     virtual vector<shared_ptr<Atom>> get_matching_atoms(bool is_toplevel, Atom& key) = 0;
 
