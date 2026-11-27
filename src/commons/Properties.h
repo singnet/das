@@ -248,13 +248,14 @@ class Properties : public unordered_map<string, PropertyValue> {
                         RAISE_ERROR("Invalid 'bool' string value: " + value);
                     }
                 } else if (type == "pair") {
-                    auto parts = Utils::split(value, ' ');
+                    if (value.size() < 2 || value.front() != '(' || value.back() != ')') {
+                        RAISE_ERROR("Invalid 'pair' string value: " + value);
+                    }
+                    auto parts = Utils::split(value.substr(1, value.size() - 2), ' ');
                     if (parts.size() != 2) {
                         RAISE_ERROR("Invalid 'pair' string value: " + value);
                     }
-                    double first = stod(parts[0].substr(1));
-                    double second = stod(parts[1].substr(0, parts[1].size() - 1));
-                    (*this)[key] = make_pair(first, second);
+                    (*this)[key] = make_pair(stod(parts[0]), stod(parts[1]));
                 } else {
                     RAISE_ERROR("Invalid token type: " + type);
                 }

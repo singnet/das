@@ -129,4 +129,5 @@ TEST(PropertiesTest, InsertAndGetPair) {
     Properties invalid;
     EXPECT_THROW(invalid.untokenize({"stv", "pair", "(0.89)"}), runtime_error);
     EXPECT_THROW(invalid.untokenize({"stv", "pair", "(0.89 0.56 0.1)"}), runtime_error);
+    EXPECT_THROW(invalid.untokenize({"stv", "pair", "0.89 0.56"}), runtime_error);
 }
